@@ -1,0 +1,6 @@
+data_old/
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db

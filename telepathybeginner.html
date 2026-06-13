@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP GYM Telepathy Beginner</title>
+  <script>
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+  </script>
+  <link rel="manifest" href="telepathybeginner.webmanifest">
+  <meta name="theme-color" content="#050505">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="tb-icon-192.png">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260609i">
+</head>
+<body>
+  <main class="beginner-shell">
+    <section class="beginner-panel" aria-labelledby="beginnerTitle">
+      <section class="beginner-view" data-view="launcher">
+        <div class="beginner-top-row">
+          <a class="beginner-top-link" href="https://telepathyexperiment.com/slide0.php">GYM HOME</a>
+          <p class="beginner-kicker">ESP GYM</p>
+          <button class="beginner-top-button" type="button" data-open-options>OPTIONS</button>
+        </div>
+
+        <h1 class="beginner-title" id="beginnerTitle">Telepathy Beginner</h1>
+        <p class="beginner-subtitle">A sender-receiver training app for telepathic development.</p>
+
+        <section class="telepathy-hero" aria-hidden="true">
+          <div class="telepathy-hero-frame">
+            <img class="telepathy-hero-image" src="minds-connected-uncropped.png" alt="">
+          </div>
+        </section>
+
+        <div class="beginner-copy">
+          <p>Choose whether you will act as the sender or the receiver for this session.</p>
+        </div>
+
+        <section class="role-panels" aria-label="Role selection">
+          <article class="role-card" data-role-card="sender">
+            <button class="role-card-header" type="button" aria-expanded="false">
+              <span class="role-card-title">I Will Be the Sender</span>
+              <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
+              <span class="role-card-tagline">Skill: Visual attention focus</span>
+            </button>
+            <div class="role-card-body">
+              <form class="role-form" data-role-form="sender" autocomplete="off">
+                <label class="role-field">
+                  <span class="role-field-label">Your name:</span>
+                  <input
+                    class="role-input"
+                    type="text"
+                    name="ownName"
+                    autocomplete="off"
+                    placeholder="First name    Last name"
+                    title="Enter first and last name in this field."
+                  >
+                </label>
+                <label class="role-field role-field-partner">
+                  <span class="role-field-label">Exact receiver name:</span>
+                  <div class="role-partner-row">
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="partnerName"
+                      autocomplete="off"
+                      placeholder="First name    Last name"
+                      title="Enter first and last name in this field."
+                    >
+                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver names" autocomplete="off" title="Press here to select a saved receiver">
+                      <option value="">Select receiver</option>
+                    </select>
+                    <button
+                      class="role-manage"
+                      type="button"
+                      name="managePartnerNames"
+                      title="Edit dropdown list of receivers"
+                    >Manage receivers</button>
+                  </div>
+                </label>
+                <div class="role-location-status" data-location-status="sender">
+                  <span class="role-location-text">Location: unknown</span>
+                  <button class="role-location-retry" type="button" data-retry-location="sender" hidden>Retry location</button>
+                </div>
+                <button class="role-go" type="submit">GO</button>
+              </form>
+            </div>
+          </article>
+
+          <article class="role-card" data-role-card="receiver">
+            <button class="role-card-header" type="button" aria-expanded="false">
+              <span class="role-card-title">I Will Be the Receiver</span>
+              <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
+              <span class="role-card-tagline">Skill: Mind's eye perception</span>
+            </button>
+            <div class="role-card-body">
+              <form class="role-form" data-role-form="receiver" autocomplete="off">
+                <label class="role-field">
+                  <span class="role-field-label">Your name:</span>
+                  <input
+                    class="role-input"
+                    type="text"
+                    name="ownName"
+                    autocomplete="off"
+                    placeholder="First name    Last name"
+                    title="Enter first and last name in this field."
+                  >
+                </label>
+                <label class="role-field role-field-partner">
+                  <span class="role-field-label">Exact sender name:</span>
+                  <div class="role-partner-row">
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="partnerName"
+                      autocomplete="off"
+                      placeholder="First name    Last name"
+                      title="Enter first and last name in this field."
+                    >
+                    <select class="role-select" name="partnerHistory" aria-label="Saved sender names" autocomplete="off" title="Press here to select a saved sender">
+                      <option value="">Select sender</option>
+                    </select>
+                    <button
+                      class="role-manage"
+                      type="button"
+                      name="managePartnerNames"
+                      title="Edit dropdown list of senders"
+                    >Manage senders</button>
+                  </div>
+                </label>
+                <div class="role-location-status" data-location-status="receiver">
+                  <span class="role-location-text">Location: unknown</span>
+                  <button class="role-location-retry" type="button" data-retry-location="receiver" hidden>Retry location</button>
+                </div>
+                <button class="role-go" type="submit">GO</button>
+              </form>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="beginner-view beginner-view-hidden" data-view="options" aria-labelledby="optionsTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-options>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-version">ver. 20260609i</span>
+        </div>
+
+        <h1 class="beginner-title" id="optionsTitle">Options</h1>
+        <p class="beginner-subtitle">Choose an option for this device.</p>
+
+        <div class="options-actions">
+          <button class="options-button" type="button" onclick="window.location.href='BeginnerUserManual.html?v=20260503a'">User Manual</button>
+          <button class="options-button" type="button" data-open-report>View performance report</button>
+          <button class="options-button" type="button" data-open-difficulty>Change difficulty level of the task</button>
+          <button class="options-button" type="button" data-open-settings>Settings</button>
+          <button
+            class="options-button"
+            type="button"
+            data-install-app
+            title="As an app, it does not work inside a browser tab, but acts just like a regular app with its own icon."
+          >Install Telepathy Beginner as an app on this device</button>
+          </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="settings" aria-labelledby="settingsTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back" type="button" data-close-settings>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="settingsTitle">Settings</h1>
+          <p class="beginner-subtitle">Configure receiver-side options for this device.</p>
+
+          <section class="settings-view-panel">
+            <p class="settings-view-note" data-settings-current-pair>Receiver-side settings are shown for the current pair.</p>
+
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-settings-second-choice>
+              <span>Allow a second choice as well as a first choice (applies only to Level 3).</span>
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Download CSV data filename:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-settings-import-filename
+              >
+            </label>
+
+              <p class="settings-view-hint">
+                Leave this blank unless you want to download CSV data.
+              </p>
+
+            <div class="settings-view-status" data-settings-status></div>
+              <button class="options-button settings-view-save" type="button" data-download-settings-csv>Download CSV data</button>
+              <button class="options-button settings-view-save" type="button" data-save-settings>Save settings</button>
+            </section>
+          </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="admin" aria-labelledby="adminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back" type="button" data-close-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="adminTitle">Admin</h1>
+          <p class="beginner-subtitle">Administrative tools for this device and website.</p>
+
+          <section class="settings-view-panel admin-view-panel">
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-admin-debug-enabled>
+              <span>Enable debugging</span>
+            </label>
+
+            <div class="settings-view-note" data-admin-storage-info></div>
+            <div class="settings-view-status" data-admin-status></div>
+
+              <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
+              <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
+              <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
+
+              <pre class="report-definition-debug" data-admin-user-list hidden></pre>
+              <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
+            </section>
+        </section>
+ 
+        <section class="beginner-view beginner-view-hidden" data-view="report-definition" aria-labelledby="reportDefinitionTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-report-definition>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="beginner-title" id="reportDefinitionTitle">Report Definition</h1>
+        <p class="beginner-subtitle">Choose the receiver-sender pair whose performance history you want to review.</p>
+
+        <section class="report-definition-panel">
+          <div class="report-definition-field">
+            <span class="report-definition-label">Receiver-sender pair</span>
+            <div class="report-pair-picker" data-report-pair-picker>
+              <button class="report-pair-trigger" type="button" data-report-pair-trigger aria-expanded="false">
+                <span data-report-pair-trigger-text>Select receiver and sender</span>
+              </button>
+              <div class="report-pair-menu" data-report-pair-menu hidden>
+                <div class="report-pair-menu-header">
+                  <span>Receiver</span>
+                  <span>Sender</span>
+                  <span>Records</span>
+                </div>
+                <div class="report-pair-menu-options" data-report-pair-options></div>
+              </div>
+            </div>
+          </div>
+          <div class="report-definition-status" data-report-definition-status></div>
+          <pre class="report-definition-debug" data-report-definition-debug hidden></pre>
+          <button class="options-button report-definition-go" type="button" data-report-go hidden>GO</button>
+        </section>
+      </section>
+
+      <section class="beginner-view beginner-view-hidden" data-view="report" aria-labelledby="reportTitle">
+        <div class="beginner-top-row report-view-pan-handle" data-report-view-pan-handle>
+          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-report>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="beginner-title" id="reportTitle">Performance Report</h1>
+        <p class="beginner-subtitle">History recorded on the server for the selected receiver-sender pair.</p>
+
+        <section class="report-panel">
+          <div class="report-summary" data-report-summary></div>
+          <div class="report-status" data-report-status></div>
+          <div class="report-table-wrap" data-report-table-wrap hidden>
+            <table class="report-table" data-report-table></table>
+          </div>
+          <div class="report-resize-handle report-resize-handle-east" data-report-resize="east" aria-hidden="true"></div>
+          <div class="report-resize-handle report-resize-handle-south" data-report-resize="south" aria-hidden="true"></div>
+          <div class="report-resize-handle report-resize-handle-corner" data-report-resize="corner" aria-hidden="true"></div>
+        </section>
+      </section>
+
+      <section class="beginner-view beginner-view-hidden" data-view="difficulty" aria-labelledby="difficultyTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-difficulty>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="beginner-title" id="difficultyTitle">Difficulty Level</h1>
+        <p class="beginner-subtitle">Only the receiver of this sender-receiver pair can change the active difficulty level for telepathy practice.</p>
+
+        <div class="difficulty-panel">
+          <div class="difficulty-slider-wrap">
+            <div
+              class="difficulty-slider"
+              data-difficulty-slider
+              role="slider"
+              tabindex="0"
+              aria-label="Difficulty level"
+              aria-valuemin="1"
+              aria-valuemax="3"
+              aria-valuenow="3"
+            >
+              <div class="difficulty-slider-track"></div>
+              <div class="difficulty-slider-fill" data-difficulty-fill></div>
+              <div class="difficulty-slider-thumb" data-difficulty-thumb></div>
+            </div>
+            <div class="difficulty-label-row" aria-hidden="true">
+              <span>Level 1</span>
+              <span>Level 2</span>
+              <span>Level 3</span>
+            </div>
+          </div>
+          <div class="difficulty-current" data-difficulty-current>Level 3</div>
+          <p class="difficulty-description" data-difficulty-description>
+            In Level 3 there are 1, 2 or 3 cones are sent in 9 different possible arrangements. Try to decide exactly which arrangement is being sent.
+          </p>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script>
+    const scrollToTopOnLaunch = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    window.addEventListener("load", () => {
+      scrollToTopOnLaunch();
+      window.setTimeout(scrollToTopOnLaunch, 0);
+    });
+    window.addEventListener("pageshow", scrollToTopOnLaunch);
+  </script>
+  <script src="telepathybeginner.js?v=20260609i"></script>
+</body>
+</html>
