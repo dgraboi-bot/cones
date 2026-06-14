@@ -9,21 +9,21 @@
       history.scrollRestoration = "manual";
     }
   </script>
-  <link rel="manifest" href="telepathybeginner.webmanifest">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260614j">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260609i">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260614j">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260614j">
 </head>
 <body>
   <main class="beginner-shell">
     <section class="beginner-panel" aria-labelledby="beginnerTitle">
       <section class="beginner-view" data-view="launcher">
         <div class="beginner-top-row">
-          <a class="beginner-top-link" href="https://telepathyexperiment.com/slide0.php">GYM HOME</a>
+          <a class="beginner-top-link beginner-top-pill" href="https://telepathyexperiment.com/slide0.php">GYM HOME</a>
           <p class="beginner-kicker">ESP GYM</p>
-          <button class="beginner-top-button" type="button" data-open-options>OPTIONS</button>
+          <button class="beginner-top-button beginner-top-pill" type="button" data-open-options>OPTIONS</button>
         </div>
 
         <h1 class="beginner-title" id="beginnerTitle">Telepathy Beginner</h1>
@@ -144,9 +144,9 @@
 
       <section class="beginner-view beginner-view-hidden" data-view="options" aria-labelledby="optionsTitle">
         <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-options>BACK</button>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-options>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-version">ver. 20260609i</span>
+          <span class="beginner-top-version">ver. 20260614j</span>
         </div>
 
         <h1 class="beginner-title" id="optionsTitle">Options</h1>
@@ -154,9 +154,8 @@
 
         <div class="options-actions">
           <button class="options-button" type="button" onclick="window.location.href='BeginnerUserManual.html?v=20260503a'">User Manual</button>
-          <button class="options-button" type="button" data-open-report>View performance report</button>
-          <button class="options-button" type="button" data-open-difficulty>Change difficulty level of the task</button>
-          <button class="options-button" type="button" data-open-settings>Settings</button>
+          <button class="options-button" type="button" data-open-report>Performance Report</button>
+          <button class="options-button" type="button" data-open-difficulty>Change Difficulty Level</button>
           <button
             class="options-button"
             type="button"
@@ -168,22 +167,14 @@
 
         <section class="beginner-view beginner-view-hidden" data-view="settings" aria-labelledby="settingsTitle">
           <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back" type="button" data-close-settings>BACK</button>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-settings>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="settingsTitle">Settings</h1>
-          <p class="beginner-subtitle">Configure receiver-side options for this device.</p>
+          <h1 class="beginner-title" id="settingsTitle">Advanced</h1>
 
           <section class="settings-view-panel">
-            <p class="settings-view-note" data-settings-current-pair>Receiver-side settings are shown for the current pair.</p>
-
-            <label class="settings-view-checkbox">
-              <input type="checkbox" data-settings-second-choice>
-              <span>Allow a second choice as well as a first choice (applies only to Level 3).</span>
-            </label>
-
             <label class="settings-view-field">
               <span class="settings-view-label">Download CSV data filename:</span>
               <input
@@ -201,19 +192,17 @@
 
             <div class="settings-view-status" data-settings-status></div>
               <button class="options-button settings-view-save" type="button" data-download-settings-csv>Download CSV data</button>
-              <button class="options-button settings-view-save" type="button" data-save-settings>Save settings</button>
             </section>
           </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="admin" aria-labelledby="adminTitle">
           <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back" type="button" data-close-admin>BACK</button>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
           <h1 class="beginner-title" id="adminTitle">Admin</h1>
-          <p class="beginner-subtitle">Administrative tools for this device and website.</p>
 
           <section class="settings-view-panel admin-view-panel">
             <label class="settings-view-checkbox">
@@ -235,7 +224,7 @@
  
         <section class="beginner-view beginner-view-hidden" data-view="report-definition" aria-labelledby="reportDefinitionTitle">
         <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-report-definition>BACK</button>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-report-definition>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
           <span class="beginner-top-spacer" aria-hidden="true"></span>
         </div>
@@ -268,14 +257,12 @@
 
       <section class="beginner-view beginner-view-hidden" data-view="report" aria-labelledby="reportTitle">
         <div class="beginner-top-row report-view-pan-handle" data-report-view-pan-handle>
-          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-report>BACK</button>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-report>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
           <span class="beginner-top-spacer" aria-hidden="true"></span>
         </div>
 
         <h1 class="beginner-title" id="reportTitle">Performance Report</h1>
-        <p class="beginner-subtitle">History recorded on the server for the selected receiver-sender pair.</p>
-
         <section class="report-panel">
           <div class="report-summary" data-report-summary></div>
           <div class="report-status" data-report-status></div>
@@ -290,9 +277,9 @@
 
       <section class="beginner-view beginner-view-hidden" data-view="difficulty" aria-labelledby="difficultyTitle">
         <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back" type="button" data-close-difficulty>BACK</button>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-difficulty>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-spacer" aria-hidden="true"></span>
+          <button class="beginner-top-button beginner-top-pill" type="button" data-open-advanced>ADVANCED</button>
         </div>
 
         <h1 class="beginner-title" id="difficultyTitle">Difficulty Level</h1>
@@ -322,7 +309,7 @@
           </div>
           <div class="difficulty-current" data-difficulty-current>Level 3</div>
           <p class="difficulty-description" data-difficulty-description>
-            In Level 3 there are 1, 2 or 3 cones are sent in 9 different possible arrangements. Try to decide exactly which arrangement is being sent.
+            In Level 3, one, two or three cones are sent. Try to specify exactly how many cones are sent and in what arrangement those cones are sent.
           </p>
         </div>
       </section>
@@ -340,6 +327,6 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="telepathybeginner.js?v=20260609i"></script>
+  <script src="telepathybeginner.js?v=20260614j"></script>
 </body>
 </html>

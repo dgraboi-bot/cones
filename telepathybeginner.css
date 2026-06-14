@@ -78,20 +78,20 @@ body {
 }
 
 .report-layout-cell {
-  text-align: center;
+  text-align: left;
   vertical-align: middle;
 }
 
 .report-layout-thumb {
   position: relative;
-  width: 88px;
-  height: 88px;
-  margin: 0 auto;
+  width: 72px;
+  height: 72px;
+  margin: 0 0 0 -4px;
 }
 
 .report-layout-cone {
   position: absolute;
-  width: 26px;
+  width: 22px;
   height: auto;
   transform: translate(-50%, -50%);
   object-fit: contain;
@@ -130,6 +130,7 @@ body {
   align-items: center;
   justify-content: flex-end;
   color: rgba(255, 236, 214, 0.7);
+  -webkit-text-fill-color: rgba(255, 236, 214, 0.7);
   font-size: 0.92rem;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -141,6 +142,7 @@ body {
   align-items: center;
   align-self: center;
   color: rgba(255, 255, 255, 0.82);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.82);
   font-size: 0.95rem;
   letter-spacing: 0.16em;
 }
@@ -167,6 +169,20 @@ body {
   outline: none;
 }
 
+.beginner-top-pill {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(118, 171, 255, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(64, 123, 230, 0.95), rgba(30, 86, 186, 0.95));
+  box-shadow: 0 8px 18px rgba(24, 66, 140, 0.28);
+}
+
+.beginner-top-pill:hover,
+.beginner-top-pill:focus-visible {
+  background: linear-gradient(180deg, rgba(79, 139, 245, 0.98), rgba(39, 97, 201, 0.98));
+}
+
 .beginner-top-button-back {
   justify-self: start;
 }
@@ -181,6 +197,7 @@ body {
   font-size: 0.95rem;
   letter-spacing: 0.34em;
   color: rgba(255, 255, 255, 0.78);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.78);
 }
 
 .beginner-title {
@@ -247,14 +264,14 @@ body {
 }
 
 .role-card {
-  border: 1px solid rgba(178, 105, 45, 0.92);
+  border: 1px solid rgba(91, 149, 236, 0.92);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(92, 57, 33, 0.86), rgba(58, 36, 20, 0.9)),
-    rgba(42, 25, 14, 0.88);
+    linear-gradient(180deg, rgba(49, 96, 176, 0.9), rgba(24, 55, 112, 0.92)),
+    rgba(17, 29, 58, 0.9);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 0 18px rgba(178, 105, 45, 0.08);
+    0 0 18px rgba(58, 112, 214, 0.14);
   overflow: hidden;
 }
 
@@ -263,10 +280,10 @@ body {
 }
 
 .role-card[data-role-card="receiver"] {
-  border-color: rgba(189, 189, 189, 0.8);
+  border-color: rgba(134, 178, 244, 0.86);
   background:
-    linear-gradient(180deg, rgba(85, 61, 43, 0.78), rgba(52, 37, 24, 0.86)),
-    rgba(42, 25, 14, 0.82);
+    linear-gradient(180deg, rgba(66, 112, 191, 0.84), rgba(31, 64, 126, 0.9)),
+    rgba(20, 33, 66, 0.86);
 }
 
 .role-card-header {
@@ -831,13 +848,13 @@ body {
 
 .report-table {
   width: max-content;
-  min-width: 2500px;
+  min-width: 960px;
   border-collapse: collapse;
 }
 
 .report-table th,
 .report-table td {
-  padding: 10px 12px;
+  padding: 7px 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   text-align: left;
   vertical-align: top;
@@ -859,47 +876,9 @@ body {
   overflow-wrap: break-word;
 }
 
-.report-table th:nth-child(1),
-.report-table td:nth-child(1),
-.report-table th:nth-child(2),
-.report-table td:nth-child(2),
-.report-table th:nth-child(3),
-.report-table td:nth-child(3),
-.report-table th:nth-child(4),
-.report-table td:nth-child(4),
-.report-table th:nth-child(5),
-.report-table td:nth-child(5),
-.report-table th:nth-child(6),
-.report-table td:nth-child(6),
-.report-table th:nth-child(7),
-.report-table td:nth-child(7),
-.report-table th:nth-child(8),
-.report-table td:nth-child(8),
-.report-table th:nth-child(9),
-.report-table td:nth-child(9),
-.report-table th:nth-child(10),
-.report-table td:nth-child(10),
-.report-table th:nth-child(11),
-.report-table td:nth-child(11),
-.report-table th:nth-child(12),
-.report-table td:nth-child(12),
-.report-table th:nth-child(13),
-.report-table td:nth-child(13),
-.report-table th:nth-child(14),
-.report-table td:nth-child(14),
-.report-table th:nth-child(15),
-.report-table td:nth-child(15),
-.report-table th:nth-child(16),
-.report-table td:nth-child(16) {
+.report-table th,
+.report-table td {
   white-space: nowrap;
-}
-
-.report-table th:nth-child(17),
-.report-table td:nth-child(17),
-.report-table th:nth-child(18),
-.report-table td:nth-child(18) {
-  white-space: normal;
-  vertical-align: top;
 }
 
 .report-cell-clamp {

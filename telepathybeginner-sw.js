@@ -1,13 +1,15 @@
-const CACHE_NAME = "telepathybeginner-v80";
+const CACHE_NAME = "telepathybeginner-v20260614j";
+const APP_VERSION = "20260614j";
 const APP_ASSETS = [
-  "./telepathybeginner.html",
-  "./telepathybeginner.css?v=20260609i",
-  "./telepathybeginner.js?v=20260609i",
+  `./telepathybeginner.html?v=${APP_VERSION}`,
+  `./telepathybeginner.css?v=${APP_VERSION}`,
+  `./telepathybeginner.js?v=${APP_VERSION}`,
+  `./telepathybeginner.webmanifest?v=${APP_VERSION}`,
   "./BeginnerUserManual.html",
   "./BeginnerUserManual.html?v=20260503a",
   "./minds-connected-uncropped.png",
-  "./tb-icon-192.png",
-  "./tb-icon-512.png"
+  `./tb-icon-192.png?v=${APP_VERSION}`,
+  `./tb-icon-512.png?v=${APP_VERSION}`
 ];
 
 self.addEventListener("install", (event) => {
@@ -32,6 +34,29 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedNavigation = await caches.match(event.request);
+          if (cachedNavigation) {
+            return cachedNavigation;
+          }
+          return caches.match(`./telepathybeginner.html?v=${APP_VERSION}`);
+        })
+    );
     return;
   }
 

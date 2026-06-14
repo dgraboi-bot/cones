@@ -25,8 +25,8 @@
   const reportGoButton = document.querySelector("[data-report-go]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
   const openDifficultyButton = document.querySelector("[data-open-difficulty]");
+  const openAdvancedButton = document.querySelector("[data-open-advanced]");
   const closeDifficultyButton = document.querySelector("[data-close-difficulty]");
-  const openSettingsButton = document.querySelector("[data-open-settings]");
   const closeSettingsButton = document.querySelector("[data-close-settings]");
   const closeAdminButton = document.querySelector("[data-close-admin]");
   const installAppButton = document.querySelector("[data-install-app]");
@@ -47,7 +47,6 @@
   const settingsImportFilenameInput = document.querySelector("[data-settings-import-filename]");
   const settingsStatus = document.querySelector("[data-settings-status]");
   const downloadSettingsCsvButton = document.querySelector("[data-download-settings-csv]");
-  const saveSettingsButton = document.querySelector("[data-save-settings]");
   const adminDebugEnabledCheckbox = document.querySelector("[data-admin-debug-enabled]");
   const adminStorageInfo = document.querySelector("[data-admin-storage-info]");
     const adminStatus = document.querySelector("[data-admin-status]");
@@ -63,6 +62,9 @@
   let locationRequestInFlight = false;
   let lastLocationAttemptAt = 0;
   let difficultyDragging = false;
+  let difficultyDragPointerId = null;
+  let difficultyDragLockedLevel = null;
+  let difficultyDragReleasedLevel = null;
   let activePairDifficultyCode = "";
   let difficultyLoadToken = 0;
   let difficultyLabelToken = 0;
@@ -82,9 +84,9 @@
     };
   const difficultyStopPercents = [17, 50, 84];
   const difficultyCopy = {
-    1: "In Level 1, you simply have to decide whether the sender is sending 1 cone or many cones (3 cones). You simply decide whether there is 1 cone or many cones.",
-    2: "In Level 2 when there are many cones, try also to decide whether they are arranged horizontally, vertically, or diagonally running up or down from left to right.",
-    3: "In Level 3 there are 1, 2 or 3 cones are sent in 9 different possible arrangements. Try to decide exactly which arrangement is being sent."
+    1: 'In Level 1, you simply have to decide whether the sender is sending one cone or "many" (three) cones.',
+    2: 'In Level 2 when there are "many" (three) cones, try also to specify whether they are arranged horizontally, vertically, or diagonally running up or down from left to right.',
+    3: "In Level 3, one, two or three cones are sent. Try to specify exactly how many cones are sent and in what arrangement those cones are sent."
   };
   const coneThumbnailSrc = "cone-lowglow-transparent.png";
   const reportLayouts = {
@@ -839,10 +841,32 @@
 
     const useMiles = preferredUnit === "miles" || (!preferredUnit && distanceMeters >= 1609.344);
     if (useMiles) {
-      return `${(distanceMeters / 1609.344).toFixed(3)} miles`;
+      return `${(distanceMeters / 1609.344).toFixed(1)} miles`;
     }
 
-    return `${distanceMeters.toFixed(3)} meters`;
+    return `${distanceMeters.toFixed(1)} meters`;
+  }
+
+  function formatReactionTimeTenths(value) {
+    const milliseconds = Number(String(value ?? "").trim());
+    if (!Number.isFinite(milliseconds)) {
+      return String(value ?? "");
+    }
+    return (milliseconds / 1000).toFixed(1);
+  }
+
+  function formatUtcDisplay(value) {
+    const text = String(value ?? "").trim();
+    if (!text) {
+      return "";
+    }
+
+    const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?Z$/);
+    if (isoMatch) {
+      return `${isoMatch[1]} ${isoMatch[2]}`;
+    }
+
+    return text.replace("T", " ");
   }
 
   function renderReportSummary(pairInfo, records) {
@@ -852,18 +876,12 @@
 
     reportSummary.replaceChildren();
 
-    const firstRecord = records[0] || null;
-    const firstLocalDate = firstRecord ? String(firstRecord["local date"] || "").trim() : "unknown";
-    const firstLocalTime = firstRecord ? String(firstRecord["local time"] || "").trim() : "unknown";
-
     const firstLine = document.createElement("p");
     firstLine.className = "report-summary-line";
-    firstLine.textContent =
-      `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"} ` +
-      `First trial: Local ${firstLocalDate} ${firstLocalTime}`;
+    firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
 
     reportSummary.append(firstLine);
-    reportStatus.textContent = `${records.length} trial record${records.length === 1 ? "" : "s"} found on the server for this pair.`;
+    reportStatus.textContent = `${records.length} trial record${records.length === 1 ? "" : "s"} found for this pair.`;
   }
 
   function createReportLayoutThumbnailCell(value) {
@@ -944,61 +962,34 @@
       "local time",
       "sent layout",
       "rx choice1",
-      "rx choice2",
       "score",
       "confidence",
       "difficulty level",
       "dist",
-      "rx done rt",
-      "sync est",
-      "sync best",
-      "sync worst",
-      "completed",
-      "round_id",
-      "utc time",
-      "rx location",
-      "tx location"
+      "rx done rt"
     ];
     const headingMap = {
       "local date": "Local date",
       "local time": "Local time",
       "sent layout": "Sent",
-      "rx choice1": "Choice 1",
-      "rx choice2": "Choice 2",
+      "rx choice1": "Response",
       "score": "Score",
       "confidence": "Conf",
       "difficulty level": "Level",
       "dist": "Distance",
-      "rx done rt": "Time",
-      "utc time": "UTC time",
-      "rx location": "Rx location",
-      "tx location": "Tx location",
-      "sync est": "Sync est",
-      "sync best": "Sync best",
-      "sync worst": "Sync worst",
-      "completed": "Completed",
-      "round_id": "Round ID"
+      "rx done rt": "Time"
     };
     const colgroup = document.createElement("colgroup");
     [
-      "110px",
-      "132px",
-      "114px",
-      "114px",
-      "114px",
-      "72px",
-      "68px",
-      "84px",
-      "140px",
-      "78px",
-      "68px",
-      "68px",
-      "68px",
       "92px",
-      "190px",
-      "210px",
-      "340px",
-      "340px"
+      "108px",
+      "90px",
+      "90px",
+      "58px",
+      "54px",
+      "66px",
+      "94px",
+      "58px"
     ].forEach((width) => {
       const col = document.createElement("col");
       col.style.width = width;
@@ -1020,8 +1011,6 @@
       const row = document.createElement("tr");
       const receiverLocation = parseLocationValue(record?.["rx location"] ?? "");
       const senderLocation = parseLocationValue(record?.["tx location"] ?? "");
-      const trialAborted = String(record?.["trial aborted"] ?? "").trim().toLowerCase() === "yes";
-      const trialTimedOut = String(record?.["trial timed out"] ?? "").trim().toLowerCase() === "yes";
       const scoreValue = getLevelOneReportScore(record);
       if (String(record?.["difficulty level"] ?? "").trim() === "1") {
         levelOneTotalTrials += 1;
@@ -1043,26 +1032,13 @@
               ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "miles" : "meters")
               : "unknown";
           td.appendChild(content);
-        } else if (header === "rx location" || header === "tx location") {
-          const content = document.createElement("div");
-          content.className = "report-cell-clamp";
-          content.textContent = formatLocationLabel(
-            header === "rx location" ? receiverLocation : senderLocation,
-            {}
-          );
-          td.appendChild(content);
-        } else if (header === "utc time") {
-          const content = document.createElement("div");
-          content.className = "report-cell-clamp";
-          content.textContent = String(record?.[header] ?? "");
-          td.appendChild(content);
-        } else if (header === "completed") {
-          td.textContent = trialAborted || trialTimedOut ? "no" : "yes";
+        } else if (header === "rx done rt") {
+          td.textContent = formatReactionTimeTenths(record?.[header] ?? "");
         } else if (header === "score") {
           td.textContent = scoreValue;
         } else if (header === "rx choice1" && String(record?.["difficulty level"] ?? "").trim() === "1") {
           td.textContent = getLevelOneChoiceLabel(record?.[header] ?? "");
-        } else if (header === "sent layout" || header === "rx choice1" || header === "rx choice2") {
+        } else if (header === "sent layout" || header === "rx choice1") {
           td.classList.add("report-layout-cell");
           td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
         } else {
@@ -1809,6 +1785,24 @@
     rolePanels?.classList.remove("role-panels-single");
   }
 
+  function collapseActiveLauncherCard() {
+    let changed = false;
+    roleCards.forEach((item) => {
+      if (item.classList.contains("active") || item.classList.contains("role-card-hidden")) {
+        changed = true;
+      }
+      item.classList.remove("active");
+      item.classList.remove("role-card-hidden");
+      const header = item.querySelector(".role-card-header");
+      if (header) {
+        header.setAttribute("aria-expanded", "false");
+      }
+    });
+    if (changed) {
+      rolePanels?.classList.remove("role-panels-single");
+    }
+  }
+
   function showLauncherView() {
     clearReportPanelOffset();
     launcherView?.classList.remove("beginner-view-hidden");
@@ -1865,15 +1859,7 @@
   function renderDifficultyState(levelOverride = null) {
     const state = readLauncherState();
     const level = normalizeDifficultyLevel(levelOverride ?? state.difficultyLevel);
-    if (difficultySlider) {
-      difficultySlider.setAttribute("aria-valuenow", level);
-    }
-    if (difficultyCurrent) {
-      difficultyCurrent.textContent = `Level ${level}`;
-    }
-    if (difficultyDescription) {
-      difficultyDescription.textContent = difficultyCopy[level];
-    }
+    updateDifficultyDisplay(level);
     positionDifficultyThumb(Number(level));
   }
 
@@ -1955,6 +1941,116 @@
     }
   }
 
+  function updateDifficultyDisplay(level) {
+    const normalizedLevel = normalizeDifficultyLevel(level);
+    if (difficultySlider) {
+      difficultySlider.setAttribute("aria-valuenow", normalizedLevel);
+    }
+    if (difficultyCurrent) {
+      difficultyCurrent.textContent = `Level ${normalizedLevel}`;
+    }
+    if (difficultyDescription) {
+      difficultyDescription.textContent = difficultyCopy[normalizedLevel];
+    }
+  }
+
+  function clampDifficultyOffset(offsetX) {
+    if (!difficultySlider) {
+      return 0;
+    }
+    const minOffset = 10;
+    const maxOffset = Math.max((difficultySlider.clientWidth || 0) - 10, minOffset);
+    return Math.max(minOffset, Math.min(maxOffset, offsetX));
+  }
+
+  function resolveDifficultyDragPosition(clientX, options = {}) {
+    if (!difficultySlider) {
+      return {
+        level: 1,
+        thumbLeft: 10
+      };
+    }
+
+    const rect = difficultySlider.getBoundingClientRect();
+    const positions = difficultyPositions(difficultySlider);
+    const rawOffset = clampDifficultyOffset(clientX - rect.left);
+    const snapThreshold = Math.max((difficultySlider.clientWidth || 0) * 0.08, 18);
+    const ignoredLevel = options?.ignoredLevel ? normalizeDifficultyLevel(options.ignoredLevel) : "";
+    let nearestIndex = 0;
+    let nearestDistance = Infinity;
+    let nearestSnappableIndex = -1;
+    let nearestSnappableDistance = Infinity;
+
+    positions.forEach((position, index) => {
+      const distance = Math.abs(position - rawOffset);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+      if (String(index + 1) !== ignoredLevel && distance < nearestSnappableDistance) {
+        nearestSnappableDistance = distance;
+        nearestSnappableIndex = index;
+      }
+    });
+
+    const snapIndex = nearestSnappableIndex >= 0 ? nearestSnappableIndex : nearestIndex;
+    const snapDistance = nearestSnappableIndex >= 0 ? nearestSnappableDistance : nearestDistance;
+
+    return {
+      level: nearestIndex + 1,
+      thumbLeft: snapDistance <= snapThreshold ? positions[snapIndex] : rawOffset
+    };
+  }
+
+  function levelPosition(level) {
+    const positions = difficultyPositions(difficultySlider);
+    const index = Math.max(1, Math.min(3, Number(level || 1))) - 1;
+    return positions[index] ?? positions[0] ?? 10;
+  }
+
+  function positionDifficultyThumbAt(thumbLeft) {
+    if (!difficultyThumb || !difficultySlider) {
+      return;
+    }
+    const clampedLeft = clampDifficultyOffset(thumbLeft);
+    difficultyThumb.style.left = `${clampedLeft}px`;
+    if (difficultyFill) {
+      const fillLeft = 10;
+      difficultyFill.style.width = `${Math.max(clampedLeft - fillLeft, 0)}px`;
+    }
+  }
+
+  function previewDifficultyDrag(clientX) {
+    const preview = resolveDifficultyDragPosition(clientX, {
+      ignoredLevel: difficultyDragReleasedLevel
+    });
+    updateDifficultyDisplay(preview.level);
+    positionDifficultyThumbAt(preview.thumbLeft);
+    return preview.level;
+  }
+
+  function previewDifficultyDragFromLockedLevel(clientX) {
+    if (!difficultySlider) {
+      return 1;
+    }
+
+    const rect = difficultySlider.getBoundingClientRect();
+    const rawOffset = clampDifficultyOffset(clientX - rect.left);
+    const lockedLevel = normalizeDifficultyLevel(difficultyDragLockedLevel || readLauncherState().difficultyLevel);
+    const lockedPosition = levelPosition(lockedLevel);
+    const releaseThreshold = Math.max((difficultySlider.clientWidth || 0) * 0.025, 8);
+
+    if (Math.abs(rawOffset - lockedPosition) <= releaseThreshold) {
+      updateDifficultyDisplay(lockedLevel);
+      positionDifficultyThumbAt(lockedPosition);
+      return Number(lockedLevel);
+    }
+
+    difficultyDragReleasedLevel = lockedLevel;
+    difficultyDragLockedLevel = null;
+    return previewDifficultyDrag(clientX);
+  }
+
   function nearestDifficultyLevel(clientX) {
     if (!difficultySlider) {
       return 3;
@@ -1979,20 +2075,25 @@
       return;
     }
     difficultyDragging = true;
+    difficultyDragPointerId = event.pointerId ?? null;
+    difficultyDragLockedLevel = normalizeDifficultyLevel(readLauncherState().difficultyLevel);
+    difficultyDragReleasedLevel = null;
     difficultySlider.classList.add("is-dragging");
     if (event.pointerId !== undefined) {
       difficultySlider.setPointerCapture?.(event.pointerId);
     }
-    const level = nearestDifficultyLevel(event.clientX);
-    rememberDifficultyLevel(level);
+    previewDifficultyDragFromLockedLevel(event.clientX);
   }
 
   function continueDifficultyDrag(event) {
-    if (!difficultyDragging) {
+    if (!difficultyDragging || (difficultyDragPointerId !== null && event.pointerId !== difficultyDragPointerId)) {
       return;
     }
-    const level = nearestDifficultyLevel(event.clientX);
-    rememberDifficultyLevel(level);
+    if (difficultyDragLockedLevel) {
+      previewDifficultyDragFromLockedLevel(event.clientX);
+      return;
+    }
+    previewDifficultyDrag(event.clientX);
   }
 
   function endDifficultyDrag(event) {
@@ -2000,6 +2101,9 @@
       return;
     }
     difficultyDragging = false;
+    difficultyDragPointerId = null;
+    difficultyDragLockedLevel = null;
+    difficultyDragReleasedLevel = null;
     difficultySlider.classList.remove("is-dragging");
     if (event?.pointerId !== undefined) {
       difficultySlider.releasePointerCapture?.(event.pointerId);
@@ -2230,14 +2334,34 @@
   }
 
     async function downloadSettingsCsvData() {
-    if (settingsStatus) {
-      settingsStatus.textContent = "Preparing CSV download...";
-      settingsStatus.dataset.persistedMessage = settingsStatus.textContent;
-    }
-
     try {
+      const desiredName = String(settingsImportFilenameInput?.value || "").trim();
+      if (desiredName) {
+        const matchedAdminSecret = await checkAdminSecret(desiredName);
+        if (matchedAdminSecret) {
+          launcherAdminSecret = desiredName;
+          writeRuntimeSettings("receiver", {
+            import_csv_filename: ""
+          });
+          if (settingsImportFilenameInput) {
+            settingsImportFilenameInput.value = "";
+          }
+          if (settingsStatus) {
+            settingsStatus.textContent = "";
+            settingsStatus.dataset.persistedMessage = "";
+          }
+          showAdminView();
+          return;
+        }
+      }
+
+      if (settingsStatus) {
+        settingsStatus.textContent = "Preparing CSV download...";
+        settingsStatus.dataset.persistedMessage = settingsStatus.textContent;
+      }
+
       const csvResult = await fetchReportCsvData();
-      let records = Array.isArray(csvResult.records) ? csvResult.records : [];
+      const records = Array.isArray(csvResult.records) ? csvResult.records : [];
       if (!records.length) {
         if (settingsStatus) {
           settingsStatus.textContent = "No CSV records are available to download right now.";
@@ -2246,7 +2370,6 @@
         return;
       }
 
-      const desiredName = String(settingsImportFilenameInput?.value || "").trim();
       if (!desiredName) {
         if (settingsStatus) {
           settingsStatus.textContent = "Please provide a CSV data filename.";
@@ -2275,6 +2398,10 @@
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
+      writeRuntimeSettings("receiver", {
+        import_csv_filename: desiredName
+      });
+
       if (settingsStatus) {
         settingsStatus.textContent = `CSV download started as ${fileName}.`;
         settingsStatus.dataset.persistedMessage = settingsStatus.textContent;
@@ -2284,56 +2411,6 @@
         settingsStatus.textContent = "Unable to prepare the CSV download right now.";
         settingsStatus.dataset.persistedMessage = settingsStatus.textContent;
       }
-    }
-  }
-
-  async function saveLauncherSettingsView() {
-    const receiverContext = getPairContextForRole("receiver");
-    const allowSecondChoice = settingsSecondChoiceCheckbox?.checked === true;
-    const importFilename = String(settingsImportFilenameInput?.value || "").trim();
-    const currentLevel = normalizeDifficultyLevel(readLauncherState().difficultyLevel);
-    const singleChoiceOnly = currentLevel === "1" || currentLevel === "2";
-    let statusMessage = receiverContext
-      ? "Receiver-side settings saved for this device."
-      : "Settings saved for the receiver role on this device.";
-
-    if (settingsStatus) {
-      settingsStatus.textContent = "Saving settings...";
-      settingsStatus.dataset.persistedMessage = "";
-    }
-
-    let matchedAdminSecret = false;
-    if (importFilename) {
-      try {
-        matchedAdminSecret = await checkAdminSecret(importFilename);
-      } catch (error) {
-        if (settingsStatus) {
-          settingsStatus.textContent = "Unable to verify admin access right now, but other settings were saved.";
-          settingsStatus.dataset.persistedMessage = settingsStatus.textContent;
-        }
-      }
-    }
-
-    writeRuntimeSettings("receiver", {
-      allow_second_choice: singleChoiceOnly ? false : allowSecondChoice,
-      import_csv_filename: matchedAdminSecret ? "" : importFilename
-    });
-
-    if (matchedAdminSecret) {
-      launcherAdminSecret = importFilename;
-    } else if (!importFilename) {
-      launcherAdminSecret = "";
-    }
-
-    if (settingsStatus) {
-      settingsStatus.textContent = statusMessage;
-      settingsStatus.dataset.persistedMessage = statusMessage;
-    }
-
-    renderSettingsView();
-
-    if (matchedAdminSecret) {
-      showAdminView();
     }
   }
 
@@ -2423,9 +2500,9 @@
     }
   });
   openDifficultyButton?.addEventListener("click", showDifficultyView);
+  openAdvancedButton?.addEventListener("click", showSettingsView);
   closeDifficultyButton?.addEventListener("click", showOptionsView);
-  openSettingsButton?.addEventListener("click", showSettingsView);
-  closeSettingsButton?.addEventListener("click", showOptionsView);
+  closeSettingsButton?.addEventListener("click", showDifficultyView);
   closeAdminButton?.addEventListener("click", showSettingsView);
   settingsSecondChoiceCheckbox?.addEventListener("change", () => {
     if (settingsStatus) {
@@ -2440,7 +2517,6 @@
   downloadSettingsCsvButton?.addEventListener("click", () => {
     void downloadSettingsCsvData();
   });
-  saveSettingsButton?.addEventListener("click", saveLauncherSettingsView);
   installAppButton?.addEventListener("click", handleInstallRequest);
   adminDebugEnabledCheckbox?.addEventListener("change", async () => {
     if (!launcherAdminSecret) {
@@ -2573,11 +2649,22 @@
     if (!reportPairPicker?.contains(event.target)) {
       closeReportPairMenu();
     }
+
+    const launcherVisible = launcherView && !launcherView.classList.contains("beginner-view-hidden");
+    const activeCard = roleCards.find((card) => card.classList.contains("active"));
+    if (
+      launcherVisible &&
+      activeCard &&
+      !activeCard.contains(event.target) &&
+      !openOptionsButton?.contains(event.target)
+    ) {
+      collapseActiveLauncherCard();
+    }
   });
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./telepathybeginner-sw.js")
+      navigator.serviceWorker.register("./telepathybeginner-sw.js?v=20260614j")
         .catch(() => {
           // Ignore service worker registration failures and fall back to browser guidance.
         });
