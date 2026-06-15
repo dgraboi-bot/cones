@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telepathy Beginner Email Test</title>
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260615i">
+</head>
+<body>
+  <main class="beginner-shell">
+    <section class="beginner-panel" aria-labelledby="emailTestTitle">
+      <div class="beginner-top-row">
+        <a class="beginner-top-link beginner-top-pill" href="https://telepathyexperiment.com/slide0.php">GYM HOME</a>
+        <p class="beginner-kicker">ESP GYM</p>
+        <a class="beginner-top-link beginner-top-pill" href="telepathybeginner-login.html?v=20260615i">BACK</a>
+      </div>
+
+      <h1 class="beginner-title" id="emailTestTitle">Test Email</h1>
+      <p class="beginner-subtitle">Use this temporary page to test email delivery through the server.</p>
+
+      <section class="settings-view-panel email-test-page-panel">
+        <form data-email-test-form>
+          <label class="settings-view-field">
+            <span class="settings-view-label">To</span>
+            <input class="settings-view-input" type="email" autocomplete="off" spellcheck="false" name="to">
+          </label>
+
+          <label class="settings-view-field">
+            <span class="settings-view-label">bcc</span>
+            <input class="settings-view-input" type="text" autocomplete="off" spellcheck="false" name="bcc">
+          </label>
+
+          <label class="settings-view-field">
+            <span class="settings-view-label">Subject</span>
+            <input class="settings-view-input" type="text" autocomplete="off" spellcheck="false" name="subject">
+          </label>
+
+          <label class="settings-view-field">
+            <span class="settings-view-label">Body</span>
+            <textarea class="settings-view-input settings-view-textarea" name="body" spellcheck="true"></textarea>
+          </label>
+
+          <label class="settings-view-field">
+            <span class="settings-view-label">Attachment</span>
+            <input class="settings-view-input settings-view-file" type="file" name="attachment">
+          </label>
+
+          <div class="settings-view-status" data-email-test-status></div>
+          <button class="options-button settings-view-save" type="submit">SEND</button>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script src="telepathybeginner-email-test.js?v=20260615i"></script>
+</body>
+</html>

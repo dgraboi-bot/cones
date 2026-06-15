@@ -1,10 +1,17 @@
-const CACHE_NAME = "telepathybeginner-v20260614j";
-const APP_VERSION = "20260614j";
+const CACHE_NAME = "telepathybeginner-v20260615i";
+const APP_VERSION = "20260615i";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
   `./telepathybeginner.js?v=${APP_VERSION}`,
   `./telepathybeginner.webmanifest?v=${APP_VERSION}`,
+  `./telepathybeginner-login.html?v=${APP_VERSION}`,
+  `./telepathybeginner-email-test.html?v=${APP_VERSION}`,
+  `./telepathybeginner-email-test.js?v=${APP_VERSION}`,
+  "./tb-test-icon-1.png",
+  "./tb-test-icon-2.png",
+  "./tb-test-icon-3.png",
+  "./tb-test-icon-4.png",
   "./BeginnerUserManual.html",
   "./BeginnerUserManual.html?v=20260503a",
   "./minds-connected-uncropped.png",

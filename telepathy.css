@@ -69,11 +69,39 @@ body {
   z-index: 20;
 }
 
+.waiting-back-button {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(118, 171, 255, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(64, 123, 230, 0.95), rgba(30, 86, 186, 0.95));
+  box-shadow: 0 8px 18px rgba(24, 66, 140, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  z-index: 21;
+}
+
+.waiting-back-button:hover,
+.waiting-back-button:focus-visible {
+  outline: none;
+  background: linear-gradient(180deg, rgba(79, 139, 245, 0.98), rgba(39, 97, 201, 0.98));
+}
+
 .settings-gear.hidden {
   display: none;
 }
 
 .home-link.hidden {
+  display: none;
+}
+
+.waiting-back-button.hidden {
   display: none;
 }
 

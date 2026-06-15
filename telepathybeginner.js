@@ -4,6 +4,9 @@
   const rolePanels = document.querySelector(".role-panels");
   const launcherView = document.querySelector('[data-view="launcher"]');
   const optionsView = document.querySelector('[data-view="options"]');
+  const helpView = document.querySelector('[data-view="help"]');
+  const contactView = document.querySelector('[data-view="contact"]');
+  const aboutView = document.querySelector('[data-view="about"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
   const reportView = document.querySelector('[data-view="report"]');
   const difficultyView = document.querySelector('[data-view="difficulty"]');
@@ -13,6 +16,12 @@
   const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
   const closeOptionsButton = document.querySelector("[data-close-options]");
+  const openHelpButton = document.querySelector("[data-open-help]");
+  const closeHelpButton = document.querySelector("[data-close-help]");
+  const openContactButton = document.querySelector("[data-open-contact]");
+  const closeContactButton = document.querySelector("[data-close-contact]");
+  const openAboutButton = document.querySelector("[data-open-about]");
+  const closeAboutButton = document.querySelector("[data-close-about]");
   const openReportButton = document.querySelector("[data-open-report]");
   const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
   const closeReportButton = document.querySelector("[data-close-report]");
@@ -47,6 +56,12 @@
   const settingsImportFilenameInput = document.querySelector("[data-settings-import-filename]");
   const settingsStatus = document.querySelector("[data-settings-status]");
   const downloadSettingsCsvButton = document.querySelector("[data-download-settings-csv]");
+  const contactMessageInput = document.querySelector("[data-contact-message]");
+  const contactWordCount = document.querySelector("[data-contact-word-count]");
+  const contactEmailInput = document.querySelector("[data-contact-email]");
+  const contactStatus = document.querySelector("[data-contact-status]");
+  const contactSendButton = document.querySelector("[data-contact-send]");
+  const contactCancelButton = document.querySelector("[data-contact-cancel]");
   const adminDebugEnabledCheckbox = document.querySelector("[data-admin-debug-enabled]");
   const adminStorageInfo = document.querySelector("[data-admin-storage-info]");
     const adminStatus = document.querySelector("[data-admin-status]");
@@ -203,6 +218,37 @@
       message: String(reportCsv?.message || ""),
       path: reportCsvPathCache,
       records: reportCsvRecordsCache
+    };
+  }
+
+  async function fetchSelectedPairReportCsvData(pairInfo) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "report_pair_csv_data",
+        selected_pair: {
+          receiver_name: String(pairInfo?.receiverName || ""),
+          sender_name: String(pairInfo?.senderName || ""),
+          session_code: String(pairInfo?.sessionCode || "")
+        },
+        secret_candidate: launcherAdminSecret || ""
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Pair report CSV request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reportCsv = data?.report_csv || {};
+    return {
+      available: !!reportCsv?.available,
+      message: String(reportCsv?.message || ""),
+      path: String(reportCsv?.path || ""),
+      records: Array.isArray(reportCsv?.records) ? reportCsv.records : []
     };
   }
 
@@ -1179,15 +1225,15 @@
     let csvResult = {
       available: false,
       message: "",
-      records: reportCsvRecordsCache
+      records: []
     };
     try {
-      csvResult = await fetchReportCsvData();
+      csvResult = await fetchSelectedPairReportCsvData(pairInfo);
     } catch (error) {
       csvResult = {
         available: false,
         message: "Unable to load the server trial history right now.",
-        records: reportCsvRecordsCache
+        records: []
       };
     }
 
@@ -1216,7 +1262,7 @@
       line.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"} First trial: Local unknown`;
       reportSummary.append(line);
       reportStatus.textContent = csvResult.available
-        ? "No server-side trial records were found for this receiver-sender pair."
+        ? "No trial records found for the current receiver-sender selection."
         : (csvResult.message || "No server-side trial history is available right now.");
       if (reportTableWrap) {
         reportTableWrap.hidden = true;
@@ -1807,6 +1853,9 @@
     clearReportPanelOffset();
     launcherView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -1819,6 +1868,9 @@
     clearReportPanelOffset();
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -1834,6 +1886,9 @@
     reportDefinitionView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -1848,6 +1903,9 @@
     reportDefinitionView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -1869,6 +1927,55 @@
     writeLauncherState(latest);
     renderDifficultyState(latest.difficultyLevel);
     return latest.difficultyLevel;
+  }
+
+  function showHelpView() {
+    clearReportPanelOffset();
+    helpView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showContactView() {
+    clearReportPanelOffset();
+    contactView?.classList.remove("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    resetContactView({ clearMessage: false, clearStatus: false });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showAboutView() {
+    clearReportPanelOffset();
+    aboutView?.classList.remove("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function commitDifficultyLevel(level) {
@@ -2115,6 +2222,9 @@
   function showDifficultyView() {
     difficultyView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -2159,6 +2269,9 @@
   function showSettingsView() {
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -2208,17 +2321,18 @@
       const userWidth = Math.max("User".length, ...items.map((row) => String(row?.user_name || "").length));
       const roleWidth = Math.max("Role".length, ...items.map((row) => String(row?.role || "").length));
       const partnerWidth = Math.max("Partner".length, ...items.map((row) => String(row?.partner_name || "").length));
+      const lastDateWidth = Math.max("Last Date".length, ...items.map((row) => String(row?.last_date || "").length));
       const countWidth = Math.max("Trials".length, ...items.map((row) => String(row?.trial_count ?? "").length));
       const pad = (value, width) => String(value ?? "").padEnd(width, " ");
 
       const lines = [
-        `${pad("User", userWidth)}  ${pad("Role", roleWidth)}  ${pad("Partner", partnerWidth)}  ${String("Trials").padStart(countWidth, " ")}`,
-        `${"-".repeat(userWidth)}  ${"-".repeat(roleWidth)}  ${"-".repeat(partnerWidth)}  ${"-".repeat(countWidth)}`
+        `${pad("User", userWidth)}  ${pad("Role", roleWidth)}  ${pad("Partner", partnerWidth)}  ${pad("Last Date", lastDateWidth)}  ${String("Trials").padStart(countWidth, " ")}`,
+        `${"-".repeat(userWidth)}  ${"-".repeat(roleWidth)}  ${"-".repeat(partnerWidth)}  ${"-".repeat(lastDateWidth)}  ${"-".repeat(countWidth)}`
       ];
 
       items.forEach((row) => {
         lines.push(
-          `${pad(row?.user_name || "", userWidth)}  ${pad(row?.role || "", roleWidth)}  ${pad(row?.partner_name || "", partnerWidth)}  ${String(row?.trial_count ?? 0).padStart(countWidth, " ")}`
+          `${pad(row?.user_name || "", userWidth)}  ${pad(row?.role || "", roleWidth)}  ${pad(row?.partner_name || "", partnerWidth)}  ${pad(row?.last_date || "", lastDateWidth)}  ${String(row?.trial_count ?? 0).padStart(countWidth, " ")}`
         );
       });
 
@@ -2296,6 +2410,9 @@
     adminView?.classList.remove("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -2323,6 +2440,90 @@
     return `"${text.replace(/"/g, "\"\"").replace(/\r?\n/g, " ")}"`;
   }
 
+  function countWords(text) {
+    const trimmed = String(text || "").trim();
+    if (!trimmed) {
+      return 0;
+    }
+    return trimmed.split(/\s+/).filter(Boolean).length;
+  }
+
+  function buildContactMessageMeta() {
+    const pair = getCurrentPairParticipants();
+    const ownNames = collectReportOwnNames();
+    const location = readLauncherState().deviceLocation;
+    return {
+      pair,
+      ownNames,
+      location
+    };
+  }
+
+  async function sendContactMessage(messageText, senderEmail) {
+    const meta = buildContactMessageMeta();
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "send_contact_message",
+        message: String(messageText || ""),
+        metadata: {
+          app: "Telepathy Beginner",
+          build_version: "20260615i",
+          sender_email: String(senderEmail || "").trim(),
+          own_names: meta.ownNames,
+          pair: meta.pair,
+          location: meta.location
+        }
+      })
+    });
+
+    if (!response.ok) {
+      let message = `Contact request failed with status ${response.status}`;
+      try {
+        const data = await response.json();
+        if (data?.error) {
+          message = String(data.error);
+        }
+      } catch (error) {
+        // Keep the HTTP status fallback message.
+      }
+      throw new Error(message);
+    }
+
+    return response.json();
+  }
+
+  function renderContactWordCount() {
+    if (!contactWordCount) {
+      return;
+    }
+    const words = countWords(contactMessageInput?.value || "");
+    contactWordCount.textContent = `${words} / 300 words`;
+    contactWordCount.classList.toggle("is-over-limit", words > 300);
+  }
+
+  function resetContactView(options = {}) {
+    const clearMessage = options.clearMessage !== false;
+    const clearEmail = options.clearEmail !== false;
+    const clearStatus = options.clearStatus !== false;
+    if (clearMessage && contactMessageInput) {
+      contactMessageInput.value = "";
+    }
+    if (clearEmail && contactEmailInput) {
+      contactEmailInput.value = "";
+    }
+    if (clearStatus && contactStatus) {
+      contactStatus.textContent = "";
+    }
+    if (contactSendButton) {
+      contactSendButton.disabled = false;
+    }
+    renderContactWordCount();
+  }
+
   function getStoredReceiverTrialRecords() {
     try {
       const raw = localStorage.getItem("cones-local-trials-receiver");
@@ -2333,7 +2534,7 @@
     }
   }
 
-    async function downloadSettingsCsvData() {
+  async function downloadSettingsCsvData() {
     try {
       const desiredName = String(settingsImportFilenameInput?.value || "").trim();
       if (desiredName) {
@@ -2414,6 +2615,71 @@
     }
   }
 
+  async function handleContactSend() {
+    const messageText = String(contactMessageInput?.value || "").trim();
+    const senderEmail = String(contactEmailInput?.value || "").trim();
+    const wordCount = countWords(messageText);
+
+    if (contactStatus) {
+      contactStatus.textContent = "";
+    }
+
+    if (!messageText) {
+      if (contactStatus) {
+        contactStatus.textContent = "Please write a message before sending.";
+      }
+      contactMessageInput?.focus();
+      return;
+    }
+
+    if (!senderEmail) {
+      if (contactStatus) {
+        contactStatus.textContent = "Please provide your email address.";
+      }
+      contactEmailInput?.focus();
+      return;
+    }
+
+    if (wordCount > 300) {
+      if (contactStatus) {
+        contactStatus.textContent = "Please reduce your message to 300 words or fewer.";
+      }
+      contactMessageInput?.focus();
+      return;
+    }
+
+    if (contactSendButton) {
+      contactSendButton.disabled = true;
+    }
+    if (contactStatus) {
+      contactStatus.textContent = "Sending your message...";
+    }
+
+    try {
+      await sendContactMessage(messageText, senderEmail);
+      if (contactStatus) {
+        contactStatus.textContent = "Thank you. Your messages was sent to ESP Gym, and a copy sent to you for your records.";
+      }
+      if (contactMessageInput) {
+        contactMessageInput.value = "";
+      }
+      if (contactEmailInput) {
+        contactEmailInput.value = "";
+      }
+      renderContactWordCount();
+    } catch (error) {
+      if (contactStatus) {
+        contactStatus.textContent = error instanceof Error
+          ? error.message
+          : "Unable to send your message right now.";
+      }
+    } finally {
+      if (contactSendButton) {
+        contactSendButton.disabled = false;
+      }
+    }
+  }
+
   function showInstallFallback() {
     window.alert(
       "If your device supports app installation, use the browser's install or Add to Home Screen option to install Telepathy Beginner."
@@ -2481,6 +2747,12 @@
 
   openOptionsButton?.addEventListener("click", showOptionsView);
   closeOptionsButton?.addEventListener("click", showLauncherView);
+  openHelpButton?.addEventListener("click", showHelpView);
+  closeHelpButton?.addEventListener("click", showOptionsView);
+  openContactButton?.addEventListener("click", showContactView);
+  closeContactButton?.addEventListener("click", showHelpView);
+  openAboutButton?.addEventListener("click", showAboutView);
+  closeAboutButton?.addEventListener("click", showHelpView);
   openReportButton?.addEventListener("click", showReportDefinitionView);
   closeReportDefinitionButton?.addEventListener("click", showOptionsView);
   closeReportButton?.addEventListener("click", showReportDefinitionView);
@@ -2513,6 +2785,24 @@
     if (settingsStatus) {
       settingsStatus.textContent = "";
     }
+  });
+  contactMessageInput?.addEventListener("input", () => {
+    if (contactStatus) {
+      contactStatus.textContent = "";
+    }
+    renderContactWordCount();
+  });
+  contactEmailInput?.addEventListener("input", () => {
+    if (contactStatus) {
+      contactStatus.textContent = "";
+    }
+  });
+  contactSendButton?.addEventListener("click", () => {
+    void handleContactSend();
+  });
+  contactCancelButton?.addEventListener("click", () => {
+    resetContactView();
+    showHelpView();
   });
   downloadSettingsCsvButton?.addEventListener("click", () => {
     void downloadSettingsCsvData();
@@ -2637,6 +2927,7 @@
   });
   renderLocationStatus();
   renderDifficultyState();
+  renderContactWordCount();
   void refreshDifficultyLabels();
   applyLauncherOpenRequest();
 
@@ -2664,7 +2955,7 @@
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./telepathybeginner-sw.js?v=20260614j")
+      navigator.serviceWorker.register("./telepathybeginner-sw.js?v=20260615i")
         .catch(() => {
           // Ignore service worker registration failures and fall back to browser guidance.
         });

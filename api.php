@@ -15,6 +15,7 @@ $configDir = $privateRoot . DIRECTORY_SEPARATOR . 'config';
 $pairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'pairs';
 $stateFile = $stateDir . DIRECTORY_SEPARATOR . 'session-state.json';
 $debugLogFile = $stateDir . DIRECTORY_SEPARATOR . 'debug-log.txt';
+$safetyLogFile = $logsDir . DIRECTORY_SEPARATOR . 'safety-log.txt';
 $adminSecret = 'x9Qm7L2v8T4p1Zadmin';
 $staleMs = 5000;
 $roundLifetimeMs = 300000;
@@ -22,6 +23,8 @@ $postRoundLifetimeMs = 300000;
 $completedRoundLifetimeMs = 300000;
 $timeoutNoticeLifetimeMs = 1800000;
 $timeoutExitLifetimeMs = 60000;
+$sessionRetentionMs = 3600000;
+$safetyLogMaxBytes = 51200;
 $nowMs = (int) floor(microtime(true) * 1000);
 
 foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $pairsDir] as $directory) {
@@ -85,6 +88,378 @@ function get_debug_log_status(string $path): array
         'size_bytes' => $sizeBytes,
         'size_formatted' => format_bytes($sizeBytes)
     ];
+}
+
+function load_app_mail_config(string $configDir): array
+{
+    $configPath = $configDir . DIRECTORY_SEPARATOR . 'zoho-mail.json';
+    if (!is_file($configPath)) {
+        return [
+            'available' => false,
+            'message' => 'Mail configuration file is missing.',
+            'path' => $configPath
+        ];
+    }
+
+    $raw = file_get_contents($configPath);
+    $parsed = json_decode((string) $raw, true);
+    if (!is_array($parsed)) {
+        return [
+            'available' => false,
+            'message' => 'Mail configuration file is not valid JSON.',
+            'path' => $configPath
+        ];
+    }
+
+    $host = trim((string) ($parsed['host'] ?? ''));
+    $username = trim((string) ($parsed['username'] ?? ''));
+    $password = (string) ($parsed['password'] ?? '');
+    $from = trim((string) ($parsed['from_email'] ?? ''));
+    $fromName = trim((string) ($parsed['from_name'] ?? 'Telepathy Beginner'));
+    $replyTo = trim((string) ($parsed['reply_to'] ?? $from));
+    $port = isset($parsed['port']) && is_numeric($parsed['port']) ? (int) $parsed['port'] : 465;
+    $security = strtolower(trim((string) ($parsed['security'] ?? 'ssl')));
+
+    if ($host === '' || $username === '' || $password === '' || $from === '') {
+        return [
+            'available' => false,
+            'message' => 'Mail configuration is incomplete.',
+            'path' => $configPath
+        ];
+    }
+
+    if (!in_array($security, ['ssl', 'tls', 'none'], true)) {
+        $security = 'ssl';
+    }
+
+    return [
+        'available' => true,
+        'path' => $configPath,
+        'host' => $host,
+        'port' => $port,
+        'security' => $security,
+        'username' => $username,
+        'password' => $password,
+        'from_email' => $from,
+        'from_name' => $fromName !== '' ? $fromName : 'Telepathy Beginner',
+        'reply_to' => $replyTo !== '' ? $replyTo : $from
+    ];
+}
+
+function validate_mail_addresses($value): array
+{
+    $items = is_array($value) ? $value : preg_split('/[;,]+/', (string) $value);
+    if (!is_array($items)) {
+        return [];
+    }
+
+    $addresses = [];
+    foreach ($items as $item) {
+        $candidate = trim((string) $item);
+        if ($candidate === '') {
+            continue;
+        }
+        if (!filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Invalid email address: ' . $candidate);
+        }
+        $addresses[] = $candidate;
+    }
+
+    return array_values(array_unique($addresses));
+}
+
+function encode_mail_header(string $value): string
+{
+    if ($value === '' || preg_match('/^[\x20-\x7E]*$/', $value)) {
+        return $value;
+    }
+
+    return '=?UTF-8?B?' . base64_encode($value) . '?=';
+}
+
+function build_mail_attachment_part($attachment): string
+{
+    if ($attachment === null || $attachment === '' || $attachment === []) {
+        return '';
+    }
+
+    $path = '';
+    $filename = '';
+    $mimeType = 'application/octet-stream';
+
+    $contentBase64 = '';
+
+    if (is_string($attachment)) {
+        $path = $attachment;
+        $filename = basename($attachment);
+    } elseif (is_array($attachment)) {
+        $path = trim((string) ($attachment['path'] ?? ''));
+        $filename = trim((string) ($attachment['name'] ?? basename($path)));
+        $candidateType = trim((string) ($attachment['type'] ?? ''));
+        $contentBase64 = trim((string) ($attachment['content_base64'] ?? ''));
+        if ($candidateType !== '') {
+            $mimeType = $candidateType;
+        }
+    }
+
+    if ($contentBase64 !== '') {
+        $binary = base64_decode($contentBase64, true);
+        if ($binary === false) {
+            throw new RuntimeException('Attachment base64 content is invalid.');
+        }
+        $content = chunk_split(base64_encode($binary));
+    } else {
+        if ($path === '' || !is_file($path) || !is_readable($path)) {
+            throw new RuntimeException('Attachment file is missing or unreadable.');
+        }
+        $content = chunk_split(base64_encode((string) file_get_contents($path)));
+    }
+
+    if ($filename === '') {
+        $filename = basename($path);
+    }
+
+    $encodedName = encode_mail_header($filename);
+
+    return
+        'Content-Type: ' . $mimeType . '; name="' . $encodedName . '"' . "\r\n" .
+        'Content-Transfer-Encoding: base64' . "\r\n" .
+        'Content-Disposition: attachment; filename="' . $encodedName . '"' . "\r\n\r\n" .
+        $content . "\r\n";
+}
+
+function build_mail_message(string $fromEmail, string $fromName, string $replyTo, array $to, array $bcc, string $subject, string $body, $attachment = null): array
+{
+    $boundary = 'tb-' . bin2hex(random_bytes(12));
+    $headers = [
+        'From: ' . encode_mail_header($fromName) . ' <' . $fromEmail . '>',
+        'Reply-To: <' . $replyTo . '>',
+        'MIME-Version: 1.0',
+        'Date: ' . date(DATE_RFC2822),
+        'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . preg_replace('/[^a-z0-9.-]+/i', '', php_uname('n')) . '>',
+        'To: ' . implode(', ', $to)
+    ];
+
+    if ($bcc !== []) {
+        $headers[] = 'Bcc: ' . implode(', ', $bcc);
+    }
+
+    $textPart =
+        '--' . $boundary . "\r\n" .
+        "Content-Type: text/plain; charset=UTF-8\r\n" .
+        "Content-Transfer-Encoding: base64\r\n\r\n" .
+        chunk_split(base64_encode($body)) . "\r\n";
+
+    $message = $textPart;
+    $attachmentPart = build_mail_attachment_part($attachment);
+    if ($attachmentPart !== '') {
+        $message .= '--' . $boundary . "\r\n" . $attachmentPart;
+    }
+    $message .= '--' . $boundary . "--\r\n";
+
+    $headers[] = 'Subject: ' . encode_mail_header($subject);
+    $headers[] = 'Content-Type: multipart/mixed; boundary="' . $boundary . '"';
+
+    return [
+        'headers' => $headers,
+        'message' => $message
+    ];
+}
+
+function smtp_send_command($socket, string $command, $expectedCode = null): string
+{
+    fwrite($socket, $command . "\r\n");
+    return smtp_read_response($socket, $expectedCode);
+}
+
+function smtp_read_response($socket, $expectedCode = null): string
+{
+    $response = '';
+    while (!feof($socket)) {
+        $line = fgets($socket, 515);
+        if ($line === false) {
+            break;
+        }
+        $response .= $line;
+        if (preg_match('/^\d{3} /', $line) === 1) {
+            break;
+        }
+    }
+
+    if ($response === '') {
+        throw new RuntimeException('SMTP server returned an empty response.');
+    }
+
+    if ($expectedCode !== null) {
+        $code = (int) substr($response, 0, 3);
+        $allowedCodes = is_array($expectedCode) ? $expectedCode : [$expectedCode];
+        $normalizedAllowedCodes = array_map(static fn ($value): int => (int) $value, $allowedCodes);
+        if (!in_array($code, $normalizedAllowedCodes, true)) {
+            throw new RuntimeException('SMTP error: ' . trim($response));
+        }
+    }
+
+    return $response;
+}
+
+function open_smtp_socket(array $config)
+{
+    $transport = $config['security'] === 'ssl' ? 'ssl://' : '';
+    $target = $transport . $config['host'];
+    $socket = @fsockopen($target, (int) $config['port'], $errorNumber, $errorText, 20);
+    if (!$socket) {
+        throw new RuntimeException('Unable to connect to SMTP server: ' . $errorText . ' (' . $errorNumber . ')');
+    }
+
+    stream_set_timeout($socket, 20);
+    smtp_read_response($socket, 220);
+
+    $hostName = preg_replace('/[^a-z0-9.-]+/i', '', php_uname('n'));
+    smtp_send_command($socket, 'EHLO ' . ($hostName !== '' ? $hostName : 'localhost'), 250);
+
+    if ($config['security'] === 'tls') {
+        smtp_send_command($socket, 'STARTTLS', 220);
+        $cryptoEnabled = stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+        if ($cryptoEnabled !== true) {
+            throw new RuntimeException('Unable to enable TLS for SMTP connection.');
+        }
+        smtp_send_command($socket, 'EHLO ' . ($hostName !== '' ? $hostName : 'localhost'), 250);
+    }
+
+    return $socket;
+}
+
+function sendAppMail(string $to, string $bcc, string $subject, string $body, $attachment = null): array
+{
+    global $configDir;
+
+    $config = load_app_mail_config($configDir);
+    if (!($config['available'] ?? false)) {
+        throw new RuntimeException((string) ($config['message'] ?? 'Mail configuration is unavailable.'));
+    }
+
+    $toList = validate_mail_addresses($to);
+    $bccList = validate_mail_addresses($bcc);
+    if ($toList === []) {
+        throw new RuntimeException('At least one valid To email address is required.');
+    }
+
+    $messageParts = build_mail_message(
+        (string) $config['from_email'],
+        (string) $config['from_name'],
+        (string) $config['reply_to'],
+        $toList,
+        $bccList,
+        trim($subject) !== '' ? $subject : '(no subject)',
+        $body,
+        $attachment
+    );
+
+    $socket = open_smtp_socket($config);
+
+    try {
+        smtp_send_command($socket, 'AUTH LOGIN', 334);
+        smtp_send_command($socket, base64_encode((string) $config['username']), 334);
+        smtp_send_command($socket, base64_encode((string) $config['password']), 235);
+        smtp_send_command($socket, 'MAIL FROM:<' . $config['from_email'] . '>', 250);
+
+        foreach (array_merge($toList, $bccList) as $recipient) {
+            smtp_send_command($socket, 'RCPT TO:<' . $recipient . '>', [250, 251]);
+        }
+
+        smtp_send_command($socket, 'DATA', 354);
+        $payload = implode("\r\n", $messageParts['headers']) . "\r\n\r\n" . $messageParts['message'];
+        $payload = preg_replace("/(?m)^\./", '..', $payload) ?? $payload;
+        fwrite($socket, $payload . "\r\n.\r\n");
+        smtp_read_response($socket, 250);
+        smtp_send_command($socket, 'QUIT', 221);
+    } finally {
+        fclose($socket);
+    }
+
+    return [
+        'ok' => true,
+        'to' => $toList,
+        'bcc' => $bccList,
+        'subject' => $subject
+    ];
+}
+
+function count_words_in_text(string $text): int
+{
+    $trimmed = trim($text);
+    if ($trimmed === '') {
+        return 0;
+    }
+
+    $parts = preg_split('/\s+/', $trimmed);
+    if (!is_array($parts)) {
+        return 0;
+    }
+
+    return count(array_filter($parts, static fn ($value): bool => trim((string) $value) !== ''));
+}
+
+function build_contact_message_body(string $message, array $metadata): string
+{
+    $lines = [
+        'A contact message was submitted from Telepathy Beginner.',
+        '',
+        'Message:',
+        trim($message),
+        '',
+        'Context:'
+    ];
+
+    $senderEmail = trim((string) ($metadata['sender_email'] ?? ''));
+    $lines[] = 'Sender\'s email: ' . ($senderEmail !== '' ? $senderEmail : 'not provided');
+
+    $buildVersion = trim((string) ($metadata['build_version'] ?? ''));
+    if ($buildVersion !== '') {
+        $lines[] = 'Build version: ' . $buildVersion;
+    }
+
+    $ownNames = isset($metadata['own_names']) && is_array($metadata['own_names'])
+        ? array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $metadata['own_names'])))
+        : [];
+    if ($ownNames !== []) {
+        $lines[] = 'Names on device: ' . implode(' / ', $ownNames);
+    }
+
+    $pair = isset($metadata['pair']) && is_array($metadata['pair']) ? $metadata['pair'] : [];
+    $receiverName = trim((string) ($pair['receiverName'] ?? ''));
+    $senderName = trim((string) ($pair['senderName'] ?? ''));
+    if ($receiverName !== '' || $senderName !== '') {
+        $lines[] = 'Current pair: Receiver ' . ($receiverName !== '' ? $receiverName : 'unknown') . ' / Sender ' . ($senderName !== '' ? $senderName : 'unknown');
+    }
+
+    $location = isset($metadata['location']) && is_array($metadata['location']) ? $metadata['location'] : [];
+    $latitude = isset($location['latitude']) ? trim((string) $location['latitude']) : '';
+    $longitude = isset($location['longitude']) ? trim((string) $location['longitude']) : '';
+    if ($latitude !== '' || $longitude !== '') {
+        $lines[] = 'Approximate device location: lat ' . ($latitude !== '' ? $latitude : 'unknown') . ', long ' . ($longitude !== '' ? $longitude : 'unknown');
+    }
+
+    $lines[] = 'Server UTC time: ' . gmdate('Y-m-d H:i:s') . ' UTC';
+
+    return implode("\r\n", $lines);
+}
+
+function append_capped_log(string $path, string $line, int $maxBytes): void
+{
+    $payload = $line . PHP_EOL;
+    $existing = is_file($path) ? (string) file_get_contents($path) : '';
+    $combined = $existing . $payload;
+
+    if (strlen($combined) > $maxBytes) {
+        $combined = substr($combined, -$maxBytes);
+        $firstNewline = strpos($combined, "\n");
+        if ($firstNewline !== false && $firstNewline < strlen($combined) - 1) {
+            $combined = substr($combined, $firstNewline + 1);
+        }
+    }
+
+    file_put_contents($path, $combined, LOCK_EX);
 }
 
 function get_disk_usage_analysis(): array
@@ -300,6 +675,24 @@ function read_all_pair_trial_records(string $pairsDir): array
     return $records;
 }
 
+function read_pair_trial_records_for_pair(string $pairsDir, array $pairInfo): array
+{
+    $receiverName = trim((string) ($pairInfo['receiver_name'] ?? ''));
+    $senderName = trim((string) ($pairInfo['sender_name'] ?? ''));
+    $sessionCode = trim((string) ($pairInfo['session_code'] ?? ''));
+
+    if ($receiverName === '' || $senderName === '') {
+        return [];
+    }
+
+    $path = get_pair_trial_csv_path($pairsDir, $receiverName, $senderName, $sessionCode);
+    if (!is_file($path)) {
+        return [];
+    }
+
+    return read_csv_records($path);
+}
+
 function filter_pair_trial_records(array $records, array $candidatePairs, array $associatedNames, bool $includeAll): array
 {
     if ($includeAll) {
@@ -366,6 +759,9 @@ function build_user_trial_summary(array $records): array
 
         $receiverName = trim((string) ($record['rx name'] ?? ''));
         $senderName = trim((string) ($record['tx name'] ?? ''));
+        $localDate = trim((string) ($record['local date'] ?? ''));
+        $utcTime = trim((string) ($record['utc time'] ?? ''));
+        $lastSortKey = $utcTime !== '' ? $utcTime : $localDate;
 
         if ($receiverName !== '' && $senderName !== '') {
             $receiverKey = strtolower($receiverName) . '|receiver|' . strtolower($senderName);
@@ -374,10 +770,16 @@ function build_user_trial_summary(array $records): array
                     'user_name' => $receiverName,
                     'role' => 'receiver',
                     'partner_name' => $senderName,
-                    'trial_count' => 0
+                    'trial_count' => 0,
+                    'last_date' => $localDate,
+                    '_last_sort_key' => $lastSortKey
                 ];
             }
             $summary[$receiverKey]['trial_count']++;
+            if ($lastSortKey !== '' && strcmp($lastSortKey, (string) ($summary[$receiverKey]['_last_sort_key'] ?? '')) >= 0) {
+                $summary[$receiverKey]['_last_sort_key'] = $lastSortKey;
+                $summary[$receiverKey]['last_date'] = $localDate;
+            }
 
             $senderKey = strtolower($senderName) . '|sender|' . strtolower($receiverName);
             if (!isset($summary[$senderKey])) {
@@ -385,14 +787,23 @@ function build_user_trial_summary(array $records): array
                     'user_name' => $senderName,
                     'role' => 'sender',
                     'partner_name' => $receiverName,
-                    'trial_count' => 0
+                    'trial_count' => 0,
+                    'last_date' => $localDate,
+                    '_last_sort_key' => $lastSortKey
                 ];
             }
             $summary[$senderKey]['trial_count']++;
+            if ($lastSortKey !== '' && strcmp($lastSortKey, (string) ($summary[$senderKey]['_last_sort_key'] ?? '')) >= 0) {
+                $summary[$senderKey]['_last_sort_key'] = $lastSortKey;
+                $summary[$senderKey]['last_date'] = $localDate;
+            }
         }
     }
 
-    $rows = array_values($summary);
+    $rows = array_map(static function (array $row): array {
+        unset($row['_last_sort_key']);
+        return $row;
+    }, array_values($summary));
     usort($rows, static function (array $left, array $right): int {
         $userCompare = strcasecmp($left['user_name'] ?? '', $right['user_name'] ?? '');
         if ($userCompare !== 0) {
@@ -494,6 +905,52 @@ function default_session_state(): array
     ];
 }
 
+function prune_inactive_operational_state(array &$state, int $nowMs, int $retentionMs): void
+{
+    if (!is_array($state['sessions'] ?? null)) {
+        $state['sessions'] = [];
+    }
+    if (!is_array($state['session_registry'] ?? null)) {
+        $state['session_registry'] = [];
+    }
+
+    foreach (array_keys($state['sessions']) as $sessionCode) {
+        $session = $state['sessions'][$sessionCode];
+        if (!is_array($session)) {
+            unset($state['sessions'][$sessionCode], $state['session_registry'][$sessionCode]);
+            continue;
+        }
+
+        $updatedMs = isset($session['updated_ms']) && is_numeric($session['updated_ms'])
+            ? (int) $session['updated_ms']
+            : 0;
+
+        if ($updatedMs > 0 && ($nowMs - $updatedMs) <= $retentionMs) {
+            continue;
+        }
+
+        unset($state['sessions'][$sessionCode]);
+    }
+
+    foreach (array_keys($state['session_registry']) as $sessionCode) {
+        $entry = $state['session_registry'][$sessionCode];
+        if (!is_array($entry)) {
+            unset($state['session_registry'][$sessionCode]);
+            continue;
+        }
+
+        $updatedMs = isset($entry['updated_ms']) && is_numeric($entry['updated_ms'])
+            ? (int) $entry['updated_ms']
+            : 0;
+
+        if ($updatedMs > 0 && ($nowMs - $updatedMs) <= $retentionMs) {
+            continue;
+        }
+
+        unset($state['session_registry'][$sessionCode]);
+    }
+}
+
 function ensure_session_shape(array &$session): void
 {
     $defaults = default_session_state();
@@ -569,16 +1026,16 @@ function append_debug_log(string $debugLogFile, bool $debugEnabled, string $mess
     file_put_contents($debugLogFile, $message . PHP_EOL, FILE_APPEND);
 }
 
-function append_forced_trace(string $debugLogFile, array $payload): void
+function append_forced_trace(string $safetyLogFile, int $safetyLogMaxBytes, array $payload): void
 {
-    file_put_contents($debugLogFile, json_encode($payload, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+    append_capped_log($safetyLogFile, json_encode($payload, JSON_UNESCAPED_SLASHES), $safetyLogMaxBytes);
 }
 
-function apply_abort_to_home(array &$session, int $nowMs, string $role, string $sessionCode, string $debugLogFile, bool $debugEnabled, string $abortReason = ''): void
+function apply_abort_to_home(array &$session, int $nowMs, string $role, string $sessionCode, string $debugLogFile, string $safetyLogFile, int $safetyLogMaxBytes, bool $debugEnabled, string $abortReason = ''): void
 {
     $partnerLabel = $role === 'sender' ? 'sender' : 'receiver';
     $roundSnapshot = is_array($session['round'] ?? null) ? $session['round'] : null;
-    append_forced_trace($debugLogFile, [
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
         'time_ms' => $nowMs,
         'session_code' => $sessionCode,
         'role' => $role,
@@ -624,7 +1081,7 @@ function apply_abort_to_home(array &$session, int $nowMs, string $role, string $
             ]
         ], JSON_UNESCAPED_SLASHES)
     );
-    append_forced_trace($debugLogFile, [
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
         'time_ms' => $nowMs,
         'session_code' => $sessionCode,
         'role' => $role,
@@ -657,6 +1114,31 @@ function normalize_difficulty_level($value): string
 {
     $level = trim((string) $value);
     return in_array($level, ['1', '2', '3'], true) ? $level : '1';
+}
+
+function build_email_test_attachment(array $input)
+{
+    $attachment = isset($input['attachment']) && is_array($input['attachment'])
+        ? $input['attachment']
+        : null;
+
+    if (!is_array($attachment)) {
+        return null;
+    }
+
+    $name = trim((string) ($attachment['name'] ?? ''));
+    $type = trim((string) ($attachment['type'] ?? 'application/octet-stream'));
+    $contentBase64 = trim((string) ($attachment['content_base64'] ?? ''));
+
+    if ($name === '' || $contentBase64 === '') {
+        return null;
+    }
+
+    return [
+        'name' => $name,
+        'type' => $type !== '' ? $type : 'application/octet-stream',
+        'content_base64' => $contentBase64
+    ];
 }
 
 $input = json_decode(file_get_contents('php://input') ?: '{}', true);
@@ -695,6 +1177,7 @@ if (!is_array($state)) {
     $state = [
         'sessions' => [],
         'session_registry' => [],
+        'pair_difficulties' => [],
         'debug_enabled' => false
     ];
 }
@@ -706,6 +1189,7 @@ if (!array_key_exists('sessions', $state)) {
             'default-session' => is_array($legacySession) ? $legacySession : default_session_state()
         ],
         'session_registry' => [],
+        'pair_difficulties' => [],
         'debug_enabled' => false
     ];
 }
@@ -716,9 +1200,14 @@ if (!is_array($state['sessions'] ?? null)) {
 if (!is_array($state['session_registry'] ?? null)) {
     $state['session_registry'] = [];
 }
+if (!is_array($state['pair_difficulties'] ?? null)) {
+    $state['pair_difficulties'] = [];
+}
 if (!array_key_exists('debug_enabled', $state)) {
     $state['debug_enabled'] = false;
 }
+
+prune_inactive_operational_state($state, $nowMs, $sessionRetentionMs);
 
 if (!array_key_exists($sessionCode, $state['sessions']) || !is_array($state['sessions'][$sessionCode])) {
     $state['sessions'][$sessionCode] = default_session_state();
@@ -735,11 +1224,21 @@ $trialRecordAppendResult = null;
 $existingRegistry = is_array($state['session_registry'][$sessionCode] ?? null)
     ? $state['session_registry'][$sessionCode]
     : [];
+$existingPairDifficulty = is_array($state['pair_difficulties'][$sessionCode] ?? null)
+    ? $state['pair_difficulties'][$sessionCode]
+    : [];
 $state['session_registry'][$sessionCode] = [
     'updated_ms' => $nowMs,
     'sender_name' => $existingRegistry['sender_name'] ?? ($session['sender']['profile']['name'] ?? ''),
-    'receiver_name' => $existingRegistry['receiver_name'] ?? ($session['receiver']['profile']['name'] ?? ''),
-    'difficulty_level' => normalize_difficulty_level($existingRegistry['difficulty_level'] ?? '1')
+    'receiver_name' => $existingRegistry['receiver_name'] ?? ($session['receiver']['profile']['name'] ?? '')
+];
+$state['pair_difficulties'][$sessionCode] = [
+    'updated_ms' => isset($existingPairDifficulty['updated_ms']) && is_numeric($existingPairDifficulty['updated_ms'])
+        ? (int) $existingPairDifficulty['updated_ms']
+        : $nowMs,
+    'sender_name' => trim((string) ($existingPairDifficulty['sender_name'] ?? ($state['session_registry'][$sessionCode]['sender_name'] ?? ''))),
+    'receiver_name' => trim((string) ($existingPairDifficulty['receiver_name'] ?? ($state['session_registry'][$sessionCode]['receiver_name'] ?? ''))),
+    'difficulty_level' => normalize_difficulty_level($existingPairDifficulty['difficulty_level'] ?? ($existingRegistry['difficulty_level'] ?? '1'))
 ];
 
 if (is_array($session['timeout_notice'] ?? null)) {
@@ -773,7 +1272,7 @@ if (is_array($session['post_round'] ?? null)) {
             'message' => 'A timeout has occurred. Press to exit.',
             'round_snapshot' => is_array($session['round'] ?? null) ? $session['round'] : null
         ];
-        append_forced_trace($debugLogFile, [
+        append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
             'time_ms' => $nowMs,
             'session_code' => $sessionCode,
             'role' => $role,
@@ -841,7 +1340,7 @@ if (is_array($session['round'] ?? null) && isset($session['round']['start_server
                 'message' => 'A timeout has occurred. Press to exit.',
                 'round_snapshot' => is_array($session['round'] ?? null) ? $session['round'] : null
             ];
-            append_forced_trace($debugLogFile, [
+            append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
                 'time_ms' => $nowMs,
                 'session_code' => $sessionCode,
                 'role' => $role,
@@ -861,7 +1360,7 @@ if (is_array($session['round'] ?? null) && isset($session['round']['start_server
                 'message' => 'A timeout has occurred. Press to exit.',
                 'round_snapshot' => is_array($session['round'] ?? null) ? $session['round'] : null
             ];
-            append_forced_trace($debugLogFile, [
+            append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
                 'time_ms' => $nowMs,
                 'session_code' => $sessionCode,
                 'role' => $role,
@@ -948,6 +1447,9 @@ if ($roleConflict === null && $role === 'receiver') {
 
 $state['session_registry'][$sessionCode]['sender_name'] = $session['sender']['profile']['name'] ?? '';
 $state['session_registry'][$sessionCode]['receiver_name'] = $session['receiver']['profile']['name'] ?? '';
+$state['pair_difficulties'][$sessionCode]['sender_name'] = $state['session_registry'][$sessionCode]['sender_name'];
+$state['pair_difficulties'][$sessionCode]['receiver_name'] = $state['session_registry'][$sessionCode]['receiver_name'];
+$state['pair_difficulties'][$sessionCode]['updated_ms'] = $nowMs;
 
 if ($action === 'log_debug') {
     $label = isset($input['label']) ? (string) $input['label'] : 'debug';
@@ -968,7 +1470,7 @@ if ($action === 'log_debug') {
 if ($action === 'trace_client') {
     $label = isset($input['label']) ? (string) $input['label'] : 'client_trace';
     $details = isset($input['details']) && is_array($input['details']) ? $input['details'] : [];
-    append_forced_trace($debugLogFile, [
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
         'time_ms' => $nowMs,
         'session_code' => $sessionCode,
         'role' => $role,
@@ -978,7 +1480,7 @@ if ($action === 'trace_client') {
 }
 
 if ($action === 'heartbeat' && is_array($session['abort_notice'] ?? null)) {
-    append_forced_trace($debugLogFile, [
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
         'time_ms' => $nowMs,
         'session_code' => $sessionCode,
         'role' => $role,
@@ -1006,16 +1508,110 @@ if ($action === 'check_admin_secret') {
     exit;
 }
 
+if ($action === 'send_test_email') {
+    try {
+        $result = sendAppMail(
+            isset($input['to']) ? (string) $input['to'] : '',
+            isset($input['bcc']) ? (string) $input['bcc'] : '',
+            isset($input['subject']) ? (string) $input['subject'] : '',
+            isset($input['body']) ? (string) $input['body'] : '',
+            build_email_test_attachment($input)
+        );
+
+        $response = [
+            'ok' => true,
+            'mail' => $result,
+            'server_now_ms' => $nowMs
+        ];
+    } catch (Throwable $exception) {
+        http_response_code(500);
+        $response = [
+            'ok' => false,
+            'error' => $exception->getMessage(),
+            'server_now_ms' => $nowMs
+        ];
+    }
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'send_contact_message') {
+    try {
+        $message = trim((string) ($input['message'] ?? ''));
+        $wordCount = count_words_in_text($message);
+        if ($message === '') {
+            throw new RuntimeException('Please write a message before sending.');
+        }
+        if ($wordCount > 300) {
+            throw new RuntimeException('Please reduce your message to 300 words or fewer.');
+        }
+
+        $mailConfig = load_app_mail_config($configDir);
+        if (!($mailConfig['available'] ?? false)) {
+            throw new RuntimeException((string) ($mailConfig['message'] ?? 'Mail configuration is unavailable.'));
+        }
+
+        $metadata = isset($input['metadata']) && is_array($input['metadata']) ? $input['metadata'] : [];
+        $adminResult = sendAppMail(
+            'dgraboi@sbcglobal.net',
+            '',
+            'ESP Gym contact message',
+            build_contact_message_body($message, $metadata)
+        );
+        $senderEmail = trim((string) ($metadata['sender_email'] ?? ''));
+        $senderResult = sendAppMail(
+            $senderEmail,
+            '',
+            'Message sent to ESP Gym',
+            build_contact_message_body($message, $metadata)
+        );
+
+        $response = [
+            'ok' => true,
+            'mail' => [
+                'admin_copy' => $adminResult,
+                'sender_copy' => $senderResult
+            ],
+            'server_now_ms' => $nowMs
+        ];
+    } catch (Throwable $exception) {
+        http_response_code(500);
+        $response = [
+            'ok' => false,
+            'error' => $exception->getMessage(),
+            'server_now_ms' => $nowMs
+        ];
+    }
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'clear_debug_log' && $isAdmin) {
     file_put_contents($debugLogFile, '');
+    file_put_contents($safetyLogFile, '');
 }
 
 if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
-    $state['session_registry'][$sessionCode]['difficulty_level'] = normalize_difficulty_level(
+    $state['pair_difficulties'][$sessionCode]['difficulty_level'] = normalize_difficulty_level(
         $action === 'set_pair_difficulty'
             ? ($input['difficulty_level'] ?? '1')
-            : ($state['session_registry'][$sessionCode]['difficulty_level'] ?? '1')
+            : ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1')
     );
+    $state['pair_difficulties'][$sessionCode]['updated_ms'] = $nowMs;
 }
 
 if ($roleConflict === null && $action === 'append_trial_record') {
@@ -1132,7 +1728,7 @@ if ($roleConflict === null && $action === 'clear_post_round') {
 }
 
 if ($roleConflict === null && $action === 'clear_timeout_notice') {
-    append_forced_trace($debugLogFile, [
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
         'time_ms' => $nowMs,
         'session_code' => $sessionCode,
         'role' => $role,
@@ -1145,7 +1741,7 @@ if ($roleConflict === null && $action === 'clear_timeout_notice') {
               'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : ''
           ]
       ]);
-    apply_abort_to_home($session, $nowMs, $role, $sessionCode, $debugLogFile, $debugEnabled, 'timeout');
+    apply_abort_to_home($session, $nowMs, $role, $sessionCode, $debugLogFile, $safetyLogFile, $safetyLogMaxBytes, $debugEnabled, 'timeout');
 }
 
 if ($roleConflict === null && $action === 'clear_timeout_exit') {
@@ -1154,7 +1750,7 @@ if ($roleConflict === null && $action === 'clear_timeout_exit') {
 
 if ($roleConflict === null && $action === 'abort_to_home') {
     $abortReason = isset($input['abort_reason']) ? (string) $input['abort_reason'] : '';
-    apply_abort_to_home($session, $nowMs, $role, $sessionCode, $debugLogFile, $debugEnabled, $abortReason);
+    apply_abort_to_home($session, $nowMs, $role, $sessionCode, $debugLogFile, $safetyLogFile, $safetyLogMaxBytes, $debugEnabled, $abortReason);
 }
 
 if ($roleConflict === null && $action === 'clear_abort_notice') {
@@ -1194,7 +1790,7 @@ if ($roleConflict === null && $action === 'submit_guess' && $role === 'receiver'
     $guessArrangementCode = isset($input['guess_arrangement_code']) ? (string) $input['guess_arrangement_code'] : '';
     $secondGuessLayoutNumber = isset($input['second_guess_layout_number']) && is_numeric($input['second_guess_layout_number']) ? (int) $input['second_guess_layout_number'] : null;
     $secondGuessArrangementCode = isset($input['second_guess_arrangement_code']) ? (string) $input['second_guess_arrangement_code'] : '';
-    $difficultyLevel = normalize_difficulty_level($input['difficulty_level'] ?? ($state['session_registry'][$sessionCode]['difficulty_level'] ?? '1'));
+    $difficultyLevel = normalize_difficulty_level($input['difficulty_level'] ?? ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'));
     $guessConfidence = isset($input['confidence']) && is_numeric($input['confidence']) ? max(0, min(10, (int) $input['confidence'])) : null;
     $doneReactionMs = isset($input['done_reaction_ms']) && is_numeric($input['done_reaction_ms']) ? max(0, (int) $input['done_reaction_ms']) : null;
     $roundId = isset($input['round_id']) ? (string) $input['round_id'] : '';
@@ -1264,7 +1860,7 @@ $response = [
     'session_code' => $sessionCode,
     'is_admin' => $isAdmin,
     'debug_enabled' => $debugEnabled,
-    'pair_difficulty' => normalize_difficulty_level($state['session_registry'][$sessionCode]['difficulty_level'] ?? '1'),
+    'pair_difficulty' => normalize_difficulty_level($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
     'role_conflict' => $roleConflict,
     'state' => [
         'sender_online' => ((int) ($session['sender']['last_seen_ms'] ?? 0)) > 0,
@@ -1290,6 +1886,7 @@ if (is_array($trialRecordAppendResult)) {
 if ($isAdmin) {
     $response['storage'] = get_storage_status($stateDir);
     $response['debug_log'] = get_debug_log_status($debugLogFile);
+    $response['safety_log'] = get_debug_log_status($safetyLogFile);
 }
 
 if ($action === 'analyze_disk_usage' && $isAdmin) {
@@ -1339,7 +1936,7 @@ if ($action === 'report_csv_data') {
     } elseif (!$filteredRecords) {
         $message = $includeAll
             ? 'No server-side trial records are available right now.'
-            : 'No server-side trial records matched the current receiver-sender selection.';
+            : 'No trial records found for the current receiver-sender selection.';
     }
 
     $response['report_csv'] = [
@@ -1347,6 +1944,34 @@ if ($action === 'report_csv_data') {
         'path' => $pairsDir,
         'records' => $filteredRecords,
         'message' => $message
+    ];
+}
+
+if ($action === 'report_pair_csv_data') {
+    $selectedPair = isset($input['selected_pair']) && is_array($input['selected_pair'])
+        ? $input['selected_pair']
+        : [];
+    $pairRecords = read_pair_trial_records_for_pair($pairsDir, $selectedPair);
+    usort($pairRecords, static function (array $left, array $right): int {
+        $leftUtc = trim((string) ($left['utc time'] ?? ''));
+        $rightUtc = trim((string) ($right['utc time'] ?? ''));
+        $leftSort = $leftUtc !== '' ? strtotime($leftUtc) : 0;
+        $rightSort = $rightUtc !== '' ? strtotime($rightUtc) : 0;
+        return $leftSort <=> $rightSort;
+    });
+
+    $selectedReceiver = trim((string) ($selectedPair['receiver_name'] ?? ''));
+    $selectedSender = trim((string) ($selectedPair['sender_name'] ?? ''));
+
+    $response['report_csv'] = [
+        'available' => count($pairRecords) > 0,
+        'path' => ($selectedReceiver !== '' && $selectedSender !== '')
+            ? get_pair_trial_csv_path($pairsDir, $selectedReceiver, $selectedSender, trim((string) ($selectedPair['session_code'] ?? '')))
+            : $pairsDir,
+        'records' => $pairRecords,
+        'message' => count($pairRecords) > 0
+            ? ''
+            : 'No trial records found for the current receiver-sender selection.'
     ];
 }
 

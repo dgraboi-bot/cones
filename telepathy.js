@@ -16,6 +16,7 @@
   const countdownNumber = document.getElementById("countdownNumber");
   const stage = document.getElementById("stage");
   const homeLink = document.querySelector(".home-link");
+  const waitingBackButton = document.getElementById("waitingBackButton");
   const settingsGear = document.getElementById("settingsGear");
   const settingsScreen = document.getElementById("settingsScreen");
   const coneSrc = "cone-lowglow-transparent.png";
@@ -35,7 +36,7 @@
   const settingsStorageKey = `cones-settings-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory";
   const exportSchemaVersion = "cones-trials-v4";
-  const runtimeBuildVersion = "20260614j";
+  const runtimeBuildVersion = "20260614m";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -216,9 +217,11 @@
     }
 
     const shouldShow = false;
+    const shouldShowWaitingBack = currentUiMode === "sender-waiting-online" || currentUiMode === "receiver-waiting-online";
 
     settingsGear?.classList.toggle("hidden", !shouldShow);
     homeLink?.classList.toggle("hidden", !shouldShow);
+    waitingBackButton?.classList.toggle("hidden", !shouldShowWaitingBack);
   }
 
   function readSettings() {
@@ -4224,6 +4227,9 @@
       countdownBox.addEventListener("click", handleActionPress);
     countdownBox.addEventListener("keydown", handleActionKeydown);
     settingsGear?.addEventListener("click", openSettings);
+    waitingBackButton?.addEventListener("click", () => {
+      navigateToBeginnerFrontPage();
+    });
     homeLink?.addEventListener("click", (event) => {
       event.preventDefault();
       noteUserInteraction();
