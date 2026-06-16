@@ -423,7 +423,7 @@ function build_contact_message_body(string $message, array $metadata): string
         ? array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $metadata['own_names'])))
         : [];
     if ($ownNames !== []) {
-        $lines[] = 'Names on device: ' . implode(' / ', $ownNames);
+        $lines[] = 'Emails on device: ' . implode(' / ', $ownNames);
     }
 
     $pair = isset($metadata['pair']) && is_array($metadata['pair']) ? $metadata['pair'] : [];
@@ -539,6 +539,11 @@ function normalize_person_name_for_match(string $value): string
     return strtolower(trim(preg_replace('/\s+/', ' ', $value) ?? ''));
 }
 
+function normalize_identifier_for_lookup(string $value): string
+{
+    return strtolower(trim((string) $value));
+}
+
 function normalize_pair_storage_component(string $value): string
 {
     $normalized = preg_replace('/[^a-z0-9]+/i', '-', normalize_person_name_for_match($value)) ?? '';
@@ -549,6 +554,95 @@ function normalize_pair_storage_component(string $value): string
 function build_pair_match_key(string $receiverName, string $senderName): string
 {
     return normalize_person_name_for_match($receiverName) . '|||' . normalize_person_name_for_match($senderName);
+}
+
+function default_launcher_profile_state(): array
+{
+    return [
+        'own_email' => '',
+        'current_partner' => '',
+        'partner_history' => [],
+        'deleted_partners' => [],
+        'updated_ms' => 0
+    ];
+}
+
+function sanitize_string_list(array $values): array
+{
+    $clean = [];
+    foreach ($values as $value) {
+        $text = trim((string) $value);
+        if ($text === '') {
+            continue;
+        }
+        $clean[] = $text;
+    }
+
+    return array_values(array_unique($clean));
+}
+
+function get_launcher_profile_entry(array $state, string $role, string $ownEmail): array
+{
+    $default = default_launcher_profile_state();
+    $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
+    $lookupKey = normalize_identifier_for_lookup($ownEmail);
+    if ($lookupKey === '') {
+        return $default;
+    }
+
+    $entry = $state['launcher_profiles'][$lookupKey][$normalizedRole] ?? null;
+    if (!is_array($entry)) {
+        return array_merge($default, [
+            'own_email' => trim($ownEmail)
+        ]);
+    }
+
+    return [
+        'own_email' => trim((string) ($entry['own_email'] ?? $ownEmail)),
+        'current_partner' => trim((string) ($entry['current_partner'] ?? '')),
+        'partner_history' => sanitize_string_list(is_array($entry['partner_history'] ?? null) ? $entry['partner_history'] : []),
+        'deleted_partners' => sanitize_string_list(is_array($entry['deleted_partners'] ?? null) ? $entry['deleted_partners'] : []),
+        'updated_ms' => isset($entry['updated_ms']) && is_numeric($entry['updated_ms']) ? (int) $entry['updated_ms'] : 0
+    ];
+}
+
+function set_launcher_profile_entry(array &$state, string $role, string $ownEmail, array $entry, int $nowMs): array
+{
+    $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
+    $lookupKey = normalize_identifier_for_lookup($ownEmail);
+    if ($lookupKey === '') {
+        return default_launcher_profile_state();
+    }
+
+    if (!is_array($state['launcher_profiles'] ?? null)) {
+        $state['launcher_profiles'] = [];
+    }
+    if (!is_array($state['launcher_profiles'][$lookupKey] ?? null)) {
+        $state['launcher_profiles'][$lookupKey] = [];
+    }
+
+    $partnerHistory = sanitize_string_list(is_array($entry['partner_history'] ?? null) ? $entry['partner_history'] : []);
+    $deletedPartners = sanitize_string_list(is_array($entry['deleted_partners'] ?? null) ? $entry['deleted_partners'] : []);
+    $deletedLookup = array_fill_keys(array_map('normalize_identifier_for_lookup', $deletedPartners), true);
+    $partnerHistory = array_values(array_filter(
+        $partnerHistory,
+        static fn(string $value): bool => !isset($deletedLookup[normalize_identifier_for_lookup($value)])
+    ));
+    $currentPartner = trim((string) ($entry['current_partner'] ?? ''));
+    if ($currentPartner !== '' && !in_array($currentPartner, $partnerHistory, true)) {
+        $partnerHistory[] = $currentPartner;
+    }
+
+    $stored = [
+        'own_email' => trim($ownEmail),
+        'current_partner' => $currentPartner,
+        'partner_history' => array_values($partnerHistory),
+        'deleted_partners' => array_values($deletedPartners),
+        'updated_ms' => $nowMs
+    ];
+
+    $state['launcher_profiles'][$lookupKey][$normalizedRole] = $stored;
+    return $stored;
 }
 
 function build_pair_storage_key(string $receiverName, string $senderName, string $sessionCode = ''): string
@@ -863,8 +957,8 @@ function default_receiver_view(): array
 function default_profile(): array
 {
     return [
-        'first_name' => '',
-        'last_name' => '',
+        'own_email' => '',
+        'partner_email' => '',
         'name' => '',
         'location' => ''
     ];
@@ -1004,14 +1098,16 @@ function ensure_session_shape(array &$session): void
 
 function normalize_profile(array $profile): array
 {
-    $firstName = isset($profile['first_name']) ? trim((string) $profile['first_name']) : '';
-    $lastName = isset($profile['last_name']) ? trim((string) $profile['last_name']) : '';
-    $name = isset($profile['name']) ? trim((string) $profile['name']) : trim($firstName . ' ' . $lastName);
+    $ownEmail = isset($profile['own_email'])
+        ? trim((string) $profile['own_email'])
+        : trim((string) ($profile['name'] ?? ''));
+    $partnerEmail = isset($profile['partner_email']) ? trim((string) $profile['partner_email']) : '';
+    $name = isset($profile['name']) ? trim((string) $profile['name']) : $ownEmail;
     $location = isset($profile['location']) ? trim((string) $profile['location']) : '';
 
     return [
-        'first_name' => $firstName,
-        'last_name' => $lastName,
+        'own_email' => $ownEmail,
+        'partner_email' => $partnerEmail,
         'name' => $name,
         'location' => $location
     ];
@@ -1100,8 +1196,8 @@ function apply_abort_to_home(array &$session, int $nowMs, string $role, string $
 
 function is_admin_profile(array $profile, string $adminSecret): bool
 {
-    $firstName = isset($profile['first_name']) ? trim((string) $profile['first_name']) : '';
-    return $firstName !== '' && hash_equals(strtolower($adminSecret), strtolower($firstName));
+    $ownEmail = isset($profile['own_email']) ? trim((string) $profile['own_email']) : '';
+    return $ownEmail !== '' && hash_equals(strtolower($adminSecret), strtolower($ownEmail));
 }
 
 function is_admin_secret_candidate($value, string $adminSecret): bool
@@ -1178,6 +1274,7 @@ if (!is_array($state)) {
         'sessions' => [],
         'session_registry' => [],
         'pair_difficulties' => [],
+        'launcher_profiles' => [],
         'debug_enabled' => false
     ];
 }
@@ -1190,6 +1287,7 @@ if (!array_key_exists('sessions', $state)) {
         ],
         'session_registry' => [],
         'pair_difficulties' => [],
+        'launcher_profiles' => [],
         'debug_enabled' => false
     ];
 }
@@ -1202,6 +1300,9 @@ if (!is_array($state['session_registry'] ?? null)) {
 }
 if (!is_array($state['pair_difficulties'] ?? null)) {
     $state['pair_difficulties'] = [];
+}
+if (!is_array($state['launcher_profiles'] ?? null)) {
+    $state['launcher_profiles'] = [];
 }
 if (!array_key_exists('debug_enabled', $state)) {
     $state['debug_enabled'] = false;
@@ -1505,6 +1606,48 @@ if ($action === 'check_admin_secret') {
     ];
     echo json_encode($response);
     fclose($handle);
+    exit;
+}
+
+if ($action === 'get_launcher_profile') {
+    $launcherRole = isset($input['launcher_role']) ? (string) $input['launcher_role'] : '';
+    $ownEmail = trim((string) ($input['own_email'] ?? ''));
+    $response = [
+        'ok' => true,
+        'launcher_profile' => get_launcher_profile_entry($state, $launcherRole, $ownEmail),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'save_launcher_profile') {
+    $launcherRole = isset($input['launcher_role']) ? (string) $input['launcher_role'] : '';
+    $ownEmail = trim((string) ($input['own_email'] ?? ''));
+    $launcherProfile = isset($input['launcher_profile']) && is_array($input['launcher_profile'])
+        ? $input['launcher_profile']
+        : [];
+    $storedProfile = set_launcher_profile_entry($state, $launcherRole, $ownEmail, $launcherProfile, $nowMs);
+    $response = [
+        'ok' => true,
+        'launcher_profile' => $storedProfile,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
     exit;
 }
 

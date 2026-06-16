@@ -9,12 +9,12 @@
       history.scrollRestoration = "manual";
     }
   </script>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260615i">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260616l">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260615i">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260615i">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260616l">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260616l">
 </head>
 <body>
   <main class="beginner-shell">
@@ -48,36 +48,42 @@
             </button>
             <div class="role-card-body">
               <form class="role-form" data-role-form="sender" autocomplete="off">
+                <div class="role-email-note" aria-label="Email entry guidance">
+                  <p>No emails are sent.</p>
+                  <p>These email addresses are used only to uniquely identify participants.</p>
+                  <p>The app can connect only if both participants enter the same spellings.</p>
+                  <p>Please verify the email addresses carefully.</p>
+                </div>
                 <label class="role-field">
-                  <span class="role-field-label">Your name:</span>
+                  <span class="role-field-label">Your email:</span>
                   <input
                     class="role-input"
-                    type="text"
+                    type="email"
                     name="ownName"
-                    autocomplete="off"
-                    placeholder="First name    Last name"
-                    title="Enter first and last name in this field."
+                    autocomplete="email"
+                    placeholder="name@example.com"
+                    spellcheck="false"
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label">Exact receiver name:</span>
+                  <span class="role-field-label">Receiver's email:</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
-                      type="text"
+                      type="email"
                       name="partnerName"
                       autocomplete="off"
-                      placeholder="First name    Last name"
-                      title="Enter first and last name in this field."
+                      placeholder="name@example.com"
+                      spellcheck="false"
                     >
-                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver names" autocomplete="off" title="Press here to select a saved receiver">
-                      <option value="">Select receiver</option>
+                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver emails" autocomplete="off" title="Press here to select a saved receiver email">
+                      <option value="">Select receiver email</option>
                     </select>
                     <button
                       class="role-manage"
                       type="button"
                       name="managePartnerNames"
-                      title="Edit dropdown list of receivers"
+                      title="Edit dropdown list of receiver emails"
                     >Manage receivers</button>
                   </div>
                 </label>
@@ -98,36 +104,42 @@
             </button>
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
+                <div class="role-email-note" aria-label="Email entry guidance">
+                  <p>No emails are sent.</p>
+                  <p>These email addresses are used only to uniquely identify participants.</p>
+                  <p>The app can connect only if both participants enter the same spellings.</p>
+                  <p>Please verify the email addresses carefully.</p>
+                </div>
                 <label class="role-field">
-                  <span class="role-field-label">Your name:</span>
+                  <span class="role-field-label">Your email:</span>
                   <input
                     class="role-input"
-                    type="text"
+                    type="email"
                     name="ownName"
-                    autocomplete="off"
-                    placeholder="First name    Last name"
-                    title="Enter first and last name in this field."
+                    autocomplete="email"
+                    placeholder="name@example.com"
+                    spellcheck="false"
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label">Exact sender name:</span>
+                  <span class="role-field-label">Sender's email:</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
-                      type="text"
+                      type="email"
                       name="partnerName"
                       autocomplete="off"
-                      placeholder="First name    Last name"
-                      title="Enter first and last name in this field."
+                      placeholder="name@example.com"
+                      spellcheck="false"
                     >
-                    <select class="role-select" name="partnerHistory" aria-label="Saved sender names" autocomplete="off" title="Press here to select a saved sender">
-                      <option value="">Select sender</option>
+                    <select class="role-select" name="partnerHistory" aria-label="Saved sender emails" autocomplete="off" title="Press here to select a saved sender email">
+                      <option value="">Select sender email</option>
                     </select>
                     <button
                       class="role-manage"
                       type="button"
                       name="managePartnerNames"
-                      title="Edit dropdown list of senders"
+                      title="Edit dropdown list of sender emails"
                     >Manage senders</button>
                   </div>
                 </label>
@@ -146,7 +158,7 @@
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-options>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-version">ver. 20260615i</span>
+          <span class="beginner-top-version">ver. 20260616l</span>
         </div>
 
         <h1 class="beginner-title" id="optionsTitle">Options</h1>
@@ -156,14 +168,67 @@
           <button class="options-button" type="button" data-open-help>Help</button>
           <button class="options-button" type="button" data-open-report>Performance Report</button>
           <button class="options-button" type="button" data-open-difficulty>Change Difficulty Level</button>
+          <button class="options-button" type="button" data-open-color-scheme>Color Scheme Picker</button>
           <button
             class="options-button"
             type="button"
             data-install-app
             title="As an app, it does not work inside a browser tab, but acts just like a regular app with its own icon."
           >Install Telepathy Beginner as an app on this device</button>
-          <button class="options-button" type="button" onclick="window.location.href='telepathybeginner-login.html?v=20260615i'">Goto Logon</button>
           </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="color-scheme" aria-labelledby="colorSchemeTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-color-scheme>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="colorSchemeTitle">Color Scheme Picker</h1>
+          <p class="beginner-subtitle">Use this temporary tool to fine-tune the base blue used across the Telepathy Beginner interface.</p>
+
+          <section class="settings-view-panel color-scheme-panel">
+            <label class="settings-view-field">
+              <span class="settings-view-label">Base blue color</span>
+              <input
+                class="settings-view-input color-scheme-input"
+                type="color"
+                data-color-scheme-input
+                value="#3160b0"
+              >
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Current base blue</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-color-scheme-hex
+                placeholder="#3160b0"
+              >
+            </label>
+
+            <div class="color-scheme-preview-grid">
+              <div class="color-scheme-preview-card color-scheme-preview-surface">
+                <span class="color-scheme-preview-label">Panel surface</span>
+              </div>
+              <div class="color-scheme-preview-card color-scheme-preview-button">
+                <span class="color-scheme-preview-label">Action button</span>
+              </div>
+              <div class="color-scheme-preview-card color-scheme-preview-track">
+                <span class="color-scheme-preview-label">Accent / slider</span>
+              </div>
+            </div>
+
+            <div class="settings-view-status" data-color-scheme-status></div>
+            <div class="contact-actions">
+              <button class="options-button contact-action-button" type="button" data-reset-color-scheme>Reset Default Blue</button>
+              <button class="options-button contact-action-button" type="button" data-save-color-scheme>Save This Blue</button>
+            </div>
+          </section>
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="help" aria-labelledby="helpTitle">
@@ -301,6 +366,7 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260616l'">Send Email</button>
 
               <pre class="report-definition-debug" data-admin-user-list hidden></pre>
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -311,10 +377,10 @@
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-report-definition>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-spacer" aria-hidden="true"></span>
+          <button class="beginner-top-button beginner-top-pill" type="button" data-open-advanced>ADVANCED</button>
         </div>
 
-        <h1 class="beginner-title" id="reportDefinitionTitle">Report Definition</h1>
+        <h1 class="beginner-title" id="reportDefinitionTitle">Performance Report</h1>
         <p class="beginner-subtitle">Choose the receiver-sender pair whose performance history you want to review.</p>
 
         <section class="report-definition-panel">
@@ -336,7 +402,10 @@
           </div>
           <div class="report-definition-status" data-report-definition-status></div>
           <pre class="report-definition-debug" data-report-definition-debug hidden></pre>
-          <button class="options-button report-definition-go" type="button" data-report-go hidden>GO</button>
+          <div class="report-definition-actions">
+            <button class="options-button report-definition-go" type="button" data-report-go hidden>GO</button>
+            <button class="options-button report-definition-visualize" type="button" data-report-visualize hidden>VISUALIZE</button>
+          </div>
         </section>
       </section>
 
@@ -360,11 +429,36 @@
         </section>
       </section>
 
+      <section class="beginner-view beginner-view-hidden" data-view="visualization" aria-labelledby="visualizationTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-visualization>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="beginner-title" id="visualizationTitle">Performance Visualization</h1>
+        <p class="beginner-subtitle">Chance-adjusted cumulative score with a 95% chance band. Upward movement above the band indicates above-chance performance.</p>
+
+        <section class="visualization-panel">
+          <div class="report-summary visualization-summary" data-visualization-summary></div>
+          <div class="report-status visualization-status" data-visualization-status></div>
+          <div class="visualization-legend">
+            <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level1"></span>Level 1</span>
+            <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level2"></span>Level 2</span>
+            <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level3"></span>Level 3</span>
+            <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-band"></span>95% chance band</span>
+          </div>
+          <div class="visualization-chart-wrap" data-visualization-chart-wrap hidden>
+            <svg class="visualization-chart" data-visualization-chart viewBox="0 0 900 520" role="img" aria-label="Performance visualization chart"></svg>
+          </div>
+        </section>
+      </section>
+
       <section class="beginner-view beginner-view-hidden" data-view="difficulty" aria-labelledby="difficultyTitle">
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-difficulty>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <button class="beginner-top-button beginner-top-pill" type="button" data-open-advanced>ADVANCED</button>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
         </div>
 
         <h1 class="beginner-title" id="difficultyTitle">Difficulty Level</h1>
@@ -412,6 +506,6 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="telepathybeginner.js?v=20260615i"></script>
+  <script src="telepathybeginner.js?v=20260616l"></script>
 </body>
 </html>

@@ -1,14 +1,16 @@
 (() => {
-  const launcherKey = "cones-beginner-launcher";
+  const launcherKey = "cones-beginner-launcher-v2";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const rolePanels = document.querySelector(".role-panels");
   const launcherView = document.querySelector('[data-view="launcher"]');
   const optionsView = document.querySelector('[data-view="options"]');
   const helpView = document.querySelector('[data-view="help"]');
+  const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
   const reportView = document.querySelector('[data-view="report"]');
+  const visualizationView = document.querySelector('[data-view="visualization"]');
   const difficultyView = document.querySelector('[data-view="difficulty"]');
   const settingsView = document.querySelector('[data-view="settings"]');
   const adminView = document.querySelector('[data-view="admin"]');
@@ -17,7 +19,9 @@
   const openOptionsButton = document.querySelector("[data-open-options]");
   const closeOptionsButton = document.querySelector("[data-close-options]");
   const openHelpButton = document.querySelector("[data-open-help]");
+  const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
   const closeHelpButton = document.querySelector("[data-close-help]");
+  const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const closeContactButton = document.querySelector("[data-close-contact]");
   const openAboutButton = document.querySelector("[data-open-about]");
@@ -25,6 +29,7 @@
   const openReportButton = document.querySelector("[data-open-report]");
   const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
   const closeReportButton = document.querySelector("[data-close-report]");
+  const closeVisualizationButton = document.querySelector("[data-close-visualization]");
   const reportDefinitionStatus = document.querySelector("[data-report-definition-status]");
   const reportPairPicker = document.querySelector("[data-report-pair-picker]");
   const reportPairTrigger = document.querySelector("[data-report-pair-trigger]");
@@ -32,6 +37,7 @@
   const reportPairMenu = document.querySelector("[data-report-pair-menu]");
   const reportPairOptions = document.querySelector("[data-report-pair-options]");
   const reportGoButton = document.querySelector("[data-report-go]");
+  const reportVisualizeButton = document.querySelector("[data-report-visualize]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
   const openDifficultyButton = document.querySelector("[data-open-difficulty]");
   const openAdvancedButton = document.querySelector("[data-open-advanced]");
@@ -43,6 +49,10 @@
   const reportStatus = document.querySelector("[data-report-status]");
   const reportTableWrap = document.querySelector("[data-report-table-wrap]");
   const reportTable = document.querySelector("[data-report-table]");
+  const visualizationSummary = document.querySelector("[data-visualization-summary]");
+  const visualizationStatus = document.querySelector("[data-visualization-status]");
+  const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
+  const visualizationChart = document.querySelector("[data-visualization-chart]");
   const reportPanel = document.querySelector(".report-panel");
   const reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
   const difficultySlider = document.querySelector("[data-difficulty-slider]");
@@ -59,6 +69,11 @@
   const contactMessageInput = document.querySelector("[data-contact-message]");
   const contactWordCount = document.querySelector("[data-contact-word-count]");
   const contactEmailInput = document.querySelector("[data-contact-email]");
+  const colorSchemeInput = document.querySelector("[data-color-scheme-input]");
+  const colorSchemeHexInput = document.querySelector("[data-color-scheme-hex]");
+  const colorSchemeStatus = document.querySelector("[data-color-scheme-status]");
+  const saveColorSchemeButton = document.querySelector("[data-save-color-scheme]");
+  const resetColorSchemeButton = document.querySelector("[data-reset-color-scheme]");
   const contactStatus = document.querySelector("[data-contact-status]");
   const contactSendButton = document.querySelector("[data-contact-send]");
   const contactCancelButton = document.querySelector("[data-contact-cancel]");
@@ -97,6 +112,8 @@
       user_trial_summary: null,
       disk_usage_analysis: null
     };
+  const launcherBuildVersion = "20260616l";
+  const defaultThemeColor = "#3160b0";
   const difficultyStopPercents = [17, 50, 84];
   const difficultyCopy = {
     1: 'In Level 1, you simply have to decide whether the sender is sending one cone or "many" (three) cones.',
@@ -157,6 +174,8 @@
         deviceLocation: typeof parsed?.deviceLocation === "object" && parsed.deviceLocation ? parsed.deviceLocation : null,
         locationPermission: typeof parsed?.locationPermission === "string" ? parsed.locationPermission : "",
         partnerHistory: typeof parsed?.partnerHistory === "object" && parsed.partnerHistory ? parsed.partnerHistory : {},
+        launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
+        themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
         difficultyLevel: ["1", "2", "3"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1"
       };
     } catch (error) {
@@ -167,6 +186,8 @@
         deviceLocation: null,
         locationPermission: "",
         partnerHistory: {},
+        launcherProfiles: {},
+        themeColor: defaultThemeColor,
         difficultyLevel: "1"
       };
     }
@@ -174,6 +195,130 @@
 
   function writeLauncherState(state) {
     localStorage.setItem(launcherKey, JSON.stringify(state));
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function normalizeThemeHex(value) {
+    const match = String(value || "").trim().match(/^#?([0-9a-f]{6})$/i);
+    return match ? `#${match[1].toLowerCase()}` : defaultThemeColor;
+  }
+
+  function hexToRgb(hex) {
+    const normalized = normalizeThemeHex(hex).slice(1);
+    return {
+      r: parseInt(normalized.slice(0, 2), 16),
+      g: parseInt(normalized.slice(2, 4), 16),
+      b: parseInt(normalized.slice(4, 6), 16)
+    };
+  }
+
+  function rgbToHex(r, g, b) {
+    return `#${[r, g, b].map((value) => clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  function rgbToHsl(r, g, b) {
+    const red = r / 255;
+    const green = g / 255;
+    const blue = b / 255;
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    let h;
+    let s;
+    const l = (max + min) / 2;
+
+    if (max === min) {
+      h = 0;
+      s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case red:
+          h = (green - blue) / d + (green < blue ? 6 : 0);
+          break;
+        case green:
+          h = (blue - red) / d + 2;
+          break;
+        default:
+          h = (red - green) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+
+    return { h, s, l };
+  }
+
+  function hslToRgb(h, s, l) {
+    if (s === 0) {
+      const gray = Math.round(l * 255);
+      return { r: gray, g: gray, b: gray };
+    }
+
+    const hue2rgb = (p, q, t) => {
+      let next = t;
+      if (next < 0) next += 1;
+      if (next > 1) next -= 1;
+      if (next < 1 / 6) return p + (q - p) * 6 * next;
+      if (next < 1 / 2) return q;
+      if (next < 2 / 3) return p + (q - p) * (2 / 3 - next) * 6;
+      return p;
+    };
+
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+
+    return {
+      r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+      g: Math.round(hue2rgb(p, q, h) * 255),
+      b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255)
+    };
+  }
+
+  function adjustThemeColor(hex, { hueShift = 0, saturationScale = 1, lightnessDelta = 0, alpha = 1 } = {}) {
+    const { r, g, b } = hexToRgb(hex);
+    const hsl = rgbToHsl(r, g, b);
+    const shiftedHue = (hsl.h + hueShift + 1) % 1;
+    const scaledSaturation = clamp(hsl.s * saturationScale, 0, 1);
+    const shiftedLightness = clamp(hsl.l + lightnessDelta, 0, 1);
+    const rgb = hslToRgb(shiftedHue, scaledSaturation, shiftedLightness);
+    return alpha >= 1
+      ? rgbToHex(rgb.r, rgb.g, rgb.b)
+      : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+  }
+
+  function applyThemeColor(themeHex) {
+    const rootStyle = document.documentElement.style;
+    const color = normalizeThemeHex(themeHex);
+    rootStyle.setProperty("--brand-base", color);
+    rootStyle.setProperty("--brand-top", adjustThemeColor(color, { lightnessDelta: 0.1 }));
+    rootStyle.setProperty("--brand-bottom", adjustThemeColor(color, { lightnessDelta: -0.06 }));
+    rootStyle.setProperty("--brand-top-hover", adjustThemeColor(color, { lightnessDelta: 0.16 }));
+    rootStyle.setProperty("--brand-bottom-hover", adjustThemeColor(color, { lightnessDelta: -0.01 }));
+    rootStyle.setProperty("--brand-border", adjustThemeColor(color, { lightnessDelta: 0.18, alpha: 0.72 }));
+    rootStyle.setProperty("--brand-shadow", adjustThemeColor(color, { lightnessDelta: -0.22, alpha: 0.28 }));
+    rootStyle.setProperty("--brand-surface-border", adjustThemeColor(color, { lightnessDelta: 0.12, alpha: 0.82 }));
+    rootStyle.setProperty("--brand-surface-top", adjustThemeColor(color, { lightnessDelta: -0.01, alpha: 0.9 }));
+    rootStyle.setProperty("--brand-surface-bottom", adjustThemeColor(color, { lightnessDelta: -0.17, alpha: 0.92 }));
+    rootStyle.setProperty("--brand-surface-base", adjustThemeColor(color, { lightnessDelta: -0.24, alpha: 0.9 }));
+    rootStyle.setProperty("--brand-surface-shadow", adjustThemeColor(color, { lightnessDelta: -0.08, alpha: 0.16 }));
+    rootStyle.setProperty("--brand-soft", adjustThemeColor(color, { lightnessDelta: 0.05, alpha: 0.22 }));
+    rootStyle.setProperty("--brand-ambient", adjustThemeColor(color, { lightnessDelta: 0.18, alpha: 0.11 }));
+    rootStyle.setProperty("--brand-track-top", adjustThemeColor(color, { lightnessDelta: 0.22 }));
+    rootStyle.setProperty("--brand-track-bottom", adjustThemeColor(color, { lightnessDelta: 0.05 }));
+    rootStyle.setProperty("--brand-thumb", adjustThemeColor(color, { lightnessDelta: 0.2 }));
+    rootStyle.setProperty("--brand-focus", adjustThemeColor(color, { lightnessDelta: 0.22, alpha: 0.28 }));
+  }
+
+  function persistThemeColor(themeHex) {
+    const latest = readLauncherState();
+    latest.themeColor = normalizeThemeHex(themeHex);
+    writeLauncherState(latest);
+    applyThemeColor(latest.themeColor);
+    return latest.themeColor;
   }
 
   function buildReportRequestPayload() {
@@ -252,6 +397,53 @@
     };
   }
 
+  async function fetchLauncherProfile(role, ownEmail) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_launcher_profile",
+        launcher_role: role,
+        own_email: String(ownEmail || "").trim()
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Launcher profile request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data?.launcher_profile || null;
+  }
+
+  async function saveLauncherProfile(role, ownEmail, profileState) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_launcher_profile",
+        launcher_role: role,
+        own_email: String(ownEmail || "").trim(),
+        launcher_profile: {
+          current_partner: String(profileState?.currentPartner || "").trim(),
+          partner_history: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []),
+          deleted_partners: uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : [])
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Launcher profile save failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data?.launcher_profile || null;
+  }
+
   function uniqueNames(names) {
     const cleaned = names
       .map((name) => String(name || "").trim())
@@ -291,6 +483,13 @@
     return ["1", "2", "3"].includes(String(level || "")) ? String(level) : "1";
   }
 
+  function normalizeIdentifierForStorage(name) {
+    return String(name || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
   function normalizeNameForSession(name) {
     return String(name || "")
       .toLowerCase()
@@ -304,13 +503,61 @@
     return pair.length === 2 ? `${pair[0]}__${pair[1]}` : "";
   }
 
+  function buildLauncherProfileKey(role, ownIdentifier) {
+    const normalizedRole = role === "sender" ? "sender" : "receiver";
+    const normalizedIdentifier = normalizeIdentifierForStorage(ownIdentifier);
+    return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}` : `${normalizedRole}::`;
+  }
+
+  function readLauncherProfileState(role, ownIdentifier, state = readLauncherState()) {
+    const profileKey = buildLauncherProfileKey(role, ownIdentifier);
+    const launcherProfiles = typeof state.launcherProfiles === "object" && state.launcherProfiles
+      ? state.launcherProfiles
+      : {};
+    const scoped = launcherProfiles[profileKey];
+    const legacyPartnerKey = partnerRole(role);
+    return {
+      currentPartner: String(scoped?.currentPartner || state.currentPartners?.[role] || "").trim(),
+      partnerHistory: uniqueNames([
+        ...(Array.isArray(scoped?.partnerHistory) ? scoped.partnerHistory : []),
+        ...(Array.isArray(state.partnerHistory?.[legacyPartnerKey]) ? state.partnerHistory[legacyPartnerKey] : [])
+      ]),
+      deletedPartners: uniqueNames([
+        ...(Array.isArray(scoped?.deletedPartners) ? scoped.deletedPartners : []),
+        ...(Array.isArray(state.deletedPartners?.[legacyPartnerKey]) ? state.deletedPartners[legacyPartnerKey] : [])
+      ])
+    };
+  }
+
+  function writeLauncherProfileState(role, ownIdentifier, profileState) {
+    const latest = readLauncherState();
+    latest.launcherProfiles = latest.launcherProfiles || {};
+    latest.currentPartners = latest.currentPartners || {};
+    latest.partnerHistory = latest.partnerHistory || {};
+    latest.deletedPartners = latest.deletedPartners || {};
+    latest.launcherProfiles[buildLauncherProfileKey(role, ownIdentifier)] = {
+      currentPartner: String(profileState?.currentPartner || "").trim(),
+      partnerHistory: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []),
+      deletedPartners: uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : [])
+    };
+    latest.currentPartners[role] = String(profileState?.currentPartner || "").trim();
+    latest.partnerHistory[partnerRole(role)] = uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []);
+    latest.deletedPartners[partnerRole(role)] = uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : []);
+    if (ownIdentifier) {
+      latest.ownNames = latest.ownNames || {};
+      latest.ownNames[role] = ownIdentifier;
+    }
+    writeLauncherState(latest);
+    return latest;
+  }
+
   function readRoleSettings(role) {
     try {
-      const raw = localStorage.getItem(`cones-settings-${role}`);
+      const raw = localStorage.getItem(`cones-settings-v2-${role}`);
       const parsed = raw ? JSON.parse(raw) : {};
       return {
-        ownName: buildDisplayName(parsed?.first_name, parsed?.last_name),
-        partnerName: buildDisplayName(parsed?.partner_first_name, parsed?.partner_last_name)
+        ownName: String(parsed?.own_email || "").trim(),
+        partnerName: String(parsed?.partner_email || "").trim()
       };
     } catch (error) {
       return {
@@ -322,7 +569,7 @@
 
   function readRuntimeSettings(role) {
     try {
-      const raw = localStorage.getItem(`cones-settings-${role}`);
+      const raw = localStorage.getItem(`cones-settings-v2-${role}`);
       const parsed = raw ? JSON.parse(raw) : {};
       return {
         ...parsed,
@@ -342,7 +589,7 @@
       ...readRuntimeSettings(role),
       ...updates
     };
-    localStorage.setItem(`cones-settings-${role}`, JSON.stringify(next));
+    localStorage.setItem(`cones-settings-v2-${role}`, JSON.stringify(next));
     return next;
   }
 
@@ -427,8 +674,10 @@
       formValues.ownName ||
       String(state.ownNames?.[role] || "").trim() ||
       roleSettings.ownName;
+    const launcherProfile = readLauncherProfileState(role, ownName, state);
     const partnerName =
       formValues.partnerName ||
+      launcherProfile.currentPartner ||
       String(state.currentPartners?.[role] || "").trim() ||
       roleSettings.partnerName;
     const sessionCode = buildSessionCodeFromNames(ownName, partnerName);
@@ -676,6 +925,9 @@
     if (reportGoButton) {
       reportGoButton.hidden = !selectedReportPair;
     }
+    if (reportVisualizeButton) {
+      reportVisualizeButton.hidden = !selectedReportPair;
+    }
     renderReportPairOptions();
   }
 
@@ -744,7 +996,7 @@
           ? (
               ownNames.length
                 ? `No receiver-sender pairs were found in the server trial history for ${ownNames.join(" / ")}.`
-                : "Enter or save your name first so the report generator can find receiver-sender pairs associated with you."
+                : "Enter or save your email first so the report generator can find receiver-sender pairs associated with you."
             )
           : (csvResult.message || "No server-side trial history is available right now.");
       }
@@ -957,27 +1209,249 @@
     return thumb;
   }
 
+  function getLayoutArrangementCategory(layoutNumber) {
+    switch (layoutNumber) {
+      case 6:
+        return "horizontal";
+      case 7:
+        return "diagonal-up";
+      case 8:
+        return "vertical";
+      case 9:
+        return "diagonal-down";
+      default:
+        return "";
+    }
+  }
+
+  function getLayoutConeCount(layoutNumber) {
+    const layout = reportLayouts[Number(layoutNumber)];
+    return Array.isArray(layout) ? layout.length : 0;
+  }
+
+  function formatScoreValue(value) {
+    if (!Number.isFinite(value)) {
+      return "";
+    }
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  }
+
+  function formatProbabilityValue(value) {
+    if (!Number.isFinite(value)) {
+      return "unknown";
+    }
+    if (value === 0) {
+      return "< 1e-12";
+    }
+    if (value < 0.001) {
+      return value.toExponential(2);
+    }
+    return value.toFixed(4);
+  }
+
+  function approximateErf(x) {
+    const sign = x < 0 ? -1 : 1;
+    const absoluteX = Math.abs(x);
+    const a1 = 0.254829592;
+    const a2 = -0.284496736;
+    const a3 = 1.421413741;
+    const a4 = -1.453152027;
+    const a5 = 1.061405429;
+    const p = 0.3275911;
+    const t = 1 / (1 + p * absoluteX);
+    const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absoluteX * absoluteX);
+    return sign * y;
+  }
+
+  function normalCdf(value) {
+    return 0.5 * (1 + approximateErf(value / Math.SQRT2));
+  }
+
+  function getLevelThreeCountWeight(targetConeCount) {
+    if (targetConeCount === 1) {
+      return 1;
+    }
+    if (targetConeCount === 2 || targetConeCount === 3) {
+      return 1.5;
+    }
+    return 0;
+  }
+
+  function getTrialScoreModel(record) {
+    const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
+    const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
+    const choiceOne = Number(String(record?.["rx choice1"] ?? "").trim());
+    const sentConeCount = getLayoutConeCount(sentLayout);
+    const chosenConeCount = getLayoutConeCount(choiceOne);
+    const exactMatch = sentLayout === choiceOne;
+    const countMatch = sentConeCount > 0 && sentConeCount === chosenConeCount;
+
+    if (difficultyLevel === "1") {
+      const observed = exactMatch || (sentConeCount === 3 && chosenConeCount === 3) ? 1 : 0;
+      return {
+        observed,
+        expected: 0.5,
+        variance: 0.25,
+        level: 1
+      };
+    }
+
+    if (difficultyLevel === "2") {
+      if (sentConeCount === 1) {
+        const observed = exactMatch ? 1 : 0;
+        return {
+          observed,
+          expected: 0.2,
+          variance: 0.16,
+          level: 2
+        };
+      }
+
+      const observed = exactMatch ? 2 : (countMatch ? 1 : 0);
+      return {
+        observed,
+        expected: 1,
+        variance: 0.4,
+        level: 2
+      };
+    }
+
+    if (difficultyLevel === "3") {
+      const countWeight = getLevelThreeCountWeight(sentConeCount);
+      const arrangementBonus = exactMatch ? 1 : 0;
+      const observed = countMatch ? countWeight + arrangementBonus : 0;
+
+      if (sentConeCount === 1) {
+        return {
+          observed,
+          expected: 2 / 9,
+          variance: 32 / 81,
+          level: 3
+        };
+      }
+
+      if (sentConeCount === 2 || sentConeCount === 3) {
+        return {
+          observed,
+          expected: 7 / 9,
+          variance: 68 / 81,
+          level: 3
+        };
+      }
+    }
+
+    return {
+      observed: Number.NaN,
+      expected: Number.NaN,
+      variance: Number.NaN,
+      level: 0
+    };
+  }
+
+  function getReportScore(record) {
+    const model = getTrialScoreModel(record);
+    return formatScoreValue(model.observed);
+  }
+
+  function getReportResponseLabel(record) {
+    const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
+    const rawValue = String(record?.["rx choice1"] ?? "").trim();
+    if (!rawValue) {
+      return "none";
+    }
+    if (difficultyLevel === "1") {
+      return getLevelOneChoiceLabel(rawValue);
+    }
+    return null;
+  }
+
+  function getReportSummaryStats(records) {
+    return records.reduce((summary, record) => {
+      const model = getTrialScoreModel(record);
+      if (!Number.isFinite(model.observed) || !Number.isFinite(model.expected) || !Number.isFinite(model.variance)) {
+        return summary;
+      }
+
+      summary.totalTrials += 1;
+      summary.chanceScore += model.expected;
+      summary.yourScore += model.observed;
+      summary.totalVariance += model.variance;
+      return summary;
+    }, {
+      totalTrials: 0,
+      chanceScore: 0,
+      yourScore: 0,
+      totalVariance: 0
+    });
+  }
+
+  function getTelepathicSignificancePValue(summaryStats) {
+    if (!summaryStats || summaryStats.totalTrials < 1 || summaryStats.totalVariance <= 0) {
+      return Number.NaN;
+    }
+    const zScore = (summaryStats.yourScore - summaryStats.chanceScore) / Math.sqrt(summaryStats.totalVariance);
+    return 1 - normalCdf(zScore);
+  }
+
   function getLevelOneReportScore(record) {
     const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
     if (difficultyLevel !== "1") {
       return "";
     }
 
-    const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
-    const choiceOne = Number(String(record?.["rx choice1"] ?? "").trim());
-    const sentIsOneCone = sentLayout === 1;
-    const choiceIndicatesOneCone = choiceOne === 1;
-    const choiceIndicatesManyCones = Number.isInteger(choiceOne) && choiceOne > 1;
+    return getReportScore(record);
+  }
 
-    if (sentIsOneCone && choiceIndicatesOneCone) {
-      return "1";
+  function buildVisualizationSeries(records) {
+    const series = [];
+    let cumulativeExcess = 0;
+    let cumulativeVariance = 0;
+
+    records.forEach((record) => {
+      const model = getTrialScoreModel(record);
+      if (!Number.isFinite(model.observed) || !Number.isFinite(model.expected) || !Number.isFinite(model.variance)) {
+        return;
+      }
+
+      const excess = model.observed - model.expected;
+      cumulativeExcess += excess;
+      cumulativeVariance += model.variance;
+      const sigma = Math.sqrt(cumulativeVariance);
+
+      series.push({
+        trialNumber: series.length + 1,
+        level: model.level,
+        observed: model.observed,
+        excess,
+        cumulativeExcess,
+        upperBand: 1.96 * sigma,
+        lowerBand: -1.96 * sigma,
+        scoreLabel: formatScoreValue(model.observed)
+      });
+    });
+
+    return series;
+  }
+
+  function createSvgElement(name, attributes = {}) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+    Object.entries(attributes).forEach(([key, value]) => {
+      element.setAttribute(key, String(value));
+    });
+    return element;
+  }
+
+  function getVisualizationLevelColor(level) {
+    if (level === 1) {
+      return "#ffd166";
     }
-
-    if (!sentIsOneCone && choiceIndicatesManyCones) {
-      return "1";
+    if (level === 2) {
+      return "#66d9ef";
     }
-
-    return "0";
+    if (level === 3) {
+      return "#ff8c69";
+    }
+    return "#f6f3ef";
   }
 
   function getLevelOneChoiceLabel(value) {
@@ -1051,19 +1525,12 @@
     thead.appendChild(headerRow);
 
     const tbody = document.createElement("tbody");
-    let levelOneTotalTrials = 0;
-    let levelOneTotalCorrect = 0;
+    const summaryStats = getReportSummaryStats(records);
     records.forEach((record) => {
       const row = document.createElement("tr");
       const receiverLocation = parseLocationValue(record?.["rx location"] ?? "");
       const senderLocation = parseLocationValue(record?.["tx location"] ?? "");
-      const scoreValue = getLevelOneReportScore(record);
-      if (String(record?.["difficulty level"] ?? "").trim() === "1") {
-        levelOneTotalTrials += 1;
-        if (scoreValue === "1") {
-          levelOneTotalCorrect += 1;
-        }
-      }
+      const scoreValue = getReportScore(record);
       const distanceMeters =
         receiverLocation && senderLocation
           ? haversineDistanceMeters(senderLocation, receiverLocation)
@@ -1082,9 +1549,15 @@
           td.textContent = formatReactionTimeTenths(record?.[header] ?? "");
         } else if (header === "score") {
           td.textContent = scoreValue;
-        } else if (header === "rx choice1" && String(record?.["difficulty level"] ?? "").trim() === "1") {
-          td.textContent = getLevelOneChoiceLabel(record?.[header] ?? "");
-        } else if (header === "sent layout" || header === "rx choice1") {
+        } else if (header === "rx choice1") {
+          const responseLabel = getReportResponseLabel(record);
+          if (responseLabel !== null) {
+            td.textContent = responseLabel;
+          } else {
+            td.classList.add("report-layout-cell");
+            td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
+          }
+        } else if (header === "sent layout") {
           td.classList.add("report-layout-cell");
           td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
         } else {
@@ -1100,16 +1573,212 @@
     const summaryCell = document.createElement("td");
     summaryCell.colSpan = headers.length;
     summaryCell.className = "report-table-summary-cell";
-    const levelOnePercent = levelOneTotalTrials > 0
-      ? ((levelOneTotalCorrect / levelOneTotalTrials) * 100).toFixed(1)
-      : "0.0";
+    const telepathicSignificance = getTelepathicSignificancePValue(summaryStats);
     summaryCell.textContent =
-      `Summary - Level 1: Total trials = ${levelOneTotalTrials}, Total correct = ${levelOneTotalCorrect} = ${levelOnePercent} %`;
+      `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`;
     summaryRow.appendChild(summaryCell);
     tfoot.appendChild(summaryRow);
 
     reportTable.append(colgroup, thead, tbody, tfoot);
     reportTableWrap.hidden = false;
+  }
+
+  function renderVisualizationSummary(pairInfo, records, series) {
+    if (!visualizationSummary || !visualizationStatus) {
+      return;
+    }
+
+    visualizationSummary.replaceChildren();
+
+    const firstLine = document.createElement("p");
+    firstLine.className = "report-summary-line";
+    firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
+    visualizationSummary.append(firstLine);
+
+    const levelCounts = new Map([[1, 0], [2, 0], [3, 0]]);
+    series.forEach((point) => {
+      levelCounts.set(point.level, (levelCounts.get(point.level) || 0) + 1);
+    });
+    const latest = series.at(-1);
+    visualizationStatus.textContent = latest
+      ? `${records.length} trial record${records.length === 1 ? "" : "s"} found. Current cumulative excess over chance = ${latest.cumulativeExcess.toFixed(2)}. Level 1: ${levelCounts.get(1)}, Level 2: ${levelCounts.get(2)}, Level 3: ${levelCounts.get(3)}.`
+      : "No scoreable trials are available for visualization.";
+  }
+
+  function renderVisualizationChart(series) {
+    if (!visualizationChart || !visualizationChartWrap) {
+      return;
+    }
+
+    visualizationChart.replaceChildren();
+
+    if (!series.length) {
+      visualizationChartWrap.hidden = true;
+      return;
+    }
+
+    const width = 900;
+    const height = 520;
+    const margin = { top: 30, right: 34, bottom: 54, left: 74 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const maxX = Math.max(series.length, 1);
+    const allYValues = [0];
+    series.forEach((point) => {
+      allYValues.push(point.cumulativeExcess, point.upperBand, point.lowerBand);
+    });
+    const yMinRaw = Math.min(...allYValues);
+    const yMaxRaw = Math.max(...allYValues);
+    const yPadding = Math.max(1, (yMaxRaw - yMinRaw) * 0.08);
+    const yMin = yMinRaw - yPadding;
+    const yMax = yMaxRaw + yPadding;
+    const xToPx = (value) => margin.left + ((value - 1) / Math.max(maxX - 1, 1)) * plotWidth;
+    const yToPx = (value) => margin.top + ((yMax - value) / Math.max(yMax - yMin, 0.0001)) * plotHeight;
+
+    const bandPathParts = [];
+    series.forEach((point, index) => {
+      const x = xToPx(point.trialNumber);
+      const y = yToPx(point.upperBand);
+      bandPathParts.push(`${index === 0 ? "M" : "L"} ${x} ${y}`);
+    });
+    for (let index = series.length - 1; index >= 0; index -= 1) {
+      const point = series[index];
+      bandPathParts.push(`L ${xToPx(point.trialNumber)} ${yToPx(point.lowerBand)}`);
+    }
+    bandPathParts.push("Z");
+    visualizationChart.appendChild(createSvgElement("path", {
+      d: bandPathParts.join(" "),
+      fill: "rgba(255,255,255,0.12)",
+      stroke: "none"
+    }));
+
+    const yTicks = 5;
+    for (let tick = 0; tick <= yTicks; tick += 1) {
+      const value = yMin + ((yMax - yMin) * tick) / yTicks;
+      const y = yToPx(value);
+      visualizationChart.appendChild(createSvgElement("line", {
+        x1: margin.left,
+        y1: y,
+        x2: width - margin.right,
+        y2: y,
+        stroke: "rgba(255,255,255,0.08)",
+        "stroke-width": 1
+      }));
+      const label = createSvgElement("text", {
+        x: margin.left - 12,
+        y: y + 4,
+        fill: "rgba(255,255,255,0.72)",
+        "font-size": 12,
+        "text-anchor": "end"
+      });
+      label.textContent = value.toFixed(1);
+      visualizationChart.appendChild(label);
+    }
+
+    const xTickValues = (() => {
+      if (series.length <= 12) {
+        return Array.from({ length: series.length }, (_, index) => index + 1);
+      }
+
+      const targetCount = 10;
+      const values = new Set([1, series.length]);
+      for (let tick = 1; tick < targetCount - 1; tick += 1) {
+        values.add(Math.round(1 + (tick * (series.length - 1)) / (targetCount - 1)));
+      }
+      return [...values].sort((left, right) => left - right);
+    })();
+
+    xTickValues.forEach((trialValue) => {
+      const x = xToPx(trialValue);
+      visualizationChart.appendChild(createSvgElement("line", {
+        x1: x,
+        y1: margin.top,
+        x2: x,
+        y2: height - margin.bottom,
+        stroke: "rgba(255,255,255,0.08)",
+        "stroke-width": 1
+      }));
+      const label = createSvgElement("text", {
+        x,
+        y: height - margin.bottom + 24,
+        fill: "rgba(255,255,255,0.72)",
+        "font-size": 12,
+        "text-anchor": "middle"
+      });
+      label.textContent = String(trialValue);
+      visualizationChart.appendChild(label);
+    });
+
+    visualizationChart.appendChild(createSvgElement("line", {
+      x1: margin.left,
+      y1: yToPx(0),
+      x2: width - margin.right,
+      y2: yToPx(0),
+      stroke: "rgba(255,255,255,0.42)",
+      "stroke-width": 1.5
+    }));
+
+    for (let index = 1; index < series.length; index += 1) {
+      const previous = series[index - 1];
+      const current = series[index];
+      visualizationChart.appendChild(createSvgElement("line", {
+        x1: xToPx(previous.trialNumber),
+        y1: yToPx(previous.cumulativeExcess),
+        x2: xToPx(current.trialNumber),
+        y2: yToPx(current.cumulativeExcess),
+        stroke: getVisualizationLevelColor(current.level),
+        "stroke-width": 3,
+        "stroke-linecap": "round"
+      }));
+    }
+
+    series.forEach((point) => {
+      const circle = createSvgElement("circle", {
+        cx: xToPx(point.trialNumber),
+        cy: yToPx(point.cumulativeExcess),
+        r: 4.5,
+        fill: getVisualizationLevelColor(point.level),
+        stroke: "rgba(5,5,5,0.85)",
+        "stroke-width": 1.5
+      });
+      const title = createSvgElement("title");
+      title.textContent = `Trial ${point.trialNumber} | Level ${point.level} | Score ${point.scoreLabel} | Excess ${point.excess.toFixed(2)} | Cumulative ${point.cumulativeExcess.toFixed(2)}`;
+      circle.appendChild(title);
+      visualizationChart.appendChild(circle);
+    });
+
+    visualizationChart.appendChild(createSvgElement("rect", {
+      x: margin.left,
+      y: margin.top,
+      width: plotWidth,
+      height: plotHeight,
+      fill: "none",
+      stroke: "rgba(255,255,255,0.18)",
+      "stroke-width": 1.2
+    }));
+
+    const xLabel = createSvgElement("text", {
+      x: margin.left + plotWidth / 2,
+      y: height - 10,
+      fill: "rgba(255,255,255,0.82)",
+      "font-size": 13,
+      "text-anchor": "middle"
+    });
+    xLabel.textContent = "Trial number";
+    visualizationChart.appendChild(xLabel);
+
+    const yLabel = createSvgElement("text", {
+      x: 18,
+      y: margin.top + plotHeight / 2,
+      fill: "rgba(255,255,255,0.82)",
+      "font-size": 13,
+      transform: `rotate(-90 18 ${margin.top + plotHeight / 2})`,
+      "text-anchor": "middle"
+    });
+    yLabel.textContent = "Cumulative excess over chance";
+    visualizationChart.appendChild(yLabel);
+
+    visualizationChartWrap.hidden = false;
   }
 
   function beginReportResize(event) {
@@ -1277,6 +1946,51 @@
     renderReportTable(records);
   }
 
+  async function renderPerformanceVisualization(pairInfo = selectedReportPair) {
+    let csvResult = {
+      available: false,
+      message: "",
+      records: []
+    };
+    try {
+      csvResult = await fetchSelectedPairReportCsvData(pairInfo);
+    } catch (error) {
+      csvResult = {
+        available: false,
+        message: "Unable to load the server trial history right now.",
+        records: []
+      };
+    }
+
+    if (!visualizationSummary || !visualizationStatus || !visualizationChartWrap || !visualizationChart) {
+      return;
+    }
+
+    if (!pairInfo?.sessionCode) {
+      visualizationSummary.replaceChildren();
+      visualizationStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open the visualization again.";
+      visualizationChart.replaceChildren();
+      visualizationChartWrap.hidden = true;
+      return;
+    }
+
+    const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+    const series = buildVisualizationSeries(records);
+
+    if (!records.length) {
+      visualizationSummary.replaceChildren();
+      visualizationStatus.textContent = csvResult.available
+        ? "No trial records found for the current receiver-sender selection."
+        : (csvResult.message || "No server-side trial history is available right now.");
+      visualizationChart.replaceChildren();
+      visualizationChartWrap.hidden = true;
+      return;
+    }
+
+    renderVisualizationSummary(pairInfo, records, series);
+    renderVisualizationChart(series);
+  }
+
   async function refreshDifficultyLabels() {
     const token = ++difficultyLabelToken;
     const fallbackLevel = "1";
@@ -1340,8 +2054,8 @@
     const target = role === "sender" ? "sender.html" : "receiver.html";
     const params = new URLSearchParams();
     params.set("prefill", "1");
-    params.set("own_name", ownName);
-    params.set("partner_name", exactPartnerName);
+    params.set("own_email", ownName);
+    params.set("partner_email", exactPartnerName);
     const state = readLauncherState();
     const deviceLocation = state?.deviceLocation;
     if (
@@ -1477,24 +2191,27 @@
     );
   }
 
-  function getPartnerHistory(role, state = readLauncherState()) {
-    const partnerKey = partnerRole(role);
+  function getPartnerHistory(role, state = readLauncherState(), ownIdentifier = "") {
     const roleSettings = readRoleSettings(role);
-    const deleted = new Set(
-      Array.isArray(state.deletedPartners?.[partnerKey]) ? state.deletedPartners[partnerKey] : []
-    );
+    const resolvedOwnIdentifier =
+      String(ownIdentifier || "").trim() ||
+      String(state.ownNames?.[role] || "").trim() ||
+      roleSettings.ownName;
+    const profileState = readLauncherProfileState(role, resolvedOwnIdentifier, state);
+    const deleted = new Set(profileState.deletedPartners.map((name) => normalizeIdentifierForStorage(name)));
     return uniqueNames([
-      ...(Array.isArray(state.partnerHistory?.[partnerKey]) ? state.partnerHistory[partnerKey] : []),
+      ...profileState.partnerHistory,
+      profileState.currentPartner || "",
       roleSettings.partnerName || ""
-    ]).filter((name) => !deleted.has(name));
+    ]).filter((name) => !deleted.has(normalizeIdentifierForStorage(name)));
   }
 
-  function applyPartnerHistory(role, form, state = readLauncherState()) {
+  function applyPartnerHistory(role, form, state = readLauncherState(), ownIdentifier = "") {
     const select = form.querySelector('select[name="partnerHistory"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
-    const emptyOptionLabel = role === "sender" ? "Select receiver" : "Select sender";
-    const history = getPartnerHistory(role, state);
+    const emptyOptionLabel = role === "sender" ? "Select receiver email" : "Select sender email";
+    const history = getPartnerHistory(role, state, ownIdentifier);
 
     if (!select || !partnerInput) {
       return history;
@@ -1526,6 +2243,63 @@
     activeNameManagerOverlay = null;
   }
 
+  async function persistLauncherProfileForForm(role, form, overrideState = null) {
+    const ownInput = form.querySelector('input[name="ownName"]');
+    const partnerInput = form.querySelector('input[name="partnerName"]');
+    const ownIdentifier = String(ownInput?.value || "").trim();
+    if (!ownIdentifier) {
+      return;
+    }
+
+    const sourceState = overrideState || readLauncherState();
+    const profileState = readLauncherProfileState(role, ownIdentifier, sourceState);
+    const currentPartner = String(partnerInput?.value || profileState.currentPartner || "").trim();
+    const storedProfile = await saveLauncherProfile(role, ownIdentifier, {
+      currentPartner,
+      partnerHistory: uniqueNames([
+        ...profileState.partnerHistory,
+        currentPartner
+      ]),
+      deletedPartners: profileState.deletedPartners
+    });
+
+    if (storedProfile) {
+      writeLauncherProfileState(role, ownIdentifier, {
+        currentPartner: storedProfile.current_partner || currentPartner,
+        partnerHistory: Array.isArray(storedProfile.partner_history) ? storedProfile.partner_history : profileState.partnerHistory,
+        deletedPartners: Array.isArray(storedProfile.deleted_partners) ? storedProfile.deleted_partners : profileState.deletedPartners
+      });
+    }
+  }
+
+  async function hydrateLauncherProfileForForm(role, form) {
+    const ownInput = form.querySelector('input[name="ownName"]');
+    const partnerInput = form.querySelector('input[name="partnerName"]');
+    const ownIdentifier = String(ownInput?.value || "").trim();
+    if (!ownIdentifier) {
+      applyPartnerHistory(role, form, readLauncherState(), "");
+      return;
+    }
+
+    const requestedIdentifier = ownIdentifier;
+    const fetchedProfile = await fetchLauncherProfile(role, requestedIdentifier);
+    if (String(ownInput?.value || "").trim() !== requestedIdentifier) {
+      return;
+    }
+
+    const latest = writeLauncherProfileState(role, requestedIdentifier, {
+      currentPartner: String(fetchedProfile?.current_partner || "").trim(),
+      partnerHistory: Array.isArray(fetchedProfile?.partner_history) ? fetchedProfile.partner_history : [],
+      deletedPartners: Array.isArray(fetchedProfile?.deleted_partners) ? fetchedProfile.deleted_partners : []
+    });
+    const profileState = readLauncherProfileState(role, requestedIdentifier, latest);
+    if (!String(partnerInput?.value || "").trim() && profileState.currentPartner) {
+      partnerInput.value = profileState.currentPartner;
+    }
+    applyPartnerHistory(role, form, latest, requestedIdentifier);
+    void refreshDifficultyLabels();
+  }
+
   function saveManagedName(role, originalName, updatedName, isAddMode, form) {
     const cleaned = String(updatedName || "").trim();
     if (!cleaned) {
@@ -1533,51 +2307,39 @@
     }
 
     const latest = readLauncherState();
-    const partnerKey = partnerRole(role);
-    const history = getPartnerHistory(role, latest).filter((name) => name !== originalName);
-    latest.partnerHistory = latest.partnerHistory || {};
-    latest.currentPartners = latest.currentPartners || {};
-    latest.deletedPartners = latest.deletedPartners || {};
-    latest.deletedPartners[partnerKey] = (Array.isArray(latest.deletedPartners[partnerKey]) ? latest.deletedPartners[partnerKey] : [])
-      .filter((name) => name !== cleaned);
-    latest.partnerHistory[partnerKey] = uniqueNames([...history, cleaned]);
-
+    const ownIdentifier = String(form.querySelector('input[name="ownName"]')?.value || "").trim();
+    const profileState = readLauncherProfileState(role, ownIdentifier, latest);
+    const history = getPartnerHistory(role, latest, ownIdentifier).filter((name) => name !== originalName);
     const partnerInput = form.querySelector('input[name="partnerName"]');
     if (isAddMode || (partnerInput && partnerInput.value.trim() === originalName)) {
       partnerInput.value = cleaned;
-      latest.currentPartners[role] = cleaned;
-    } else if (!latest.currentPartners[role] && partnerInput?.value.trim()) {
-      latest.currentPartners[role] = partnerInput.value.trim();
     }
-
-    writeLauncherState(latest);
-    applyPartnerHistory(role, form, latest);
+    const nextState = writeLauncherProfileState(role, ownIdentifier, {
+      currentPartner: String(partnerInput?.value || profileState.currentPartner || "").trim(),
+      partnerHistory: uniqueNames([...history, cleaned]),
+      deletedPartners: profileState.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(cleaned))
+    });
+    applyPartnerHistory(role, form, nextState, ownIdentifier);
+    void persistLauncherProfileForForm(role, form, nextState);
     return true;
   }
 
   function deleteManagedName(role, nameToDelete, form) {
     const latest = readLauncherState();
-    const partnerKey = partnerRole(role);
-    const history = getPartnerHistory(role, latest).filter((name) => name !== nameToDelete);
-    latest.partnerHistory = latest.partnerHistory || {};
-    latest.currentPartners = latest.currentPartners || {};
-    latest.deletedPartners = latest.deletedPartners || {};
-    latest.deletedPartners[partnerKey] = uniqueNames([
-      ...(Array.isArray(latest.deletedPartners[partnerKey]) ? latest.deletedPartners[partnerKey] : []),
-      nameToDelete
-    ]);
-    latest.partnerHistory[partnerKey] = history;
-
+    const ownIdentifier = String(form.querySelector('input[name="ownName"]')?.value || "").trim();
+    const profileState = readLauncherProfileState(role, ownIdentifier, latest);
+    const history = getPartnerHistory(role, latest, ownIdentifier).filter((name) => name !== nameToDelete);
     const partnerInput = form.querySelector('input[name="partnerName"]');
     if (partnerInput && partnerInput.value.trim() === nameToDelete) {
       partnerInput.value = "";
     }
-    if (latest.currentPartners[role] === nameToDelete) {
-      latest.currentPartners[role] = "";
-    }
-
-    writeLauncherState(latest);
-    applyPartnerHistory(role, form, latest);
+    const nextState = writeLauncherProfileState(role, ownIdentifier, {
+      currentPartner: String(partnerInput?.value || "").trim(),
+      partnerHistory: history,
+      deletedPartners: uniqueNames([...profileState.deletedPartners, nameToDelete])
+    });
+    applyPartnerHistory(role, form, nextState, ownIdentifier);
+    void persistLauncherProfileForForm(role, form, nextState);
   }
 
   function openNameEditor(role, form, options) {
@@ -1590,7 +2352,7 @@
     }
 
     panel.innerHTML = `
-      <h2 class="name-manager-title">${isAddMode ? "Add name" : "Edit name"}</h2>
+      <h2 class="name-manager-title">${isAddMode ? "Add email" : "Edit email"}</h2>
       <div class="name-manager-editor">
         <input
           class="name-manager-input"
@@ -1672,8 +2434,9 @@
   function openNameManager(role, form) {
     closeNameManager();
 
-    const partnerTypeLabel = role === "sender" ? "receivers" : "senders";
-    const history = getPartnerHistory(role);
+    const partnerTypeLabel = role === "sender" ? "receiver emails" : "sender emails";
+    const ownIdentifier = String(form.querySelector('input[name="ownName"]')?.value || "").trim();
+    const history = getPartnerHistory(role, readLauncherState(), ownIdentifier);
     const overlay = document.createElement("div");
     overlay.className = "name-manager-overlay";
     overlay.innerHTML = `
@@ -1687,7 +2450,7 @@
             </li>
           `).join("")}
           <li>
-            <button class="name-manager-item-button name-manager-item-add" type="button" data-add-name>Add a name.</button>
+            <button class="name-manager-item-button name-manager-item-add" type="button" data-add-name>Add an email.</button>
           </li>
         </ul>
       </div>
@@ -1728,15 +2491,14 @@
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const select = form.querySelector('select[name="partnerHistory"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
-    const partnerKey = partnerRole(role);
     const roleSettings = readRoleSettings(role);
     const savedOwn = String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
-    const savedPartner = String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
-    const history = getPartnerHistory(role, state);
+    const profileState = readLauncherProfileState(role, savedOwn, state);
+    const savedPartner = profileState.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
 
     ownInput.value = savedOwn;
     partnerInput.value = savedPartner;
-    applyPartnerHistory(role, form, state);
+    applyPartnerHistory(role, form, state, savedOwn);
 
     select.addEventListener("change", () => {
       if (select.value) {
@@ -1744,6 +2506,7 @@
         window.setTimeout(() => {
           select.value = "";
         }, 0);
+        void persistLauncherProfileForForm(role, form);
         void refreshDifficultyLabels();
       }
     });
@@ -1754,13 +2517,23 @@
 
     ownInput.addEventListener("input", () => {
       setRoleDifficultyLabel(role, "1");
+      applyPartnerHistory(role, form, readLauncherState(), ownInput.value.trim());
+    });
+    ownInput.addEventListener("change", () => {
+      void hydrateLauncherProfileForForm(role, form);
+    });
+    ownInput.addEventListener("blur", () => {
+      void hydrateLauncherProfileForForm(role, form);
     });
 
     partnerInput.addEventListener("input", () => {
       setRoleDifficultyLabel(role, "1");
     });
+    partnerInput.addEventListener("change", () => {
+      void persistLauncherProfileForForm(role, form);
+    });
 
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const ownName = ownInput.value.trim();
       const exactPartnerName = partnerInput.value.trim();
@@ -1776,18 +2549,25 @@
 
       const latest = readLauncherState();
       latest.ownNames = latest.ownNames || {};
-      latest.currentPartners = latest.currentPartners || {};
-      latest.partnerHistory = latest.partnerHistory || {};
       latest.ownNames[role] = ownName;
-      latest.currentPartners[role] = exactPartnerName;
-      latest.partnerHistory[partnerKey] = uniqueNames([
-        ...(Array.isArray(latest.partnerHistory[partnerKey]) ? latest.partnerHistory[partnerKey] : []),
-        exactPartnerName
-      ]);
-      writeLauncherState(latest);
+      const existingProfile = readLauncherProfileState(role, ownName, latest);
+      const nextState = writeLauncherProfileState(role, ownName, {
+        currentPartner: exactPartnerName,
+        partnerHistory: uniqueNames([...existingProfile.partnerHistory, exactPartnerName]),
+        deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(exactPartnerName))
+      });
+      try {
+        await persistLauncherProfileForForm(role, form, nextState);
+      } catch (error) {
+        // Keep local progress even if the server save momentarily fails.
+      }
 
       window.location.href = buildTargetUrl(role, ownName, exactPartnerName);
     });
+
+    if (savedOwn) {
+      void hydrateLauncherProfileForForm(role, form);
+    }
   }
 
   function activateCard(card) {
@@ -1854,10 +2634,12 @@
     launcherView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -1869,10 +2651,12 @@
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -1887,9 +2671,11 @@
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -1904,13 +2690,34 @@
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    void renderPerformanceReport(pairInfo);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showVisualizationView(pairInfo = selectedReportPair) {
+    clearReportPanelOffset();
+    visualizationView?.classList.remove("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    void renderPerformanceReport(pairInfo);
+    void renderPerformanceVisualization(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1934,6 +2741,7 @@
     helpView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -1951,6 +2759,7 @@
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -1969,6 +2778,7 @@
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -2223,6 +3033,7 @@
     difficultyView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -2270,6 +3081,7 @@
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -2411,6 +3223,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -2433,6 +3246,36 @@
     } catch (error) {
       // Ignore malformed launcher open requests.
     }
+  }
+
+  function renderColorSchemeView() {
+    const currentColor = normalizeThemeHex(readLauncherState().themeColor || defaultThemeColor);
+    if (colorSchemeInput) {
+      colorSchemeInput.value = currentColor;
+    }
+    if (colorSchemeHexInput) {
+      colorSchemeHexInput.value = currentColor;
+    }
+    if (colorSchemeStatus) {
+      colorSchemeStatus.textContent = "This picker previews colors live. Save stores the current blue only on this browser/device.";
+    }
+  }
+
+  function showColorSchemeView() {
+    colorSchemeView?.classList.remove("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderColorSchemeView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function encodeCsvCell(value) {
@@ -2471,7 +3314,7 @@
         message: String(messageText || ""),
         metadata: {
           app: "Telepathy Beginner",
-          build_version: "20260615i",
+          build_version: launcherBuildVersion,
           sender_email: String(senderEmail || "").trim(),
           own_names: meta.ownNames,
           pair: meta.pair,
@@ -2686,6 +3529,28 @@
     );
   }
 
+  function isRunningAsInstalledApp() {
+    return !!(
+      window.matchMedia?.("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true
+    );
+  }
+
+  function updateInstallButtonLabel() {
+    if (!installAppButton) {
+      return;
+    }
+
+    if (isRunningAsInstalledApp()) {
+      installAppButton.textContent = "Uninstall Telepathy Beginner as an app on this device";
+      installAppButton.title = "Telepathy Beginner appears to be installed on this device.";
+      return;
+    }
+
+    installAppButton.textContent = "Install Telepathy Beginner as an app on this device";
+    installAppButton.title = "As an app, it does not work inside a browser tab, but acts just like a regular app with its own icon.";
+  }
+
   function detectMobileBrowser() {
     const ua = navigator.userAgent || "";
     const vendor = navigator.vendor || "";
@@ -2739,6 +3604,12 @@
     });
   });
 
+  document.querySelectorAll(".role-email-note").forEach((note) => {
+    note.addEventListener("click", () => {
+      collapseActiveLauncherCard();
+    });
+  });
+
   retryLocationButtons.forEach((button) => {
     button.addEventListener("click", () => {
       requestDeviceLocationIfNeeded(true);
@@ -2748,7 +3619,9 @@
   openOptionsButton?.addEventListener("click", showOptionsView);
   closeOptionsButton?.addEventListener("click", showLauncherView);
   openHelpButton?.addEventListener("click", showHelpView);
+  openColorSchemeButton?.addEventListener("click", showColorSchemeView);
   closeHelpButton?.addEventListener("click", showOptionsView);
+  closeColorSchemeButton?.addEventListener("click", showOptionsView);
   openContactButton?.addEventListener("click", showContactView);
   closeContactButton?.addEventListener("click", showHelpView);
   openAboutButton?.addEventListener("click", showAboutView);
@@ -2756,6 +3629,7 @@
   openReportButton?.addEventListener("click", showReportDefinitionView);
   closeReportDefinitionButton?.addEventListener("click", showOptionsView);
   closeReportButton?.addEventListener("click", showReportDefinitionView);
+  closeVisualizationButton?.addEventListener("click", showReportDefinitionView);
   reportPairTrigger?.addEventListener("click", () => {
     if (!availableReportPairs.length) {
       return;
@@ -2769,6 +3643,11 @@
   reportGoButton?.addEventListener("click", () => {
     if (selectedReportPair) {
       showReportView(selectedReportPair);
+    }
+  });
+  reportVisualizeButton?.addEventListener("click", () => {
+    if (selectedReportPair) {
+      showVisualizationView(selectedReportPair);
     }
   });
   openDifficultyButton?.addEventListener("click", showDifficultyView);
@@ -2806,6 +3685,54 @@
   });
   downloadSettingsCsvButton?.addEventListener("click", () => {
     void downloadSettingsCsvData();
+  });
+  colorSchemeInput?.addEventListener("input", () => {
+    const nextColor = normalizeThemeHex(colorSchemeInput.value || defaultThemeColor);
+    applyThemeColor(nextColor);
+    if (colorSchemeHexInput) {
+      colorSchemeHexInput.value = nextColor;
+    }
+    if (colorSchemeStatus) {
+      colorSchemeStatus.textContent = `Previewing base blue: ${nextColor}`;
+    }
+  });
+  colorSchemeHexInput?.addEventListener("input", () => {
+    const rawValue = String(colorSchemeHexInput.value || "").trim();
+    if (!/^#?[0-9a-fA-F]{6}$/.test(rawValue)) {
+      if (colorSchemeStatus) {
+        colorSchemeStatus.textContent = "Enter a 6-digit hex color such as #3160b0 to preview it.";
+      }
+      return;
+    }
+    const nextColor = normalizeThemeHex(rawValue);
+    if (colorSchemeInput) {
+      colorSchemeInput.value = nextColor;
+    }
+    applyThemeColor(nextColor);
+    if (colorSchemeStatus) {
+      colorSchemeStatus.textContent = `Previewing base blue: ${nextColor}`;
+    }
+  });
+  saveColorSchemeButton?.addEventListener("click", () => {
+    const savedColor = persistThemeColor(colorSchemeInput?.value || defaultThemeColor);
+    if (colorSchemeHexInput) {
+      colorSchemeHexInput.value = savedColor;
+    }
+    if (colorSchemeStatus) {
+      colorSchemeStatus.textContent = `Saved base blue on this browser/device: ${savedColor}`;
+    }
+  });
+  resetColorSchemeButton?.addEventListener("click", () => {
+    const resetColor = persistThemeColor(defaultThemeColor);
+    if (colorSchemeInput) {
+      colorSchemeInput.value = resetColor;
+    }
+    if (colorSchemeHexInput) {
+      colorSchemeHexInput.value = resetColor;
+    }
+    if (colorSchemeStatus) {
+      colorSchemeStatus.textContent = `Reset base blue to default: ${resetColor}`;
+    }
   });
   installAppButton?.addEventListener("click", handleInstallRequest);
   adminDebugEnabledCheckbox?.addEventListener("change", async () => {
@@ -2925,15 +3852,23 @@
   window.addEventListener("resize", () => {
     renderDifficultyState();
   });
+  applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
   renderLocationStatus();
   renderDifficultyState();
   renderContactWordCount();
+  updateInstallButtonLabel();
   void refreshDifficultyLabels();
   applyLauncherOpenRequest();
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
+    updateInstallButtonLabel();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    updateInstallButtonLabel();
   });
 
   document.addEventListener("click", (event) => {
@@ -2955,7 +3890,7 @@
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./telepathybeginner-sw.js?v=20260615i")
+      navigator.serviceWorker.register(`./telepathybeginner-sw.js?v=${launcherBuildVersion}`)
         .catch(() => {
           // Ignore service worker registration failures and fall back to browser guidance.
         });

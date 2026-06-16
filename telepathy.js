@@ -33,10 +33,10 @@
   const staleMs = 5000;
   const roundLifetimeMs = 300000;
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
-  const settingsStorageKey = `cones-settings-${role}`;
-  const arrangementHistoryKey = "conesArrangementHistory";
+  const settingsStorageKey = `cones-settings-v2-${role}`;
+  const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v4";
-  const runtimeBuildVersion = "20260614m";
+  const runtimeBuildVersion = "20260616i";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -130,10 +130,8 @@
   let postRoundAutoClearHandle = null;
   let appExited = false;
   let settingsOpen = false;
-  let settingsFirstNameInput = null;
-  let settingsLastNameInput = null;
-  let settingsPartnerFirstNameInput = null;
-  let settingsPartnerLastNameInput = null;
+  let settingsOwnEmailInput = null;
+  let settingsPartnerEmailInput = null;
   let settingsAllowSecondChoiceCheckbox = null;
   let settingsExportEmailInput = null;
   let settingsFolderStatus = null;
@@ -157,7 +155,7 @@
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
   const folderHandleKey = `data-folder-${role}`;
-  const localTrialRecordsKey = `cones-local-trials-${role}`;
+  const localTrialRecordsKey = `cones-local-trials-v2-${role}`;
   const levelOneTargetLayoutNumbers = [1, 6, 7, 8, 9];
   const levelOneManyLayoutNumbers = [6, 7, 8, 9];
 
@@ -228,16 +226,10 @@
     try {
       const raw = localStorage.getItem(settingsStorageKey);
       const parsed = raw ? JSON.parse(raw) : {};
-      const legacyName = typeof parsed?.name === "string" ? parsed.name.trim() : "";
-      const legacyParts = legacyName ? legacyName.split(/\s+/) : [];
-      const legacyFirst = legacyParts[0] || "";
-      const legacyLast = legacyParts.slice(1).join(" ");
 
       return {
-        first_name: typeof parsed?.first_name === "string" ? parsed.first_name : legacyFirst,
-        last_name: typeof parsed?.last_name === "string" ? parsed.last_name : legacyLast,
-        partner_first_name: typeof parsed?.partner_first_name === "string" ? parsed.partner_first_name : "",
-        partner_last_name: typeof parsed?.partner_last_name === "string" ? parsed.partner_last_name : "",
+        own_email: typeof parsed?.own_email === "string" ? parsed.own_email : "",
+        partner_email: typeof parsed?.partner_email === "string" ? parsed.partner_email : "",
         allow_second_choice: typeof parsed?.allow_second_choice === "boolean" ? parsed.allow_second_choice : false,
         export_email: typeof parsed?.export_email === "string" ? parsed.export_email : "",
         device_location: typeof parsed?.device_location === "string" ? parsed.device_location : "",
@@ -246,10 +238,8 @@
       };
     } catch (error) {
       return {
-        first_name: "",
-        last_name: "",
-        partner_first_name: "",
-        partner_last_name: "",
+        own_email: "",
+        partner_email: "",
         allow_second_choice: false,
         export_email: "",
         device_location: "",
@@ -269,6 +259,12 @@
 
   function buildDisplayName(firstName, lastName) {
     return [firstName, lastName].filter(Boolean).join(" ").trim();
+  }
+
+  function normalizeIdentifierForSession(identifier) {
+    return String(identifier || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
   }
 
   function isLevelOneDifficulty() {
@@ -305,23 +301,9 @@
     return [];
   }
 
-  function splitFullName(fullName) {
-    const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
-    return {
-      firstName: parts[0] || "",
-      lastName: parts.slice(1).join(" ")
-    };
-  }
-
-  function normalizeNameForSession(firstName, lastName) {
-    return buildDisplayName(firstName, lastName)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "");
-  }
-
-  function buildSessionCodeFromValues(firstName, lastName, partnerFirstName, partnerLastName) {
-    const ownName = normalizeNameForSession(firstName, lastName);
-    const partnerName = normalizeNameForSession(partnerFirstName, partnerLastName);
+  function buildSessionCodeFromValues(ownEmail, partnerEmail) {
+    const ownName = normalizeIdentifierForSession(ownEmail);
+    const partnerName = normalizeIdentifierForSession(partnerEmail);
 
     if (!ownName || !partnerName) {
       return "";
@@ -333,28 +315,22 @@
   function getCurrentSessionCode() {
     const settings = readSettings();
     return buildSessionCodeFromValues(
-      settings.first_name || "",
-      settings.last_name || "",
-      settings.partner_first_name || "",
-      settings.partner_last_name || ""
+      settings.own_email || "",
+      settings.partner_email || ""
     );
   }
 
   function populateSettingsForm() {
     if (
-      !settingsFirstNameInput ||
-      !settingsLastNameInput ||
-      !settingsPartnerFirstNameInput ||
-      !settingsPartnerLastNameInput
+      !settingsOwnEmailInput ||
+      !settingsPartnerEmailInput
     ) {
       return;
     }
 
     const settings = readSettings();
-    settingsFirstNameInput.value = settings.first_name || "";
-    settingsLastNameInput.value = settings.last_name || "";
-    settingsPartnerFirstNameInput.value = settings.partner_first_name || "";
-    settingsPartnerLastNameInput.value = settings.partner_last_name || "";
+    settingsOwnEmailInput.value = settings.own_email || "";
+    settingsPartnerEmailInput.value = settings.partner_email || "";
     if (settingsAllowSecondChoiceCheckbox) {
       settingsAllowSecondChoiceCheckbox.checked = settings.allow_second_choice !== false;
       updateSecondChoiceSettingsControl(settings.allow_second_choice !== false);
@@ -410,16 +386,16 @@
       if (checkboxText) {
         checkboxText.textContent = lockedSingleChoice
           ? "Level 1 and Level 2 use one choice only."
-          : "Allow a second choice as well as a first choice. This should be unchecked (applies only to Level 3).";
+          : "Allow a second choice as well as a first choice (applies only to Level 3).";
       }
   }
 
   function getCurrentProfile() {
     const settings = readSettings();
     return {
-      first_name: settings.first_name || "",
-      last_name: settings.last_name || "",
-      name: buildDisplayName(settings.first_name || "", settings.last_name || ""),
+      own_email: settings.own_email || "",
+      partner_email: settings.partner_email || "",
+      name: String(settings.own_email || "").trim(),
       location: settings.device_location || ""
     };
   }
@@ -435,24 +411,20 @@
         return;
       }
 
-      const ownName = params.get("own_name") || "";
-      const partnerName = params.get("partner_name") || "";
-      const ownSplit = splitFullName(ownName);
-      const partnerSplit = splitFullName(partnerName);
+      const ownEmail = params.get("own_email") || "";
+      const partnerEmail = params.get("partner_email") || "";
       const latitude = Number(params.get("loc_latitude"));
       const longitude = Number(params.get("loc_longitude"));
       const accuracy = Number(params.get("loc_accuracy"));
       const timestamp = Number(params.get("loc_timestamp"));
 
-      if (!ownSplit.firstName && !partnerSplit.firstName) {
+      if (!ownEmail && !partnerEmail) {
         return;
       }
 
       const settings = readSettings();
-      settings.first_name = ownSplit.firstName || settings.first_name || "";
-      settings.last_name = ownSplit.lastName || settings.last_name || "";
-      settings.partner_first_name = partnerSplit.firstName || settings.partner_first_name || "";
-      settings.partner_last_name = partnerSplit.lastName || settings.partner_last_name || "";
+      settings.own_email = ownEmail || settings.own_email || "";
+      settings.partner_email = partnerEmail || settings.partner_email || "";
       if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
         settings.device_location = JSON.stringify({
           latitude,
@@ -474,17 +446,13 @@
     const settings = readSettings();
     const profile = getCurrentProfile();
     const sessionCode = buildSessionCodeFromValues(
-      settings.first_name || "",
-      settings.last_name || "",
-      settings.partner_first_name || "",
-      settings.partner_last_name || ""
+      settings.own_email || "",
+      settings.partner_email || ""
     );
 
     if (
-      !profile.first_name ||
-      !profile.last_name ||
-      !settings.partner_first_name ||
-      !settings.partner_last_name ||
+      !profile.own_email ||
+      !settings.partner_email ||
       !sessionCode
     ) {
       return false;
@@ -542,10 +510,8 @@
         ? settingsAllowSecondChoiceCheckbox.checked
         : (existingSettings.allow_second_choice !== false));
     return {
-      first_name: settingsFirstNameInput ? settingsFirstNameInput.value.trim() : "",
-      last_name: settingsLastNameInput ? settingsLastNameInput.value.trim() : "",
-      partner_first_name: settingsPartnerFirstNameInput ? settingsPartnerFirstNameInput.value.trim() : "",
-      partner_last_name: settingsPartnerLastNameInput ? settingsPartnerLastNameInput.value.trim() : "",
+      own_email: settingsOwnEmailInput ? settingsOwnEmailInput.value.trim() : "",
+      partner_email: settingsPartnerEmailInput ? settingsPartnerEmailInput.value.trim() : "",
       allow_second_choice: allowSecondChoice,
       export_email: settingsExportEmailInput ? settingsExportEmailInput.value.trim() : (existingSettings.export_email || ""),
       data_folder_label: selectedDataFolderLabel,
@@ -820,31 +786,23 @@
 
   async function saveSettings() {
     if (
-      !settingsFirstNameInput ||
-      !settingsLastNameInput ||
-      !settingsPartnerFirstNameInput ||
-      !settingsPartnerLastNameInput
+      !settingsOwnEmailInput ||
+      !settingsPartnerEmailInput
     ) {
       return false;
     }
 
     const {
-      firstName,
-      lastName,
-      partnerFirstName,
-      partnerLastName
+      ownEmail,
+      partnerEmail
     } = persistSettingsDraftFromForm();
 
-    if (!firstName || !lastName || !partnerFirstName || !partnerLastName) {
-        updateFolderStatus("Please fill in all required (*) fields.");
-      if (!firstName) {
-        settingsFirstNameInput.focus();
-      } else if (!lastName) {
-        settingsLastNameInput.focus();
-      } else if (!partnerFirstName) {
-        settingsPartnerFirstNameInput.focus();
+    if (!ownEmail || !partnerEmail) {
+      updateFolderStatus("Please fill in all required (*) fields.");
+      if (!ownEmail) {
+        settingsOwnEmailInput.focus();
       } else {
-        settingsPartnerLastNameInput.focus();
+        settingsPartnerEmailInput.focus();
       }
       return false;
     }
@@ -874,10 +832,8 @@
     writeSettings(draft);
 
     return {
-      firstName: draft.first_name,
-      lastName: draft.last_name,
-      partnerFirstName: draft.partner_first_name,
-      partnerLastName: draft.partner_last_name
+      ownEmail: draft.own_email,
+      partnerEmail: draft.partner_email
     };
   }
 
@@ -947,49 +903,33 @@
       await saveSettings();
     });
 
-    const nameFieldGroup = document.createElement("div");
+    const nameFieldGroup = document.createElement("label");
     nameFieldGroup.className = "settings-field";
     const nameLabel = document.createElement("span");
     nameLabel.className = "settings-label";
-    nameLabel.innerHTML = 'Name: <span class="settings-required">*</span>';
-    const nameRow = document.createElement("div");
-    nameRow.className = "settings-inline-fields";
-    const firstNameInput = document.createElement("input");
-    firstNameInput.className = "settings-input";
-    firstNameInput.type = "text";
-    firstNameInput.required = true;
-    firstNameInput.autocomplete = "given-name";
-    firstNameInput.placeholder = "First";
-    const lastNameInput = document.createElement("input");
-    lastNameInput.className = "settings-input";
-    lastNameInput.type = "text";
-    lastNameInput.required = true;
-    lastNameInput.autocomplete = "family-name";
-    lastNameInput.placeholder = "Last";
-    nameRow.append(firstNameInput, lastNameInput);
-    nameFieldGroup.append(nameLabel, nameRow);
+    nameLabel.innerHTML = 'Your email: <span class="settings-required">*</span>';
+    const ownEmailInput = document.createElement("input");
+    ownEmailInput.className = "settings-input";
+    ownEmailInput.type = "email";
+    ownEmailInput.required = true;
+    ownEmailInput.autocomplete = "email";
+    ownEmailInput.placeholder = "name@example.com";
+    ownEmailInput.spellcheck = false;
+    nameFieldGroup.append(nameLabel, ownEmailInput);
 
-    const partnerFieldGroup = document.createElement("div");
+    const partnerFieldGroup = document.createElement("label");
     partnerFieldGroup.className = "settings-field";
     const partnerLabel = document.createElement("span");
     partnerLabel.className = "settings-label";
-    partnerLabel.innerHTML = `Exact spelling of your partner's username: <span class="settings-required">*</span>`;
-    const partnerRow = document.createElement("div");
-    partnerRow.className = "settings-inline-fields";
-    const partnerFirstNameInput = document.createElement("input");
-    partnerFirstNameInput.className = "settings-input";
-    partnerFirstNameInput.type = "text";
-    partnerFirstNameInput.required = true;
-    partnerFirstNameInput.autocomplete = "off";
-    partnerFirstNameInput.placeholder = "First";
-    const partnerLastNameInput = document.createElement("input");
-    partnerLastNameInput.className = "settings-input";
-    partnerLastNameInput.type = "text";
-    partnerLastNameInput.required = true;
-    partnerLastNameInput.autocomplete = "off";
-    partnerLastNameInput.placeholder = "Last";
-    partnerRow.append(partnerFirstNameInput, partnerLastNameInput);
-    partnerFieldGroup.append(partnerLabel, partnerRow);
+    partnerLabel.innerHTML = `${role === "sender" ? "Receiver's email" : "Sender's email"}: <span class="settings-required">*</span>`;
+    const partnerEmailInput = document.createElement("input");
+    partnerEmailInput.className = "settings-input";
+    partnerEmailInput.type = "email";
+    partnerEmailInput.required = true;
+    partnerEmailInput.autocomplete = "off";
+    partnerEmailInput.placeholder = "name@example.com";
+    partnerEmailInput.spellcheck = false;
+    partnerFieldGroup.append(partnerLabel, partnerEmailInput);
 
     let exportEmailField = null;
     let exportEmailInput = null;
@@ -1049,7 +989,7 @@
         updateSecondChoiceSettingsControl(secondChoiceCheckbox.checked);
       });
       const secondChoiceText = document.createElement("span");
-        secondChoiceText.textContent = "Allow a second choice as well as a first choice. This should be unchecked (applies only to Level 3).";
+      secondChoiceText.textContent = "Allow a second choice as well as a first choice (applies only to Level 3).";
       secondChoiceField.append(secondChoiceCheckbox, secondChoiceText);
     }
 
@@ -1143,10 +1083,8 @@
     panel.append(header, form);
     settingsScreen.replaceChildren(panel);
 
-    settingsFirstNameInput = firstNameInput;
-    settingsLastNameInput = lastNameInput;
-    settingsPartnerFirstNameInput = partnerFirstNameInput;
-    settingsPartnerLastNameInput = partnerLastNameInput;
+    settingsOwnEmailInput = ownEmailInput;
+    settingsPartnerEmailInput = partnerEmailInput;
     settingsAllowSecondChoiceCheckbox = secondChoiceCheckbox;
     settingsExportEmailInput = exportEmailInput;
     settingsFolderStatus = folderStatus;
@@ -3220,7 +3158,7 @@
       if (!receiverPressedDoneEarly) {
         showReceiverDoneButton();
       }
-    }, 5000);
+    }, 2500);
   }
 
   function updateSenderConfidenceMirror(confidenceValueNumber) {
