@@ -36,7 +36,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v4";
-  const runtimeBuildVersion = "20260616i";
+  const runtimeBuildVersion = "20260616am";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -215,7 +215,12 @@
     }
 
     const shouldShow = false;
-    const shouldShowWaitingBack = currentUiMode === "sender-waiting-online" || currentUiMode === "receiver-waiting-online";
+    const shouldShowWaitingBack = [
+      "sender-waiting-online",
+      "receiver-waiting-online",
+      "sender-waiting-ready",
+      "receiver-ready"
+    ].includes(currentUiMode);
 
     settingsGear?.classList.toggle("hidden", !shouldShow);
     homeLink?.classList.toggle("hidden", !shouldShow);
@@ -4230,3 +4235,21 @@
 
   void boot();
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

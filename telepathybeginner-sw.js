@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260616l";
-const APP_VERSION = "20260616l";
+const CACHE_NAME = "telepathybeginner-v20260616am";
+const APP_VERSION = "20260616am";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
@@ -87,3 +87,21 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,12 +9,12 @@
       history.scrollRestoration = "manual";
     }
   </script>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260616l">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260616am">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260616l">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260616l">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260616am">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260616am">
 </head>
 <body>
   <main class="beginner-shell">
@@ -41,39 +41,40 @@
 
         <section class="role-panels" aria-label="Role selection">
           <article class="role-card" data-role-card="sender">
-            <button class="role-card-header" type="button" aria-expanded="false">
-              <span class="role-card-title">I Will Be the Sender</span>
+            <div class="role-card-header">
+              <button class="role-card-toggle" type="button" aria-expanded="false">
+                <span class="role-card-title">I Will Be the Sender</span>
+              </button>
+              <button class="role-tools-button" type="button" data-open-tools="sender">TOOLS</button>
               <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
               <span class="role-card-tagline">Skill: Visual attention focus</span>
-            </button>
+            </div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="sender" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
-                  <p>No emails are sent.</p>
-                  <p>These email addresses are used only to uniquely identify participants.</p>
-                  <p>The app can connect only if both participants enter the same spellings.</p>
-                  <p>Please verify the email addresses carefully.</p>
+                  <p data-role-identifier-note="sender">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
+                  <p><button class="role-note-link" type="button" data-open-handle-control="sender">See here for using a unique name instead of email address.</button></p>
                 </div>
                 <label class="role-field">
-                  <span class="role-field-label">Your email:</span>
+                  <span class="role-field-label" data-own-identifier-label="sender">Your email:</span>
                   <input
                     class="role-input"
-                    type="email"
+                    type="text"
                     name="ownName"
-                    autocomplete="email"
-                    placeholder="name@example.com"
+                    autocomplete="off"
+                    placeholder="name@example.com or unique handle"
                     spellcheck="false"
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label">Receiver's email:</span>
+                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver's email:</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
-                      type="email"
+                      type="text"
                       name="partnerName"
                       autocomplete="off"
-                      placeholder="name@example.com"
+                      placeholder="name@example.com or unique handle"
                       spellcheck="false"
                     >
                     <select class="role-select" name="partnerHistory" aria-label="Saved receiver emails" autocomplete="off" title="Press here to select a saved receiver email">
@@ -87,6 +88,7 @@
                     >Manage receivers</button>
                   </div>
                 </label>
+                <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
                 <div class="role-location-status" data-location-status="sender">
                   <span class="role-location-text">Location: unknown</span>
                   <button class="role-location-retry" type="button" data-retry-location="sender" hidden>Retry location</button>
@@ -97,39 +99,40 @@
           </article>
 
           <article class="role-card" data-role-card="receiver">
-            <button class="role-card-header" type="button" aria-expanded="false">
-              <span class="role-card-title">I Will Be the Receiver</span>
+            <div class="role-card-header">
+              <button class="role-card-toggle" type="button" aria-expanded="false">
+                <span class="role-card-title">I Will Be the Receiver</span>
+              </button>
+              <button class="role-tools-button" type="button" data-open-tools="receiver">TOOLS</button>
               <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
               <span class="role-card-tagline">Skill: Mind's eye perception</span>
-            </button>
+            </div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
-                  <p>No emails are sent.</p>
-                  <p>These email addresses are used only to uniquely identify participants.</p>
-                  <p>The app can connect only if both participants enter the same spellings.</p>
-                  <p>Please verify the email addresses carefully.</p>
+                  <p data-role-identifier-note="receiver">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
+                  <p><button class="role-note-link" type="button" data-open-handle-control="receiver">See here for using a unique name instead of email address.</button></p>
                 </div>
                 <label class="role-field">
-                  <span class="role-field-label">Your email:</span>
+                  <span class="role-field-label" data-own-identifier-label="receiver">Your email:</span>
                   <input
                     class="role-input"
-                    type="email"
+                    type="text"
                     name="ownName"
-                    autocomplete="email"
-                    placeholder="name@example.com"
+                    autocomplete="off"
+                    placeholder="name@example.com or unique handle"
                     spellcheck="false"
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label">Sender's email:</span>
+                  <span class="role-field-label" data-partner-identifier-label="receiver">Sender's email:</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
-                      type="email"
+                      type="text"
                       name="partnerName"
                       autocomplete="off"
-                      placeholder="name@example.com"
+                      placeholder="name@example.com or unique handle"
                       spellcheck="false"
                     >
                     <select class="role-select" name="partnerHistory" aria-label="Saved sender emails" autocomplete="off" title="Press here to select a saved sender email">
@@ -143,6 +146,7 @@
                     >Manage senders</button>
                   </div>
                 </label>
+                <div class="role-identifier-status" data-role-identifier-status="receiver" hidden></div>
                 <div class="role-location-status" data-location-status="receiver">
                   <span class="role-location-text">Location: unknown</span>
                   <button class="role-location-retry" type="button" data-retry-location="receiver" hidden>Retry location</button>
@@ -154,11 +158,45 @@
         </section>
       </section>
 
+      <section class="beginner-view beginner-view-hidden" data-view="tools" aria-labelledby="toolsTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-tools>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="beginner-title" id="toolsTitle">Tools</h1>
+        <p class="beginner-subtitle">This is a blank placeholder page for future sender and receiver tools.</p>
+
+        <section class="settings-view-panel about-view-panel">
+          <div class="about-section">
+            <h2 class="about-section-title">Coming Soon</h2>
+            <p class="about-section-copy">Tools for the currently selected sender or receiver role will appear here later.</p>
+          </div>
+        </section>
+      </section>
+
+      <div class="handle-overlay beginner-view-hidden" data-handle-overlay>
+        <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="handleDialogTitle">
+          <h2 class="about-section-title" id="handleDialogTitle">Choose Unique Handle</h2>
+          <p class="about-section-copy">Choose a unique handle between 3 and 24 characters long using letters, numbers, period, underscore, or hyphen.</p>
+          <label class="settings-view-field">
+            <span class="settings-view-label">Proposed unique handle</span>
+            <input class="settings-view-input" type="text" autocomplete="off" spellcheck="false" data-handle-input placeholder="your-handle">
+          </label>
+          <div class="settings-view-status" data-handle-status></div>
+          <div class="contact-actions">
+            <button class="options-button contact-action-button" type="button" data-submit-handle>SUBMIT</button>
+            <button class="options-button contact-action-button" type="button" data-close-handle>CANCEL</button>
+          </div>
+        </div>
+      </div>
+
       <section class="beginner-view beginner-view-hidden" data-view="options" aria-labelledby="optionsTitle">
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-options>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-version">ver. 20260616l</span>
+          <span class="beginner-top-version">ver. 20260616am</span>
         </div>
 
         <h1 class="beginner-title" id="optionsTitle">Options</h1>
@@ -366,7 +404,7 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260616l'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260616am'">Send Email</button>
 
               <pre class="report-definition-debug" data-admin-user-list hidden></pre>
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -405,6 +443,7 @@
           <div class="report-definition-actions">
             <button class="options-button report-definition-go" type="button" data-report-go hidden>GO</button>
             <button class="options-button report-definition-visualize" type="button" data-report-visualize hidden>VISUALIZE</button>
+            <button class="options-button report-definition-analyze" type="button" data-report-analyze hidden>ANALYZE</button>
           </div>
         </section>
       </section>
@@ -450,6 +489,34 @@
           </div>
           <div class="visualization-chart-wrap" data-visualization-chart-wrap hidden>
             <svg class="visualization-chart" data-visualization-chart viewBox="0 0 900 520" role="img" aria-label="Performance visualization chart"></svg>
+          </div>
+        </section>
+      </section>
+
+      <section class="beginner-view beginner-view-hidden" data-view="analyzer" aria-labelledby="analyzerTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-analyzer>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="beginner-title" id="analyzerTitle">Analyze Results</h1>
+        <p class="beginner-subtitle">Static interpretation engine and AI-ready continuity text for the selected receiver-sender pair.</p>
+
+        <section class="analyzer-panel">
+          <div class="report-summary analyzer-summary" data-analyzer-summary></div>
+          <div class="report-status analyzer-status" data-analyzer-status></div>
+          <div class="analyzer-actions">
+            <button class="options-button analyzer-action" type="button" data-analyzer-refresh>REFRESH ANALYSIS</button>
+            <button class="options-button analyzer-action" type="button" data-analyzer-copy>copy continuity text</button>
+          </div>
+          <div class="analyzer-block">
+            <h2 class="analyzer-block-title">Static Analysis</h2>
+            <pre class="analyzer-output" data-analyzer-output></pre>
+          </div>
+          <div class="analyzer-block">
+            <h2 class="analyzer-block-title">AI Continuity Text</h2>
+            <textarea class="analyzer-textarea" data-analyzer-text readonly></textarea>
           </div>
         </section>
       </section>
@@ -506,6 +573,24 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="telepathybeginner.js?v=20260616l"></script>
+  <script src="telepathybeginner.js?v=20260616am"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

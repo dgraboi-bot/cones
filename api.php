@@ -560,6 +560,7 @@ function default_launcher_profile_state(): array
 {
     return [
         'own_email' => '',
+        'preferred_handle' => '',
         'current_partner' => '',
         'partner_history' => [],
         'deleted_partners' => [],
@@ -581,24 +582,429 @@ function sanitize_string_list(array $values): array
     return array_values(array_unique($clean));
 }
 
+function fail_request($handle, int $nowMs, string $message, int $statusCode = 400, array $extra = []): void
+{
+    http_response_code($statusCode);
+    $response = array_merge([
+        'ok' => false,
+        'error' => $message,
+        'server_now_ms' => $nowMs
+    ], $extra);
+
+    if (is_resource($handle)) {
+        @flock($handle, LOCK_UN);
+        @fclose($handle);
+    }
+
+    echo json_encode($response);
+    exit;
+}
+
+function require_allowed_keys(array $value, array $allowedKeys, string $path): void
+{
+    $unexpected = array_diff(array_keys($value), $allowedKeys);
+    if ($unexpected !== []) {
+        throw new RuntimeException($path . ' contains unexpected field(s): ' . implode(', ', $unexpected));
+    }
+}
+
+function validate_email_identifier_string($value, string $field, bool $required = true): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        if ($required) {
+            throw new RuntimeException($field . ' is required.');
+        }
+        return '';
+    }
+
+    if (strlen($text) > 254) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+
+    if (!filter_var($text, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException($field . ' must be a valid email address.');
+    }
+
+    return $text;
+}
+
+function normalize_handle_lookup(string $value): string
+{
+    return strtolower(trim((string) $value));
+}
+
+function is_valid_handle_identifier(string $value): bool
+{
+    $text = trim($value);
+    return (bool) preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._-]{1,22}[A-Za-z0-9])?$/', $text);
+}
+
+function validate_participant_identifier_string($value, string $field, bool $required = true): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        if ($required) {
+            throw new RuntimeException($field . ' is required.');
+        }
+        return '';
+    }
+
+    if (strlen($text) > 254) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+
+    if (filter_var($text, FILTER_VALIDATE_EMAIL)) {
+        return $text;
+    }
+
+    if (is_valid_handle_identifier($text)) {
+        return $text;
+    }
+
+    throw new RuntimeException($field . ' must be a valid email address or unique handle.');
+}
+
+function get_canonical_identifier_key(array $state, string $identifier): string
+{
+    $lookup = normalize_identifier_for_lookup($identifier);
+    if ($lookup === '') {
+        return '';
+    }
+
+    $uniqueHandles = is_array($state['unique_handles'] ?? null) ? $state['unique_handles'] : [];
+    if (isset($uniqueHandles[$lookup]) && is_array($uniqueHandles[$lookup])) {
+        return $lookup;
+    }
+
+    $identifierAliases = is_array($state['identifier_aliases'] ?? null) ? $state['identifier_aliases'] : [];
+    if (isset($identifierAliases[$lookup]) && is_string($identifierAliases[$lookup]) && $identifierAliases[$lookup] !== '') {
+        return normalize_handle_lookup($identifierAliases[$lookup]);
+    }
+
+    return $lookup;
+}
+
+function get_identifier_status(array $state, string $identifier): array
+{
+    $input = trim($identifier);
+    $lookup = normalize_identifier_for_lookup($input);
+    $canonicalKey = get_canonical_identifier_key($state, $input);
+    $uniqueHandles = is_array($state['unique_handles'] ?? null) ? $state['unique_handles'] : [];
+    $identifierAliases = is_array($state['identifier_aliases'] ?? null) ? $state['identifier_aliases'] : [];
+
+    $preferredHandle = '';
+    $ownerIdentifier = $input;
+    $usesHandle = false;
+    if ($canonicalKey !== '' && isset($uniqueHandles[$canonicalKey]) && is_array($uniqueHandles[$canonicalKey])) {
+        $entry = $uniqueHandles[$canonicalKey];
+        $preferredHandle = trim((string) ($entry['handle'] ?? ''));
+        $ownerIdentifier = trim((string) ($entry['owner_identifier'] ?? $preferredHandle));
+        $usesHandle = $preferredHandle !== '';
+    } elseif ($lookup !== '' && isset($identifierAliases[$lookup]) && is_string($identifierAliases[$lookup])) {
+        $preferredHandle = trim((string) $identifierAliases[$lookup]);
+        $usesHandle = $preferredHandle !== '';
+        $ownerIdentifier = $input;
+    }
+
+    $preferredIdentifier = $preferredHandle !== '' ? $preferredHandle : $input;
+    return [
+        'input_identifier' => $input,
+        'preferred_identifier' => $preferredIdentifier,
+        'preferred_handle' => $preferredHandle,
+        'owner_identifier' => $ownerIdentifier,
+        'uses_handle' => $usesHandle,
+        'is_handle' => $preferredHandle !== '' && normalize_handle_lookup($input) === normalize_handle_lookup($preferredHandle)
+    ];
+}
+
+function claim_unique_handle(array &$state, string $ownerIdentifier, string $proposedHandle, int $nowMs): array
+{
+    $handle = trim($proposedHandle);
+    if (!is_valid_handle_identifier($handle)) {
+        throw new RuntimeException('Unique handle must be 3 to 24 characters long and use only letters, numbers, period, underscore, or hyphen.');
+    }
+
+    if (!is_array($state['unique_handles'] ?? null)) {
+        $state['unique_handles'] = [];
+    }
+    if (!is_array($state['identifier_aliases'] ?? null)) {
+        $state['identifier_aliases'] = [];
+    }
+
+    $handleKey = normalize_handle_lookup($handle);
+    $owner = trim($ownerIdentifier) !== '' ? trim($ownerIdentifier) : $handle;
+    $ownerKey = normalize_identifier_for_lookup($owner);
+    if ($ownerKey === '') {
+        $ownerKey = $handleKey;
+        $owner = $handle;
+    }
+
+    $existing = $state['unique_handles'][$handleKey] ?? null;
+    if (is_array($existing)) {
+        $existingOwner = normalize_identifier_for_lookup((string) ($existing['owner_identifier'] ?? ''));
+        if ($existingOwner !== '' && $existingOwner !== $ownerKey) {
+            throw new RuntimeException('That unique handle is already in use.');
+        }
+    }
+
+    if (isset($state['identifier_aliases'][$ownerKey]) && is_string($state['identifier_aliases'][$ownerKey])) {
+        $oldHandleKey = normalize_handle_lookup($state['identifier_aliases'][$ownerKey]);
+        if ($oldHandleKey !== '' && $oldHandleKey !== $handleKey) {
+            unset($state['unique_handles'][$oldHandleKey]);
+        }
+    }
+
+    $state['identifier_aliases'][$ownerKey] = $handle;
+    $state['unique_handles'][$handleKey] = [
+        'handle' => $handle,
+        'owner_identifier' => $owner,
+        'updated_ms' => $nowMs
+    ];
+
+    return [
+        'accepted' => true,
+        'handle' => $handle,
+        'owner_identifier' => $owner,
+        'message' => 'Unique handle accepted.'
+    ];
+}
+
+function validate_role_value($value, string $field = 'launcher_role'): string
+{
+    $role = trim((string) $value);
+    if (!in_array($role, ['sender', 'receiver'], true)) {
+        throw new RuntimeException($field . ' must be sender or receiver.');
+    }
+    return $role;
+}
+
+function validate_session_code_value($value, string $field = 'session_code', bool $required = false): string
+{
+    $sessionCode = trim((string) $value);
+    if ($sessionCode === '') {
+        if ($required) {
+            throw new RuntimeException($field . ' is required.');
+        }
+        return '';
+    }
+
+    if (strlen($sessionCode) > 200) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+
+    if (!preg_match('/^[A-Za-z0-9_-]+$/', $sessionCode)) {
+        throw new RuntimeException($field . ' contains invalid characters.');
+    }
+
+    return $sessionCode;
+}
+
+function validate_email_identifier_list($value, string $field, int $maxItems = 200): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an array.');
+    }
+
+    if (count($value) > $maxItems) {
+        throw new RuntimeException($field . ' contains too many items.');
+    }
+
+    $clean = [];
+    foreach ($value as $index => $item) {
+        $clean[] = validate_email_identifier_string($item, $field . '[' . $index . ']', true);
+    }
+
+    return array_values(array_unique($clean));
+}
+
+function validate_identifier_list($value, string $field, int $maxItems = 200): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an array.');
+    }
+
+    if (count($value) > $maxItems) {
+        throw new RuntimeException($field . ' contains too many items.');
+    }
+
+    $clean = [];
+    foreach ($value as $index => $item) {
+        $clean[] = validate_participant_identifier_string($item, $field . '[' . $index . ']', true);
+    }
+
+    return array_values(array_unique($clean));
+}
+
+function validate_selected_pair_payload($value, string $field = 'selected_pair'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an object.');
+    }
+
+    require_allowed_keys($value, ['receiver_name', 'sender_name', 'session_code'], $field);
+
+    return [
+        'receiver_name' => validate_participant_identifier_string($value['receiver_name'] ?? '', $field . '.receiver_name', true),
+        'sender_name' => validate_participant_identifier_string($value['sender_name'] ?? '', $field . '.sender_name', true),
+        'session_code' => validate_session_code_value($value['session_code'] ?? '', $field . '.session_code', false)
+    ];
+}
+
+function validate_launcher_profile_payload($value, string $field = 'launcher_profile'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an object.');
+    }
+
+    require_allowed_keys($value, ['current_partner', 'partner_history', 'deleted_partners'], $field);
+
+    return [
+        'current_partner' => validate_participant_identifier_string($value['current_partner'] ?? '', $field . '.current_partner', false),
+        'partner_history' => validate_identifier_list($value['partner_history'] ?? [], $field . '.partner_history'),
+        'deleted_partners' => validate_identifier_list($value['deleted_partners'] ?? [], $field . '.deleted_partners')
+    ];
+}
+
+function validate_analysis_metrics_payload($value, string $field = 'analysis.metrics'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an object.');
+    }
+
+    $allowed = [
+        'raw_trial_count',
+        'completed_trial_count',
+        'aborted_trial_count',
+        'timed_out_trial_count',
+        'score_total',
+        'chance_score',
+        'excess_over_chance',
+        'telepathic_significance_p',
+        'average_confidence',
+        'confidence_vs_score_correlation',
+        'average_reaction_time_seconds',
+        'reaction_time_vs_score_correlation',
+        'average_distance_meters',
+        'receiver_location_spread_meters',
+        'sender_location_spread_meters',
+        'first_half_excess_over_chance',
+        'second_half_excess_over_chance',
+        'level_breakdown'
+    ];
+    require_allowed_keys($value, $allowed, $field);
+
+    $result = [];
+    foreach ($allowed as $key) {
+        if ($key === 'level_breakdown') {
+            continue;
+        }
+        $current = $value[$key] ?? null;
+        if ($current === null || $current === '') {
+            $result[$key] = null;
+            continue;
+        }
+        if (!is_numeric($current)) {
+            throw new RuntimeException($field . '.' . $key . ' must be numeric or null.');
+        }
+        $number = (float) $current;
+        if (!is_finite($number)) {
+            throw new RuntimeException($field . '.' . $key . ' must be finite.');
+        }
+        if (str_contains($key, '_count') && $number < 0) {
+            throw new RuntimeException($field . '.' . $key . ' cannot be negative.');
+        }
+        if ($key === 'telepathic_significance_p' && ($number < 0 || $number > 1)) {
+            throw new RuntimeException($field . '.' . $key . ' must be between 0 and 1.');
+        }
+        $result[$key] = $number;
+    }
+
+    $breakdown = $value['level_breakdown'] ?? [];
+    if (!is_array($breakdown)) {
+        throw new RuntimeException($field . '.level_breakdown must be an object.');
+    }
+    require_allowed_keys($breakdown, ['level_1', 'level_2', 'level_3'], $field . '.level_breakdown');
+    $result['level_breakdown'] = [];
+    foreach (['level_1', 'level_2', 'level_3'] as $levelKey) {
+        $levelValue = $breakdown[$levelKey] ?? [];
+        if (!is_array($levelValue)) {
+            throw new RuntimeException($field . '.level_breakdown.' . $levelKey . ' must be an object.');
+        }
+        require_allowed_keys($levelValue, ['completed_trials', 'score', 'chance_score', 'excess_over_chance'], $field . '.level_breakdown.' . $levelKey);
+        $result['level_breakdown'][$levelKey] = [
+            'completed_trials' => isset($levelValue['completed_trials']) && is_numeric($levelValue['completed_trials']) ? max(0, (int) $levelValue['completed_trials']) : 0,
+            'score' => isset($levelValue['score']) && is_numeric($levelValue['score']) ? (float) $levelValue['score'] : 0.0,
+            'chance_score' => isset($levelValue['chance_score']) && is_numeric($levelValue['chance_score']) ? (float) $levelValue['chance_score'] : 0.0,
+            'excess_over_chance' => isset($levelValue['excess_over_chance']) && is_numeric($levelValue['excess_over_chance']) ? (float) $levelValue['excess_over_chance'] : 0.0
+        ];
+    }
+
+    return $result;
+}
+
+function validate_analysis_payload($value): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException('analysis must be an object.');
+    }
+
+    require_allowed_keys($value, ['analysis_version', 'app_version', 'generated_at_utc', 'pair', 'source_csv_path', 'metrics', 'messages', 'continuity_text'], 'analysis');
+
+    $pair = validate_selected_pair_payload($value['pair'] ?? [], 'analysis.pair');
+    $messages = $value['messages'] ?? [];
+    if (!is_array($messages)) {
+        throw new RuntimeException('analysis.messages must be an object.');
+    }
+    require_allowed_keys($messages, ['headline', 'recommendation', 'confidence_relationship', 'time_relationship', 'location_note'], 'analysis.messages');
+
+    $continuityText = (string) ($value['continuity_text'] ?? '');
+    if ($continuityText === '') {
+        throw new RuntimeException('analysis.continuity_text is required.');
+    }
+    if (strlen($continuityText) > 50000) {
+        throw new RuntimeException('analysis.continuity_text is too long.');
+    }
+
+    return [
+        'analysis_version' => substr(trim((string) ($value['analysis_version'] ?? '')), 0, 32),
+        'app_version' => substr(trim((string) ($value['app_version'] ?? '')), 0, 64),
+        'generated_at_utc' => substr(trim((string) ($value['generated_at_utc'] ?? '')), 0, 64),
+        'pair' => $pair,
+        'source_csv_path' => substr(trim((string) ($value['source_csv_path'] ?? '')), 0, 512),
+        'metrics' => validate_analysis_metrics_payload($value['metrics'] ?? [], 'analysis.metrics'),
+        'messages' => [
+            'headline' => substr(trim((string) ($messages['headline'] ?? '')), 0, 500),
+            'recommendation' => substr(trim((string) ($messages['recommendation'] ?? '')), 0, 1000),
+            'confidence_relationship' => substr(trim((string) ($messages['confidence_relationship'] ?? '')), 0, 500),
+            'time_relationship' => substr(trim((string) ($messages['time_relationship'] ?? '')), 0, 500),
+            'location_note' => substr(trim((string) ($messages['location_note'] ?? '')), 0, 500)
+        ],
+        'continuity_text' => $continuityText
+    ];
+}
+
 function get_launcher_profile_entry(array $state, string $role, string $ownEmail): array
 {
     $default = default_launcher_profile_state();
     $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
-    $lookupKey = normalize_identifier_for_lookup($ownEmail);
+    $lookupKey = get_canonical_identifier_key($state, $ownEmail);
     if ($lookupKey === '') {
         return $default;
     }
 
     $entry = $state['launcher_profiles'][$lookupKey][$normalizedRole] ?? null;
     if (!is_array($entry)) {
+        $identifierStatus = get_identifier_status($state, $ownEmail);
         return array_merge($default, [
-            'own_email' => trim($ownEmail)
+            'own_email' => trim($identifierStatus['preferred_identifier'] ?? $ownEmail),
+            'preferred_handle' => trim((string) ($identifierStatus['preferred_handle'] ?? ''))
         ]);
     }
 
     return [
         'own_email' => trim((string) ($entry['own_email'] ?? $ownEmail)),
+        'preferred_handle' => trim((string) ($entry['preferred_handle'] ?? '')),
         'current_partner' => trim((string) ($entry['current_partner'] ?? '')),
         'partner_history' => sanitize_string_list(is_array($entry['partner_history'] ?? null) ? $entry['partner_history'] : []),
         'deleted_partners' => sanitize_string_list(is_array($entry['deleted_partners'] ?? null) ? $entry['deleted_partners'] : []),
@@ -609,7 +1015,7 @@ function get_launcher_profile_entry(array $state, string $role, string $ownEmail
 function set_launcher_profile_entry(array &$state, string $role, string $ownEmail, array $entry, int $nowMs): array
 {
     $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
-    $lookupKey = normalize_identifier_for_lookup($ownEmail);
+    $lookupKey = get_canonical_identifier_key($state, $ownEmail);
     if ($lookupKey === '') {
         return default_launcher_profile_state();
     }
@@ -634,7 +1040,8 @@ function set_launcher_profile_entry(array &$state, string $role, string $ownEmai
     }
 
     $stored = [
-        'own_email' => trim($ownEmail),
+        'own_email' => trim((string) (get_identifier_status($state, $ownEmail)['preferred_identifier'] ?? $ownEmail)),
+        'preferred_handle' => trim((string) (get_identifier_status($state, $ownEmail)['preferred_handle'] ?? '')),
         'current_partner' => $currentPartner,
         'partner_history' => array_values($partnerHistory),
         'deleted_partners' => array_values($deletedPartners),
@@ -662,6 +1069,11 @@ function build_pair_storage_key(string $receiverName, string $senderName, string
 function get_pair_trial_csv_path(string $pairsDir, string $receiverName, string $senderName, string $sessionCode = ''): string
 {
     return $pairsDir . DIRECTORY_SEPARATOR . build_pair_storage_key($receiverName, $senderName, $sessionCode) . '.csv';
+}
+
+function get_pair_analysis_json_path(string $pairsDir, string $receiverName, string $senderName, string $sessionCode = ''): string
+{
+    return $pairsDir . DIRECTORY_SEPARATOR . build_pair_storage_key($receiverName, $senderName, $sessionCode) . '.analysis.json';
 }
 
 function csv_cell(string $value): string
@@ -750,6 +1162,39 @@ function append_pair_trial_record(string $pairsDir, array $record, string $sessi
         'duplicate' => false,
         'path' => $path,
         'message' => 'Trial record stored on the server.'
+    ];
+}
+
+function save_pair_analysis_record(string $pairsDir, array $pairInfo, array $analysis): array
+{
+    $receiverName = trim((string) ($pairInfo['receiver_name'] ?? ''));
+    $senderName = trim((string) ($pairInfo['sender_name'] ?? ''));
+    $sessionCode = trim((string) ($pairInfo['session_code'] ?? ''));
+
+    if ($receiverName === '' || $senderName === '') {
+        return [
+            'saved' => false,
+            'path' => '',
+            'message' => 'Analysis record is missing receiver or sender name.'
+        ];
+    }
+
+    $path = get_pair_analysis_json_path($pairsDir, $receiverName, $senderName, $sessionCode);
+    $payload = json_encode($analysis, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($payload === false) {
+        return [
+            'saved' => false,
+            'path' => $path,
+            'message' => 'Unable to encode analysis JSON.'
+        ];
+    }
+
+    file_put_contents($path, $payload . PHP_EOL, LOCK_EX);
+
+    return [
+        'saved' => true,
+        'path' => $path,
+        'message' => 'Analysis JSON saved.'
     ];
 }
 
@@ -1275,6 +1720,8 @@ if (!is_array($state)) {
         'session_registry' => [],
         'pair_difficulties' => [],
         'launcher_profiles' => [],
+        'unique_handles' => [],
+        'identifier_aliases' => [],
         'debug_enabled' => false
     ];
 }
@@ -1288,6 +1735,8 @@ if (!array_key_exists('sessions', $state)) {
         'session_registry' => [],
         'pair_difficulties' => [],
         'launcher_profiles' => [],
+        'unique_handles' => [],
+        'identifier_aliases' => [],
         'debug_enabled' => false
     ];
 }
@@ -1303,6 +1752,12 @@ if (!is_array($state['pair_difficulties'] ?? null)) {
 }
 if (!is_array($state['launcher_profiles'] ?? null)) {
     $state['launcher_profiles'] = [];
+}
+if (!is_array($state['unique_handles'] ?? null)) {
+    $state['unique_handles'] = [];
+}
+if (!is_array($state['identifier_aliases'] ?? null)) {
+    $state['identifier_aliases'] = [];
 }
 if (!array_key_exists('debug_enabled', $state)) {
     $state['debug_enabled'] = false;
@@ -1330,8 +1785,8 @@ $existingPairDifficulty = is_array($state['pair_difficulties'][$sessionCode] ?? 
     : [];
 $state['session_registry'][$sessionCode] = [
     'updated_ms' => $nowMs,
-    'sender_name' => $existingRegistry['sender_name'] ?? ($session['sender']['profile']['name'] ?? ''),
-    'receiver_name' => $existingRegistry['receiver_name'] ?? ($session['receiver']['profile']['name'] ?? '')
+    'sender_name' => $existingRegistry['sender_name'] ?? ($session['sender']['profile']['own_email'] ?? ($session['sender']['profile']['name'] ?? '')),
+    'receiver_name' => $existingRegistry['receiver_name'] ?? ($session['receiver']['profile']['own_email'] ?? ($session['receiver']['profile']['name'] ?? ''))
 ];
 $state['pair_difficulties'][$sessionCode] = [
     'updated_ms' => isset($existingPairDifficulty['updated_ms']) && is_numeric($existingPairDifficulty['updated_ms'])
@@ -1546,8 +2001,8 @@ if ($roleConflict === null && $role === 'receiver') {
     }
 }
 
-$state['session_registry'][$sessionCode]['sender_name'] = $session['sender']['profile']['name'] ?? '';
-$state['session_registry'][$sessionCode]['receiver_name'] = $session['receiver']['profile']['name'] ?? '';
+$state['session_registry'][$sessionCode]['sender_name'] = $session['sender']['profile']['own_email'] ?? ($session['sender']['profile']['name'] ?? '');
+$state['session_registry'][$sessionCode]['receiver_name'] = $session['receiver']['profile']['own_email'] ?? ($session['receiver']['profile']['name'] ?? '');
 $state['pair_difficulties'][$sessionCode]['sender_name'] = $state['session_registry'][$sessionCode]['sender_name'];
 $state['pair_difficulties'][$sessionCode]['receiver_name'] = $state['session_registry'][$sessionCode]['receiver_name'];
 $state['pair_difficulties'][$sessionCode]['updated_ms'] = $nowMs;
@@ -1610,8 +2065,13 @@ if ($action === 'check_admin_secret') {
 }
 
 if ($action === 'get_launcher_profile') {
-    $launcherRole = isset($input['launcher_role']) ? (string) $input['launcher_role'] : '';
-    $ownEmail = trim((string) ($input['own_email'] ?? ''));
+    try {
+        require_allowed_keys($input, ['action', 'launcher_role', 'own_email'], 'request');
+        $launcherRole = validate_role_value($input['launcher_role'] ?? '');
+        $ownEmail = validate_participant_identifier_string($input['own_email'] ?? '', 'own_email', true);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
     $response = [
         'ok' => true,
         'launcher_profile' => get_launcher_profile_entry($state, $launcherRole, $ownEmail),
@@ -1628,12 +2088,66 @@ if ($action === 'get_launcher_profile') {
     exit;
 }
 
+if ($action === 'get_identifier_status') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier_status' => get_identifier_status($state, $identifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'claim_unique_handle') {
+    try {
+        require_allowed_keys($input, ['action', 'current_identifier', 'proposed_handle'], 'request');
+        $currentIdentifier = validate_participant_identifier_string($input['current_identifier'] ?? '', 'current_identifier', false);
+        $proposedHandle = trim((string) ($input['proposed_handle'] ?? ''));
+        $claimResult = claim_unique_handle($state, $currentIdentifier, $proposedHandle, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'unique_handle' => $claimResult,
+        'identifier_status' => get_identifier_status($state, (string) ($claimResult['handle'] ?? '')),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'save_launcher_profile') {
-    $launcherRole = isset($input['launcher_role']) ? (string) $input['launcher_role'] : '';
-    $ownEmail = trim((string) ($input['own_email'] ?? ''));
-    $launcherProfile = isset($input['launcher_profile']) && is_array($input['launcher_profile'])
-        ? $input['launcher_profile']
-        : [];
+    try {
+        require_allowed_keys($input, ['action', 'launcher_role', 'own_email', 'launcher_profile'], 'request');
+        $launcherRole = validate_role_value($input['launcher_role'] ?? '');
+        $ownEmail = validate_participant_identifier_string($input['own_email'] ?? '', 'own_email', true);
+        $launcherProfile = validate_launcher_profile_payload($input['launcher_profile'] ?? []);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
     $storedProfile = set_launcher_profile_entry($state, $launcherRole, $ownEmail, $launcherProfile, $nowMs);
     $response = [
         'ok' => true,
@@ -1687,6 +2201,7 @@ if ($action === 'send_test_email') {
 
 if ($action === 'send_contact_message') {
     try {
+        require_allowed_keys($input, ['action', 'message', 'metadata'], 'request');
         $message = trim((string) ($input['message'] ?? ''));
         $wordCount = count_words_in_text($message);
         if ($message === '') {
@@ -1702,6 +2217,9 @@ if ($action === 'send_contact_message') {
         }
 
         $metadata = isset($input['metadata']) && is_array($input['metadata']) ? $input['metadata'] : [];
+        if (array_key_exists('sender_email', $metadata)) {
+            $metadata['sender_email'] = validate_email_identifier_string($metadata['sender_email'], 'metadata.sender_email', true);
+        }
         $adminResult = sendAppMail(
             'dgraboi@sbcglobal.net',
             '',
@@ -2091,9 +2609,12 @@ if ($action === 'report_csv_data') {
 }
 
 if ($action === 'report_pair_csv_data') {
-    $selectedPair = isset($input['selected_pair']) && is_array($input['selected_pair'])
-        ? $input['selected_pair']
-        : [];
+    try {
+        require_allowed_keys($input, ['action', 'selected_pair', 'secret_candidate'], 'request');
+        $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
     $pairRecords = read_pair_trial_records_for_pair($pairsDir, $selectedPair);
     usort($pairRecords, static function (array $left, array $right): int {
         $leftUtc = trim((string) ($left['utc time'] ?? ''));
@@ -2116,6 +2637,23 @@ if ($action === 'report_pair_csv_data') {
             ? ''
             : 'No trial records found for the current receiver-sender selection.'
     ];
+}
+
+if ($action === 'save_pair_analysis') {
+    try {
+        require_allowed_keys($input, ['action', 'selected_pair', 'analysis'], 'request');
+        $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
+        $analysis = validate_analysis_payload($input['analysis'] ?? []);
+        if (($analysis['pair']['receiver_name'] ?? '') !== $selectedPair['receiver_name']
+            || ($analysis['pair']['sender_name'] ?? '') !== $selectedPair['sender_name']
+            || ($analysis['pair']['session_code'] ?? '') !== $selectedPair['session_code']) {
+            throw new RuntimeException('analysis.pair must match selected_pair.');
+        }
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response['pair_analysis'] = save_pair_analysis_record($pairsDir, $selectedPair, $analysis);
 }
 
 echo json_encode($response);

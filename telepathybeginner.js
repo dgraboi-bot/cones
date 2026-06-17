@@ -5,12 +5,14 @@
   const launcherView = document.querySelector('[data-view="launcher"]');
   const optionsView = document.querySelector('[data-view="options"]');
   const helpView = document.querySelector('[data-view="help"]');
+  const toolsView = document.querySelector('[data-view="tools"]');
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
   const reportView = document.querySelector('[data-view="report"]');
   const visualizationView = document.querySelector('[data-view="visualization"]');
+  const analyzerView = document.querySelector('[data-view="analyzer"]');
   const difficultyView = document.querySelector('[data-view="difficulty"]');
   const settingsView = document.querySelector('[data-view="settings"]');
   const adminView = document.querySelector('[data-view="admin"]');
@@ -19,8 +21,10 @@
   const openOptionsButton = document.querySelector("[data-open-options]");
   const closeOptionsButton = document.querySelector("[data-close-options]");
   const openHelpButton = document.querySelector("[data-open-help]");
+  const openToolsButtons = Array.from(document.querySelectorAll("[data-open-tools]"));
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
   const closeHelpButton = document.querySelector("[data-close-help]");
+  const closeToolsButton = document.querySelector("[data-close-tools]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const closeContactButton = document.querySelector("[data-close-contact]");
@@ -30,6 +34,7 @@
   const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
   const closeReportButton = document.querySelector("[data-close-report]");
   const closeVisualizationButton = document.querySelector("[data-close-visualization]");
+  const closeAnalyzerButton = document.querySelector("[data-close-analyzer]");
   const reportDefinitionStatus = document.querySelector("[data-report-definition-status]");
   const reportPairPicker = document.querySelector("[data-report-pair-picker]");
   const reportPairTrigger = document.querySelector("[data-report-pair-trigger]");
@@ -38,6 +43,7 @@
   const reportPairOptions = document.querySelector("[data-report-pair-options]");
   const reportGoButton = document.querySelector("[data-report-go]");
   const reportVisualizeButton = document.querySelector("[data-report-visualize]");
+  const reportAnalyzeButton = document.querySelector("[data-report-analyze]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
   const openDifficultyButton = document.querySelector("[data-open-difficulty]");
   const openAdvancedButton = document.querySelector("[data-open-advanced]");
@@ -53,8 +59,20 @@
   const visualizationStatus = document.querySelector("[data-visualization-status]");
   const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
   const visualizationChart = document.querySelector("[data-visualization-chart]");
+  const analyzerSummary = document.querySelector("[data-analyzer-summary]");
+  const analyzerStatus = document.querySelector("[data-analyzer-status]");
+  const analyzerOutput = document.querySelector("[data-analyzer-output]");
+  const analyzerText = document.querySelector("[data-analyzer-text]");
+  const analyzerRefreshButton = document.querySelector("[data-analyzer-refresh]");
+  const analyzerCopyButton = document.querySelector("[data-analyzer-copy]");
   const reportPanel = document.querySelector(".report-panel");
   const reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
+  const handleOverlay = document.querySelector("[data-handle-overlay]");
+  const handleInput = document.querySelector("[data-handle-input]");
+  const handleStatus = document.querySelector("[data-handle-status]");
+  const submitHandleButton = document.querySelector("[data-submit-handle]");
+  const closeHandleButton = document.querySelector("[data-close-handle]");
+  const openHandleButtons = Array.from(document.querySelectorAll("[data-open-handle-control]"));
   const difficultySlider = document.querySelector("[data-difficulty-slider]");
   const difficultyFill = document.querySelector("[data-difficulty-fill]");
   const difficultyThumb = document.querySelector("[data-difficulty-thumb]");
@@ -89,6 +107,7 @@
   const retryLocationButtons = Array.from(document.querySelectorAll("[data-retry-location]"));
   let deferredInstallPrompt = null;
   let activeNameManagerOverlay = null;
+  let activeToolsRole = "";
   let locationRequestInFlight = false;
   let lastLocationAttemptAt = 0;
   let difficultyDragging = false;
@@ -96,12 +115,14 @@
   let difficultyDragLockedLevel = null;
   let difficultyDragReleasedLevel = null;
   let activePairDifficultyCode = "";
+  let activeHandleRole = "";
   let difficultyLoadToken = 0;
   let difficultyLabelToken = 0;
   let selectedReportPair = null;
   let availableReportPairs = [];
   let reportCsvRecordsCache = [];
   let reportCsvPathCache = "";
+  const analysisStorageKey = "cones-results-analyzer-v1";
   let activeReportResize = null;
   let activeReportViewPan = null;
   let launcherAdminSecret = "";
@@ -112,7 +133,7 @@
       user_trial_summary: null,
       disk_usage_analysis: null
     };
-  const launcherBuildVersion = "20260616l";
+  const launcherBuildVersion = "20260616am";
   const defaultThemeColor = "#3160b0";
   const difficultyStopPercents = [17, 50, 84];
   const difficultyCopy = {
@@ -175,6 +196,7 @@
         locationPermission: typeof parsed?.locationPermission === "string" ? parsed.locationPermission : "",
         partnerHistory: typeof parsed?.partnerHistory === "object" && parsed.partnerHistory ? parsed.partnerHistory : {},
         launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
+        identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
         difficultyLevel: ["1", "2", "3"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1"
       };
@@ -187,6 +209,7 @@
         locationPermission: "",
         partnerHistory: {},
         launcherProfiles: {},
+        identifierStatusMap: {},
         themeColor: defaultThemeColor,
         difficultyLevel: "1"
       };
@@ -367,6 +390,7 @@
   }
 
   async function fetchSelectedPairReportCsvData(pairInfo) {
+    const selectedPair = sanitizePairInfoForServer(pairInfo);
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
@@ -374,20 +398,12 @@
       },
       body: JSON.stringify({
         action: "report_pair_csv_data",
-        selected_pair: {
-          receiver_name: String(pairInfo?.receiverName || ""),
-          sender_name: String(pairInfo?.senderName || ""),
-          session_code: String(pairInfo?.sessionCode || "")
-        },
+        selected_pair: selectedPair,
         secret_candidate: launcherAdminSecret || ""
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`Pair report CSV request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await parseApiResponse(response, `Pair report CSV request failed with status ${response.status}`);
     const reportCsv = data?.report_csv || {};
     return {
       available: !!reportCsv?.available,
@@ -398,6 +414,11 @@
   }
 
   async function fetchLauncherProfile(role, ownEmail) {
+    const payload = sanitizeLauncherProfileForServer(role, ownEmail, {
+      currentPartner: "",
+      partnerHistory: [],
+      deletedPartners: []
+    });
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
@@ -405,20 +426,60 @@
       },
       body: JSON.stringify({
         action: "get_launcher_profile",
-        launcher_role: role,
-        own_email: String(ownEmail || "").trim()
+        launcher_role: payload.launcher_role,
+        own_email: payload.own_email
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`Launcher profile request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await parseApiResponse(response, `Launcher profile request failed with status ${response.status}`);
     return data?.launcher_profile || null;
   }
 
+  async function fetchIdentifierStatus(identifier) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_identifier_status",
+        identifier: cleanIdentifier
+      })
+    });
+
+    const data = await parseApiResponse(response, `Identifier lookup failed with status ${response.status}`);
+    return data?.identifier_status || null;
+  }
+
+  async function claimUniqueHandle(currentIdentifier, proposedHandle) {
+    const cleanCurrentIdentifier = assertValidParticipantIdentifier(currentIdentifier, "current identifier", { required: false });
+    const cleanHandle = String(proposedHandle || "").trim();
+    if (!isValidUniqueHandle(cleanHandle)) {
+      throw new Error("Unique handle must be 3 to 24 characters long and use only letters, numbers, period, underscore, or hyphen.");
+    }
+
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "claim_unique_handle",
+        current_identifier: cleanCurrentIdentifier,
+        proposed_handle: cleanHandle
+      })
+    });
+
+    const data = await parseApiResponse(response, `Unique handle request failed with status ${response.status}`);
+    return {
+      claim: data?.unique_handle || null,
+      status: data?.identifier_status || null
+    };
+  }
+
   async function saveLauncherProfile(role, ownEmail, profileState) {
+    const payload = sanitizeLauncherProfileForServer(role, ownEmail, profileState);
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
@@ -426,21 +487,13 @@
       },
       body: JSON.stringify({
         action: "save_launcher_profile",
-        launcher_role: role,
-        own_email: String(ownEmail || "").trim(),
-        launcher_profile: {
-          current_partner: String(profileState?.currentPartner || "").trim(),
-          partner_history: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []),
-          deleted_partners: uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : [])
-        }
+        launcher_role: payload.launcher_role,
+        own_email: payload.own_email,
+        launcher_profile: payload.launcher_profile
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`Launcher profile save failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await parseApiResponse(response, `Launcher profile save failed with status ${response.status}`);
     return data?.launcher_profile || null;
   }
 
@@ -449,6 +502,112 @@
       .map((name) => String(name || "").trim())
       .filter(Boolean);
     return [...new Set(cleaned)];
+  }
+
+  function isValidEmailAddress(value) {
+    const text = String(value || "").trim();
+    if (!text || text.length > 254) {
+      return false;
+    }
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+  }
+
+  function isValidUniqueHandle(value) {
+    const text = String(value || "").trim();
+    return /^[A-Za-z0-9](?:[A-Za-z0-9._-]{1,22}[A-Za-z0-9])?$/.test(text);
+  }
+
+  function assertValidEmailIdentifier(value, fieldName, options = {}) {
+    const required = options.required !== false;
+    const text = String(value || "").trim();
+    if (!text) {
+      if (required) {
+        throw new Error(`${fieldName} is required.`);
+      }
+      return "";
+    }
+    if (!isValidEmailAddress(text)) {
+      throw new Error(`${fieldName} must be a valid email address.`);
+    }
+    return text;
+  }
+
+  function assertValidParticipantIdentifier(value, fieldName, options = {}) {
+    const required = options.required !== false;
+    const text = String(value || "").trim();
+    if (!text) {
+      if (required) {
+        throw new Error(`${fieldName} is required.`);
+      }
+      return "";
+    }
+    if (text.length > 254) {
+      throw new Error(`${fieldName} is too long.`);
+    }
+    if (!isValidEmailAddress(text) && !isValidUniqueHandle(text)) {
+      throw new Error(`${fieldName} must be a valid email address or unique handle.`);
+    }
+    return text;
+  }
+
+  function assertValidSessionCode(value, fieldName = "session_code") {
+    const text = String(value || "").trim();
+    if (!text) {
+      return "";
+    }
+    if (text.length > 200) {
+      throw new Error(`${fieldName} is too long.`);
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(text)) {
+      throw new Error(`${fieldName} contains invalid characters.`);
+    }
+    return text;
+  }
+
+  function sanitizePairInfoForServer(pairInfo, fieldName = "selected pair") {
+    return {
+      receiver_name: assertValidParticipantIdentifier(pairInfo?.receiverName, `${fieldName} receiver identifier`),
+      sender_name: assertValidParticipantIdentifier(pairInfo?.senderName, `${fieldName} sender identifier`),
+      session_code: assertValidSessionCode(pairInfo?.sessionCode, `${fieldName} session code`)
+    };
+  }
+
+  function sanitizeLauncherProfileForServer(role, ownEmail, profileState) {
+    const launcherRole = role === "sender" ? "sender" : role === "receiver" ? "receiver" : "";
+    if (!launcherRole) {
+      throw new Error("launcher_role must be sender or receiver.");
+    }
+    return {
+      launcher_role: launcherRole,
+      own_email: assertValidParticipantIdentifier(ownEmail, "own_email"),
+      launcher_profile: {
+        current_partner: assertValidParticipantIdentifier(profileState?.currentPartner, "launcher_profile.current_partner", { required: false }),
+        partner_history: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []).map((item) =>
+          assertValidParticipantIdentifier(item, "launcher_profile.partner_history item")
+        ),
+        deleted_partners: uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : []).map((item) =>
+          assertValidParticipantIdentifier(item, "launcher_profile.deleted_partners item")
+        )
+      }
+    };
+  }
+
+  async function parseApiResponse(response, fallbackMessage) {
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (error) {
+      if (!response.ok) {
+        throw new Error(fallbackMessage || `Request failed with status ${response.status}`);
+      }
+      throw new Error("The server returned invalid JSON.");
+    }
+
+    if (!response.ok || data?.ok === false) {
+      throw new Error(String(data?.error || fallbackMessage || `Request failed with status ${response.status}`));
+    }
+
+    return data;
   }
 
   function normalizePersonNameForPairMatch(name) {
@@ -490,6 +649,246 @@
       .toLowerCase();
   }
 
+  function rememberIdentifierStatus(inputIdentifier, status, sourceState = null) {
+    const normalizedInput = normalizeIdentifierForStorage(inputIdentifier);
+    if (!normalizedInput || !status || typeof status !== "object") {
+      return sourceState || readLauncherState();
+    }
+
+    const state = sourceState || readLauncherState();
+    state.identifierStatusMap = typeof state.identifierStatusMap === "object" && state.identifierStatusMap
+      ? state.identifierStatusMap
+      : {};
+
+    const normalizedStatus = {
+      input_identifier: String(status.input_identifier || inputIdentifier || "").trim(),
+      preferred_identifier: String(status.preferred_identifier || "").trim(),
+      preferred_handle: String(status.preferred_handle || "").trim(),
+      owner_identifier: String(status.owner_identifier || "").trim(),
+      uses_handle: !!status.uses_handle,
+      is_handle: !!status.is_handle,
+      updated_at: Date.now()
+    };
+
+    const keys = uniqueNames([
+      normalizedInput,
+      normalizeIdentifierForStorage(normalizedStatus.input_identifier),
+      normalizeIdentifierForStorage(normalizedStatus.preferred_identifier),
+      normalizeIdentifierForStorage(normalizedStatus.preferred_handle),
+      normalizeIdentifierForStorage(normalizedStatus.owner_identifier)
+    ]);
+
+    keys.forEach((key) => {
+      if (key) {
+        state.identifierStatusMap[key] = normalizedStatus;
+      }
+    });
+
+    writeLauncherState(state);
+    return state;
+  }
+
+  function getCachedIdentifierStatus(identifier, sourceState = null) {
+    const key = normalizeIdentifierForStorage(identifier);
+    if (!key) {
+      return null;
+    }
+    const state = sourceState || readLauncherState();
+    const map = typeof state.identifierStatusMap === "object" && state.identifierStatusMap
+      ? state.identifierStatusMap
+      : {};
+    return map[key] || null;
+  }
+
+  function getPreferredIdentifier(identifier, sourceState = null) {
+    const raw = String(identifier || "").trim();
+    if (!raw) {
+      return "";
+    }
+    const cached = getCachedIdentifierStatus(raw, sourceState);
+    const preferred = String(cached?.preferred_identifier || "").trim();
+    return preferred || raw;
+  }
+
+  function usesHandlePresentation(identifier, status = null) {
+    const raw = String(identifier || "").trim();
+    if (!raw) {
+      return false;
+    }
+
+    if (isValidUniqueHandle(raw) && !isValidEmailAddress(raw)) {
+      return true;
+    }
+
+    return !!status?.is_handle;
+  }
+
+  function getRoleIdentifierStatusElement(role) {
+    return document.querySelector(`[data-role-identifier-status="${role}"]`);
+  }
+
+  function clearRoleIdentifierStatus(role) {
+    const element = getRoleIdentifierStatusElement(role);
+    if (!element) {
+      return;
+    }
+    element.textContent = "";
+    element.hidden = true;
+  }
+
+  function showRoleIdentifierStatus(role, message) {
+    const element = getRoleIdentifierStatusElement(role);
+    if (!element) {
+      return;
+    }
+    element.textContent = String(message || "").trim();
+    element.hidden = !element.textContent;
+  }
+
+  function replaceIdentifierValue(value, previousIdentifier, nextIdentifier) {
+    const current = String(value || "").trim();
+    if (!current) {
+      return current;
+    }
+    return normalizeIdentifierForStorage(current) === normalizeIdentifierForStorage(previousIdentifier)
+      ? nextIdentifier
+      : current;
+  }
+
+  function replaceIdentifierList(items, previousIdentifier, nextIdentifier) {
+    return uniqueNames(
+      (Array.isArray(items) ? items : []).map((item) => replaceIdentifierValue(item, previousIdentifier, nextIdentifier))
+    );
+  }
+
+  function propagateClaimedHandle(previousIdentifier, acceptedHandle) {
+    const prior = String(previousIdentifier || "").trim();
+    const next = String(acceptedHandle || "").trim();
+    if (!prior || !next) {
+      return;
+    }
+
+    migrateRuntimeSettingsIdentifier(prior, next);
+    const state = readLauncherState();
+    state.ownNames = state.ownNames || {};
+    state.currentPartners = state.currentPartners || {};
+    state.partnerHistory = state.partnerHistory || {};
+    state.deletedPartners = state.deletedPartners || {};
+    state.launcherProfiles = state.launcherProfiles || {};
+
+    ["sender", "receiver"].forEach((role) => {
+      state.ownNames[role] = replaceIdentifierValue(state.ownNames[role], prior, next);
+      state.currentPartners[role] = replaceIdentifierValue(state.currentPartners[role], prior, next);
+    });
+
+    Object.keys(state.partnerHistory).forEach((key) => {
+      state.partnerHistory[key] = replaceIdentifierList(state.partnerHistory[key], prior, next);
+    });
+
+    Object.keys(state.deletedPartners).forEach((key) => {
+      state.deletedPartners[key] = uniqueNames([
+        ...replaceIdentifierList(state.deletedPartners[key], prior, next),
+        prior
+      ]);
+    });
+
+    Object.keys(state.launcherProfiles).forEach((key) => {
+      const profile = state.launcherProfiles[key];
+      if (!profile || typeof profile !== "object") {
+        return;
+      }
+      profile.currentPartner = replaceIdentifierValue(profile.currentPartner, prior, next);
+      profile.partnerHistory = replaceIdentifierList(profile.partnerHistory, prior, next);
+      profile.deletedPartners = uniqueNames([
+        ...replaceIdentifierList(profile.deletedPartners, prior, next),
+        prior
+      ]);
+    });
+
+    writeLauncherState(state);
+
+    roleCards.forEach((card) => {
+      const form = card.querySelector("[data-role-form]");
+      if (!form) {
+        return;
+      }
+      const ownInput = form.querySelector('input[name="ownName"]');
+      const partnerInput = form.querySelector('input[name="partnerName"]');
+      if (ownInput && normalizeIdentifierForStorage(ownInput.value) === normalizeIdentifierForStorage(prior)) {
+        ownInput.value = next;
+      }
+      if (partnerInput && normalizeIdentifierForStorage(partnerInput.value) === normalizeIdentifierForStorage(prior)) {
+        partnerInput.value = next;
+      }
+      applyPartnerHistory(String(card.dataset.roleCard || ""), form, readLauncherState(), String(ownInput?.value || "").trim());
+      void syncRoleIdentifierPresentation(String(card.dataset.roleCard || ""), form);
+      void persistLauncherProfileForForm(String(card.dataset.roleCard || ""), form, readLauncherState());
+    });
+  }
+
+  function propagatePartnerIdentifierMigration(previousIdentifier, nextIdentifier) {
+    const prior = String(previousIdentifier || "").trim();
+    const next = String(nextIdentifier || "").trim();
+    if (!prior || !next) {
+      return;
+    }
+
+    migrateRuntimeSettingsIdentifier(prior, next);
+    const state = readLauncherState();
+    state.currentPartners = state.currentPartners || {};
+    state.partnerHistory = state.partnerHistory || {};
+    state.deletedPartners = state.deletedPartners || {};
+    state.launcherProfiles = state.launcherProfiles || {};
+
+    ["sender", "receiver"].forEach((role) => {
+      state.currentPartners[role] = replaceIdentifierValue(state.currentPartners[role], prior, next);
+    });
+
+    Object.keys(state.partnerHistory).forEach((key) => {
+      state.partnerHistory[key] = replaceIdentifierList(state.partnerHistory[key], prior, next);
+    });
+
+    Object.keys(state.deletedPartners).forEach((key) => {
+      state.deletedPartners[key] = uniqueNames([
+        ...replaceIdentifierList(state.deletedPartners[key], prior, next),
+        prior
+      ]);
+    });
+
+    Object.keys(state.launcherProfiles).forEach((key) => {
+      const profile = state.launcherProfiles[key];
+      if (!profile || typeof profile !== "object") {
+        return;
+      }
+      profile.currentPartner = replaceIdentifierValue(profile.currentPartner, prior, next);
+      profile.partnerHistory = replaceIdentifierList(profile.partnerHistory, prior, next);
+      profile.deletedPartners = uniqueNames([
+        ...replaceIdentifierList(profile.deletedPartners, prior, next),
+        prior
+      ]);
+    });
+
+    writeLauncherState(state);
+
+    roleCards.forEach((card) => {
+      const role = String(card.dataset.roleCard || "");
+      const form = card.querySelector("[data-role-form]");
+      if (!role || !form) {
+        return;
+      }
+      const ownInput = form.querySelector('input[name="ownName"]');
+      const partnerInput = form.querySelector('input[name="partnerName"]');
+      if (partnerInput && normalizeIdentifierForStorage(partnerInput.value) === normalizeIdentifierForStorage(prior)) {
+        partnerInput.value = next;
+      }
+      applyPartnerHistory(role, form, readLauncherState(), String(ownInput?.value || "").trim());
+      void syncRoleIdentifierPresentation(role, form);
+      void persistLauncherProfileForForm(role, form, readLauncherState());
+    });
+
+    return readLauncherState();
+  }
+
   function normalizeNameForSession(name) {
     return String(name || "")
       .toLowerCase()
@@ -497,7 +896,11 @@
   }
 
   function buildSessionCodeFromNames(ownName, partnerName) {
-    const pair = [normalizeNameForSession(ownName), normalizeNameForSession(partnerName)]
+    const state = readLauncherState();
+    const pair = [
+      normalizeNameForSession(getPreferredIdentifier(ownName, state)),
+      normalizeNameForSession(getPreferredIdentifier(partnerName, state))
+    ]
       .filter(Boolean)
       .sort();
     return pair.length === 2 ? `${pair[0]}__${pair[1]}` : "";
@@ -505,7 +908,7 @@
 
   function buildLauncherProfileKey(role, ownIdentifier) {
     const normalizedRole = role === "sender" ? "sender" : "receiver";
-    const normalizedIdentifier = normalizeIdentifierForStorage(ownIdentifier);
+    const normalizedIdentifier = normalizeIdentifierForStorage(getPreferredIdentifier(ownIdentifier));
     return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}` : `${normalizedRole}::`;
   }
 
@@ -593,6 +996,33 @@
     return next;
   }
 
+  function migrateRuntimeSettingsIdentifier(previousIdentifier, nextIdentifier) {
+    const prior = String(previousIdentifier || "").trim();
+    const next = String(nextIdentifier || "").trim();
+    if (!prior || !next) {
+      return;
+    }
+
+    ["sender", "receiver"].forEach((role) => {
+      const current = readRuntimeSettings(role);
+      const updates = {};
+      let changed = false;
+
+      if (normalizeIdentifierForStorage(current.own_email) === normalizeIdentifierForStorage(prior)) {
+        updates.own_email = next;
+        changed = true;
+      }
+      if (normalizeIdentifierForStorage(current.partner_email) === normalizeIdentifierForStorage(prior)) {
+        updates.partner_email = next;
+        changed = true;
+      }
+
+      if (changed) {
+        writeRuntimeSettings(role, updates);
+      }
+    });
+  }
+
   async function checkAdminSecret(secretCandidate) {
     const response = await fetch("api.php", {
       method: "POST",
@@ -646,6 +1076,153 @@
       ownName: String(form.elements.ownName?.value || "").trim(),
       partnerName: String(form.elements.partnerName?.value || "").trim()
     };
+  }
+
+  function getRoleLabelElements(role) {
+    const form = document.querySelector(`[data-role-form="${role}"]`);
+    return {
+      form,
+      ownLabel: document.querySelector(`[data-own-identifier-label="${role}"]`),
+      partnerLabel: document.querySelector(`[data-partner-identifier-label="${role}"]`),
+      note: document.querySelector(`[data-role-identifier-note="${role}"]`)
+    };
+  }
+
+  function applyRoleIdentifierPresentation(role, options = {}) {
+    const { ownUsesHandle = false, partnerUsesHandle = false } = options;
+    const { ownLabel, partnerLabel, note } = getRoleLabelElements(role);
+    if (ownLabel) {
+      ownLabel.textContent = ownUsesHandle ? "Your unique handle:" : "Your email:";
+    }
+    if (partnerLabel) {
+      if (partnerUsesHandle) {
+        partnerLabel.textContent = role === "sender" ? "Unique Receiver's handle:" : "Unique Sender's handle:";
+      } else {
+        partnerLabel.textContent = role === "sender" ? "Receiver's email:" : "Sender's email:";
+      }
+    }
+    if (note) {
+      note.textContent = ownUsesHandle || partnerUsesHandle
+        ? "These unique handles are used to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify both Sender and Receiver unique identifiers carefully."
+        : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.";
+    }
+  }
+
+  async function syncRoleIdentifierPresentation(role, form, options = {}) {
+    const ownInput = form.querySelector('input[name="ownName"]');
+    const partnerInput = form.querySelector('input[name="partnerName"]');
+    let migratedPartnerIdentifier = null;
+    let ownUsesHandle = false;
+    let partnerUsesHandle = false;
+
+    const ownValue = String(ownInput?.value || "").trim();
+    if (ownValue) {
+      try {
+        const ownStatus = await fetchIdentifierStatus(ownValue);
+        rememberIdentifierStatus(ownValue, ownStatus);
+        ownUsesHandle = usesHandlePresentation(ownValue, ownStatus);
+      } catch (error) {
+        ownUsesHandle = isValidUniqueHandle(ownValue) && !isValidEmailAddress(ownValue);
+      }
+    }
+
+    const partnerValue = String(partnerInput?.value || "").trim();
+    if (partnerValue) {
+      try {
+        const partnerStatus = await fetchIdentifierStatus(partnerValue);
+        rememberIdentifierStatus(partnerValue, partnerStatus);
+        const preferredPartner = String(partnerStatus?.preferred_identifier || "").trim();
+        if (preferredPartner && normalizeIdentifierForStorage(preferredPartner) !== normalizeIdentifierForStorage(partnerValue)) {
+          migratedPartnerIdentifier = {
+            previous: partnerValue,
+            next: preferredPartner
+          };
+          if (partnerInput) {
+            partnerInput.value = preferredPartner;
+          }
+          propagatePartnerIdentifierMigration(partnerValue, preferredPartner);
+        }
+        partnerUsesHandle = usesHandlePresentation(preferredPartner || partnerValue, partnerStatus);
+      } catch (error) {
+        partnerUsesHandle = isValidUniqueHandle(partnerValue) && !isValidEmailAddress(partnerValue);
+      }
+    }
+
+    applyRoleIdentifierPresentation(role, { ownUsesHandle, partnerUsesHandle, ...options });
+
+    if (migratedPartnerIdentifier) {
+      showRoleIdentifierStatus(role, `Your partner now uses unique handle: ${migratedPartnerIdentifier.next}.`);
+      void persistLauncherProfileForForm(role, form);
+    } else {
+      clearRoleIdentifierStatus(role);
+    }
+  }
+
+  function openHandleOverlay(role) {
+    activeHandleRole = role === "sender" || role === "receiver" ? role : "";
+    if (!activeHandleRole) {
+      return;
+    }
+    if (handleStatus) {
+      handleStatus.textContent = "";
+    }
+    if (handleInput) {
+      handleInput.value = "";
+    }
+    handleOverlay?.classList.remove("beginner-view-hidden");
+    handleInput?.focus();
+  }
+
+  function closeHandleOverlay() {
+    activeHandleRole = "";
+    handleOverlay?.classList.add("beginner-view-hidden");
+    if (handleStatus) {
+      handleStatus.textContent = "";
+    }
+  }
+
+  async function submitUniqueHandle() {
+    if (!activeHandleRole) {
+      closeHandleOverlay();
+      return;
+    }
+    const form = document.querySelector(`[data-role-form="${activeHandleRole}"]`);
+    if (!form) {
+      closeHandleOverlay();
+      return;
+    }
+    const ownInput = form.querySelector('input[name="ownName"]');
+    const partnerInput = form.querySelector('input[name="partnerName"]');
+    const currentIdentifier = String(ownInput?.value || "").trim();
+    const proposedHandle = String(handleInput?.value || "").trim();
+
+    if (handleStatus) {
+      handleStatus.textContent = "Checking unique handle...";
+    }
+
+    try {
+      const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
+      const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
+      if (result?.status) {
+        rememberIdentifierStatus(currentIdentifier || acceptedHandle, result.status);
+      }
+      if (currentIdentifier && acceptedHandle) {
+        propagateClaimedHandle(currentIdentifier, acceptedHandle);
+      }
+      if (ownInput && acceptedHandle) {
+        ownInput.value = acceptedHandle;
+      }
+      await syncRoleIdentifierPresentation(activeHandleRole, form);
+      if (partnerInput?.value.trim()) {
+        await syncRoleIdentifierPresentation(activeHandleRole, form);
+      }
+      void persistLauncherProfileForForm(activeHandleRole, form);
+      closeHandleOverlay();
+    } catch (error) {
+      if (handleStatus) {
+        handleStatus.textContent = error instanceof Error ? error.message : "Unable to accept that unique handle right now.";
+      }
+    }
   }
 
   function setRoleDifficultyLabel(role, level) {
@@ -752,23 +1329,29 @@
 
   function collectReportOwnNames() {
     const state = readLauncherState();
-    return uniqueNames([
+    const rawNames = [
       readRoleFormValues("sender").ownName,
       readRoleFormValues("receiver").ownName,
       readRoleSettings("sender").ownName,
       readRoleSettings("receiver").ownName,
       String(state.ownNames?.sender || "").trim(),
       String(state.ownNames?.receiver || "").trim()
+    ];
+
+    return uniqueNames([
+      ...rawNames,
+      ...rawNames.map((name) => getPreferredIdentifier(name, state))
     ]);
   }
 
   function collectReportCandidatePairs() {
     const candidates = [];
     const seen = new Set();
+    const state = readLauncherState();
 
     const addCandidate = (receiverName, senderName) => {
-      const receiver = String(receiverName || "").trim();
-      const sender = String(senderName || "").trim();
+      const receiver = getPreferredIdentifier(String(receiverName || "").trim(), state);
+      const sender = getPreferredIdentifier(String(senderName || "").trim(), state);
       if (!receiver || !sender) {
         return;
       }
@@ -927,6 +1510,9 @@
     }
     if (reportVisualizeButton) {
       reportVisualizeButton.hidden = !selectedReportPair;
+    }
+    if (reportAnalyzeButton) {
+      reportAnalyzeButton.hidden = !selectedReportPair;
     }
     renderReportPairOptions();
   }
@@ -1179,7 +1765,8 @@
     firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
 
     reportSummary.append(firstLine);
-    reportStatus.textContent = `${records.length} trial record${records.length === 1 ? "" : "s"} found for this pair.`;
+    const scoredTrials = getReportSummaryStats(records).totalTrials;
+    reportStatus.textContent = `${scoredTrials} trial record${scoredTrials === 1 ? "" : "s"} found for this pair.`;
   }
 
   function createReportLayoutThumbnailCell(value) {
@@ -1249,6 +1836,17 @@
     return value.toFixed(4);
   }
 
+  function formatProbabilityPercent(value) {
+    if (!Number.isFinite(value)) {
+      return "unknown";
+    }
+    const percentValue = value * 100;
+    if (percentValue < 0.01) {
+      return "< 0.01%";
+    }
+    return `${percentValue.toFixed(2)}%`;
+  }
+
   function approximateErf(x) {
     const sign = x < 0 ? -1 : 1;
     const absoluteX = Math.abs(x);
@@ -1278,16 +1876,42 @@
   }
 
   function getTrialScoreModel(record) {
+    const trialAborted = String(record?.["trial aborted"] ?? "").trim().toLowerCase() === "yes";
+    const trialTimedOut = String(record?.["trial timed out"] ?? "").trim().toLowerCase() === "yes";
+    if (trialAborted || trialTimedOut) {
+      return {
+        observed: Number.NaN,
+        expected: Number.NaN,
+        variance: Number.NaN,
+        level: 0
+      };
+    }
+
     const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
     const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
-    const choiceOne = Number(String(record?.["rx choice1"] ?? "").trim());
+    const choiceOneRaw = String(record?.["rx choice1"] ?? "").trim();
+    if (!choiceOneRaw) {
+      return {
+        observed: Number.NaN,
+        expected: Number.NaN,
+        variance: Number.NaN,
+        level: 0
+      };
+    }
+    const choiceOne = Number(choiceOneRaw);
     const sentConeCount = getLayoutConeCount(sentLayout);
     const chosenConeCount = getLayoutConeCount(choiceOne);
     const exactMatch = sentLayout === choiceOne;
     const countMatch = sentConeCount > 0 && sentConeCount === chosenConeCount;
 
     if (difficultyLevel === "1") {
-      const observed = exactMatch || (sentConeCount === 3 && chosenConeCount === 3) ? 1 : 0;
+      const choseOne = choiceOneRaw === "1";
+      const choseMany = choiceOneRaw === "3";
+      const observed =
+        (sentConeCount === 1 && choseOne) ||
+        (sentConeCount === 3 && choseMany)
+          ? 1
+          : 0;
       return {
         observed,
         expected: 0.5,
@@ -1391,6 +2015,382 @@
     }
     const zScore = (summaryStats.yourScore - summaryStats.chanceScore) / Math.sqrt(summaryStats.totalVariance);
     return 1 - normalCdf(zScore);
+  }
+
+  function buildReportSummaryLines(summaryStats) {
+    const telepathicSignificance = getTelepathicSignificancePValue(summaryStats);
+    return [
+      `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
+      `The probability that you would get this high a score by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
+    ];
+  }
+
+  function readSavedAnalyses() {
+    try {
+      const raw = localStorage.getItem(analysisStorageKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeSavedAnalyses(next) {
+    localStorage.setItem(analysisStorageKey, JSON.stringify(next));
+  }
+
+  function saveAnalysisLocally(pairInfo, analysis) {
+    if (!pairInfo?.key) {
+      return;
+    }
+    const saved = readSavedAnalyses();
+    saved[pairInfo.key] = analysis;
+    writeSavedAnalyses(saved);
+  }
+
+  async function saveAnalysisToServer(pairInfo, analysis) {
+    const selectedPair = sanitizePairInfoForServer(pairInfo);
+    if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) {
+      throw new Error("analysis must be an object.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_pair_analysis",
+        selected_pair: selectedPair,
+        analysis
+      })
+    });
+
+    const data = await parseApiResponse(response, `Save analysis request failed with status ${response.status}`);
+    return data?.pair_analysis || null;
+  }
+
+  function computePearsonCorrelation(items) {
+    const pairs = items
+      .map((item) => [Number(item?.x), Number(item?.y)])
+      .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+
+    if (pairs.length < 3) {
+      return Number.NaN;
+    }
+
+    const n = pairs.length;
+    const sumX = pairs.reduce((total, [x]) => total + x, 0);
+    const sumY = pairs.reduce((total, [, y]) => total + y, 0);
+    const meanX = sumX / n;
+    const meanY = sumY / n;
+    const numerator = pairs.reduce((total, [x, y]) => total + ((x - meanX) * (y - meanY)), 0);
+    const varianceX = pairs.reduce((total, [x]) => total + ((x - meanX) ** 2), 0);
+    const varianceY = pairs.reduce((total, [, y]) => total + ((y - meanY) ** 2), 0);
+    const denominator = Math.sqrt(varianceX * varianceY);
+    return denominator > 0 ? numerator / denominator : Number.NaN;
+  }
+
+  function summarizeCorrelation(value, positiveMeaning, negativeMeaning) {
+    if (!Number.isFinite(value)) {
+      return "not enough data";
+    }
+    if (value >= 0.4) {
+      return positiveMeaning;
+    }
+    if (value <= -0.4) {
+      return negativeMeaning;
+    }
+    return "no strong relationship";
+  }
+
+  function computeLocationSpreadMeters(locations) {
+    const valid = locations.filter(Boolean);
+    if (valid.length < 2) {
+      return 0;
+    }
+    const centroid = {
+      latitude: valid.reduce((total, item) => total + item.latitude, 0) / valid.length,
+      longitude: valid.reduce((total, item) => total + item.longitude, 0) / valid.length
+    };
+    return valid.reduce((max, item) => Math.max(max, haversineDistanceMeters(centroid, item)), 0);
+  }
+
+  function getScoredRecords(records) {
+    return records.filter((record) => {
+      const model = getTrialScoreModel(record);
+      return Number.isFinite(model.observed) && Number.isFinite(model.expected) && Number.isFinite(model.variance);
+    });
+  }
+
+  function buildLevelBreakdown(records) {
+    const levels = new Map([
+      [1, { completed_trials: 0, score: 0, chance_score: 0 }],
+      [2, { completed_trials: 0, score: 0, chance_score: 0 }],
+      [3, { completed_trials: 0, score: 0, chance_score: 0 }]
+    ]);
+
+    records.forEach((record) => {
+      const model = getTrialScoreModel(record);
+      if (!Number.isFinite(model.observed) || !Number.isFinite(model.expected) || !levels.has(model.level)) {
+        return;
+      }
+      const entry = levels.get(model.level);
+      entry.completed_trials += 1;
+      entry.score += model.observed;
+      entry.chance_score += model.expected;
+    });
+
+    return Object.fromEntries(
+      [...levels.entries()].map(([level, entry]) => [
+        `level_${level}`,
+        {
+          completed_trials: entry.completed_trials,
+          score: Number(entry.score.toFixed(3)),
+          chance_score: Number(entry.chance_score.toFixed(3)),
+          excess_over_chance: Number((entry.score - entry.chance_score).toFixed(3))
+        }
+      ])
+    );
+  }
+
+  function getInterpretationHeadline(summaryStats) {
+    const pValue = getTelepathicSignificancePValue(summaryStats);
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (!Number.isFinite(pValue) || totalTrials < 1) {
+      return "Not enough completed trials are available for interpretation.";
+    }
+    if (pValue < 0.01 && totalTrials >= 20) {
+      return "This pair shows a statistically strong and potentially convincing above-chance result.";
+    }
+    if (pValue < 0.01) {
+      return "This pair shows a statistically strong result, but the completed trial count is still low.";
+    }
+    if (pValue < 0.05) {
+      return "This pair shows a suggestive result, but not yet a convincing one.";
+    }
+    return "This pair does not currently show evidence beyond what could easily occur by chance.";
+  }
+
+  function getInterpretationRecommendation(summaryStats) {
+    const pValue = getTelepathicSignificancePValue(summaryStats);
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (!Number.isFinite(pValue) || totalTrials < 1) {
+      return "Collect more completed trials before drawing a conclusion.";
+    }
+    if (pValue < 0.01 && totalTrials >= 20) {
+      return "Maintain similar test conditions and continue collecting completed trials to see whether the effect replicates across additional sessions.";
+    }
+    if (pValue < 0.01) {
+      return "A result stronger than P = 0.01 over at least 20 completed trials would generally be considered convincing.";
+    }
+    return "Continue collecting completed trials and look for stable performance over a larger block.";
+  }
+
+  function buildResultsAnalysis(pairInfo, records, sourcePath = "") {
+    const rawTrialCount = records.length;
+    const scoredRecords = getScoredRecords(records);
+    const summaryStats = getReportSummaryStats(records);
+    const pValue = getTelepathicSignificancePValue(summaryStats);
+    const abortedTrials = records.filter((record) => String(record?.["trial aborted"] ?? "").trim().toLowerCase() === "yes").length;
+    const timedOutTrials = records.filter((record) => String(record?.["trial timed out"] ?? "").trim().toLowerCase() === "yes").length;
+    const completedTrials = summaryStats.totalTrials;
+    const confidenceValues = scoredRecords
+      .map((record) => Number(String(record?.confidence ?? "").trim()))
+      .filter((value) => Number.isFinite(value));
+    const averageConfidence = confidenceValues.length
+      ? confidenceValues.reduce((total, value) => total + value, 0) / confidenceValues.length
+      : Number.NaN;
+    const scoredModels = scoredRecords.map((record) => ({ record, model: getTrialScoreModel(record) }));
+    const confidenceCorrelation = computePearsonCorrelation(
+      scoredModels.map(({ record, model }) => ({
+        x: Number(String(record?.confidence ?? "").trim()),
+        y: model.observed - model.expected
+      }))
+    );
+    const reactionTimesMs = scoredRecords
+      .map((record) => Number(String(record?.["rx done rt"] ?? "").trim()))
+      .filter((value) => Number.isFinite(value));
+    const averageReactionMs = reactionTimesMs.length
+      ? reactionTimesMs.reduce((total, value) => total + value, 0) / reactionTimesMs.length
+      : Number.NaN;
+    const timeCorrelation = computePearsonCorrelation(
+      scoredModels.map(({ record, model }) => ({
+        x: Number(String(record?.["rx done rt"] ?? "").trim()),
+        y: model.observed - model.expected
+      }))
+    );
+    const distanceSamples = scoredRecords
+      .map((record) => {
+        const rx = parseLocationValue(record?.["rx location"] ?? "");
+        const tx = parseLocationValue(record?.["tx location"] ?? "");
+        return rx && tx ? haversineDistanceMeters(rx, tx) : Number.NaN;
+      })
+      .filter((value) => Number.isFinite(value));
+    const averageDistanceMeters = distanceSamples.length
+      ? distanceSamples.reduce((total, value) => total + value, 0) / distanceSamples.length
+      : Number.NaN;
+    const receiverLocations = scoredRecords.map((record) => parseLocationValue(record?.["rx location"] ?? "")).filter(Boolean);
+    const senderLocations = scoredRecords.map((record) => parseLocationValue(record?.["tx location"] ?? "")).filter(Boolean);
+    const receiverSpreadMeters = computeLocationSpreadMeters(receiverLocations);
+    const senderSpreadMeters = computeLocationSpreadMeters(senderLocations);
+    const firstHalfRecords = scoredRecords.slice(0, Math.ceil(scoredRecords.length / 2));
+    const secondHalfRecords = scoredRecords.slice(Math.ceil(scoredRecords.length / 2));
+    const firstHalfStats = getReportSummaryStats(firstHalfRecords);
+    const secondHalfStats = getReportSummaryStats(secondHalfRecords);
+    const firstHalfExcess = firstHalfStats.yourScore - firstHalfStats.chanceScore;
+    const secondHalfExcess = secondHalfStats.yourScore - secondHalfStats.chanceScore;
+
+    const analysis = {
+      analysis_version: "1",
+      app_version: launcherBuildVersion,
+      generated_at_utc: new Date().toISOString(),
+      pair: {
+        receiver_name: String(pairInfo?.receiverName || ""),
+        sender_name: String(pairInfo?.senderName || ""),
+        session_code: String(pairInfo?.sessionCode || "")
+      },
+      source_csv_path: sourcePath,
+      metrics: {
+        raw_trial_count: rawTrialCount,
+        completed_trial_count: completedTrials,
+        aborted_trial_count: abortedTrials,
+        timed_out_trial_count: timedOutTrials,
+        score_total: Number(summaryStats.yourScore.toFixed(3)),
+        chance_score: Number(summaryStats.chanceScore.toFixed(3)),
+        excess_over_chance: Number((summaryStats.yourScore - summaryStats.chanceScore).toFixed(3)),
+        telepathic_significance_p: Number.isFinite(pValue) ? Number(pValue.toPrecision(6)) : null,
+        average_confidence: Number.isFinite(averageConfidence) ? Number(averageConfidence.toFixed(2)) : null,
+        confidence_vs_score_correlation: Number.isFinite(confidenceCorrelation) ? Number(confidenceCorrelation.toFixed(3)) : null,
+        average_reaction_time_seconds: Number.isFinite(averageReactionMs) ? Number((averageReactionMs / 1000).toFixed(2)) : null,
+        reaction_time_vs_score_correlation: Number.isFinite(timeCorrelation) ? Number(timeCorrelation.toFixed(3)) : null,
+        average_distance_meters: Number.isFinite(averageDistanceMeters) ? Number(averageDistanceMeters.toFixed(1)) : null,
+        receiver_location_spread_meters: Number(receiverSpreadMeters.toFixed(1)),
+        sender_location_spread_meters: Number(senderSpreadMeters.toFixed(1)),
+        first_half_excess_over_chance: Number(firstHalfExcess.toFixed(3)),
+        second_half_excess_over_chance: Number(secondHalfExcess.toFixed(3)),
+        level_breakdown: buildLevelBreakdown(scoredRecords)
+      },
+      messages: {
+        headline: getInterpretationHeadline(summaryStats),
+        recommendation: getInterpretationRecommendation(summaryStats),
+        confidence_relationship: summarizeCorrelation(
+          confidenceCorrelation,
+          "higher confidence tends to accompany better-than-chance scoring",
+          "higher confidence tends to accompany weaker scoring"
+        ),
+        time_relationship: summarizeCorrelation(
+          timeCorrelation,
+          "longer response times tend to accompany better-than-chance scoring",
+          "faster response times tend to accompany better-than-chance scoring"
+        ),
+        location_note:
+          receiverSpreadMeters > 50 || senderSpreadMeters > 50
+            ? "testing locations varied across the completed trials"
+            : "testing locations appear fairly stable across the completed trials"
+      }
+    };
+
+    const continuityLines = [
+      "RESULTS ANALYZER CONTINUITY TEXT",
+      `App version: ${launcherBuildVersion}`,
+      `Generated at UTC: ${analysis.generated_at_utc}`,
+      `Receiver-sender pair: ${analysis.pair.receiver_name} - ${analysis.pair.sender_name}`,
+      `Session code: ${analysis.pair.session_code}`,
+      sourcePath ? `Source CSV path: ${sourcePath}` : "Source CSV path: unknown",
+      "",
+      "DATASET SUMMARY",
+      `Raw trial records: ${rawTrialCount}`,
+      `Completed scored trials: ${completedTrials}`,
+      `Aborted trials: ${abortedTrials}`,
+      `Timed-out trials: ${timedOutTrials}`,
+      "",
+      "STATISTICAL RESULTS",
+      `Chance score: ${formatScoreValue(summaryStats.chanceScore)}`,
+      `Your score: ${formatScoreValue(summaryStats.yourScore)}`,
+      `Excess over chance: ${formatScoreValue(summaryStats.yourScore - summaryStats.chanceScore)}`,
+      `Telepathic significance P: ${formatProbabilityValue(pValue)}`,
+      "",
+      "LEVEL BREAKDOWN",
+      ...Object.entries(analysis.metrics.level_breakdown).map(([level, entry]) =>
+        `${level}: completed trials = ${entry.completed_trials}, score = ${formatScoreValue(entry.score)}, chance score = ${formatScoreValue(entry.chance_score)}, excess = ${formatScoreValue(entry.excess_over_chance)}`
+      ),
+      "",
+      "ADDITIONAL METRICS",
+      `Average confidence: ${Number.isFinite(averageConfidence) ? averageConfidence.toFixed(2) : "unknown"}`,
+      `Confidence relationship: ${analysis.messages.confidence_relationship}`,
+      `Average response time: ${Number.isFinite(averageReactionMs) ? `${(averageReactionMs / 1000).toFixed(2)} seconds` : "unknown"}`,
+      `Reaction-time relationship: ${analysis.messages.time_relationship}`,
+      `Average sender-receiver distance: ${Number.isFinite(averageDistanceMeters) ? formatDistanceWithUnit(averageDistanceMeters, averageDistanceMeters >= 1609.344 ? "miles" : "meters") : "unknown"}`,
+      `Receiver location spread: ${formatDistanceWithUnit(receiverSpreadMeters || 0, receiverSpreadMeters >= 1609.344 ? "miles" : "meters")}`,
+      `Sender location spread: ${formatDistanceWithUnit(senderSpreadMeters || 0, senderSpreadMeters >= 1609.344 ? "miles" : "meters")}`,
+      `Location note: ${analysis.messages.location_note}`,
+      `First-half excess over chance: ${formatScoreValue(firstHalfExcess)}`,
+      `Second-half excess over chance: ${formatScoreValue(secondHalfExcess)}`,
+      "",
+      "STATIC INTERPRETATION",
+      analysis.messages.headline,
+      analysis.messages.recommendation,
+      "",
+      "REQUEST TO AI",
+      "Please analyze this receiver-sender pair using the structured information above. Pay attention to score, chance score, telepathic significance P, confidence, time-to-respond, distance, location stability, first-half versus second-half performance, and whether the result appears stable or bursty."
+    ];
+
+    return {
+      ...analysis,
+      continuity_text: continuityLines.join("\n")
+    };
+  }
+
+  function formatAnalysisDisplay(analysis) {
+    const metrics = analysis?.metrics || {};
+    const messages = analysis?.messages || {};
+    return [
+      `Headline: ${messages.headline || "unknown"}`,
+      `Recommendation: ${messages.recommendation || "unknown"}`,
+      "",
+      `Raw trials: ${metrics.raw_trial_count ?? 0}`,
+      `Completed scored trials: ${metrics.completed_trial_count ?? 0}`,
+      `Aborted trials: ${metrics.aborted_trial_count ?? 0}`,
+      `Timed-out trials: ${metrics.timed_out_trial_count ?? 0}`,
+      "",
+      `Chance score: ${formatScoreValue(metrics.chance_score)}`,
+      `Your score: ${formatScoreValue(metrics.score_total)}`,
+      `Excess over chance: ${formatScoreValue(metrics.excess_over_chance)}`,
+      `Telepathic significance, P: ${formatProbabilityValue(metrics.telepathic_significance_p)}`,
+      "",
+      `Average confidence: ${metrics.average_confidence ?? "unknown"}`,
+      `Confidence relationship: ${messages.confidence_relationship || "unknown"}`,
+      `Average response time (seconds): ${metrics.average_reaction_time_seconds ?? "unknown"}`,
+      `Reaction-time relationship: ${messages.time_relationship || "unknown"}`,
+      `Average sender-receiver distance: ${Number.isFinite(metrics.average_distance_meters) ? formatDistanceWithUnit(metrics.average_distance_meters, metrics.average_distance_meters >= 1609.344 ? "miles" : "meters") : "unknown"}`,
+      `Receiver location spread: ${Number.isFinite(metrics.receiver_location_spread_meters) ? formatDistanceWithUnit(metrics.receiver_location_spread_meters, metrics.receiver_location_spread_meters >= 1609.344 ? "miles" : "meters") : "unknown"}`,
+      `Sender location spread: ${Number.isFinite(metrics.sender_location_spread_meters) ? formatDistanceWithUnit(metrics.sender_location_spread_meters, metrics.sender_location_spread_meters >= 1609.344 ? "miles" : "meters") : "unknown"}`,
+      `Location note: ${messages.location_note || "unknown"}`,
+      `First-half excess over chance: ${formatScoreValue(metrics.first_half_excess_over_chance)}`,
+      `Second-half excess over chance: ${formatScoreValue(metrics.second_half_excess_over_chance)}`
+    ].join("\n");
+  }
+
+  function buildAiInterpretation(summaryStats) {
+    const pValue = getTelepathicSignificancePValue(summaryStats);
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (!Number.isFinite(pValue) || totalTrials < 1) {
+      return "AI Interpretation: There are not enough completed scored trials yet to interpret these results.";
+    }
+
+    if (pValue < 0.01 && totalTrials >= 20) {
+      return "AI Interpretation: This is a statistically significant result and, because it is based on at least 20 completed trials, it would generally be considered convincing.";
+    }
+
+    if (pValue < 0.01 && totalTrials < 20) {
+      return "AI Interpretation: This is a very significant result, but the number of completed trials is still low, so it is not yet very convincing. A score better than P = 0.01 over at least 20 completed trials would generally be considered convincing.";
+    }
+
+    if (pValue < 0.05) {
+      return "AI Interpretation: This is a suggestive result, but it is not yet strong enough to be considered convincing. More completed trials would be needed.";
+    }
+
+    return "AI Interpretation: At present, these results are within the range that could easily occur by chance alone. More completed trials would be needed before drawing a strong conclusion.";
   }
 
   function getLevelOneReportScore(record) {
@@ -1573,11 +2573,18 @@
     const summaryCell = document.createElement("td");
     summaryCell.colSpan = headers.length;
     summaryCell.className = "report-table-summary-cell";
-    const telepathicSignificance = getTelepathicSignificancePValue(summaryStats);
-    summaryCell.textContent =
-      `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`;
+    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats);
+    summaryCell.textContent = summaryText;
     summaryRow.appendChild(summaryCell);
     tfoot.appendChild(summaryRow);
+
+    const probabilityRow = document.createElement("tr");
+    const probabilityCell = document.createElement("td");
+    probabilityCell.colSpan = headers.length;
+    probabilityCell.className = "report-table-summary-cell";
+    probabilityCell.textContent = probabilityText;
+    probabilityRow.appendChild(probabilityCell);
+    tfoot.appendChild(probabilityRow);
 
     reportTable.append(colgroup, thead, tbody, tfoot);
     reportTableWrap.hidden = false;
@@ -1595,14 +2602,29 @@
     firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
     visualizationSummary.append(firstLine);
 
-    const levelCounts = new Map([[1, 0], [2, 0], [3, 0]]);
-    series.forEach((point) => {
-      levelCounts.set(point.level, (levelCounts.get(point.level) || 0) + 1);
-    });
-    const latest = series.at(-1);
-    visualizationStatus.textContent = latest
-      ? `${records.length} trial record${records.length === 1 ? "" : "s"} found. Current cumulative excess over chance = ${latest.cumulativeExcess.toFixed(2)}. Level 1: ${levelCounts.get(1)}, Level 2: ${levelCounts.get(2)}, Level 3: ${levelCounts.get(3)}.`
-      : "No scoreable trials are available for visualization.";
+    if (!series.length) {
+      visualizationStatus.textContent = "No scoreable trials are available for visualization.";
+      return;
+    }
+
+    const summaryStats = getReportSummaryStats(records);
+    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats);
+    const summaryLine = document.createElement("p");
+    summaryLine.className = "report-summary-line";
+    summaryLine.textContent = summaryText;
+    visualizationSummary.append(summaryLine);
+
+    const probabilityLine = document.createElement("p");
+    probabilityLine.className = "report-summary-line";
+    probabilityLine.textContent = probabilityText;
+    visualizationSummary.append(probabilityLine);
+
+    const interpretationLine = document.createElement("p");
+    interpretationLine.className = "report-summary-line";
+    interpretationLine.textContent = buildAiInterpretation(summaryStats);
+    visualizationSummary.append(interpretationLine);
+
+    visualizationStatus.textContent = `${series.length} completed trial record${series.length === 1 ? "" : "s"} found.`;
   }
 
   function renderVisualizationChart(series) {
@@ -1991,6 +3013,72 @@
     renderVisualizationChart(series);
   }
 
+  async function renderResultsAnalysis(pairInfo = selectedReportPair) {
+    if (!analyzerSummary || !analyzerStatus || !analyzerOutput || !analyzerText) {
+      return;
+    }
+
+    analyzerSummary.replaceChildren();
+    analyzerStatus.textContent = "";
+    analyzerOutput.textContent = "";
+    analyzerText.value = "";
+
+    if (!pairInfo?.sessionCode) {
+      analyzerStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open Analyze Results again.";
+      return;
+    }
+
+    let csvResult = {
+      available: false,
+      message: "",
+      path: "",
+      records: []
+    };
+
+    try {
+      csvResult = await fetchSelectedPairReportCsvData(pairInfo);
+    } catch (error) {
+      analyzerStatus.textContent = "Unable to load the server trial history right now.";
+      return;
+    }
+
+    const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+    if (!records.length) {
+      analyzerStatus.textContent = csvResult.available
+        ? "No trial records found for the current receiver-sender selection."
+        : (csvResult.message || "No server-side trial history is available right now.");
+      return;
+    }
+
+    const analysis = buildResultsAnalysis(pairInfo, records, csvResult.path || reportCsvPathCache || "");
+    saveAnalysisLocally(pairInfo, analysis);
+
+    const titleLine = document.createElement("p");
+    titleLine.className = "report-summary-line";
+    titleLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
+    analyzerSummary.append(titleLine);
+
+    const headlineLine = document.createElement("p");
+    headlineLine.className = "report-summary-line";
+    headlineLine.textContent = analysis.messages.headline;
+    analyzerSummary.append(headlineLine);
+
+    analyzerStatus.textContent = `${analysis.metrics.completed_trial_count} completed trial record${analysis.metrics.completed_trial_count === 1 ? "" : "s"} analyzed.`;
+    analyzerOutput.textContent = formatAnalysisDisplay(analysis);
+    analyzerText.value = analysis.continuity_text;
+
+    try {
+      const saveResult = await saveAnalysisToServer(pairInfo, analysis);
+      if (saveResult?.saved) {
+        analyzerStatus.textContent += ` Analysis JSON saved locally and on the server.`;
+      } else if (saveResult?.message) {
+        analyzerStatus.textContent += ` ${saveResult.message}`;
+      }
+    } catch (error) {
+      analyzerStatus.textContent += " Analysis JSON saved locally, but the server copy could not be updated right now.";
+    }
+  }
+
   async function refreshDifficultyLabels() {
     const token = ++difficultyLabelToken;
     const fallbackLevel = "1";
@@ -2051,12 +3139,16 @@
   }
 
   function buildTargetUrl(role, ownName, exactPartnerName) {
+    const runtimeVersion = launcherBuildVersion;
     const target = role === "sender" ? "sender.html" : "receiver.html";
     const params = new URLSearchParams();
-    params.set("prefill", "1");
-    params.set("own_email", ownName);
-    params.set("partner_email", exactPartnerName);
     const state = readLauncherState();
+    const canonicalOwnName = getPreferredIdentifier(ownName, state);
+    const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, state);
+    params.set("v", runtimeVersion);
+    params.set("prefill", "1");
+    params.set("own_email", canonicalOwnName);
+    params.set("partner_email", canonicalPartnerName);
     const deviceLocation = state?.deviceLocation;
     if (
       deviceLocation &&
@@ -2103,15 +3195,8 @@
 
     if (state?.deviceLocation?.latitude && state?.deviceLocation?.longitude) {
       const accuracy = Math.round(Number(state.deviceLocation.accuracy || 0));
-      let precision = "coarse";
-      if (accuracy > 0 && accuracy < 30) {
-        precision = "high";
-      } else if (accuracy >= 30 && accuracy <= 150) {
-        precision = "medium";
-      }
-
       return {
-        text: `Device location: confirmed | Accuracy: about ${accuracy || "?"} meters | Precision: ${precision}`,
+        text: `Device location: confirmed | Accuracy: about ${accuracy || "?"} meters`,
         showRetry: false
       };
     }
@@ -2203,7 +3288,8 @@
       ...profileState.partnerHistory,
       profileState.currentPartner || "",
       roleSettings.partnerName || ""
-    ]).filter((name) => !deleted.has(normalizeIdentifierForStorage(name)));
+    ].map((name) => getPreferredIdentifier(name, state)))
+      .filter((name) => !deleted.has(normalizeIdentifierForStorage(name)));
   }
 
   function applyPartnerHistory(role, form, state = readLauncherState(), ownIdentifier = "") {
@@ -2246,14 +3332,17 @@
   async function persistLauncherProfileForForm(role, form, overrideState = null) {
     const ownInput = form.querySelector('input[name="ownName"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
-    const ownIdentifier = String(ownInput?.value || "").trim();
-    if (!ownIdentifier) {
+    const ownIdentifierRaw = String(ownInput?.value || "").trim();
+    if (!ownIdentifierRaw) {
       return;
     }
 
+    const ownIdentifier = getPreferredIdentifier(ownIdentifierRaw, overrideState || readLauncherState());
+
     const sourceState = overrideState || readLauncherState();
     const profileState = readLauncherProfileState(role, ownIdentifier, sourceState);
-    const currentPartner = String(partnerInput?.value || profileState.currentPartner || "").trim();
+    const currentPartnerRaw = String(partnerInput?.value || profileState.currentPartner || "").trim();
+    const currentPartner = getPreferredIdentifier(currentPartnerRaw, sourceState);
     const storedProfile = await saveLauncherProfile(role, ownIdentifier, {
       currentPartner,
       partnerHistory: uniqueNames([
@@ -2287,17 +3376,103 @@
       return;
     }
 
-    const latest = writeLauncherProfileState(role, requestedIdentifier, {
+    if (fetchedProfile?.own_email) {
+      rememberIdentifierStatus(requestedIdentifier, {
+        input_identifier: requestedIdentifier,
+        preferred_identifier: String(fetchedProfile.own_email || "").trim(),
+        preferred_handle: String(fetchedProfile?.preferred_handle || "").trim(),
+        owner_identifier: String(fetchedProfile?.owner_identifier || requestedIdentifier).trim(),
+        uses_handle: !!fetchedProfile?.preferred_handle,
+        is_handle: normalizeIdentifierForStorage(requestedIdentifier) === normalizeIdentifierForStorage(String(fetchedProfile?.preferred_handle || ""))
+      });
+    }
+
+    const latest = writeLauncherProfileState(role, getPreferredIdentifier(requestedIdentifier), {
       currentPartner: String(fetchedProfile?.current_partner || "").trim(),
       partnerHistory: Array.isArray(fetchedProfile?.partner_history) ? fetchedProfile.partner_history : [],
       deletedPartners: Array.isArray(fetchedProfile?.deleted_partners) ? fetchedProfile.deleted_partners : []
     });
-    const profileState = readLauncherProfileState(role, requestedIdentifier, latest);
+    const profileState = readLauncherProfileState(role, getPreferredIdentifier(requestedIdentifier, latest), latest);
     if (!String(partnerInput?.value || "").trim() && profileState.currentPartner) {
       partnerInput.value = profileState.currentPartner;
     }
-    applyPartnerHistory(role, form, latest, requestedIdentifier);
+    applyPartnerHistory(role, form, latest, getPreferredIdentifier(requestedIdentifier, latest));
+    void refreshPartnerAliasHistory(role, form);
     void refreshDifficultyLabels();
+  }
+
+  async function refreshPartnerAliasHistory(role, form) {
+    const ownInput = form.querySelector('input[name="ownName"]');
+    const partnerInput = form.querySelector('input[name="partnerName"]');
+    const ownIdentifier = String(ownInput?.value || "").trim();
+    const originalPartnerInputValue = String(partnerInput?.value || "").trim();
+    if (!ownIdentifier) {
+      return;
+    }
+
+    const state = readLauncherState();
+    const roleSettings = readRoleSettings(role);
+    const profileState = readLauncherProfileState(role, ownIdentifier, state);
+    const candidates = uniqueNames([
+      ...profileState.partnerHistory,
+      profileState.currentPartner || "",
+      roleSettings.partnerName || "",
+      String(partnerInput?.value || "").trim()
+    ]);
+
+    const remaps = [];
+    const canonicalHistory = [];
+    let canonicalCurrentPartner = String(partnerInput?.value || profileState.currentPartner || "").trim();
+
+    for (const identifier of candidates) {
+      if (!identifier) {
+        continue;
+      }
+
+      let preferred = identifier;
+      try {
+        const status = await fetchIdentifierStatus(identifier);
+        rememberIdentifierStatus(identifier, status);
+        preferred = String(status?.preferred_identifier || "").trim() || identifier;
+      } catch (error) {
+        preferred = identifier;
+      }
+
+      if (normalizeIdentifierForStorage(preferred) !== normalizeIdentifierForStorage(identifier)) {
+        remaps.push({ previous: identifier, next: preferred });
+      }
+
+      canonicalHistory.push(preferred);
+
+      if (normalizeIdentifierForStorage(canonicalCurrentPartner) === normalizeIdentifierForStorage(identifier)) {
+        canonicalCurrentPartner = preferred;
+      }
+    }
+
+    remaps.forEach(({ previous, next }) => {
+      migrateRuntimeSettingsIdentifier(previous, next);
+    });
+
+    const latest = writeLauncherProfileState(role, ownIdentifier, {
+      currentPartner: canonicalCurrentPartner,
+      partnerHistory: uniqueNames(canonicalHistory),
+      deletedPartners: uniqueNames([
+        ...profileState.deletedPartners,
+        ...remaps.map((item) => item.previous)
+      ])
+    });
+
+    if (partnerInput && canonicalCurrentPartner) {
+      partnerInput.value = canonicalCurrentPartner;
+    }
+
+    applyPartnerHistory(role, form, latest, ownIdentifier);
+    await persistLauncherProfileForForm(role, form, latest);
+
+    const currentRemap = remaps.find((item) => normalizeIdentifierForStorage(item.previous) === normalizeIdentifierForStorage(originalPartnerInputValue));
+    if (currentRemap) {
+      showRoleIdentifierStatus(role, `Your partner now uses unique handle: ${currentRemap.next}.`);
+    }
   }
 
   function saveManagedName(role, originalName, updatedName, isAddMode, form) {
@@ -2499,6 +3674,10 @@
     ownInput.value = savedOwn;
     partnerInput.value = savedPartner;
     applyPartnerHistory(role, form, state, savedOwn);
+    applyRoleIdentifierPresentation(role, {
+      ownUsesHandle: isValidUniqueHandle(savedOwn) && !isValidEmailAddress(savedOwn),
+      partnerUsesHandle: isValidUniqueHandle(savedPartner) && !isValidEmailAddress(savedPartner)
+    });
 
     select.addEventListener("change", () => {
       if (select.value) {
@@ -2508,35 +3687,58 @@
         }, 0);
         void persistLauncherProfileForForm(role, form);
         void refreshDifficultyLabels();
+        void syncRoleIdentifierPresentation(role, form);
       }
     });
 
+    const refreshPartnerChoices = () => {
+      void refreshPartnerAliasHistory(role, form);
+    };
+    select.addEventListener("focus", refreshPartnerChoices);
+    select.addEventListener("pointerdown", refreshPartnerChoices);
+
     manageButton?.addEventListener("click", () => {
-      openNameManager(role, form);
+      void refreshPartnerAliasHistory(role, form).finally(() => {
+        openNameManager(role, form);
+      });
     });
 
     ownInput.addEventListener("input", () => {
       setRoleDifficultyLabel(role, "1");
       applyPartnerHistory(role, form, readLauncherState(), ownInput.value.trim());
+      applyRoleIdentifierPresentation(role, {
+        ownUsesHandle: isValidUniqueHandle(ownInput.value.trim()) && !isValidEmailAddress(ownInput.value.trim()),
+        partnerUsesHandle: isValidUniqueHandle(partnerInput.value.trim()) && !isValidEmailAddress(partnerInput.value.trim())
+      });
     });
     ownInput.addEventListener("change", () => {
       void hydrateLauncherProfileForForm(role, form);
+      void syncRoleIdentifierPresentation(role, form);
     });
     ownInput.addEventListener("blur", () => {
       void hydrateLauncherProfileForForm(role, form);
+      void syncRoleIdentifierPresentation(role, form);
     });
 
     partnerInput.addEventListener("input", () => {
       setRoleDifficultyLabel(role, "1");
+      applyRoleIdentifierPresentation(role, {
+        ownUsesHandle: isValidUniqueHandle(ownInput.value.trim()) && !isValidEmailAddress(ownInput.value.trim()),
+        partnerUsesHandle: isValidUniqueHandle(partnerInput.value.trim()) && !isValidEmailAddress(partnerInput.value.trim())
+      });
     });
     partnerInput.addEventListener("change", () => {
       void persistLauncherProfileForForm(role, form);
+      void syncRoleIdentifierPresentation(role, form);
+    });
+    partnerInput.addEventListener("blur", () => {
+      void syncRoleIdentifierPresentation(role, form);
     });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const ownName = ownInput.value.trim();
-      const exactPartnerName = partnerInput.value.trim();
+      let ownName = ownInput.value.trim();
+      let exactPartnerName = partnerInput.value.trim();
 
       if (!ownName || !exactPartnerName) {
         if (!ownName) {
@@ -2547,14 +3749,46 @@
         return;
       }
 
-      const latest = readLauncherState();
+      try {
+        ownName = assertValidParticipantIdentifier(ownName, "Your identifier");
+        exactPartnerName = assertValidParticipantIdentifier(exactPartnerName, role === "sender" ? "Receiver identifier" : "Sender identifier");
+      } catch (error) {
+        if (error instanceof Error) {
+          alert(error.message);
+        }
+        return;
+      }
+
+      let ownStatus = null;
+      let partnerStatus = null;
+      try {
+        [ownStatus, partnerStatus] = await Promise.all([
+          fetchIdentifierStatus(ownName),
+          fetchIdentifierStatus(exactPartnerName)
+        ]);
+      } catch (error) {
+        // If lookup fails, continue with the identifiers as typed.
+      }
+
+      let latest = readLauncherState();
+      if (ownStatus) {
+        latest = rememberIdentifierStatus(ownName, ownStatus, latest);
+      }
+      if (partnerStatus) {
+        latest = rememberIdentifierStatus(exactPartnerName, partnerStatus, latest);
+      }
+
+      const canonicalOwnName = getPreferredIdentifier(ownName, latest);
+      const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
+
       latest.ownNames = latest.ownNames || {};
       latest.ownNames[role] = ownName;
-      const existingProfile = readLauncherProfileState(role, ownName, latest);
+      writeLauncherState(latest);
+      const existingProfile = readLauncherProfileState(role, canonicalOwnName, latest);
       const nextState = writeLauncherProfileState(role, ownName, {
-        currentPartner: exactPartnerName,
-        partnerHistory: uniqueNames([...existingProfile.partnerHistory, exactPartnerName]),
-        deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(exactPartnerName))
+        currentPartner: canonicalPartnerName,
+        partnerHistory: uniqueNames([...existingProfile.partnerHistory, canonicalPartnerName]),
+        deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(canonicalPartnerName))
       });
       try {
         await persistLauncherProfileForForm(role, form, nextState);
@@ -2562,12 +3796,13 @@
         // Keep local progress even if the server save momentarily fails.
       }
 
-      window.location.href = buildTargetUrl(role, ownName, exactPartnerName);
+      window.location.href = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName);
     });
 
     if (savedOwn) {
       void hydrateLauncherProfileForForm(role, form);
     }
+    void syncRoleIdentifierPresentation(role, form);
   }
 
   function activateCard(card) {
@@ -2576,9 +3811,9 @@
     roleCards.forEach((item) => {
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
-      const header = item.querySelector(".role-card-header");
-      if (header) {
-        header.setAttribute("aria-expanded", "false");
+      const toggle = item.querySelector(".role-card-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "false");
       }
     });
 
@@ -2586,9 +3821,9 @@
       requestDeviceLocationIfNeeded();
       card.classList.add("active");
       void refreshDifficultyLabels();
-      const header = card.querySelector(".role-card-header");
-      if (header) {
-        header.setAttribute("aria-expanded", "true");
+      const toggle = card.querySelector(".role-card-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "true");
       }
 
       roleCards.forEach((item) => {
@@ -2605,6 +3840,10 @@
           inline: "nearest"
         });
       }, 40);
+      const activeForm = card.querySelector("[data-role-form]");
+      if (activeForm) {
+        void refreshPartnerAliasHistory(String(card.dataset.roleCard || ""), activeForm);
+      }
       return;
     }
 
@@ -2619,9 +3858,9 @@
       }
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
-      const header = item.querySelector(".role-card-header");
-      if (header) {
-        header.setAttribute("aria-expanded", "false");
+      const toggle = item.querySelector(".role-card-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "false");
       }
     });
     if (changed) {
@@ -2629,17 +3868,24 @@
     }
   }
 
+  function isLauncherInteractiveTarget(target) {
+    return target instanceof Element &&
+      !!target.closest("button, input, select, textarea, a, label, [data-open-tools], [data-open-handle-control], [name='managePartnerNames']");
+  }
+
   function showLauncherView() {
     clearReportPanelOffset();
     launcherView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -2651,12 +3897,14 @@
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -2671,11 +3919,13 @@
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -2690,10 +3940,12 @@
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -2710,6 +3962,29 @@
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    void renderPerformanceVisualization(pairInfo);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showAnalyzerView(pairInfo = selectedReportPair) {
+    clearReportPanelOffset();
+    analyzerView?.classList.remove("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -2717,7 +3992,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    void renderPerformanceVisualization(pairInfo);
+    void renderResultsAnalysis(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -2741,11 +4016,33 @@
     helpView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showToolsView(role = "") {
+    clearReportPanelOffset();
+    activeToolsRole = role === "sender" || role === "receiver" ? role : "";
+    toolsView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -2759,6 +4056,7 @@
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -2777,6 +4075,7 @@
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -3033,6 +4332,7 @@
     difficultyView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3081,6 +4381,7 @@
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3223,6 +4524,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3266,6 +4568,7 @@
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -3304,6 +4607,7 @@
 
   async function sendContactMessage(messageText, senderEmail) {
     const meta = buildContactMessageMeta();
+    const cleanSenderEmail = assertValidEmailIdentifier(senderEmail, "Your email");
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
@@ -3315,7 +4619,7 @@
         metadata: {
           app: "Telepathy Beginner",
           build_version: launcherBuildVersion,
-          sender_email: String(senderEmail || "").trim(),
+          sender_email: cleanSenderEmail,
           own_names: meta.ownNames,
           pair: meta.pair,
           location: meta.location
@@ -3323,20 +4627,7 @@
       })
     });
 
-    if (!response.ok) {
-      let message = `Contact request failed with status ${response.status}`;
-      try {
-        const data = await response.json();
-        if (data?.error) {
-          message = String(data.error);
-        }
-      } catch (error) {
-        // Keep the HTTP status fallback message.
-      }
-      throw new Error(message);
-    }
-
-    return response.json();
+    return parseApiResponse(response, `Contact request failed with status ${response.status}`);
   }
 
   function renderContactWordCount() {
@@ -3599,13 +4890,23 @@
   roleCards.forEach((card) => {
     populateCard(card);
     const header = card.querySelector(".role-card-header");
-    header?.addEventListener("click", () => {
+    const toggle = card.querySelector(".role-card-toggle");
+    toggle?.addEventListener("click", () => {
+      activateCard(card);
+    });
+    header?.addEventListener("click", (event) => {
+      if (isLauncherInteractiveTarget(event.target)) {
+        return;
+      }
       activateCard(card);
     });
   });
 
   document.querySelectorAll(".role-email-note").forEach((note) => {
-    note.addEventListener("click", () => {
+    note.addEventListener("click", (event) => {
+      if (event.target instanceof Element && event.target.closest("[data-open-handle-control]")) {
+        return;
+      }
       collapseActiveLauncherCard();
     });
   });
@@ -3619,8 +4920,33 @@
   openOptionsButton?.addEventListener("click", showOptionsView);
   closeOptionsButton?.addEventListener("click", showLauncherView);
   openHelpButton?.addEventListener("click", showHelpView);
+  openHandleButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openHandleOverlay(String(button.dataset.openHandleControl || ""));
+    });
+  });
+  openToolsButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showToolsView(String(button.dataset.openTools || ""));
+    });
+  });
   openColorSchemeButton?.addEventListener("click", showColorSchemeView);
   closeHelpButton?.addEventListener("click", showOptionsView);
+  closeHandleButton?.addEventListener("click", closeHandleOverlay);
+  submitHandleButton?.addEventListener("click", () => {
+    void submitUniqueHandle();
+  });
+  closeToolsButton?.addEventListener("click", () => {
+    showLauncherView();
+    if (activeToolsRole) {
+      const matchingCard = roleCards.find((card) => card.dataset.roleCard === activeToolsRole);
+      if (matchingCard) {
+        activateCard(matchingCard);
+      }
+    }
+  });
   closeColorSchemeButton?.addEventListener("click", showOptionsView);
   openContactButton?.addEventListener("click", showContactView);
   closeContactButton?.addEventListener("click", showHelpView);
@@ -3630,6 +4956,7 @@
   closeReportDefinitionButton?.addEventListener("click", showOptionsView);
   closeReportButton?.addEventListener("click", showReportDefinitionView);
   closeVisualizationButton?.addEventListener("click", showReportDefinitionView);
+  closeAnalyzerButton?.addEventListener("click", showReportDefinitionView);
   reportPairTrigger?.addEventListener("click", () => {
     if (!availableReportPairs.length) {
       return;
@@ -3648,6 +4975,35 @@
   reportVisualizeButton?.addEventListener("click", () => {
     if (selectedReportPair) {
       showVisualizationView(selectedReportPair);
+    }
+  });
+  reportAnalyzeButton?.addEventListener("click", () => {
+    if (selectedReportPair) {
+      showAnalyzerView(selectedReportPair);
+    }
+  });
+  analyzerRefreshButton?.addEventListener("click", () => {
+    if (selectedReportPair) {
+      void renderResultsAnalysis(selectedReportPair);
+    }
+  });
+  analyzerCopyButton?.addEventListener("click", async () => {
+    const text = analyzerText?.value || "";
+    if (!text) {
+      if (analyzerStatus) {
+        analyzerStatus.textContent = "No continuity text is available to copy yet.";
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      if (analyzerStatus) {
+        analyzerStatus.textContent = "Continuity text copied to the clipboard.";
+      }
+    } catch (error) {
+      if (analyzerStatus) {
+        analyzerStatus.textContent = "Unable to copy automatically. Please select and copy the text manually.";
+      }
     }
   });
   openDifficultyButton?.addEventListener("click", showDifficultyView);
@@ -3674,6 +5030,17 @@
   contactEmailInput?.addEventListener("input", () => {
     if (contactStatus) {
       contactStatus.textContent = "";
+    }
+  });
+  handleOverlay?.addEventListener("click", (event) => {
+    if (event.target === handleOverlay) {
+      closeHandleOverlay();
+    }
+  });
+  handleInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submitUniqueHandle();
     }
   });
   contactSendButton?.addEventListener("click", () => {
@@ -3897,3 +5264,21 @@
     });
   }
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
