@@ -125,6 +125,10 @@ body {
   display: none;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .beginner-top-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -231,8 +235,11 @@ body {
 }
 
 .telepathy-hero {
-  display: grid;
-  place-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(16px, 3vw, 28px);
+  flex-wrap: wrap;
   margin: 26px 0 18px;
 }
 
@@ -289,6 +296,25 @@ body {
   margin-top: 6px;
 }
 
+.remote-viewer-label-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.remote-viewer-display-toggle {
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.92rem;
+}
+
+.remote-viewer-display-toggle input {
+  margin-top: 0;
+}
+
 .role-identifier-status {
   min-height: 24px;
   margin-top: -2px;
@@ -321,6 +347,10 @@ body {
 
 .role-card.role-card-hidden {
   display: none;
+}
+
+.role-card-pro-only[hidden] {
+  display: none !important;
 }
 
 .role-card[data-role-card="receiver"] {
@@ -948,6 +978,20 @@ body {
   max-block-size: 320px;
 }
 
+.admin-user-list-panel {
+  min-width: min(100%, 1120px);
+}
+
+.admin-user-list-output {
+  flex: 1 1 auto;
+  min-height: 0;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+  overflow: auto;
+  max-block-size: none;
+}
+
 .report-definition-go {
   width: min(100%, 240px);
   margin: 24px auto 0;
@@ -1325,6 +1369,45 @@ body {
 
 .admin-view-panel .settings-view-save {
   width: min(100%, 320px);
+}
+
+.user-type-admin-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.user-type-admin-actions .settings-view-save {
+  width: min(100%, 260px);
+  margin: 0;
+}
+
+.user-type-admin-clear {
+  width: min(100%, 140px);
+  margin: 0;
+}
+
+.user-type-choice-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.user-type-choice-button {
+  width: min(100%, 180px);
+  margin: 0;
+  opacity: 0.82;
+}
+
+.user-type-choice-button.is-selected {
+  opacity: 1;
+  border-color: rgba(255, 244, 214, 0.92);
+  box-shadow:
+    0 0 0 2px rgba(255, 244, 214, 0.2),
+    0 10px 22px rgba(24, 66, 140, 0.34);
 }
 
 .email-test-cta-wrap {

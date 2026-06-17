@@ -1,12 +1,21 @@
 (() => {
   const launcherKey = "cones-beginner-launcher-v2";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
+  const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
   const launcherView = document.querySelector('[data-view="launcher"]');
+  const beginnerMainTitle = document.querySelector("[data-beginner-main-title]");
+  const launcherSubtitle = document.querySelector("[data-launcher-subtitle]");
+  const launcherCopy = document.querySelector("[data-launcher-copy]");
+  const proHeroFrame = document.querySelector("[data-pro-hero-frame]");
   const optionsView = document.querySelector('[data-view="options"]');
   const helpView = document.querySelector('[data-view="help"]');
   const toolsView = document.querySelector('[data-view="tools"]');
+  const goProView = document.querySelector('[data-view="go-pro"]');
+  const otherSettingsView = document.querySelector('[data-view="other-settings"]');
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
+  const userTypeAdminView = document.querySelector('[data-view="user-type-admin"]');
+  const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
@@ -22,10 +31,17 @@
   const closeOptionsButton = document.querySelector("[data-close-options]");
   const openHelpButton = document.querySelector("[data-open-help]");
   const openToolsButtons = Array.from(document.querySelectorAll("[data-open-tools]"));
+  const openGoProButton = document.querySelector("[data-open-go-pro]");
+  const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
+  const openUserTypeAdminButton = document.querySelector("[data-open-user-type-admin]");
   const closeHelpButton = document.querySelector("[data-close-help]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
+  const closeGoProButton = document.querySelector("[data-close-go-pro]");
+  const closeOtherSettingsButton = document.querySelector("[data-close-other-settings]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
+  const closeUserTypeAdminButton = document.querySelector("[data-close-user-type-admin]");
+  const closeAdminUserListButton = document.querySelector("[data-close-admin-user-list]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const closeContactButton = document.querySelector("[data-close-contact]");
   const openAboutButton = document.querySelector("[data-open-about]");
@@ -96,15 +112,30 @@
   const contactSendButton = document.querySelector("[data-contact-send]");
   const contactCancelButton = document.querySelector("[data-contact-cancel]");
   const adminDebugEnabledCheckbox = document.querySelector("[data-admin-debug-enabled]");
+  const userTypeHandleInput = document.querySelector("[data-user-type-handle]");
+  const userTypeStatus = document.querySelector("[data-user-type-status]");
+  const userTypeOptionsWrap = document.querySelector("[data-user-type-options-wrap]");
+  const userTypeChoiceButtons = Array.from(document.querySelectorAll("[data-user-type-choice-button]"));
+  const userTypeSaveButton = document.querySelector("[data-user-type-save]");
+  const userTypeClearButton = document.querySelector("[data-user-type-clear]");
   const adminStorageInfo = document.querySelector("[data-admin-storage-info]");
-    const adminStatus = document.querySelector("[data-admin-status]");
-    const adminClearDebugLogButton = document.querySelector("[data-admin-clear-debug-log]");
-      const adminListUsersButton = document.querySelector("[data-admin-list-users]");
-    const adminUserList = document.querySelector("[data-admin-user-list]");
-    const adminAnalyzeDiskButton = document.querySelector("[data-admin-analyze-disk]");
-      const adminDiskUsage = document.querySelector("[data-admin-disk-usage]");
+  const adminStatus = document.querySelector("[data-admin-status]");
+  const adminClearDebugLogButton = document.querySelector("[data-admin-clear-debug-log]");
+  const adminListUsersButton = document.querySelector("[data-admin-list-users]");
+  const adminAnalyzeDiskButton = document.querySelector("[data-admin-analyze-disk]");
+  const adminDiskUsage = document.querySelector("[data-admin-disk-usage]");
+  const adminUserListSummary = document.querySelector("[data-admin-user-list-summary]");
+  const adminUserListStatus = document.querySelector("[data-admin-user-list-status]");
+  const adminUserListOutput = document.querySelector("[data-admin-user-list-output]");
   const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
   const retryLocationButtons = Array.from(document.querySelectorAll("[data-retry-location]"));
+  const remoteViewerForm = document.querySelector("[data-remote-viewer-form]");
+  const remoteViewerOwnInput = document.querySelector("[data-remote-viewer-own]");
+  const remoteViewerPartnerInput = document.querySelector("[data-remote-viewer-partner]");
+  const remoteViewerGoButton = document.querySelector("[data-remote-viewer-go]");
+  const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
+  const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
+  const remoteViewerDisplayDeviceCheckbox = document.querySelector("[data-remote-viewer-display-device]");
   let deferredInstallPrompt = null;
   let activeNameManagerOverlay = null;
   let activeToolsRole = "";
@@ -126,14 +157,20 @@
   let activeReportResize = null;
   let activeReportViewPan = null;
   let launcherAdminSecret = "";
+  let resolvedMainUserType = "standard";
+  let pendingUserTypeLookupToken = 0;
+  let currentUserTypeAdminHandle = "";
+  let userTypeLookupTimer = null;
+  let pendingUserTypeSelection = "standard";
   let launcherAdminState = {
       debug_enabled: false,
       storage: null,
       debug_log: null,
       user_trial_summary: null,
+      user_trial_summary_meta: null,
       disk_usage_analysis: null
     };
-  const launcherBuildVersion = "20260616am";
+  const launcherBuildVersion = "20260617n";
   const defaultThemeColor = "#3160b0";
   const difficultyStopPercents = [17, 50, 84];
   const difficultyCopy = {
@@ -198,7 +235,8 @@
         launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
-        difficultyLevel: ["1", "2", "3"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1"
+        difficultyLevel: ["1", "2", "3"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
+        remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice
       };
     } catch (error) {
       return {
@@ -211,7 +249,8 @@
         launcherProfiles: {},
         identifierStatusMap: {},
         themeColor: defaultThemeColor,
-        difficultyLevel: "1"
+        difficultyLevel: "1",
+        remoteViewerDisplayDevice: false
       };
     }
   }
@@ -450,6 +489,52 @@
 
     const data = await parseApiResponse(response, `Identifier lookup failed with status ${response.status}`);
     return data?.identifier_status || null;
+  }
+
+  async function fetchUserType(identifier) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_user_type",
+        identifier: cleanIdentifier
+      })
+    });
+
+    const data = await parseApiResponse(response, `User-type lookup failed with status ${response.status}`);
+    if (data?.identifier_status) {
+      rememberIdentifierStatus(cleanIdentifier, data.identifier_status);
+    }
+    return String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
+  }
+
+  async function assignUserType(userHandle, userType) {
+    const cleanHandle = String(userHandle || "").trim();
+    if (!isValidUniqueHandle(cleanHandle)) {
+      throw new Error("User handle is invalid.");
+    }
+    const normalizedType = String(userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "set_user_type",
+        user_handle: cleanHandle,
+        user_type: normalizedType,
+        secret_candidate: launcherAdminSecret
+      })
+    });
+
+    const data = await parseApiResponse(response, `User-type update failed with status ${response.status}`);
+    if (data?.identifier_status) {
+      rememberIdentifierStatus(cleanHandle, data.identifier_status);
+    }
+    return String(data?.user_type || normalizedType).trim().toLowerCase() === "pro" ? "pro" : "standard";
   }
 
   async function claimUniqueHandle(currentIdentifier, proposedHandle) {
@@ -1063,6 +1148,37 @@
     return response.json();
   }
 
+  function snapshotUserTypeAdminState() {
+    return {
+      input_value: String(userTypeHandleInput?.value || "").trim(),
+      current_handle: currentUserTypeAdminHandle,
+      pending_selection: pendingUserTypeSelection,
+      status_text: String(userTypeStatus?.textContent || "").trim(),
+      wrap_hidden: !!userTypeOptionsWrap?.hidden,
+      save_hidden: !!userTypeSaveButton?.hidden,
+      choices: userTypeChoiceButtons.map((button) => ({
+        value: String(button.dataset.userTypeChoiceButton || ""),
+        selected: button.classList.contains("is-selected"),
+        aria_pressed: button.getAttribute("aria-pressed"),
+        disabled: !!button.disabled
+      }))
+    };
+  }
+
+  function logUserTypeAdminDebug(label, extraDetails = []) {
+    if (!launcherAdminSecret) {
+      return;
+    }
+    const details = Array.isArray(extraDetails) ? extraDetails.slice(0) : [];
+    details.unshift(snapshotUserTypeAdminState());
+    void launcherAdminApi("log_debug", {
+      label: `user_type_admin:${label}`,
+      details
+    }).catch(() => {
+      // Ignore debug logging failures.
+    });
+  }
+
   function readRoleFormValues(role) {
     const form = document.querySelector(`[data-role-form="${role}"]`);
     if (!form) {
@@ -1217,6 +1333,7 @@
         await syncRoleIdentifierPresentation(activeHandleRole, form);
       }
       void persistLauncherProfileForForm(activeHandleRole, form);
+      void refreshMainUserType();
       closeHandleOverlay();
     } catch (error) {
       if (handleStatus) {
@@ -1240,6 +1357,136 @@
       label.dataset.placeholder = nextText;
       label.textContent = nextText;
       label.classList.remove("role-card-level-hidden");
+    }
+  }
+
+  function renderMainTitle(userType = resolvedMainUserType) {
+    if (!beginnerMainTitle) {
+      return;
+    }
+    resolvedMainUserType = userType === "pro" ? "pro" : "standard";
+    beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "Telepathy Beginner PRO" : "Telepathy Beginner";
+    if (proHeroFrame) {
+      proHeroFrame.hidden = resolvedMainUserType !== "pro";
+    }
+    renderLauncherIntroCopy();
+    renderProOnlyLauncherCards();
+  }
+
+  function renderLauncherIntroCopy() {
+    if (launcherSubtitle) {
+      launcherSubtitle.textContent = resolvedMainUserType === "pro"
+        ? "A training app for psi sensitivity development."
+        : "A sender-receiver training app for telepathic development.";
+    }
+    if (launcherCopy) {
+      launcherCopy.textContent = resolvedMainUserType === "pro"
+        ? "Choose whether you will be sender, receiver, or remote viewer for this session."
+        : "Choose whether you will act as the sender or the receiver for this session.";
+    }
+  }
+
+  function renderProOnlyLauncherCards() {
+    const showProCards = resolvedMainUserType === "pro";
+    proOnlyRoleCards.forEach((card) => {
+      card.hidden = !showProCards;
+      if (!showProCards) {
+        card.classList.remove("active", "role-card-hidden");
+        const toggle = card.querySelector(".role-card-toggle");
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", "false");
+        }
+      }
+    });
+    if (!showProCards) {
+      rolePanels?.classList.remove("role-panels-single");
+    }
+  }
+
+  function getFallbackOwnIdentifierForRemoteViewer() {
+    const state = readLauncherState();
+    return uniqueNames([
+      String(state.ownNames?.["remote-viewer"] || "").trim(),
+      String(state.ownNames?.sender || "").trim(),
+      String(state.ownNames?.receiver || "").trim(),
+      readRoleFormValues("sender").ownName,
+      readRoleFormValues("receiver").ownName,
+      readRoleSettings("sender").ownName,
+      readRoleSettings("receiver").ownName
+    ])[0] || "";
+  }
+
+  function renderRemoteViewerCard() {
+    if (!remoteViewerOwnInput || !remoteViewerPartnerInput) {
+      return;
+    }
+    const state = readLauncherState();
+    remoteViewerOwnInput.value = String(state.ownNames?.["remote-viewer"] || "").trim() || getFallbackOwnIdentifierForRemoteViewer();
+    remoteViewerPartnerInput.value = String(state.currentPartners?.["remote-viewer"] || "").trim() || readRoleSettings("remote-viewer").partnerName || "";
+    if (remoteViewerDisplayDeviceCheckbox) {
+      remoteViewerDisplayDeviceCheckbox.checked = !!state.remoteViewerDisplayDevice;
+    }
+    renderRemoteViewerLabels(!!state.remoteViewerDisplayDevice);
+  }
+
+  function persistRemoteViewerCardState() {
+    if (!remoteViewerOwnInput || !remoteViewerPartnerInput) {
+      return;
+    }
+    const latest = readLauncherState();
+    latest.ownNames = latest.ownNames || {};
+    latest.currentPartners = latest.currentPartners || {};
+    latest.ownNames["remote-viewer"] = String(remoteViewerOwnInput.value || "").trim();
+    latest.currentPartners["remote-viewer"] = String(remoteViewerPartnerInput.value || "").trim();
+    latest.remoteViewerDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
+    writeLauncherState(latest);
+  }
+
+  function renderRemoteViewerLabels(isDisplayDevice = false) {
+    if (remoteViewerOwnLabel) {
+      remoteViewerOwnLabel.textContent = isDisplayDevice ? "This unique device handle:" : "Your unique handle:";
+    }
+    if (remoteViewerPartnerLabel) {
+      remoteViewerPartnerLabel.textContent = isDisplayDevice ? "Unique remote viewer handle:" : "Unique Remote Device handle:";
+    }
+  }
+
+  async function refreshMainUserType() {
+    const lookupToken = ++pendingUserTypeLookupToken;
+    const candidates = uniqueNames([
+      readRoleFormValues("sender").ownName,
+      readRoleFormValues("receiver").ownName,
+      readRoleSettings("sender").ownName,
+      readRoleSettings("receiver").ownName,
+      String(readLauncherState().ownNames?.sender || "").trim(),
+      String(readLauncherState().ownNames?.receiver || "").trim()
+    ]);
+
+    if (!candidates.length) {
+      renderMainTitle("standard");
+      return;
+    }
+
+    for (const identifier of candidates) {
+      if (!identifier) {
+        continue;
+      }
+      try {
+        const userType = await fetchUserType(identifier);
+        if (lookupToken !== pendingUserTypeLookupToken) {
+          return;
+        }
+        if (userType === "pro") {
+          renderMainTitle("pro");
+          return;
+        }
+      } catch (error) {
+        // Ignore lookup errors and continue trying other identifiers.
+      }
+    }
+
+    if (lookupToken === pendingUserTypeLookupToken) {
+      renderMainTitle("standard");
     }
   }
 
@@ -3662,8 +3909,14 @@
     const role = card.dataset.roleCard;
     const state = readLauncherState();
     const form = card.querySelector("[data-role-form]");
+    if (!form) {
+      return;
+    }
     const ownInput = form.querySelector('input[name="ownName"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
+    if (!ownInput || !partnerInput) {
+      return;
+    }
     const select = form.querySelector('select[name="partnerHistory"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const roleSettings = readRoleSettings(role);
@@ -3679,7 +3932,7 @@
       partnerUsesHandle: isValidUniqueHandle(savedPartner) && !isValidEmailAddress(savedPartner)
     });
 
-    select.addEventListener("change", () => {
+    select?.addEventListener("change", () => {
       if (select.value) {
         partnerInput.value = select.value;
         window.setTimeout(() => {
@@ -3694,8 +3947,8 @@
     const refreshPartnerChoices = () => {
       void refreshPartnerAliasHistory(role, form);
     };
-    select.addEventListener("focus", refreshPartnerChoices);
-    select.addEventListener("pointerdown", refreshPartnerChoices);
+    select?.addEventListener("focus", refreshPartnerChoices);
+    select?.addEventListener("pointerdown", refreshPartnerChoices);
 
     manageButton?.addEventListener("click", () => {
       void refreshPartnerAliasHistory(role, form).finally(() => {
@@ -3714,10 +3967,12 @@
     ownInput.addEventListener("change", () => {
       void hydrateLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
+      void refreshMainUserType();
     });
     ownInput.addEventListener("blur", () => {
       void hydrateLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
+      void refreshMainUserType();
     });
 
     partnerInput.addEventListener("input", () => {
@@ -3803,6 +4058,7 @@
       void hydrateLauncherProfileForForm(role, form);
     }
     void syncRoleIdentifierPresentation(role, form);
+    void refreshMainUserType();
   }
 
   function activateCard(card) {
@@ -3879,6 +4135,8 @@
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3889,6 +4147,8 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
   }
 
@@ -3898,6 +4158,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3908,6 +4170,8 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -3920,6 +4184,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3929,6 +4195,8 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
     void renderReportDefinition();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -3941,6 +4209,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3949,6 +4219,7 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void renderPerformanceReport(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3963,6 +4234,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -3970,6 +4243,7 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void renderPerformanceVisualization(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3985,12 +4259,15 @@
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void renderResultsAnalysis(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4017,6 +4294,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -4025,6 +4304,7 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -4036,6 +4316,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -4046,6 +4328,7 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -4057,6 +4340,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -4064,6 +4349,7 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     resetContactView({ clearMessage: false, clearStatus: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4076,6 +4362,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -4341,6 +4629,7 @@
     launcherView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void syncDifficultyFromPair();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4382,6 +4671,8 @@
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -4390,6 +4681,8 @@
     difficultyView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderSettingsView();
     void syncDifficultyFromPair().then(() => {
@@ -4432,24 +4725,49 @@
       }
 
       const userWidth = Math.max("User".length, ...items.map((row) => String(row?.user_name || "").length));
+      const statusWidth = Math.max("Status".length, ...items.map((row) => String(row?.status || "").length));
       const roleWidth = Math.max("Role".length, ...items.map((row) => String(row?.role || "").length));
       const partnerWidth = Math.max("Partner".length, ...items.map((row) => String(row?.partner_name || "").length));
+      const firstDateWidth = Math.max("First Date".length, ...items.map((row) => String(row?.first_date || "").length));
       const lastDateWidth = Math.max("Last Date".length, ...items.map((row) => String(row?.last_date || "").length));
       const countWidth = Math.max("Trials".length, ...items.map((row) => String(row?.trial_count ?? "").length));
       const pad = (value, width) => String(value ?? "").padEnd(width, " ");
 
       const lines = [
-        `${pad("User", userWidth)}  ${pad("Role", roleWidth)}  ${pad("Partner", partnerWidth)}  ${pad("Last Date", lastDateWidth)}  ${String("Trials").padStart(countWidth, " ")}`,
-        `${"-".repeat(userWidth)}  ${"-".repeat(roleWidth)}  ${"-".repeat(partnerWidth)}  ${"-".repeat(lastDateWidth)}  ${"-".repeat(countWidth)}`
+        `${pad("User", userWidth)}  ${pad("Status", statusWidth)}  ${pad("Role", roleWidth)}  ${pad("Partner", partnerWidth)}  ${pad("First Date", firstDateWidth)}  ${pad("Last Date", lastDateWidth)}  ${String("Trials").padStart(countWidth, " ")}`,
+        `${"-".repeat(userWidth)}  ${"-".repeat(statusWidth)}  ${"-".repeat(roleWidth)}  ${"-".repeat(partnerWidth)}  ${"-".repeat(firstDateWidth)}  ${"-".repeat(lastDateWidth)}  ${"-".repeat(countWidth)}`
       ];
 
       items.forEach((row) => {
         lines.push(
-          `${pad(row?.user_name || "", userWidth)}  ${pad(row?.role || "", roleWidth)}  ${pad(row?.partner_name || "", partnerWidth)}  ${pad(row?.last_date || "", lastDateWidth)}  ${String(row?.trial_count ?? 0).padStart(countWidth, " ")}`
+          `${pad(row?.user_name || "", userWidth)}  ${pad(row?.status || "", statusWidth)}  ${pad(row?.role || "", roleWidth)}  ${pad(row?.partner_name || "", partnerWidth)}  ${pad(row?.first_date || "", firstDateWidth)}  ${pad(row?.last_date || "", lastDateWidth)}  ${String(row?.trial_count ?? 0).padStart(countWidth, " ")}`
         );
       });
 
       return lines.join("\n");
+    }
+
+    function renderAdminUserListView() {
+      const userSummary = Array.isArray(launcherAdminState.user_trial_summary) ? launcherAdminState.user_trial_summary : [];
+      const meta = launcherAdminState.user_trial_summary_meta || {};
+      const reportDate = String(meta.report_date || "").trim() || "unknown";
+      const totalUsers = Number.isFinite(Number(meta.total_users)) ? Number(meta.total_users) : userSummary.length;
+
+      if (adminUserListSummary) {
+        adminUserListSummary.textContent = `Report Date: ${reportDate}   Total Users: ${totalUsers}`;
+      }
+      if (adminUserListStatus) {
+        adminUserListStatus.textContent = userSummary.length ? "" : "No server-side user summary is available right now.";
+      }
+      if (adminUserListOutput) {
+        if (userSummary.length) {
+          adminUserListOutput.hidden = false;
+          adminUserListOutput.textContent = formatAdminUserTrialSummary(userSummary);
+        } else {
+          adminUserListOutput.hidden = true;
+          adminUserListOutput.textContent = "";
+        }
+      }
     }
 
     function renderAdminView() {
@@ -4466,16 +4784,6 @@
         adminStorageInfo.innerHTML = storage?.available
         ? `Storage path: ${escapeHtml(storage.path)}<br>Free space: ${escapeHtml(storage.free_formatted)}&nbsp;&nbsp;&nbsp;Used space: ${escapeHtml(storage.used_formatted)}&nbsp;&nbsp;&nbsp;Total space: ${escapeHtml(storage.total_formatted)}`
           : "Storage information is not available right now.";
-      }
-      if (adminUserList) {
-        const userSummary = launcherAdminState.user_trial_summary;
-        if (Array.isArray(userSummary) && userSummary.length) {
-          adminUserList.hidden = false;
-          adminUserList.textContent = formatAdminUserTrialSummary(userSummary);
-        } else {
-          adminUserList.hidden = true;
-          adminUserList.textContent = "";
-        }
       }
       if (adminDiskUsage) {
         const diskUsage = launcherAdminState.disk_usage_analysis;
@@ -4506,12 +4814,16 @@
           storage: data?.storage || null,
           debug_log: data?.debug_log || null,
           user_trial_summary: data?.user_trial_summary || null,
+          user_trial_summary_meta: data?.user_trial_summary_meta || null,
           disk_usage_analysis: data?.disk_usage_analysis || null
         };
       if (adminStatus) {
         adminStatus.textContent = "Admin access active.";
       }
       renderAdminView();
+      if (!adminUserListView?.classList.contains("beginner-view-hidden")) {
+        renderAdminUserListView();
+      }
     } catch (error) {
       if (adminStatus) {
         adminStatus.textContent = "Unable to load admin data right now.";
@@ -4521,10 +4833,13 @@
 
   function showAdminView() {
     adminView?.classList.remove("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -4535,6 +4850,300 @@
     closeReportPairMenu();
     renderAdminView();
     void refreshAdminView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showAdminUserListView() {
+    adminUserListView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderAdminUserListView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function renderUserTypeAdminState(options = {}) {
+    const statusText = String(options.statusText || "").trim();
+    const showChoices = !!options.showChoices;
+    const currentType = String(options.currentType || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    pendingUserTypeSelection = currentType;
+
+    if (userTypeStatus) {
+      userTypeStatus.textContent = statusText;
+    }
+    if (userTypeOptionsWrap) {
+      userTypeOptionsWrap.classList.toggle("beginner-view-hidden", !showChoices);
+      userTypeOptionsWrap.hidden = !showChoices;
+    }
+    if (userTypeSaveButton) {
+      userTypeSaveButton.classList.toggle("beginner-view-hidden", !showChoices);
+      userTypeSaveButton.hidden = !showChoices;
+    }
+    userTypeChoiceButtons.forEach((button) => {
+      const isSelected = String(button.dataset.userTypeChoiceButton || "").trim().toLowerCase() === currentType;
+      button.classList.toggle("is-selected", isSelected);
+      button.setAttribute("aria-pressed", isSelected ? "true" : "false");
+    });
+    logUserTypeAdminDebug("render_state", [{
+      requested_show_choices: showChoices,
+      requested_current_type: currentType,
+      requested_status_text: statusText
+    }]);
+  }
+
+  function applyPendingUserTypeSelection(selection) {
+    const normalizedSelection = String(selection || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    pendingUserTypeSelection = normalizedSelection;
+    userTypeChoiceButtons.forEach((button) => {
+      const isSelected = String(button.dataset.userTypeChoiceButton || "").trim().toLowerCase() === normalizedSelection;
+      button.classList.toggle("is-selected", isSelected);
+      button.setAttribute("aria-pressed", isSelected ? "true" : "false");
+    });
+    logUserTypeAdminDebug("apply_selection", [{ selected_value: normalizedSelection }]);
+  }
+
+  function resetUserTypeAdminView() {
+    if (userTypeLookupTimer) {
+      clearTimeout(userTypeLookupTimer);
+      userTypeLookupTimer = null;
+    }
+    pendingUserTypeLookupToken += 1;
+    currentUserTypeAdminHandle = "";
+    if (userTypeHandleInput) {
+      userTypeHandleInput.value = "";
+    }
+    renderUserTypeAdminState({
+      statusText: "",
+      showChoices: false,
+      currentType: "standard"
+    });
+    logUserTypeAdminDebug("reset_view");
+  }
+
+  async function lookupUserTypeForAdminHandle() {
+    if (userTypeLookupTimer) {
+      clearTimeout(userTypeLookupTimer);
+      userTypeLookupTimer = null;
+    }
+    const handle = String(userTypeHandleInput?.value || "").trim();
+    const lookupToken = pendingUserTypeLookupToken + 1;
+    pendingUserTypeLookupToken = lookupToken;
+    currentUserTypeAdminHandle = "";
+
+    if (!handle) {
+      renderUserTypeAdminState({
+        statusText: "",
+        showChoices: false,
+        currentType: "standard"
+      });
+      logUserTypeAdminDebug("lookup_empty");
+      return;
+    }
+
+    if (!isValidUniqueHandle(handle)) {
+      renderUserTypeAdminState({
+        statusText: "That handle is invalid.",
+        showChoices: false,
+        currentType: "standard"
+      });
+      logUserTypeAdminDebug("lookup_invalid_handle", [{ attempted_handle: handle }]);
+      return;
+    }
+
+    logUserTypeAdminDebug("lookup_start", [{ attempted_handle: handle, lookup_token: lookupToken }]);
+    renderUserTypeAdminState({
+      statusText: "Checking user handle...",
+      showChoices: false,
+      currentType: "standard"
+    });
+
+    try {
+      const response = await fetch("api.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "get_user_type",
+          identifier: handle
+        })
+      });
+
+      const data = await parseApiResponse(response, `User-type lookup failed with status ${response.status}`);
+      if (lookupToken !== pendingUserTypeLookupToken) {
+        logUserTypeAdminDebug("lookup_stale_ignored", [{ attempted_handle: handle, lookup_token: lookupToken }]);
+        return;
+      }
+      const identifierStatus = data?.identifier_status || null;
+      if (!identifierStatus?.is_handle) {
+        renderUserTypeAdminState({
+          statusText: "That user handle does not exist.",
+          showChoices: false,
+          currentType: "standard"
+        });
+        logUserTypeAdminDebug("lookup_not_handle", [{ attempted_handle: handle }]);
+        return;
+      }
+
+      currentUserTypeAdminHandle = handle;
+      renderUserTypeAdminState({
+        statusText: `Current status for ${handle}: ${String(data?.user_type || "standard").toUpperCase()}`,
+        showChoices: true,
+        currentType: String(data?.user_type || "standard")
+      });
+      logUserTypeAdminDebug("lookup_success", [{
+        attempted_handle: handle,
+        returned_user_type: String(data?.user_type || "standard"),
+        identifier_status: {
+          input_identifier: identifierStatus?.input_identifier || "",
+          preferred_identifier: identifierStatus?.preferred_identifier || "",
+          preferred_handle: identifierStatus?.preferred_handle || "",
+          owner_identifier: identifierStatus?.owner_identifier || "",
+          uses_handle: !!identifierStatus?.uses_handle,
+          is_handle: !!identifierStatus?.is_handle
+        }
+      }]);
+    } catch (error) {
+      if (lookupToken !== pendingUserTypeLookupToken) {
+        logUserTypeAdminDebug("lookup_error_stale_ignored", [{ attempted_handle: handle, lookup_token: lookupToken }]);
+        return;
+      }
+      renderUserTypeAdminState({
+        statusText: error instanceof Error ? error.message : "Unable to look up that user right now.",
+        showChoices: false,
+        currentType: "standard"
+      });
+      logUserTypeAdminDebug("lookup_error", [{
+        attempted_handle: handle,
+        error: error instanceof Error ? error.message : String(error)
+      }]);
+    }
+  }
+
+  function scheduleUserTypeLookup(delayMs = 350) {
+    if (userTypeLookupTimer) {
+      clearTimeout(userTypeLookupTimer);
+      userTypeLookupTimer = null;
+    }
+
+    const handle = String(userTypeHandleInput?.value || "").trim();
+    currentUserTypeAdminHandle = "";
+
+    if (!handle) {
+      renderUserTypeAdminState({
+        statusText: "",
+        showChoices: false,
+        currentType: "standard"
+      });
+      logUserTypeAdminDebug("schedule_empty");
+      return;
+    }
+
+    if (!isValidUniqueHandle(handle)) {
+      renderUserTypeAdminState({
+        statusText: "That handle is invalid.",
+        showChoices: false,
+        currentType: "standard"
+      });
+      logUserTypeAdminDebug("schedule_invalid_handle", [{ attempted_handle: handle }]);
+      return;
+    }
+
+    renderUserTypeAdminState({
+      statusText: "",
+      showChoices: false,
+      currentType: "standard"
+    });
+    logUserTypeAdminDebug("schedule_lookup", [{ attempted_handle: handle, delay_ms: delayMs }]);
+
+    userTypeLookupTimer = setTimeout(() => {
+      userTypeLookupTimer = null;
+      void lookupUserTypeForAdminHandle();
+    }, delayMs);
+  }
+
+  async function saveUserTypeAssignment() {
+    const selectedType = pendingUserTypeSelection || "standard";
+    const handle = currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "").trim();
+    logUserTypeAdminDebug("save_start", [{ attempted_handle: handle, selected_type: selectedType }]);
+
+    if (!isValidUniqueHandle(handle)) {
+      renderUserTypeAdminState({
+        statusText: "That handle is invalid.",
+        showChoices: false,
+        currentType: "standard"
+      });
+      logUserTypeAdminDebug("save_invalid_handle", [{ attempted_handle: handle, selected_type: selectedType }]);
+      return;
+    }
+
+    renderUserTypeAdminState({
+      statusText: "Saving user status...",
+      showChoices: true,
+      currentType: selectedType
+    });
+
+    try {
+      const savedType = await assignUserType(handle, selectedType);
+      currentUserTypeAdminHandle = handle;
+      renderUserTypeAdminState({
+        statusText: `Current status for ${handle}: ${savedType.toUpperCase()}.`,
+        showChoices: true,
+        currentType: savedType
+      });
+      logUserTypeAdminDebug("save_success", [{ attempted_handle: handle, saved_type: savedType }]);
+      void refreshMainUserType();
+    } catch (error) {
+      renderUserTypeAdminState({
+        statusText: error instanceof Error ? error.message : "Unable to save that user status right now.",
+        showChoices: true,
+        currentType: selectedType
+      });
+      logUserTypeAdminDebug("save_error", [{
+        attempted_handle: handle,
+        selected_type: selectedType,
+        error: error instanceof Error ? error.message : String(error)
+      }]);
+    }
+  }
+
+  function showUserTypeAdminView() {
+    clearReportPanelOffset();
+    userTypeAdminView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    resetUserTypeAdminView();
+    adminUserListView?.classList.add("beginner-view-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -4565,10 +5174,12 @@
 
   function showColorSchemeView() {
     colorSchemeView?.classList.remove("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -4576,8 +5187,55 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderColorSchemeView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showGoProView() {
+    clearReportPanelOffset();
+    goProView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showOtherSettingsView() {
+    clearReportPanelOffset();
+    otherSettingsView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -4916,10 +5574,26 @@
       requestDeviceLocationIfNeeded(true);
     });
   });
+  renderRemoteViewerCard();
+  remoteViewerOwnInput?.addEventListener("input", persistRemoteViewerCardState);
+  remoteViewerOwnInput?.addEventListener("change", persistRemoteViewerCardState);
+  remoteViewerPartnerInput?.addEventListener("input", persistRemoteViewerCardState);
+  remoteViewerPartnerInput?.addEventListener("change", persistRemoteViewerCardState);
+  remoteViewerDisplayDeviceCheckbox?.addEventListener("change", () => {
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox.checked);
+    persistRemoteViewerCardState();
+  });
+  remoteViewerGoButton?.addEventListener("click", () => {
+    persistRemoteViewerCardState();
+    window.alert("Remote Viewer runtime flow is not wired up yet.");
+  });
 
   openOptionsButton?.addEventListener("click", showOptionsView);
   closeOptionsButton?.addEventListener("click", showLauncherView);
   openHelpButton?.addEventListener("click", showHelpView);
+  openGoProButton?.addEventListener("click", showGoProView);
+  openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
+  openUserTypeAdminButton?.addEventListener("click", showUserTypeAdminView);
   openHandleButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -4934,6 +5608,10 @@
   });
   openColorSchemeButton?.addEventListener("click", showColorSchemeView);
   closeHelpButton?.addEventListener("click", showOptionsView);
+  closeGoProButton?.addEventListener("click", showOptionsView);
+  closeOtherSettingsButton?.addEventListener("click", showOptionsView);
+  closeUserTypeAdminButton?.addEventListener("click", showAdminView);
+  closeAdminUserListButton?.addEventListener("click", showAdminView);
   closeHandleButton?.addEventListener("click", closeHandleOverlay);
   submitHandleButton?.addEventListener("click", () => {
     void submitUniqueHandle();
@@ -4947,7 +5625,36 @@
       }
     }
   });
-  closeColorSchemeButton?.addEventListener("click", showOptionsView);
+  closeColorSchemeButton?.addEventListener("click", showOtherSettingsView);
+  userTypeHandleInput?.addEventListener("input", () => {
+    pendingUserTypeLookupToken += 1;
+    logUserTypeAdminDebug("input_event", [{ next_value: String(userTypeHandleInput?.value || "").trim() }]);
+    scheduleUserTypeLookup(350);
+  });
+  userTypeHandleInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      pendingUserTypeLookupToken += 1;
+      logUserTypeAdminDebug("enter_key_lookup", [{ current_value: String(userTypeHandleInput?.value || "").trim() }]);
+      void lookupUserTypeForAdminHandle();
+    }
+  });
+  userTypeSaveButton?.addEventListener("click", () => {
+    logUserTypeAdminDebug("save_button_click");
+    void saveUserTypeAssignment();
+  });
+  userTypeChoiceButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const value = String(button.dataset.userTypeChoiceButton || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+      logUserTypeAdminDebug("choice_button_click", [{ clicked_value: value }]);
+      applyPendingUserTypeSelection(value);
+    });
+  });
+  userTypeClearButton?.addEventListener("click", () => {
+    logUserTypeAdminDebug("clear_click");
+    resetUserTypeAdminView();
+    userTypeHandleInput?.focus();
+  });
   openContactButton?.addEventListener("click", showContactView);
   closeContactButton?.addEventListener("click", showHelpView);
   openAboutButton?.addEventListener("click", showAboutView);
@@ -5159,18 +5866,21 @@
         launcherAdminState.user_trial_summary = Array.isArray(data?.user_trial_summary)
           ? data.user_trial_summary
           : [];
+        launcherAdminState.user_trial_summary_meta = data?.user_trial_summary_meta || null;
         if (adminStatus) {
           const count = launcherAdminState.user_trial_summary.length;
           adminStatus.textContent = `User summary updated. ${count} line item${count === 1 ? "" : "s"} found.`;
         }
         renderAdminView();
+        renderAdminUserListView();
+        showAdminUserListView();
       } catch (error) {
         if (adminStatus) {
           adminStatus.textContent = "Unable to build the user summary right now.";
         }
       }
     });
-    adminAnalyzeDiskButton?.addEventListener("click", async () => {
+  adminAnalyzeDiskButton?.addEventListener("click", async () => {
       if (!launcherAdminSecret) {
         return;
     }
@@ -5192,6 +5902,8 @@
       }
     }
   });
+  renderMainTitle("standard");
+  void refreshMainUserType();
   reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
   reportResizeHandles.forEach((handle) => {
     handle.addEventListener("pointerdown", beginReportResize);
@@ -5264,6 +5976,16 @@
     });
   }
 })();
+
+
+
+
+
+
+
+
+
+
 
 
 

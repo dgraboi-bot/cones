@@ -36,7 +36,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v4";
-  const runtimeBuildVersion = "20260616am";
+  const runtimeBuildVersion = "20260617n";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -4235,6 +4235,16 @@
 
   void boot();
 })();
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -718,6 +718,56 @@ function get_identifier_status(array $state, string $identifier): array
     ];
 }
 
+function normalize_user_type($value): string
+{
+    $type = strtolower(trim((string) $value));
+    return $type === 'pro' ? 'pro' : 'standard';
+}
+
+function get_user_type_for_identifier(array $state, string $identifier): string
+{
+    $status = get_identifier_status($state, $identifier);
+    $preferred = trim((string) ($status['preferred_identifier'] ?? $identifier));
+    $lookupKey = get_canonical_identifier_key($state, $preferred);
+    $fallbackKey = normalize_identifier_for_lookup($preferred);
+    $userTypes = is_array($state['user_types'] ?? null) ? $state['user_types'] : [];
+
+    if ($lookupKey !== '' && isset($userTypes[$lookupKey])) {
+        return normalize_user_type($userTypes[$lookupKey]);
+    }
+    if ($fallbackKey !== '' && isset($userTypes[$fallbackKey])) {
+        return normalize_user_type($userTypes[$fallbackKey]);
+    }
+
+    return 'standard';
+}
+
+function assign_user_type_for_handle(array &$state, string $handle, string $userType, int $nowMs): array
+{
+    $cleanHandle = trim($handle);
+    if (!is_valid_handle_identifier($cleanHandle)) {
+        throw new RuntimeException('User handle is invalid.');
+    }
+
+    if (!is_array($state['user_types'] ?? null)) {
+        $state['user_types'] = [];
+    }
+
+    $canonicalKey = get_canonical_identifier_key($state, $cleanHandle);
+    if ($canonicalKey === '' || !isset($state['unique_handles'][$canonicalKey])) {
+        throw new RuntimeException('That user handle does not exist.');
+    }
+
+    $normalizedType = normalize_user_type($userType);
+    $state['user_types'][$canonicalKey] = $normalizedType;
+
+    return [
+        'handle' => $cleanHandle,
+        'user_type' => $normalizedType,
+        'updated_ms' => $nowMs
+    ];
+}
+
 function claim_unique_handle(array &$state, string $ownerIdentifier, string $proposedHandle, int $nowMs): array
 {
     $handle = trim($proposedHandle);
@@ -1287,7 +1337,23 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
     return $filtered;
 }
 
-function build_user_trial_summary(array $records): array
+function format_trial_summary_date_label(string $utcTime, string $localDate): string
+{
+    $utc = trim($utcTime);
+    if ($utc !== '') {
+        try {
+            $date = new DateTimeImmutable($utc);
+            return $date->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i') . ' UTC';
+        } catch (Exception $exception) {
+            // Fall back to the stored local date if the UTC value is malformed.
+        }
+    }
+
+    $local = trim($localDate);
+    return $local !== '' ? $local : 'unknown';
+}
+
+function build_user_trial_summary(array $state, array $records): array
 {
     $summary = [];
 
@@ -1296,50 +1362,77 @@ function build_user_trial_summary(array $records): array
             continue;
         }
 
-        $receiverName = trim((string) ($record['rx name'] ?? ''));
-        $senderName = trim((string) ($record['tx name'] ?? ''));
+        $receiverRaw = trim((string) ($record['rx name'] ?? ''));
+        $senderRaw = trim((string) ($record['tx name'] ?? ''));
         $localDate = trim((string) ($record['local date'] ?? ''));
         $utcTime = trim((string) ($record['utc time'] ?? ''));
-        $lastSortKey = $utcTime !== '' ? $utcTime : $localDate;
+        $sortKey = $utcTime !== '' ? $utcTime : $localDate;
+        $dateLabel = format_trial_summary_date_label($utcTime, $localDate);
+
+        $receiverStatus = $receiverRaw !== '' ? get_identifier_status($state, $receiverRaw) : [];
+        $senderStatus = $senderRaw !== '' ? get_identifier_status($state, $senderRaw) : [];
+        $receiverName = trim((string) ($receiverStatus['preferred_identifier'] ?? $receiverRaw));
+        $senderName = trim((string) ($senderStatus['preferred_identifier'] ?? $senderRaw));
+        $receiverCanonical = get_canonical_identifier_key($state, $receiverName);
+        $senderCanonical = get_canonical_identifier_key($state, $senderName);
 
         if ($receiverName !== '' && $senderName !== '') {
-            $receiverKey = strtolower($receiverName) . '|receiver|' . strtolower($senderName);
+            $receiverKey = ($receiverCanonical !== '' ? $receiverCanonical : strtolower($receiverName))
+                . '|receiver|'
+                . ($senderCanonical !== '' ? $senderCanonical : strtolower($senderName));
             if (!isset($summary[$receiverKey])) {
                 $summary[$receiverKey] = [
                     'user_name' => $receiverName,
                     'role' => 'receiver',
                     'partner_name' => $senderName,
+                    'status' => get_user_type_for_identifier($state, $receiverName) === 'pro' ? 'PRO' : 'STD',
                     'trial_count' => 0,
-                    'last_date' => $localDate,
-                    '_last_sort_key' => $lastSortKey
+                    'first_date' => $dateLabel,
+                    'last_date' => $dateLabel,
+                    '_first_sort_key' => $sortKey,
+                    '_last_sort_key' => $sortKey
                 ];
             }
             $summary[$receiverKey]['trial_count']++;
-            if ($lastSortKey !== '' && strcmp($lastSortKey, (string) ($summary[$receiverKey]['_last_sort_key'] ?? '')) >= 0) {
-                $summary[$receiverKey]['_last_sort_key'] = $lastSortKey;
-                $summary[$receiverKey]['last_date'] = $localDate;
+            if ($sortKey !== '' && ((string) ($summary[$receiverKey]['_first_sort_key'] ?? '') === '' || strcmp($sortKey, (string) ($summary[$receiverKey]['_first_sort_key'] ?? '')) <= 0)) {
+                $summary[$receiverKey]['_first_sort_key'] = $sortKey;
+                $summary[$receiverKey]['first_date'] = $dateLabel;
+            }
+            if ($sortKey !== '' && strcmp($sortKey, (string) ($summary[$receiverKey]['_last_sort_key'] ?? '')) >= 0) {
+                $summary[$receiverKey]['_last_sort_key'] = $sortKey;
+                $summary[$receiverKey]['last_date'] = $dateLabel;
             }
 
-            $senderKey = strtolower($senderName) . '|sender|' . strtolower($receiverName);
+            $senderKey = ($senderCanonical !== '' ? $senderCanonical : strtolower($senderName))
+                . '|sender|'
+                . ($receiverCanonical !== '' ? $receiverCanonical : strtolower($receiverName));
             if (!isset($summary[$senderKey])) {
                 $summary[$senderKey] = [
                     'user_name' => $senderName,
                     'role' => 'sender',
                     'partner_name' => $receiverName,
+                    'status' => get_user_type_for_identifier($state, $senderName) === 'pro' ? 'PRO' : 'STD',
                     'trial_count' => 0,
-                    'last_date' => $localDate,
-                    '_last_sort_key' => $lastSortKey
+                    'first_date' => $dateLabel,
+                    'last_date' => $dateLabel,
+                    '_first_sort_key' => $sortKey,
+                    '_last_sort_key' => $sortKey
                 ];
             }
             $summary[$senderKey]['trial_count']++;
-            if ($lastSortKey !== '' && strcmp($lastSortKey, (string) ($summary[$senderKey]['_last_sort_key'] ?? '')) >= 0) {
-                $summary[$senderKey]['_last_sort_key'] = $lastSortKey;
-                $summary[$senderKey]['last_date'] = $localDate;
+            if ($sortKey !== '' && ((string) ($summary[$senderKey]['_first_sort_key'] ?? '') === '' || strcmp($sortKey, (string) ($summary[$senderKey]['_first_sort_key'] ?? '')) <= 0)) {
+                $summary[$senderKey]['_first_sort_key'] = $sortKey;
+                $summary[$senderKey]['first_date'] = $dateLabel;
+            }
+            if ($sortKey !== '' && strcmp($sortKey, (string) ($summary[$senderKey]['_last_sort_key'] ?? '')) >= 0) {
+                $summary[$senderKey]['_last_sort_key'] = $sortKey;
+                $summary[$senderKey]['last_date'] = $dateLabel;
             }
         }
     }
 
     $rows = array_map(static function (array $row): array {
+        unset($row['_first_sort_key']);
         unset($row['_last_sort_key']);
         return $row;
     }, array_values($summary));
@@ -1722,6 +1815,7 @@ if (!is_array($state)) {
         'launcher_profiles' => [],
         'unique_handles' => [],
         'identifier_aliases' => [],
+        'user_types' => [],
         'debug_enabled' => false
     ];
 }
@@ -1737,6 +1831,7 @@ if (!array_key_exists('sessions', $state)) {
         'launcher_profiles' => [],
         'unique_handles' => [],
         'identifier_aliases' => [],
+        'user_types' => [],
         'debug_enabled' => false
     ];
 }
@@ -1758,6 +1853,9 @@ if (!is_array($state['unique_handles'] ?? null)) {
 }
 if (!is_array($state['identifier_aliases'] ?? null)) {
     $state['identifier_aliases'] = [];
+}
+if (!is_array($state['user_types'] ?? null)) {
+    $state['user_types'] = [];
 }
 if (!array_key_exists('debug_enabled', $state)) {
     $state['debug_enabled'] = false;
@@ -2075,6 +2173,7 @@ if ($action === 'get_launcher_profile') {
     $response = [
         'ok' => true,
         'launcher_profile' => get_launcher_profile_entry($state, $launcherRole, $ownEmail),
+        'user_type' => get_user_type_for_identifier($state, $ownEmail),
         'server_now_ms' => $nowMs
     ];
 
@@ -2099,6 +2198,7 @@ if ($action === 'get_identifier_status') {
     $response = [
         'ok' => true,
         'identifier_status' => get_identifier_status($state, $identifier),
+        'user_type' => get_user_type_for_identifier($state, $identifier),
         'server_now_ms' => $nowMs
     ];
 
@@ -2126,6 +2226,60 @@ if ($action === 'claim_unique_handle') {
         'ok' => true,
         'unique_handle' => $claimResult,
         'identifier_status' => get_identifier_status($state, (string) ($claimResult['handle'] ?? '')),
+        'user_type' => get_user_type_for_identifier($state, (string) ($claimResult['handle'] ?? '')),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_user_type') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier_status' => get_identifier_status($state, $identifier),
+        'user_type' => get_user_type_for_identifier($state, $identifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'set_user_type' && $isAdmin) {
+    try {
+        require_allowed_keys($input, ['action', 'user_handle', 'user_type', 'secret_candidate'], 'request');
+        $userHandle = trim((string) ($input['user_handle'] ?? ''));
+        $userType = normalize_user_type($input['user_type'] ?? 'standard');
+        $assignment = assign_user_type_for_handle($state, $userHandle, $userType, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'user_assignment' => $assignment,
+        'identifier_status' => get_identifier_status($state, $userHandle),
+        'user_type' => get_user_type_for_identifier($state, $userHandle),
         'server_now_ms' => $nowMs
     ];
 
@@ -2152,6 +2306,7 @@ if ($action === 'save_launcher_profile') {
     $response = [
         'ok' => true,
         'launcher_profile' => $storedProfile,
+        'user_type' => get_user_type_for_identifier($state, $ownEmail),
         'server_now_ms' => $nowMs
     ];
 
@@ -2555,7 +2710,11 @@ if ($action === 'analyze_disk_usage' && $isAdmin) {
 }
 
 if ($action === 'list_all_users' && $isAdmin) {
-    $response['user_trial_summary'] = build_user_trial_summary(read_all_pair_trial_records($pairsDir));
+    $response['user_trial_summary'] = build_user_trial_summary($state, read_all_pair_trial_records($pairsDir));
+    $response['user_trial_summary_meta'] = [
+        'report_date' => gmdate('Y-m-d H:i') . ' UTC',
+        'total_users' => count($response['user_trial_summary'])
+    ];
 }
 
 if ($action === 'start_round') {
