@@ -24,6 +24,7 @@ $completedRoundLifetimeMs = 300000;
 $timeoutNoticeLifetimeMs = 1800000;
 $timeoutExitLifetimeMs = 60000;
 $sessionRetentionMs = 3600000;
+$debugLogMaxBytes = 307200;
 $safetyLogMaxBytes = 51200;
 $nowMs = (int) floor(microtime(true) * 1000);
 
@@ -631,13 +632,13 @@ function validate_email_identifier_string($value, string $field, bool $required 
 
 function normalize_handle_lookup(string $value): string
 {
-    return strtolower(trim((string) $value));
+    return strtolower(trim(preg_replace('/\s+/', ' ', (string) $value) ?? ''));
 }
 
 function is_valid_handle_identifier(string $value): bool
 {
-    $text = trim($value);
-    return (bool) preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._-]{1,22}[A-Za-z0-9])?$/', $text);
+    $text = trim(preg_replace('/\s+/', ' ', $value) ?? '');
+    return (bool) preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._ -]{1,22}[A-Za-z0-9])?$/', $text);
 }
 
 function validate_participant_identifier_string($value, string $field, bool $required = true): string
@@ -659,7 +660,7 @@ function validate_participant_identifier_string($value, string $field, bool $req
     }
 
     if (is_valid_handle_identifier($text)) {
-        return $text;
+        return trim(preg_replace('/\s+/', ' ', $text) ?? '');
     }
 
     throw new RuntimeException($field . ' must be a valid email address or unique handle.');
@@ -673,16 +674,32 @@ function get_canonical_identifier_key(array $state, string $identifier): string
     }
 
     $uniqueHandles = is_array($state['unique_handles'] ?? null) ? $state['unique_handles'] : [];
-    if (isset($uniqueHandles[$lookup]) && is_array($uniqueHandles[$lookup])) {
-        return $lookup;
-    }
-
     $identifierAliases = is_array($state['identifier_aliases'] ?? null) ? $state['identifier_aliases'] : [];
-    if (isset($identifierAliases[$lookup]) && is_string($identifierAliases[$lookup]) && $identifierAliases[$lookup] !== '') {
-        return normalize_handle_lookup($identifierAliases[$lookup]);
+    $current = $lookup;
+    $visited = [];
+
+    for ($step = 0; $step < 8; $step++) {
+        if ($current === '' || isset($visited[$current])) {
+            break;
+        }
+        $visited[$current] = true;
+
+        if (isset($identifierAliases[$current]) && is_string($identifierAliases[$current]) && $identifierAliases[$current] !== '') {
+            $aliased = normalize_handle_lookup($identifierAliases[$current]);
+            if ($aliased !== '' && $aliased !== $current) {
+                $current = $aliased;
+                continue;
+            }
+        }
+
+        if (isset($uniqueHandles[$current]) && is_array($uniqueHandles[$current])) {
+            return $current;
+        }
+
+        break;
     }
 
-    return $lookup;
+    return $current;
 }
 
 function get_identifier_status(array $state, string $identifier): array
@@ -770,9 +787,9 @@ function assign_user_type_for_handle(array &$state, string $handle, string $user
 
 function claim_unique_handle(array &$state, string $ownerIdentifier, string $proposedHandle, int $nowMs): array
 {
-    $handle = trim($proposedHandle);
+    $handle = trim(preg_replace('/\s+/', ' ', $proposedHandle) ?? '');
     if (!is_valid_handle_identifier($handle)) {
-        throw new RuntimeException('Unique handle must be 3 to 24 characters long and use only letters, numbers, period, underscore, or hyphen.');
+        throw new RuntimeException('Unique handle must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.');
     }
 
     if (!is_array($state['unique_handles'] ?? null)) {
@@ -783,7 +800,7 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
     }
 
     $handleKey = normalize_handle_lookup($handle);
-    $owner = trim($ownerIdentifier) !== '' ? trim($ownerIdentifier) : $handle;
+    $owner = trim(preg_replace('/\s+/', ' ', $ownerIdentifier) ?? '') !== '' ? trim(preg_replace('/\s+/', ' ', $ownerIdentifier) ?? '') : $handle;
     $ownerKey = normalize_identifier_for_lookup($owner);
     if ($ownerKey === '') {
         $ownerKey = $handleKey;
@@ -798,24 +815,94 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
         }
     }
 
+    $existingAlias = $state['identifier_aliases'][$handleKey] ?? null;
+    if (is_string($existingAlias) && normalize_handle_lookup($existingAlias) !== $handleKey) {
+        throw new RuntimeException('That unique handle was used previously and is no longer available.');
+    }
+
+    $previousIdentifiers = [];
+    $currentIdentifier = trim(preg_replace('/\s+/', ' ', $ownerIdentifier) ?? '');
+    if ($currentIdentifier !== '') {
+        $previousIdentifiers[] = $currentIdentifier;
+    }
+    if ($owner !== '' && normalize_identifier_for_lookup($owner) !== normalize_identifier_for_lookup($currentIdentifier)) {
+        $previousIdentifiers[] = $owner;
+    }
+
+    $oldHandleKey = '';
     if (isset($state['identifier_aliases'][$ownerKey]) && is_string($state['identifier_aliases'][$ownerKey])) {
         $oldHandleKey = normalize_handle_lookup($state['identifier_aliases'][$ownerKey]);
-        if ($oldHandleKey !== '' && $oldHandleKey !== $handleKey) {
+        if ($oldHandleKey !== '' && $oldHandleKey !== $handleKey && isset($state['unique_handles'][$oldHandleKey]) && is_array($state['unique_handles'][$oldHandleKey])) {
+            $previousIdentifiers[] = trim((string) ($state['unique_handles'][$oldHandleKey]['handle'] ?? ''));
             unset($state['unique_handles'][$oldHandleKey]);
         }
     }
 
+    if (!is_array($state['launcher_profiles'] ?? null)) {
+        $state['launcher_profiles'] = [];
+    }
+    if (!is_array($state['user_types'] ?? null)) {
+        $state['user_types'] = [];
+    }
+
     $state['identifier_aliases'][$ownerKey] = $handle;
+    foreach ($previousIdentifiers as $previousIdentifier) {
+        $previousLookup = normalize_identifier_for_lookup($previousIdentifier);
+        if ($previousLookup !== '' && $previousLookup !== $handleKey) {
+            $state['identifier_aliases'][$previousLookup] = $handle;
+        }
+    }
     $state['unique_handles'][$handleKey] = [
         'handle' => $handle,
         'owner_identifier' => $owner,
         'updated_ms' => $nowMs
     ];
 
+    foreach ($previousIdentifiers as $previousIdentifier) {
+        $previousLookup = normalize_identifier_for_lookup($previousIdentifier);
+        if ($previousLookup === '' || $previousLookup === $handleKey) {
+            continue;
+        }
+
+        if (isset($state['launcher_profiles'][$previousLookup]) && is_array($state['launcher_profiles'][$previousLookup])) {
+            $targetProfiles = is_array($state['launcher_profiles'][$handleKey] ?? null) ? $state['launcher_profiles'][$handleKey] : [];
+            foreach ($state['launcher_profiles'][$previousLookup] as $role => $profile) {
+                if (!is_array($profile)) {
+                    continue;
+                }
+                $existingProfile = is_array($targetProfiles[$role] ?? null) ? $targetProfiles[$role] : [];
+                $targetProfiles[$role] = [
+                    'own_email' => trim((string) ($existingProfile['own_email'] ?? $profile['own_email'] ?? $handle)),
+                    'preferred_handle' => $handle,
+                    'current_partner' => trim((string) ($existingProfile['current_partner'] ?? $profile['current_partner'] ?? '')),
+                    'partner_history' => array_values(array_unique(array_filter(array_merge(
+                        is_array($existingProfile['partner_history'] ?? null) ? $existingProfile['partner_history'] : [],
+                        is_array($profile['partner_history'] ?? null) ? $profile['partner_history'] : []
+                    ), static fn($value): bool => trim((string) $value) !== ''))),
+                    'deleted_partners' => array_values(array_unique(array_filter(array_merge(
+                        is_array($existingProfile['deleted_partners'] ?? null) ? $existingProfile['deleted_partners'] : [],
+                        is_array($profile['deleted_partners'] ?? null) ? $profile['deleted_partners'] : []
+                    ), static fn($value): bool => trim((string) $value) !== ''))),
+                    'updated_ms' => max((int) ($existingProfile['updated_ms'] ?? 0), (int) ($profile['updated_ms'] ?? 0), $nowMs)
+                ];
+            }
+            $state['launcher_profiles'][$handleKey] = $targetProfiles;
+            unset($state['launcher_profiles'][$previousLookup]);
+        }
+
+        if (isset($state['user_types'][$previousLookup]) && !isset($state['user_types'][$handleKey])) {
+            $state['user_types'][$handleKey] = $state['user_types'][$previousLookup];
+        }
+    }
+
     return [
         'accepted' => true,
         'handle' => $handle,
         'owner_identifier' => $owner,
+        'previous_identifiers' => array_values(array_unique(array_filter(array_map(
+            static fn($value): string => trim((string) $value),
+            $previousIdentifiers
+        ), static fn(string $value): bool => $value !== '' && normalize_identifier_for_lookup($value) !== $handleKey))),
         'message' => 'Unique handle accepted.'
     ];
 }
@@ -823,8 +910,8 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
 function validate_role_value($value, string $field = 'launcher_role'): string
 {
     $role = trim((string) $value);
-    if (!in_array($role, ['sender', 'receiver'], true)) {
-        throw new RuntimeException($field . ' must be sender or receiver.');
+    if (!in_array($role, ['sender', 'receiver', 'remote-viewer'], true)) {
+        throw new RuntimeException($field . ' must be sender, receiver, or remote-viewer.');
     }
     return $role;
 }
@@ -1037,7 +1124,9 @@ function validate_analysis_payload($value): array
 function get_launcher_profile_entry(array $state, string $role, string $ownEmail): array
 {
     $default = default_launcher_profile_state();
-    $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
+    $normalizedRole = $role === 'sender'
+        ? 'sender'
+        : ($role === 'remote-viewer' ? 'remote-viewer' : 'receiver');
     $lookupKey = get_canonical_identifier_key($state, $ownEmail);
     if ($lookupKey === '') {
         return $default;
@@ -1064,7 +1153,9 @@ function get_launcher_profile_entry(array $state, string $role, string $ownEmail
 
 function set_launcher_profile_entry(array &$state, string $role, string $ownEmail, array $entry, int $nowMs): array
 {
-    $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
+    $normalizedRole = $role === 'sender'
+        ? 'sender'
+        : ($role === 'remote-viewer' ? 'remote-viewer' : 'receiver');
     $lookupKey = get_canonical_identifier_key($state, $ownEmail);
     if ($lookupKey === '') {
         return default_launcher_profile_state();
@@ -1246,6 +1337,148 @@ function save_pair_analysis_record(string $pairsDir, array $pairInfo, array $ana
         'path' => $path,
         'message' => 'Analysis JSON saved.'
     ];
+}
+
+function write_pair_trial_records(string $path, array $records): void
+{
+    $headers = get_trial_csv_headers();
+    if (!$records) {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+        return;
+    }
+
+    $headerLine = implode(',', array_map('csv_cell', $headers)) . PHP_EOL;
+    $body = '';
+    foreach ($records as $record) {
+        $body .= implode(',', array_map(
+            static fn(string $header): string => csv_cell((string) ($record[$header] ?? '')),
+            $headers
+        )) . PHP_EOL;
+    }
+    file_put_contents($path, $headerLine . $body, LOCK_EX);
+}
+
+function merge_pair_trial_records(array $existingRecords, array $incomingRecords): array
+{
+    $merged = [];
+    foreach (array_merge($existingRecords, $incomingRecords) as $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $roundId = trim((string) ($record['round_id'] ?? ''));
+        $key = $roundId !== '' ? $roundId : md5(json_encode($record));
+        $merged[$key] = $record;
+    }
+
+    $result = array_values($merged);
+    usort($result, static function (array $left, array $right): int {
+        $leftUtc = trim((string) ($left['utc time'] ?? ''));
+        $rightUtc = trim((string) ($right['utc time'] ?? ''));
+        return strcmp($leftUtc, $rightUtc);
+    });
+    return $result;
+}
+
+function migrate_identifier_history_in_pair_storage(string $pairsDir, string $previousIdentifier, string $nextIdentifier): void
+{
+    $prior = normalize_identifier_for_lookup($previousIdentifier);
+    $next = trim(preg_replace('/\s+/', ' ', $nextIdentifier) ?? '');
+    if ($prior === '' || $next === '' || $prior === normalize_identifier_for_lookup($next)) {
+        return;
+    }
+
+    $csvPaths = glob($pairsDir . DIRECTORY_SEPARATOR . '*.csv') ?: [];
+    foreach ($csvPaths as $path) {
+        if (!is_file($path)) {
+            continue;
+        }
+
+        $records = read_csv_records($path);
+        $changed = false;
+        foreach ($records as &$record) {
+            if (normalize_identifier_for_lookup((string) ($record['rx name'] ?? '')) === $prior) {
+                $record['rx name'] = $next;
+                $changed = true;
+            }
+            if (normalize_identifier_for_lookup((string) ($record['tx name'] ?? '')) === $prior) {
+                $record['tx name'] = $next;
+                $changed = true;
+            }
+        }
+        unset($record);
+
+        if (!$changed) {
+            continue;
+        }
+
+        if (is_file($path)) {
+            @unlink($path);
+        }
+
+        $groupedByTarget = [];
+        foreach ($records as $record) {
+            $targetPath = get_pair_trial_csv_path(
+                $pairsDir,
+                trim((string) ($record['rx name'] ?? '')),
+                trim((string) ($record['tx name'] ?? ''))
+            );
+            $groupedByTarget[$targetPath][] = $record;
+        }
+
+        foreach ($groupedByTarget as $targetPath => $targetRecords) {
+            $existingTargetRecords = is_file($targetPath) ? read_csv_records($targetPath) : [];
+            write_pair_trial_records($targetPath, merge_pair_trial_records($existingTargetRecords, $targetRecords));
+        }
+    }
+
+    $analysisPaths = glob($pairsDir . DIRECTORY_SEPARATOR . '*.analysis.json') ?: [];
+    foreach ($analysisPaths as $path) {
+        if (!is_file($path)) {
+            continue;
+        }
+
+        $raw = @file_get_contents($path);
+        $analysis = $raw !== false ? json_decode($raw, true) : null;
+        if (!is_array($analysis)) {
+            continue;
+        }
+
+        $pair = is_array($analysis['pair'] ?? null) ? $analysis['pair'] : [];
+        $receiverName = trim((string) ($pair['receiver_name'] ?? ''));
+        $senderName = trim((string) ($pair['sender_name'] ?? ''));
+        $changed = false;
+
+        if (normalize_identifier_for_lookup($receiverName) === $prior) {
+            $receiverName = $next;
+            $analysis['pair']['receiver_name'] = $next;
+            $changed = true;
+        }
+        if (normalize_identifier_for_lookup($senderName) === $prior) {
+            $senderName = $next;
+            $analysis['pair']['sender_name'] = $next;
+            $changed = true;
+        }
+
+        if (!$changed) {
+            continue;
+        }
+
+        $targetPath = get_pair_analysis_json_path(
+            $pairsDir,
+            $receiverName,
+            $senderName,
+            trim((string) ($pair['session_code'] ?? ''))
+        );
+        $payload = json_encode($analysis, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($payload !== false) {
+            file_put_contents($targetPath, $payload . PHP_EOL, LOCK_EX);
+        }
+        if ($path !== $targetPath && is_file($path)) {
+            @unlink($path);
+        }
+    }
 }
 
 function read_all_pair_trial_records(string $pairsDir): array
@@ -1468,6 +1701,16 @@ function clear_pair_trial_records(string $pairsDir): void
     }
 }
 
+function clear_pair_analysis_records(string $pairsDir): void
+{
+    $paths = glob($pairsDir . DIRECTORY_SEPARATOR . '*.analysis.json') ?: [];
+    foreach ($paths as $path) {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+}
+
 function default_sync_metrics(): array
 {
     return [
@@ -1657,7 +1900,14 @@ function append_debug_log(string $debugLogFile, bool $debugEnabled, string $mess
         return;
     }
 
-    file_put_contents($debugLogFile, $message . PHP_EOL, FILE_APPEND);
+    $directory = dirname($debugLogFile);
+    if ($directory !== '' && !is_dir($directory)) {
+        @mkdir($directory, 0770, true);
+    }
+    if (!file_exists($debugLogFile)) {
+        @touch($debugLogFile);
+    }
+    append_capped_log($debugLogFile, $message, (int) ($GLOBALS['debugLogMaxBytes'] ?? 307200));
 }
 
 function append_forced_trace(string $safetyLogFile, int $safetyLogMaxBytes, array $payload): void
@@ -1747,7 +1997,7 @@ function is_admin_secret_candidate($value, string $adminSecret): bool
 function normalize_difficulty_level($value): string
 {
     $level = trim((string) $value);
-    return in_array($level, ['1', '2', '3'], true) ? $level : '1';
+    return in_array($level, ['1', '2', '3', '4', '5'], true) ? $level : '1';
 }
 
 function build_email_test_attachment(array $input)
@@ -2150,6 +2400,27 @@ if ($action === 'heartbeat' && is_array($session['abort_notice'] ?? null)) {
 if ($action === 'set_debug_enabled' && $isAdmin) {
     $state['debug_enabled'] = !empty($input['enabled']);
     $debugEnabled = (bool) $state['debug_enabled'];
+    $debugMessage = json_encode([
+        'time_ms' => $nowMs,
+        'session_code' => $sessionCode,
+        'role' => $role,
+        'label' => 'set_debug_enabled',
+        'details' => [
+            'enabled' => $debugEnabled,
+            'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : ''
+        ]
+    ], JSON_UNESCAPED_SLASHES);
+    append_debug_log($debugLogFile, $debugEnabled, $debugMessage);
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
+        'time_ms' => $nowMs,
+        'session_code' => $sessionCode,
+        'role' => $role,
+        'label' => 'set_debug_enabled',
+        'details' => [
+            'enabled' => $debugEnabled,
+            'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : ''
+        ]
+    ]);
 }
 
 if ($action === 'check_admin_secret') {
@@ -2218,6 +2489,9 @@ if ($action === 'claim_unique_handle') {
         $currentIdentifier = validate_participant_identifier_string($input['current_identifier'] ?? '', 'current_identifier', false);
         $proposedHandle = trim((string) ($input['proposed_handle'] ?? ''));
         $claimResult = claim_unique_handle($state, $currentIdentifier, $proposedHandle, $nowMs);
+        foreach (($claimResult['previous_identifiers'] ?? []) as $previousIdentifier) {
+            migrate_identifier_history_in_pair_storage($pairsDir, (string) $previousIdentifier, (string) ($claimResult['handle'] ?? ''));
+        }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -2421,6 +2695,18 @@ if ($action === 'clear_debug_log' && $isAdmin) {
     file_put_contents($safetyLogFile, '');
 }
 
+if ($action === 'fresh_start' && $isAdmin) {
+    $state['sessions'] = [];
+    $state['session_registry'] = [];
+    $state['pair_difficulties'] = [];
+    $state['launcher_profiles'] = [];
+    $state['unique_handles'] = [];
+    $state['identifier_aliases'] = [];
+    $state['user_types'] = [];
+    clear_pair_trial_records($pairsDir);
+    clear_pair_analysis_records($pairsDir);
+}
+
 if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
     $state['pair_difficulties'][$sessionCode]['difficulty_level'] = normalize_difficulty_level(
         $action === 'set_pair_difficulty'
@@ -2428,6 +2714,34 @@ if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
             : ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1')
     );
     $state['pair_difficulties'][$sessionCode]['updated_ms'] = $nowMs;
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
+        'time_ms' => $nowMs,
+        'session_code' => $sessionCode,
+        'role' => $role,
+        'label' => 'pair_difficulty_request',
+        'details' => [
+            'action' => $action,
+            'difficulty_level' => $state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1',
+            'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : '',
+            'trace_context' => isset($input['trace_context']) && is_array($input['trace_context']) ? $input['trace_context'] : []
+        ]
+    ]);
+    append_debug_log(
+        $debugLogFile,
+        $debugEnabled,
+        json_encode([
+            'time_ms' => $nowMs,
+            'session_code' => $sessionCode,
+            'role' => $role,
+            'label' => 'pair_difficulty_request',
+            'details' => [
+                'action' => $action,
+                'difficulty_level' => $state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1',
+                'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : '',
+                'trace_context' => isset($input['trace_context']) && is_array($input['trace_context']) ? $input['trace_context'] : []
+            ]
+        ], JSON_UNESCAPED_SLASHES)
+    );
 }
 
 if ($roleConflict === null && $action === 'append_trial_record') {
@@ -2752,7 +3066,7 @@ if ($action === 'report_csv_data') {
 
     $message = '';
     if (!$allRecords) {
-        $message = 'No server-side trial records were found.';
+        $message = 'No trial records were found.';
     } elseif (!$filteredRecords) {
         $message = $includeAll
             ? 'No server-side trial records are available right now.'

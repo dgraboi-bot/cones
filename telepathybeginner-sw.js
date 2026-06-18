@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260617n";
-const APP_VERSION = "20260617n";
+const CACHE_NAME = "telepathybeginner-v20260618ba";
+const APP_VERSION = "20260618ba";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,

@@ -34,6 +34,7 @@
   const openGoProButton = document.querySelector("[data-open-go-pro]");
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
+  const cancelProButton = document.querySelector("[data-cancel-pro]");
   const openUserTypeAdminButton = document.querySelector("[data-open-user-type-admin]");
   const closeHelpButton = document.querySelector("[data-close-help]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
@@ -61,9 +62,7 @@
   const reportVisualizeButton = document.querySelector("[data-report-visualize]");
   const reportAnalyzeButton = document.querySelector("[data-report-analyze]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
-  const openDifficultyButton = document.querySelector("[data-open-difficulty]");
   const openAdvancedButton = document.querySelector("[data-open-advanced]");
-  const closeDifficultyButton = document.querySelector("[data-close-difficulty]");
   const closeSettingsButton = document.querySelector("[data-close-settings]");
   const closeAdminButton = document.querySelector("[data-close-admin]");
   const installAppButton = document.querySelector("[data-install-app]");
@@ -84,17 +83,18 @@
   const reportPanel = document.querySelector(".report-panel");
   const reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
   const handleOverlay = document.querySelector("[data-handle-overlay]");
+  const handleDialog = handleOverlay?.querySelector(".handle-dialog") || null;
   const handleInput = document.querySelector("[data-handle-input]");
   const handleStatus = document.querySelector("[data-handle-status]");
   const submitHandleButton = document.querySelector("[data-submit-handle]");
   const closeHandleButton = document.querySelector("[data-close-handle]");
   const openHandleButtons = Array.from(document.querySelectorAll("[data-open-handle-control]"));
-  const difficultySlider = document.querySelector("[data-difficulty-slider]");
-  const difficultyFill = document.querySelector("[data-difficulty-fill]");
-  const difficultyThumb = document.querySelector("[data-difficulty-thumb]");
-  const difficultyCurrent = document.querySelector("[data-difficulty-current]");
-  const difficultyDescription = document.querySelector("[data-difficulty-description]");
   const difficultyLabels = Array.from(document.querySelectorAll("[data-pair-difficulty-label]"));
+  const roleSkillTaglines = Array.from(document.querySelectorAll("[data-role-skill-tagline]"));
+  const inlineContactButtons = Array.from(document.querySelectorAll("[data-open-contact-inline]"));
+  const difficultyStacks = Array.from(document.querySelectorAll("[data-role-difficulty-stack]"));
+  const difficultyBumpButtons = Array.from(document.querySelectorAll("[data-role-difficulty-bump]"));
+  const difficultyStatusBlocks = Array.from(document.querySelectorAll("[data-role-difficulty-status]"));
   const settingsCurrentPair = document.querySelector("[data-settings-current-pair]");
   const settingsSecondChoiceCheckbox = document.querySelector("[data-settings-second-choice]");
   const settingsImportFilenameInput = document.querySelector("[data-settings-import-filename]");
@@ -123,6 +123,7 @@
   const adminClearDebugLogButton = document.querySelector("[data-admin-clear-debug-log]");
   const adminListUsersButton = document.querySelector("[data-admin-list-users]");
   const adminAnalyzeDiskButton = document.querySelector("[data-admin-analyze-disk]");
+  const adminFreshStartButton = document.querySelector("[data-admin-fresh-start]");
   const adminDiskUsage = document.querySelector("[data-admin-disk-usage]");
   const adminUserListSummary = document.querySelector("[data-admin-user-list-summary]");
   const adminUserListStatus = document.querySelector("[data-admin-user-list-status]");
@@ -138,16 +139,15 @@
   const remoteViewerDisplayDeviceCheckbox = document.querySelector("[data-remote-viewer-display-device]");
   let deferredInstallPrompt = null;
   let activeNameManagerOverlay = null;
+  let activeNameManagerReturnRole = "";
   let activeToolsRole = "";
   let locationRequestInFlight = false;
   let lastLocationAttemptAt = 0;
-  let difficultyDragging = false;
-  let difficultyDragPointerId = null;
-  let difficultyDragLockedLevel = null;
-  let difficultyDragReleasedLevel = null;
   let activePairDifficultyCode = "";
   let activeHandleRole = "";
-  let difficultyLoadToken = 0;
+  let activeLauncherRole = "";
+  let handleOverlayReturnRole = "";
+  let activeDifficultyContext = null;
   let difficultyLabelToken = 0;
   let selectedReportPair = null;
   let availableReportPairs = [];
@@ -158,6 +158,7 @@
   let activeReportViewPan = null;
   let launcherAdminSecret = "";
   let resolvedMainUserType = "standard";
+  let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
   let currentUserTypeAdminHandle = "";
   let userTypeLookupTimer = null;
@@ -170,14 +171,21 @@
       user_trial_summary_meta: null,
       disk_usage_analysis: null
     };
-  const launcherBuildVersion = "20260617n";
+  const launcherBuildVersion = "20260618ba";
   const defaultThemeColor = "#3160b0";
-  const difficultyStopPercents = [17, 50, 84];
-  const difficultyCopy = {
-    1: 'In Level 1, you simply have to decide whether the sender is sending one cone or "many" (three) cones.',
-    2: 'In Level 2 when there are "many" (three) cones, try also to specify whether they are arranged horizontally, vertically, or diagonally running up or down from left to right.',
-    3: "In Level 3, one, two or three cones are sent. Try to specify exactly how many cones are sent and in what arrangement those cones are sent."
+  const difficultyExplanationCopy = {
+    1: "In Level 1, simply decide whether the sender is sending one cone or three cones.",
+    2: "In Level 2, when there are three cones, try also to specify whether they are arranged horizontally, vertically, or diagonally running up or down from left to right.",
+    3: "In Level 3, one, two or three cones are sent. Try to specify exactly how many cones are sent and in what arrangement those cones are sent.",
+    4: 'In Level 4 you start using images, and you can talk about what you are receiving, which gets transcribed, and/or photograph a picture you have drawn of what you are receiving. AI is used to determine your level of telepathy over trials.',
+    5: 'In Level 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
+  const roleSkillExplanationCopy = {
+    sender: 'The Sender must learn to look intently at an image and "put it out there" strongly. Where exactly is "out there" is a good question.',
+    receiver: 'The Receiver must learn to look at the contents of the Receiver\'s "mind\'s eye" and trust what appears to pop in, and remember what was seen in that relatively short span of time.',
+    "remote-viewer": "The Remote Viewer does not have a partner and must learn how to tune in to what is happening visually in a particular location."
+  };
+  const roleToolsExplanationCopy = "These tools as well as tips can deepen your understanding of telepathy. If you can contribute, please contact ESP GYM. Deeper understanding can strengthen belief and allows taking its operation more for granted.";
   const coneThumbnailSrc = "cone-lowglow-transparent.png";
   const reportLayouts = {
     1: [
@@ -235,7 +243,7 @@
         launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
-        difficultyLevel: ["1", "2", "3"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
+        difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
         remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice
       };
     } catch (error) {
@@ -512,7 +520,7 @@
   }
 
   async function assignUserType(userHandle, userType) {
-    const cleanHandle = String(userHandle || "").trim();
+    const cleanHandle = String(userHandle || "").replace(/\s+/g, " ").trim();
     if (!isValidUniqueHandle(cleanHandle)) {
       throw new Error("User handle is invalid.");
     }
@@ -539,9 +547,9 @@
 
   async function claimUniqueHandle(currentIdentifier, proposedHandle) {
     const cleanCurrentIdentifier = assertValidParticipantIdentifier(currentIdentifier, "current identifier", { required: false });
-    const cleanHandle = String(proposedHandle || "").trim();
+    const cleanHandle = String(proposedHandle || "").replace(/\s+/g, " ").trim();
     if (!isValidUniqueHandle(cleanHandle)) {
-      throw new Error("Unique handle must be 3 to 24 characters long and use only letters, numbers, period, underscore, or hyphen.");
+      throw new Error("Unique handle must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.");
     }
 
     const response = await fetch("api.php", {
@@ -598,8 +606,8 @@
   }
 
   function isValidUniqueHandle(value) {
-    const text = String(value || "").trim();
-    return /^[A-Za-z0-9](?:[A-Za-z0-9._-]{1,22}[A-Za-z0-9])?$/.test(text);
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    return /^[A-Za-z0-9](?:[A-Za-z0-9._ -]{1,22}[A-Za-z0-9])?$/.test(text);
   }
 
   function assertValidEmailIdentifier(value, fieldName, options = {}) {
@@ -632,7 +640,7 @@
     if (!isValidEmailAddress(text) && !isValidUniqueHandle(text)) {
       throw new Error(`${fieldName} must be a valid email address or unique handle.`);
     }
-    return text;
+    return isValidEmailAddress(text) ? text : text.replace(/\s+/g, " ").trim();
   }
 
   function assertValidSessionCode(value, fieldName = "session_code") {
@@ -658,9 +666,16 @@
   }
 
   function sanitizeLauncherProfileForServer(role, ownEmail, profileState) {
-    const launcherRole = role === "sender" ? "sender" : role === "receiver" ? "receiver" : "";
+    const launcherRole =
+      role === "sender"
+        ? "sender"
+        : role === "receiver"
+          ? "receiver"
+          : role === "remote-viewer"
+            ? "remote-viewer"
+            : "";
     if (!launcherRole) {
-      throw new Error("launcher_role must be sender or receiver.");
+      throw new Error("launcher_role must be sender, receiver, or remote-viewer.");
     }
     return {
       launcher_role: launcherRole,
@@ -716,7 +731,13 @@
   }
 
   function partnerRole(role) {
-    return role === "sender" ? "receiver" : "sender";
+    if (role === "sender") {
+      return "receiver";
+    }
+    if (role === "receiver") {
+      return "sender";
+    }
+    return "remote-viewer";
   }
 
   function buildDisplayName(firstName, lastName) {
@@ -724,7 +745,7 @@
   }
 
   function normalizeDifficultyLevel(level) {
-    return ["1", "2", "3"].includes(String(level || "")) ? String(level) : "1";
+    return ["1", "2", "3", "4", "5"].includes(String(level || "")) ? String(level) : "1";
   }
 
   function normalizeIdentifierForStorage(name) {
@@ -806,6 +827,51 @@
     }
 
     return !!status?.is_handle;
+  }
+
+  function isAcceptedUniqueHandleIdentifier(identifier, status = null) {
+    const raw = String(identifier || "").trim();
+    if (!raw || isValidEmailAddress(raw) || !isValidUniqueHandle(raw)) {
+      return false;
+    }
+    const preferredHandle = String(status?.preferred_handle || "").trim();
+    return !!status?.uses_handle && !!preferredHandle;
+  }
+
+  function assertAcceptedLauncherIdentifier(identifier, status, fieldName, options = {}) {
+    const raw = String(identifier || "").trim();
+    const cleanIdentifier = assertValidParticipantIdentifier(raw, fieldName);
+    const allowClaimPrompt = options.allowClaimPrompt !== false;
+    if (isValidEmailAddress(cleanIdentifier)) {
+      return cleanIdentifier;
+    }
+    if (!isValidUniqueHandle(cleanIdentifier)) {
+      throw new Error(`${fieldName} must be a valid email address or accepted unique handle.`);
+    }
+    if (!status) {
+      throw new Error(`Unable to verify whether ${fieldName.toLowerCase()} is an accepted unique handle right now.`);
+    }
+    if (!isAcceptedUniqueHandleIdentifier(cleanIdentifier, status)) {
+      if (allowClaimPrompt) {
+        throw new Error(`${fieldName} is not an accepted unique handle. To use it, first click "See here..." and claim that handle.`);
+      }
+      throw new Error(`${fieldName} is not an accepted unique handle. That person must claim the handle for themselves before you can use it here.`);
+    }
+    return String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier;
+  }
+
+  async function resolveAcceptedPartnerIdentifier(identifier, fieldName) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, fieldName, { required: false });
+    if (!cleanIdentifier) {
+      return "";
+    }
+    if (isValidEmailAddress(cleanIdentifier)) {
+      return cleanIdentifier;
+    }
+
+    const status = await fetchIdentifierStatus(cleanIdentifier);
+    rememberIdentifierStatus(cleanIdentifier, status);
+    return assertAcceptedLauncherIdentifier(cleanIdentifier, status, fieldName, { allowClaimPrompt: false });
   }
 
   function getRoleIdentifierStatusElement(role) {
@@ -992,7 +1058,12 @@
   }
 
   function buildLauncherProfileKey(role, ownIdentifier) {
-    const normalizedRole = role === "sender" ? "sender" : "receiver";
+    const normalizedRole =
+      role === "sender"
+        ? "sender"
+        : role === "remote-viewer"
+          ? "remote-viewer"
+          : "receiver";
     const normalizedIdentifier = normalizeIdentifierForStorage(getPreferredIdentifier(ownIdentifier));
     return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}` : `${normalizedRole}::`;
   }
@@ -1206,22 +1277,19 @@
 
   function applyRoleIdentifierPresentation(role, options = {}) {
     const { ownUsesHandle = false, partnerUsesHandle = false } = options;
-    const { ownLabel, partnerLabel, note } = getRoleLabelElements(role);
+    const { ownLabel, partnerLabel } = getRoleLabelElements(role);
     if (ownLabel) {
-      ownLabel.textContent = ownUsesHandle ? "Your unique handle:" : "Your email:";
+      ownLabel.textContent = "You";
     }
     if (partnerLabel) {
-      if (partnerUsesHandle) {
-        partnerLabel.textContent = role === "sender" ? "Unique Receiver's handle:" : "Unique Sender's handle:";
-      } else {
-        partnerLabel.textContent = role === "sender" ? "Receiver's email:" : "Sender's email:";
-      }
+      partnerLabel.textContent = role === "sender" ? "Receiver" : "Sender";
     }
-    if (note) {
-      note.textContent = ownUsesHandle || partnerUsesHandle
+    setRoleDefaultNoteText(
+      role,
+      ownUsesHandle || partnerUsesHandle
         ? "These unique handles are used to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify both Sender and Receiver unique identifiers carefully."
-        : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.";
-    }
+        : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
+    );
   }
 
   async function syncRoleIdentifierPresentation(role, form, options = {}) {
@@ -1275,10 +1343,11 @@
   }
 
   function openHandleOverlay(role) {
-    activeHandleRole = role === "sender" || role === "receiver" ? role : "";
+    activeHandleRole = role === "sender" || role === "receiver" || role === "remote-viewer" ? role : "";
     if (!activeHandleRole) {
       return;
     }
+    handleOverlayReturnRole = activeHandleRole;
     if (handleStatus) {
       handleStatus.textContent = "";
     }
@@ -1290,10 +1359,18 @@
   }
 
   function closeHandleOverlay() {
+    const returnRole = handleOverlayReturnRole;
     activeHandleRole = "";
+    handleOverlayReturnRole = "";
     handleOverlay?.classList.add("beginner-view-hidden");
     if (handleStatus) {
       handleStatus.textContent = "";
+    }
+    if (returnRole) {
+      const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
+      if (matchingCard) {
+        ensureCardExpanded(matchingCard);
+      }
     }
   }
 
@@ -1302,13 +1379,14 @@
       closeHandleOverlay();
       return;
     }
-    const form = document.querySelector(`[data-role-form="${activeHandleRole}"]`);
-    if (!form) {
+    const isRemoteViewerRole = activeHandleRole === "remote-viewer";
+    const form = isRemoteViewerRole ? null : document.querySelector(`[data-role-form="${activeHandleRole}"]`);
+    if (!isRemoteViewerRole && !form) {
       closeHandleOverlay();
       return;
     }
-    const ownInput = form.querySelector('input[name="ownName"]');
-    const partnerInput = form.querySelector('input[name="partnerName"]');
+    const ownInput = isRemoteViewerRole ? remoteViewerOwnInput : form.querySelector('input[name="ownName"]');
+    const partnerInput = isRemoteViewerRole ? null : form.querySelector('input[name="partnerName"]');
     const currentIdentifier = String(ownInput?.value || "").trim();
     const proposedHandle = String(handleInput?.value || "").trim();
 
@@ -1328,11 +1406,16 @@
       if (ownInput && acceptedHandle) {
         ownInput.value = acceptedHandle;
       }
-      await syncRoleIdentifierPresentation(activeHandleRole, form);
-      if (partnerInput?.value.trim()) {
+      if (isRemoteViewerRole) {
+        persistRemoteViewerCardState();
+        await hydrateRemoteViewerLauncherProfile();
+      } else {
         await syncRoleIdentifierPresentation(activeHandleRole, form);
+        if (partnerInput?.value.trim()) {
+          await syncRoleIdentifierPresentation(activeHandleRole, form);
+        }
+        void persistLauncherProfileForForm(activeHandleRole, form);
       }
-      void persistLauncherProfileForForm(activeHandleRole, form);
       void refreshMainUserType();
       closeHandleOverlay();
     } catch (error) {
@@ -1360,17 +1443,309 @@
     }
   }
 
+  function setRoleDifficultyStatus(role, message = "", options = {}) {
+    const block = difficultyStatusBlocks.find((item) => item.dataset.roleDifficultyStatus === role);
+    if (!block) {
+      return;
+    }
+    const text = String(message || "").trim();
+    block.textContent = text;
+    block.hidden = !text;
+    block.classList.toggle("is-error", !!options.isError && !!text);
+  }
+
+  function getRoleNoteElement(role) {
+    return document.querySelector(`[data-role-identifier-note="${role}"]`);
+  }
+
+  function getRoleNotePanel(role) {
+    return getRoleNoteElement(role)?.closest(".role-email-note") || null;
+  }
+
+  function getRoleNoteContactWrap(role) {
+    return document.querySelector(`[data-role-note-contact-wrap="${role}"]`);
+  }
+
+  function getDifficultyLabelElement(role) {
+    return difficultyLabels.find((item) => item.dataset.pairDifficultyLabel === role) || null;
+  }
+
+  function getDifficultyExplanation(level) {
+    return difficultyExplanationCopy[normalizeDifficultyLevel(level)] || "";
+  }
+
+  function getSkillExplanation(role) {
+    return roleSkillExplanationCopy[String(role || "").trim()] || "";
+  }
+
+  function getHandleExplanation(role) {
+    return "You don't need your email to uniquely identify yourself to the app. You can create your own unique handle. Click here to propose a unique handle for you - one which has not yet already being used.";
+  }
+
+  function showRoleSkillExplanation(role) {
+    const note = getRoleNoteElement(role);
+    const panel = getRoleNotePanel(role);
+    const explanation = getSkillExplanation(role);
+    if (!note || !panel || !explanation) {
+      return;
+    }
+    note.dataset.previewActive = "true";
+    note.textContent = explanation;
+    panel.classList.add("is-level-preview");
+  }
+
+  function showRoleHandleExplanation(role) {
+    const note = getRoleNoteElement(role);
+    const panel = getRoleNotePanel(role);
+    const explanation = getHandleExplanation(role);
+    if (!note || !panel || !explanation) {
+      return;
+    }
+    note.dataset.previewActive = "true";
+    note.textContent = explanation;
+    panel.classList.add("is-level-preview");
+  }
+
+  function setRoleDefaultNoteText(role, text) {
+    const note = getRoleNoteElement(role);
+    if (!note) {
+      return;
+    }
+    const normalizedText = String(text || "").trim();
+    note.dataset.defaultText = normalizedText;
+    if (note.dataset.previewActive !== "true") {
+      note.textContent = normalizedText;
+    }
+    const contactWrap = getRoleNoteContactWrap(role);
+    if (contactWrap && !contactWrap.dataset.previewActive) {
+      contactWrap.hidden = true;
+    }
+  }
+
+  function showRoleLevelExplanation(role, level) {
+    const note = getRoleNoteElement(role);
+    const panel = getRoleNotePanel(role);
+    const explanation = getDifficultyExplanation(level);
+    if (!note || !panel || !explanation) {
+      return;
+    }
+    note.dataset.previewActive = "true";
+    note.textContent = explanation;
+    panel.classList.add("is-level-preview");
+  }
+
+  function clearRoleLevelExplanation(role) {
+    const note = getRoleNoteElement(role);
+    const panel = getRoleNotePanel(role);
+    const contactWrap = getRoleNoteContactWrap(role);
+    if (!note || !panel) {
+      return;
+    }
+    const defaultText = String(note.dataset.defaultText || "").trim();
+    note.dataset.previewActive = "false";
+    note.textContent = defaultText;
+    panel.classList.remove("is-level-preview");
+    if (contactWrap) {
+      contactWrap.hidden = true;
+      contactWrap.dataset.previewActive = "";
+    }
+  }
+
+  function showRoleToolsExplanation(role) {
+    const note = getRoleNoteElement(role);
+    const panel = getRoleNotePanel(role);
+    const contactWrap = getRoleNoteContactWrap(role);
+    if (!note || !panel) {
+      return;
+    }
+    note.dataset.previewActive = "true";
+    note.textContent = roleToolsExplanationCopy;
+    panel.classList.add("is-level-preview");
+    if (contactWrap) {
+      contactWrap.hidden = false;
+      contactWrap.dataset.previewActive = "true";
+    }
+  }
+
+  function previewLevelExplanationFromCurrentLabel(role) {
+    const label = getDifficultyLabelElement(role);
+    const match = String(label?.textContent || "").match(/Level\s+([12345])/i);
+    if (!match) {
+      return;
+    }
+    showRoleLevelExplanation(role, match[1]);
+  }
+
+  function clearDifficultyPreviewTimers(label) {
+    if (!label) {
+      return;
+    }
+    const existingDelay = Number(label.dataset.previewDelayTimer || 0);
+    const existingClear = Number(label.dataset.previewClearTimer || 0);
+    if (existingDelay) {
+      window.clearTimeout(existingDelay);
+    }
+    if (existingClear) {
+      window.clearTimeout(existingClear);
+    }
+    label.dataset.previewDelayTimer = "0";
+    label.dataset.previewClearTimer = "0";
+  }
+
+  function scheduleGuidedLevelExplanation(role, level) {
+    const label = getDifficultyLabelElement(role);
+    if (!label) {
+      return;
+    }
+    clearDifficultyPreviewTimers(label);
+    label.classList.remove("is-guided-preview");
+    label.dataset.previewDelayTimer = String(window.setTimeout(() => {
+      label.classList.add("is-guided-preview");
+      showRoleLevelExplanation(role, level);
+      label.dataset.previewClearTimer = String(window.setTimeout(() => {
+        const stack = label.closest("[data-role-difficulty-stack]");
+        const isStillActive = Boolean(
+          label.matches(":hover, :focus") ||
+          stack?.matches(":hover") ||
+          (stack && stack.contains(document.activeElement))
+        );
+        if (isStillActive) {
+          label.dataset.previewClearTimer = "0";
+          return;
+        }
+        label.classList.remove("is-guided-preview");
+        clearRoleLevelExplanation(role);
+        label.dataset.previewClearTimer = "0";
+      }, 2400));
+      label.dataset.previewDelayTimer = "0";
+    }, 120));
+  }
+
+  function markDifficultyAdjustment(role) {
+    const card = roleCards.find((item) => item.dataset.roleCard === role);
+    if (!card) {
+      return () => {};
+    }
+    card.classList.add("role-card-level-adjusting");
+    let released = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!released) {
+        card.classList.remove("role-card-level-adjusting");
+        released = true;
+      }
+    }, 600);
+    return () => {
+      if (!released) {
+        released = true;
+        window.clearTimeout(timeoutId);
+        card.classList.remove("role-card-level-adjusting");
+      }
+    };
+  }
+
+  function describeDifficultyChange(role, pairContext) {
+    if (!pairContext) {
+      return "";
+    }
+    if (role === "sender") {
+      return `Difficulty for Sender ${pairContext.ownName} and Receiver ${pairContext.partnerName}`;
+    }
+    if (role === "receiver") {
+      return `Difficulty for Sender ${pairContext.partnerName} and Receiver ${pairContext.ownName}`;
+    }
+    const isDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
+    return isDisplayDevice
+      ? `Difficulty for Remote Viewer ${pairContext.partnerName} and Remote Display ${pairContext.ownName}`
+      : `Difficulty for Remote Viewer ${pairContext.ownName} and Remote Display ${pairContext.partnerName}`;
+  }
+
+  function getMaxDifficultyLevel() {
+    return resolvedMainUserType === "pro" ? 5 : 3;
+  }
+
+  function readVisibleRoleIdentifiers(role) {
+    if (role === "remote-viewer") {
+      return {
+        ownName: String(remoteViewerOwnInput?.value || "").trim(),
+        partnerName: String(remoteViewerPartnerInput?.value || "").trim()
+      };
+    }
+    return readRoleFormValues(role);
+  }
+
+  function getActiveOwnIdentifierForUserType() {
+    if (!["sender", "receiver", "remote-viewer"].includes(activeLauncherRole)) {
+      return "";
+    }
+    return String(readVisibleRoleIdentifiers(activeLauncherRole).ownName || "").trim();
+  }
+
+  function getCurrentUserTypeCandidates() {
+    const activeOwnIdentifier = getActiveOwnIdentifierForUserType();
+    if (activeOwnIdentifier) {
+      return [activeOwnIdentifier];
+    }
+
+    if (["sender", "receiver", "remote-viewer"].includes(activeLauncherRole)) {
+      return [];
+    }
+
+    const visibleOwnIdentifiers = uniqueNames([
+      readRoleFormValues("sender").ownName,
+      readRoleFormValues("receiver").ownName,
+      String(remoteViewerOwnInput?.value || "").trim()
+    ]);
+
+    if (visibleOwnIdentifiers.length === 1) {
+      return visibleOwnIdentifiers;
+    }
+
+    if (visibleOwnIdentifiers.length > 1) {
+      return [];
+    }
+
+    const rememberedOwnIdentifiers = uniqueNames([
+      readRoleSettings("sender").ownName,
+      readRoleSettings("receiver").ownName,
+      readRoleSettings("remote-viewer").ownName,
+      String(readLauncherState().ownNames?.sender || "").trim(),
+      String(readLauncherState().ownNames?.receiver || "").trim(),
+      String(readLauncherState().ownNames?.["remote-viewer"] || "").trim()
+    ]);
+
+    return rememberedOwnIdentifiers.length === 1 ? rememberedOwnIdentifiers : [];
+  }
+
+  function scheduleMainUserTypeRefresh(delayMs = 180) {
+    if (mainUserTypeLookupTimer) {
+      window.clearTimeout(mainUserTypeLookupTimer);
+      mainUserTypeLookupTimer = null;
+    }
+    mainUserTypeLookupTimer = window.setTimeout(() => {
+      mainUserTypeLookupTimer = null;
+      void refreshMainUserType();
+    }, delayMs);
+  }
+
+  function rememberDifficultyLevel(level) {
+    const latest = readLauncherState();
+    latest.difficultyLevel = normalizeDifficultyLevel(level);
+    writeLauncherState(latest);
+    return latest.difficultyLevel;
+  }
+
   function renderMainTitle(userType = resolvedMainUserType) {
     if (!beginnerMainTitle) {
       return;
     }
     resolvedMainUserType = userType === "pro" ? "pro" : "standard";
-    beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "Telepathy Beginner PRO" : "Telepathy Beginner";
+    beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "Telepathy PRO" : "Telepathy Beginner";
     if (proHeroFrame) {
       proHeroFrame.hidden = resolvedMainUserType !== "pro";
     }
     renderLauncherIntroCopy();
     renderProOnlyLauncherCards();
+    renderProOnlyOtherSettings();
   }
 
   function renderLauncherIntroCopy() {
@@ -1403,17 +1778,33 @@
     }
   }
 
+  function renderProOnlyOtherSettings() {
+    if (!cancelProButton) {
+      return;
+    }
+    cancelProButton.hidden = resolvedMainUserType !== "pro";
+  }
+
   function getFallbackOwnIdentifierForRemoteViewer() {
     const state = readLauncherState();
     return uniqueNames([
-      String(state.ownNames?.["remote-viewer"] || "").trim(),
-      String(state.ownNames?.sender || "").trim(),
-      String(state.ownNames?.receiver || "").trim(),
+      String(remoteViewerOwnInput?.value || "").trim(),
       readRoleFormValues("sender").ownName,
       readRoleFormValues("receiver").ownName,
       readRoleSettings("sender").ownName,
-      readRoleSettings("receiver").ownName
+      readRoleSettings("receiver").ownName,
+      String(state.ownNames?.["remote-viewer"] || "").trim(),
+      String(state.ownNames?.sender || "").trim(),
+      String(state.ownNames?.receiver || "").trim()
     ])[0] || "";
+  }
+
+  function getRemoteViewerProfileState(state = readLauncherState(), ownIdentifier = "") {
+    const resolvedOwnIdentifier =
+      String(ownIdentifier || "").trim() ||
+      String(remoteViewerOwnInput?.value || "").trim() ||
+      getFallbackOwnIdentifierForRemoteViewer();
+    return readLauncherProfileState("remote-viewer", resolvedOwnIdentifier, state);
   }
 
   function renderRemoteViewerCard() {
@@ -1421,8 +1812,10 @@
       return;
     }
     const state = readLauncherState();
-    remoteViewerOwnInput.value = String(state.ownNames?.["remote-viewer"] || "").trim() || getFallbackOwnIdentifierForRemoteViewer();
-    remoteViewerPartnerInput.value = String(state.currentPartners?.["remote-viewer"] || "").trim() || readRoleSettings("remote-viewer").partnerName || "";
+    const savedOwn = String(state.ownNames?.["remote-viewer"] || "").trim() || getFallbackOwnIdentifierForRemoteViewer();
+    const profileState = getRemoteViewerProfileState(state, savedOwn);
+    remoteViewerOwnInput.value = savedOwn;
+    remoteViewerPartnerInput.value = profileState.currentPartner || String(state.currentPartners?.["remote-viewer"] || "").trim() || readRoleSettings("remote-viewer").partnerName || "";
     if (remoteViewerDisplayDeviceCheckbox) {
       remoteViewerDisplayDeviceCheckbox.checked = !!state.remoteViewerDisplayDevice;
     }
@@ -1442,25 +1835,93 @@
     writeLauncherState(latest);
   }
 
+  async function persistRemoteViewerLauncherProfile(overrideState = null) {
+    if (!remoteViewerOwnInput || !remoteViewerPartnerInput) {
+      return;
+    }
+
+    const ownIdentifierRaw = String(remoteViewerOwnInput.value || "").trim();
+    if (!ownIdentifierRaw) {
+      return;
+    }
+
+    const sourceState = overrideState || readLauncherState();
+    const ownIdentifier = getPreferredIdentifier(ownIdentifierRaw, sourceState);
+    const profileState = getRemoteViewerProfileState(sourceState, ownIdentifier);
+    const currentPartnerRaw = String(remoteViewerPartnerInput.value || profileState.currentPartner || "").trim();
+    const currentPartner = getPreferredIdentifier(currentPartnerRaw, sourceState);
+    const storedProfile = await saveLauncherProfile("remote-viewer", ownIdentifier, {
+      currentPartner,
+      partnerHistory: uniqueNames([
+        ...profileState.partnerHistory,
+        currentPartner
+      ]),
+      deletedPartners: profileState.deletedPartners
+    });
+
+    if (storedProfile) {
+      writeLauncherProfileState("remote-viewer", ownIdentifier, {
+        currentPartner: storedProfile.current_partner || currentPartner,
+        partnerHistory: Array.isArray(storedProfile.partner_history) ? storedProfile.partner_history : profileState.partnerHistory,
+        deletedPartners: Array.isArray(storedProfile.deleted_partners) ? storedProfile.deleted_partners : profileState.deletedPartners
+      });
+    }
+  }
+
+  async function hydrateRemoteViewerLauncherProfile() {
+    if (!remoteViewerOwnInput || !remoteViewerPartnerInput) {
+      return;
+    }
+
+    const ownIdentifier = String(remoteViewerOwnInput.value || "").trim();
+    if (!ownIdentifier) {
+      return;
+    }
+
+    const requestedIdentifier = ownIdentifier;
+    const fetchedProfile = await fetchLauncherProfile("remote-viewer", requestedIdentifier);
+    if (String(remoteViewerOwnInput.value || "").trim() !== requestedIdentifier) {
+      return;
+    }
+
+    if (fetchedProfile?.own_email) {
+      rememberIdentifierStatus(requestedIdentifier, {
+        input_identifier: requestedIdentifier,
+        preferred_identifier: String(fetchedProfile.own_email || "").trim(),
+        preferred_handle: String(fetchedProfile?.preferred_handle || "").trim(),
+        owner_identifier: String(fetchedProfile?.owner_identifier || requestedIdentifier).trim(),
+        uses_handle: !!fetchedProfile?.preferred_handle,
+        is_handle: normalizeIdentifierForStorage(requestedIdentifier) === normalizeIdentifierForStorage(String(fetchedProfile?.preferred_handle || ""))
+      });
+    }
+
+    const latest = writeLauncherProfileState("remote-viewer", getPreferredIdentifier(requestedIdentifier), {
+      currentPartner: String(fetchedProfile?.current_partner || "").trim(),
+      partnerHistory: Array.isArray(fetchedProfile?.partner_history) ? fetchedProfile.partner_history : [],
+      deletedPartners: Array.isArray(fetchedProfile?.deleted_partners) ? fetchedProfile.deleted_partners : []
+    });
+    const profileState = getRemoteViewerProfileState(latest, getPreferredIdentifier(requestedIdentifier, latest));
+    if (!String(remoteViewerPartnerInput.value || "").trim() && profileState.currentPartner) {
+      remoteViewerPartnerInput.value = profileState.currentPartner;
+    }
+  }
+
   function renderRemoteViewerLabels(isDisplayDevice = false) {
     if (remoteViewerOwnLabel) {
-      remoteViewerOwnLabel.textContent = isDisplayDevice ? "This unique device handle:" : "Your unique handle:";
+      remoteViewerOwnLabel.textContent = isDisplayDevice ? "This Device" : "You";
     }
     if (remoteViewerPartnerLabel) {
-      remoteViewerPartnerLabel.textContent = isDisplayDevice ? "Unique remote viewer handle:" : "Unique Remote Device handle:";
+      remoteViewerPartnerLabel.textContent = isDisplayDevice ? "Remote Viewer" : "Remote Device";
     }
+    setRoleDefaultNoteText(
+      "remote-viewer",
+      "These unique handles are used to identify the remote viewer and the remote display device. The app can connect only if both handles are entered with the same spellings. Please verify both unique handles."
+    );
   }
 
   async function refreshMainUserType() {
     const lookupToken = ++pendingUserTypeLookupToken;
-    const candidates = uniqueNames([
-      readRoleFormValues("sender").ownName,
-      readRoleFormValues("receiver").ownName,
-      readRoleSettings("sender").ownName,
-      readRoleSettings("receiver").ownName,
-      String(readLauncherState().ownNames?.sender || "").trim(),
-      String(readLauncherState().ownNames?.receiver || "").trim()
-    ]);
+    const candidates = getCurrentUserTypeCandidates();
 
     if (!candidates.length) {
       renderMainTitle("standard");
@@ -1491,6 +1952,33 @@
   }
 
   function getPairContextForRole(role) {
+    if (role === "remote-viewer") {
+      const state = readLauncherState();
+      const roleSettings = readRoleSettings(role);
+      const launcherProfile = getRemoteViewerProfileState(state, String(remoteViewerOwnInput?.value || "").trim());
+      const ownName =
+        String(remoteViewerOwnInput?.value || "").trim() ||
+        String(state.ownNames?.[role] || "").trim() ||
+        roleSettings.ownName;
+      const partnerName =
+        String(remoteViewerPartnerInput?.value || "").trim() ||
+        launcherProfile.currentPartner ||
+        String(state.currentPartners?.[role] || "").trim() ||
+        roleSettings.partnerName;
+      const sessionCode = buildSessionCodeFromNames(ownName, partnerName);
+
+      if (!sessionCode) {
+        return null;
+      }
+
+      return {
+        role,
+        ownName,
+        partnerName,
+        sessionCode
+      };
+    }
+
     const state = readLauncherState();
     const formValues = readRoleFormValues(role);
     const roleSettings = readRoleSettings(role);
@@ -1534,10 +2022,6 @@
     }
 
     return senderContext || receiverContext || null;
-  }
-
-  function getReceiverDifficultyContext() {
-    return getPairContextForRole("receiver");
   }
 
   function getCurrentPairParticipants() {
@@ -3329,7 +3813,7 @@
   async function refreshDifficultyLabels() {
     const token = ++difficultyLabelToken;
     const fallbackLevel = "1";
-    const contexts = ["sender", "receiver"].map((role) => ({
+    const contexts = ["sender", "receiver", "remote-viewer"].map((role) => ({
       role,
       context: getPairContextForRole(role)
     }));
@@ -3360,14 +3844,25 @@
     }
   }
 
-  async function fetchPairDifficulty(sessionCode, requestedLevel = null) {
+  async function fetchPairDifficulty(sessionCode, requestedLevel = null, traceContext = null) {
     const payload = {
       action: requestedLevel === null ? "get_pair_difficulty" : "set_pair_difficulty",
-      session_code: sessionCode
+      session_code: sessionCode,
+      frontend_build_version: launcherBuildVersion
     };
 
     if (requestedLevel !== null) {
       payload.difficulty_level = normalizeDifficultyLevel(requestedLevel);
+    }
+
+    if (traceContext && typeof traceContext === "object") {
+      payload.trace_context = {
+        active_launcher_role: String(traceContext.activeLauncherRole || "").trim(),
+        active_pair_difficulty_code: String(traceContext.activePairDifficultyCode || "").trim(),
+        active_difficulty_session_code: String(traceContext.activeDifficultySessionCode || "").trim(),
+        active_difficulty_role: String(traceContext.activeDifficultyRole || "").trim(),
+        requested_level: requestedLevel === null ? "" : normalizeDifficultyLevel(requestedLevel)
+      };
     }
 
     const response = await fetch("api.php", {
@@ -3385,7 +3880,7 @@
     return response.json();
   }
 
-  function buildTargetUrl(role, ownName, exactPartnerName) {
+  function buildTargetUrl(role, ownName, exactPartnerName, options = {}) {
     const runtimeVersion = launcherBuildVersion;
     const target = role === "sender" ? "sender.html" : "receiver.html";
     const params = new URLSearchParams();
@@ -3396,6 +3891,12 @@
     params.set("prefill", "1");
     params.set("own_email", canonicalOwnName);
     params.set("partner_email", canonicalPartnerName);
+    if (typeof options.runtimeMode === "string" && options.runtimeMode.trim()) {
+      params.set("runtime_mode", options.runtimeMode.trim());
+    }
+    if (options.remoteDisplayDevice === true) {
+      params.set("remote_display_device", "1");
+    }
     const deviceLocation = state?.deviceLocation;
     if (
       deviceLocation &&
@@ -3412,6 +3913,14 @@
       }
     }
     return `${target}?${params.toString()}`;
+  }
+
+  function findRoleCard(role) {
+    return roleCards.find((card) => String(card.dataset.roleCard || "") === role) || null;
+  }
+
+  function scrollLauncherToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function shouldRequestLocation(state = readLauncherState()) {
@@ -3543,7 +4052,7 @@
     const select = form.querySelector('select[name="partnerHistory"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
-    const emptyOptionLabel = role === "sender" ? "Select receiver email" : "Select sender email";
+    const emptyOptionLabel = role === "sender" ? "Select receiver" : "Select sender";
     const history = getPartnerHistory(role, state, ownIdentifier);
 
     if (!select || !partnerInput) {
@@ -3568,12 +4077,26 @@
   }
 
   function closeNameManager() {
+    const returnRole = activeNameManagerReturnRole;
+    activeNameManagerReturnRole = "";
     if (!activeNameManagerOverlay) {
+      if (returnRole) {
+        const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
+        if (matchingCard) {
+          ensureCardExpanded(matchingCard);
+        }
+      }
       return;
     }
 
     activeNameManagerOverlay.remove();
     activeNameManagerOverlay = null;
+    if (returnRole) {
+      const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
+      if (matchingCard) {
+        ensureCardExpanded(matchingCard);
+      }
+    }
   }
 
   async function persistLauncherProfileForForm(role, form, overrideState = null) {
@@ -3589,7 +4112,15 @@
     const sourceState = overrideState || readLauncherState();
     const profileState = readLauncherProfileState(role, ownIdentifier, sourceState);
     const currentPartnerRaw = String(partnerInput?.value || profileState.currentPartner || "").trim();
-    const currentPartner = getPreferredIdentifier(currentPartnerRaw, sourceState);
+    let currentPartner = "";
+    try {
+      currentPartner = await resolveAcceptedPartnerIdentifier(
+        getPreferredIdentifier(currentPartnerRaw, sourceState),
+        role === "sender" ? "Receiver identifier" : "Sender identifier"
+      );
+    } catch (error) {
+      currentPartner = "";
+    }
     const storedProfile = await saveLauncherProfile(role, ownIdentifier, {
       currentPartner,
       partnerHistory: uniqueNames([
@@ -3677,12 +4208,23 @@
       }
 
       let preferred = identifier;
+      let partnerAccepted = isValidEmailAddress(identifier);
       try {
         const status = await fetchIdentifierStatus(identifier);
         rememberIdentifierStatus(identifier, status);
         preferred = String(status?.preferred_identifier || "").trim() || identifier;
+        partnerAccepted = isValidEmailAddress(preferred) || isAcceptedUniqueHandleIdentifier(preferred, status);
       } catch (error) {
         preferred = identifier;
+        partnerAccepted = isValidEmailAddress(identifier);
+      }
+
+      if (!partnerAccepted) {
+        if (normalizeIdentifierForStorage(canonicalCurrentPartner) === normalizeIdentifierForStorage(identifier)) {
+          canonicalCurrentPartner = "";
+        }
+        remaps.push({ previous: identifier, next: "" });
+        continue;
       }
 
       if (normalizeIdentifierForStorage(preferred) !== normalizeIdentifierForStorage(identifier)) {
@@ -3696,16 +4238,18 @@
       }
     }
 
-    remaps.forEach(({ previous, next }) => {
-      migrateRuntimeSettingsIdentifier(previous, next);
-    });
+    remaps
+      .filter(({ next }) => String(next || "").trim())
+      .forEach(({ previous, next }) => {
+        migrateRuntimeSettingsIdentifier(previous, next);
+      });
 
     const latest = writeLauncherProfileState(role, ownIdentifier, {
       currentPartner: canonicalCurrentPartner,
       partnerHistory: uniqueNames(canonicalHistory),
       deletedPartners: uniqueNames([
         ...profileState.deletedPartners,
-        ...remaps.map((item) => item.previous)
+        ...remaps.filter((item) => item.next).map((item) => item.previous)
       ])
     });
 
@@ -3716,15 +4260,28 @@
     applyPartnerHistory(role, form, latest, ownIdentifier);
     await persistLauncherProfileForForm(role, form, latest);
 
-    const currentRemap = remaps.find((item) => normalizeIdentifierForStorage(item.previous) === normalizeIdentifierForStorage(originalPartnerInputValue));
+    const currentRemap = remaps.find((item) => item.next && normalizeIdentifierForStorage(item.previous) === normalizeIdentifierForStorage(originalPartnerInputValue));
     if (currentRemap) {
       showRoleIdentifierStatus(role, `Your partner now uses unique handle: ${currentRemap.next}.`);
     }
   }
 
-  function saveManagedName(role, originalName, updatedName, isAddMode, form) {
+  async function saveManagedName(role, originalName, updatedName, isAddMode, form) {
     const cleaned = String(updatedName || "").trim();
     if (!cleaned) {
+      return false;
+    }
+
+    let validatedName = "";
+    try {
+      validatedName = await resolveAcceptedPartnerIdentifier(
+        cleaned,
+        role === "sender" ? "Receiver identifier" : "Sender identifier"
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      }
       return false;
     }
 
@@ -3734,12 +4291,12 @@
     const history = getPartnerHistory(role, latest, ownIdentifier).filter((name) => name !== originalName);
     const partnerInput = form.querySelector('input[name="partnerName"]');
     if (isAddMode || (partnerInput && partnerInput.value.trim() === originalName)) {
-      partnerInput.value = cleaned;
+      partnerInput.value = validatedName;
     }
     const nextState = writeLauncherProfileState(role, ownIdentifier, {
       currentPartner: String(partnerInput?.value || profileState.currentPartner || "").trim(),
-      partnerHistory: uniqueNames([...history, cleaned]),
-      deletedPartners: profileState.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(cleaned))
+      partnerHistory: uniqueNames([...history, validatedName]),
+      deletedPartners: profileState.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(validatedName))
     });
     applyPartnerHistory(role, form, nextState, ownIdentifier);
     void persistLauncherProfileForForm(role, form, nextState);
@@ -3774,7 +4331,7 @@
     }
 
     panel.innerHTML = `
-      <h2 class="name-manager-title">${isAddMode ? "Add email" : "Edit email"}</h2>
+      <h2 class="name-manager-title">${isAddMode ? "Add saved entry" : "Edit saved entry"}</h2>
       <div class="name-manager-editor">
         <input
           class="name-manager-input"
@@ -3814,8 +4371,8 @@
       }, 0);
     }
 
-    function saveCurrent() {
-      const saved = saveManagedName(role, originalName, input.value, isAddMode, form);
+    async function saveCurrent() {
+      const saved = await saveManagedName(role, originalName, input.value, isAddMode, form);
       if (saved) {
         closeNameManager();
       } else {
@@ -3831,20 +4388,20 @@
       closeNameManager();
     });
 
-    editButton?.addEventListener("click", () => {
+    editButton?.addEventListener("click", async () => {
       if (!editing) {
         beginEditing();
         return;
       }
-      saveCurrent();
+      await saveCurrent();
     });
 
     cancelButton?.addEventListener("click", closeNameManager);
 
-    input?.addEventListener("keydown", (event) => {
+    input?.addEventListener("keydown", async (event) => {
       if (event.key === "Enter" && editing) {
         event.preventDefault();
-        saveCurrent();
+        await saveCurrent();
       }
       if (event.key === "Escape") {
         event.preventDefault();
@@ -3855,8 +4412,9 @@
 
   function openNameManager(role, form) {
     closeNameManager();
+    activeNameManagerReturnRole = role;
 
-    const partnerTypeLabel = role === "sender" ? "receiver emails" : "sender emails";
+    const partnerTypeLabel = role === "sender" ? "saved receiver list" : "saved sender list";
     const ownIdentifier = String(form.querySelector('input[name="ownName"]')?.value || "").trim();
     const history = getPartnerHistory(role, readLauncherState(), ownIdentifier);
     const overlay = document.createElement("div");
@@ -3872,7 +4430,7 @@
             </li>
           `).join("")}
           <li>
-            <button class="name-manager-item-button name-manager-item-add" type="button" data-add-name>Add an email.</button>
+            <button class="name-manager-item-button name-manager-item-add" type="button" data-add-name>Add a saved entry.</button>
           </li>
         </ul>
       </div>
@@ -3882,9 +4440,14 @@
     activeNameManagerOverlay = overlay;
 
     overlay.addEventListener("click", (event) => {
+      event.stopPropagation();
       if (event.target === overlay) {
         closeNameManager();
       }
+    });
+
+    overlay.querySelector(".name-manager-panel")?.addEventListener("click", (event) => {
+      event.stopPropagation();
     });
 
     overlay.querySelectorAll("[data-name-index]").forEach((button) => {
@@ -3963,6 +4526,7 @@
         ownUsesHandle: isValidUniqueHandle(ownInput.value.trim()) && !isValidEmailAddress(ownInput.value.trim()),
         partnerUsesHandle: isValidUniqueHandle(partnerInput.value.trim()) && !isValidEmailAddress(partnerInput.value.trim())
       });
+      scheduleMainUserTypeRefresh();
     });
     ownInput.addEventListener("change", () => {
       void hydrateLauncherProfileForForm(role, form);
@@ -4033,6 +4597,21 @@
         latest = rememberIdentifierStatus(exactPartnerName, partnerStatus, latest);
       }
 
+      try {
+        ownName = assertAcceptedLauncherIdentifier(ownName, ownStatus, "Your identifier");
+        exactPartnerName = assertAcceptedLauncherIdentifier(
+          exactPartnerName,
+          partnerStatus,
+          role === "sender" ? "Receiver identifier" : "Sender identifier",
+          { allowClaimPrompt: false }
+        );
+      } catch (error) {
+        if (error instanceof Error) {
+          alert(error.message);
+        }
+        return;
+      }
+
       const canonicalOwnName = getPreferredIdentifier(ownName, latest);
       const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
 
@@ -4063,6 +4642,7 @@
 
   function activateCard(card) {
     const shouldActivate = !card.classList.contains("active");
+    const role = String(card.dataset.roleCard || "");
 
     roleCards.forEach((item) => {
       item.classList.remove("active");
@@ -4076,6 +4656,7 @@
     if (shouldActivate) {
       requestDeviceLocationIfNeeded();
       card.classList.add("active");
+      activeLauncherRole = role;
       void refreshDifficultyLabels();
       const toggle = card.querySelector(".role-card-toggle");
       if (toggle) {
@@ -4104,6 +4685,50 @@
     }
 
     rolePanels?.classList.remove("role-panels-single");
+    scrollLauncherToTop();
+  }
+
+  function ensureCardExpanded(card, options = {}) {
+    if (!card) {
+      return;
+    }
+    const shouldScrollIntoView = options.scrollIntoView === true;
+    const role = String(card.dataset.roleCard || "");
+    requestDeviceLocationIfNeeded();
+    roleCards.forEach((item) => {
+      item.classList.remove("active");
+      item.classList.remove("role-card-hidden");
+      const toggle = item.querySelector(".role-card-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "false");
+      }
+    });
+    card.classList.add("active");
+    activeLauncherRole = role;
+    void refreshDifficultyLabels();
+    const toggle = card.querySelector(".role-card-toggle");
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", "true");
+    }
+    roleCards.forEach((item) => {
+      if (item !== card) {
+        item.classList.add("role-card-hidden");
+      }
+    });
+    rolePanels?.classList.add("role-panels-single");
+    const activeForm = card.querySelector("[data-role-form]");
+    if (activeForm) {
+      void refreshPartnerAliasHistory(role, activeForm);
+    }
+    if (shouldScrollIntoView) {
+      window.setTimeout(() => {
+        card.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest"
+        });
+      }, 40);
+    }
   }
 
   function collapseActiveLauncherCard() {
@@ -4121,6 +4746,7 @@
     });
     if (changed) {
       rolePanels?.classList.remove("role-panels-single");
+      scrollLauncherToTop();
     }
   }
 
@@ -4130,6 +4756,7 @@
   }
 
   function showLauncherView() {
+    activeDifficultyContext = null;
     clearReportPanelOffset();
     launcherView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -4153,6 +4780,7 @@
   }
 
   function showOptionsView() {
+    activeDifficultyContext = null;
     clearReportPanelOffset();
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -4273,21 +4901,6 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function renderDifficultyState(levelOverride = null) {
-    const state = readLauncherState();
-    const level = normalizeDifficultyLevel(levelOverride ?? state.difficultyLevel);
-    updateDifficultyDisplay(level);
-    positionDifficultyThumb(Number(level));
-  }
-
-  function rememberDifficultyLevel(level) {
-    const latest = readLauncherState();
-    latest.difficultyLevel = normalizeDifficultyLevel(level);
-    writeLauncherState(latest);
-    renderDifficultyState(latest.difficultyLevel);
-    return latest.difficultyLevel;
-  }
-
   function showHelpView() {
     clearReportPanelOffset();
     helpView?.classList.remove("beginner-view-hidden");
@@ -4375,264 +4988,73 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function commitDifficultyLevel(level) {
-    const normalizedLevel = rememberDifficultyLevel(level);
-    const pairContext = getReceiverDifficultyContext();
-    void refreshDifficultyLabels();
+  async function changeDifficultyForRole(role, delta) {
+    const identifiers = readVisibleRoleIdentifiers(role);
+    const finishAdjustment = markDifficultyAdjustment(role);
+    setRoleDifficultyStatus(role, "");
 
-    if (!pairContext) {
-      activePairDifficultyCode = "";
+    if (!identifiers.ownName || !identifiers.partnerName) {
+      setRoleDifficultyStatus(role, "Level can be changed only when both identity fields are filled.", { isError: true });
+      finishAdjustment();
       return;
     }
 
+    try {
+      assertValidParticipantIdentifier(identifiers.ownName, "Your identifier");
+      assertValidParticipantIdentifier(identifiers.partnerName, "Partner identifier");
+    } catch (error) {
+      setRoleDifficultyStatus(role, error instanceof Error ? error.message : "Please provide valid identifiers before changing the level.", { isError: true });
+      finishAdjustment();
+      return;
+    }
+
+    const pairContext = getPairContextForRole(role);
+    if (!pairContext) {
+      setRoleDifficultyStatus(role, "Level can be changed only when both identity fields are filled.", { isError: true });
+      finishAdjustment();
+      return;
+    }
+
+    activeLauncherRole = role;
+    activeDifficultyContext = pairContext;
     activePairDifficultyCode = pairContext.sessionCode;
 
     try {
-      const data = await fetchPairDifficulty(pairContext.sessionCode, normalizedLevel);
-      const confirmedLevel = normalizeDifficultyLevel(data?.pair_difficulty);
+      const currentData = await fetchPairDifficulty(pairContext.sessionCode, null, {
+        activeLauncherRole,
+        activePairDifficultyCode,
+        activeDifficultySessionCode: pairContext.sessionCode,
+        activeDifficultyRole: pairContext.role
+      });
+      const currentLevel = Number(normalizeDifficultyLevel(currentData?.pair_difficulty));
+      const nextLevel = Math.max(1, Math.min(getMaxDifficultyLevel(), currentLevel + delta));
+
+      if (nextLevel === currentLevel) {
+        setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`);
+        rememberDifficultyLevel(String(currentLevel));
+        setRoleDifficultyLabel(role, String(currentLevel));
+        scheduleGuidedLevelExplanation(role, String(currentLevel));
+        return;
+      }
+
+      const updatedData = await fetchPairDifficulty(pairContext.sessionCode, String(nextLevel), {
+        activeLauncherRole,
+        activePairDifficultyCode: pairContext.sessionCode,
+        activeDifficultySessionCode: pairContext.sessionCode,
+        activeDifficultyRole: pairContext.role
+      });
+      const confirmedLevel = normalizeDifficultyLevel(updatedData?.pair_difficulty);
       rememberDifficultyLevel(confirmedLevel);
+      setRoleDifficultyLabel(role, confirmedLevel);
       void refreshDifficultyLabels();
+      const pairLabel = describeDifficultyChange(role, pairContext);
+      setRoleDifficultyStatus(role, `${pairLabel} set to Level ${confirmedLevel}.`);
+      scheduleGuidedLevelExplanation(role, confirmedLevel);
     } catch (error) {
-      renderDifficultyState(normalizedLevel);
+      setRoleDifficultyStatus(role, "Unable to change the difficulty level right now.", { isError: true });
+    } finally {
+      finishAdjustment();
     }
-  }
-
-  async function syncDifficultyFromPair() {
-    const pairContext = getReceiverDifficultyContext();
-    const loadToken = ++difficultyLoadToken;
-
-    if (!pairContext) {
-      activePairDifficultyCode = "";
-      rememberDifficultyLevel("1");
-      return;
-    }
-
-    activePairDifficultyCode = pairContext.sessionCode;
-    rememberDifficultyLevel("1");
-
-    try {
-      const data = await fetchPairDifficulty(pairContext.sessionCode);
-      if (loadToken !== difficultyLoadToken || activePairDifficultyCode !== pairContext.sessionCode) {
-        return;
-      }
-      rememberDifficultyLevel(normalizeDifficultyLevel(data?.pair_difficulty));
-      void refreshDifficultyLabels();
-    } catch (error) {
-      if (loadToken !== difficultyLoadToken || activePairDifficultyCode !== pairContext.sessionCode) {
-        return;
-      }
-      rememberDifficultyLevel("1");
-      void refreshDifficultyLabels();
-    }
-  }
-
-  function difficultyPositions(slider = difficultySlider) {
-    const width = Math.max(slider?.clientWidth || 0, 1);
-    return difficultyStopPercents.map((percent) => width * (percent / 100));
-  }
-
-  function positionDifficultyThumb(level) {
-    if (!difficultySlider || !difficultyThumb) {
-      return;
-    }
-    const positions = difficultyPositions(difficultySlider);
-    const index = Math.max(1, Math.min(3, Number(level || 3))) - 1;
-    const left = positions[index];
-    difficultyThumb.style.left = `${left}px`;
-    if (difficultyFill) {
-      const fillLeft = 10;
-      difficultyFill.style.width = `${Math.max(left - fillLeft, 0)}px`;
-    }
-  }
-
-  function updateDifficultyDisplay(level) {
-    const normalizedLevel = normalizeDifficultyLevel(level);
-    if (difficultySlider) {
-      difficultySlider.setAttribute("aria-valuenow", normalizedLevel);
-    }
-    if (difficultyCurrent) {
-      difficultyCurrent.textContent = `Level ${normalizedLevel}`;
-    }
-    if (difficultyDescription) {
-      difficultyDescription.textContent = difficultyCopy[normalizedLevel];
-    }
-  }
-
-  function clampDifficultyOffset(offsetX) {
-    if (!difficultySlider) {
-      return 0;
-    }
-    const minOffset = 10;
-    const maxOffset = Math.max((difficultySlider.clientWidth || 0) - 10, minOffset);
-    return Math.max(minOffset, Math.min(maxOffset, offsetX));
-  }
-
-  function resolveDifficultyDragPosition(clientX, options = {}) {
-    if (!difficultySlider) {
-      return {
-        level: 1,
-        thumbLeft: 10
-      };
-    }
-
-    const rect = difficultySlider.getBoundingClientRect();
-    const positions = difficultyPositions(difficultySlider);
-    const rawOffset = clampDifficultyOffset(clientX - rect.left);
-    const snapThreshold = Math.max((difficultySlider.clientWidth || 0) * 0.08, 18);
-    const ignoredLevel = options?.ignoredLevel ? normalizeDifficultyLevel(options.ignoredLevel) : "";
-    let nearestIndex = 0;
-    let nearestDistance = Infinity;
-    let nearestSnappableIndex = -1;
-    let nearestSnappableDistance = Infinity;
-
-    positions.forEach((position, index) => {
-      const distance = Math.abs(position - rawOffset);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = index;
-      }
-      if (String(index + 1) !== ignoredLevel && distance < nearestSnappableDistance) {
-        nearestSnappableDistance = distance;
-        nearestSnappableIndex = index;
-      }
-    });
-
-    const snapIndex = nearestSnappableIndex >= 0 ? nearestSnappableIndex : nearestIndex;
-    const snapDistance = nearestSnappableIndex >= 0 ? nearestSnappableDistance : nearestDistance;
-
-    return {
-      level: nearestIndex + 1,
-      thumbLeft: snapDistance <= snapThreshold ? positions[snapIndex] : rawOffset
-    };
-  }
-
-  function levelPosition(level) {
-    const positions = difficultyPositions(difficultySlider);
-    const index = Math.max(1, Math.min(3, Number(level || 1))) - 1;
-    return positions[index] ?? positions[0] ?? 10;
-  }
-
-  function positionDifficultyThumbAt(thumbLeft) {
-    if (!difficultyThumb || !difficultySlider) {
-      return;
-    }
-    const clampedLeft = clampDifficultyOffset(thumbLeft);
-    difficultyThumb.style.left = `${clampedLeft}px`;
-    if (difficultyFill) {
-      const fillLeft = 10;
-      difficultyFill.style.width = `${Math.max(clampedLeft - fillLeft, 0)}px`;
-    }
-  }
-
-  function previewDifficultyDrag(clientX) {
-    const preview = resolveDifficultyDragPosition(clientX, {
-      ignoredLevel: difficultyDragReleasedLevel
-    });
-    updateDifficultyDisplay(preview.level);
-    positionDifficultyThumbAt(preview.thumbLeft);
-    return preview.level;
-  }
-
-  function previewDifficultyDragFromLockedLevel(clientX) {
-    if (!difficultySlider) {
-      return 1;
-    }
-
-    const rect = difficultySlider.getBoundingClientRect();
-    const rawOffset = clampDifficultyOffset(clientX - rect.left);
-    const lockedLevel = normalizeDifficultyLevel(difficultyDragLockedLevel || readLauncherState().difficultyLevel);
-    const lockedPosition = levelPosition(lockedLevel);
-    const releaseThreshold = Math.max((difficultySlider.clientWidth || 0) * 0.025, 8);
-
-    if (Math.abs(rawOffset - lockedPosition) <= releaseThreshold) {
-      updateDifficultyDisplay(lockedLevel);
-      positionDifficultyThumbAt(lockedPosition);
-      return Number(lockedLevel);
-    }
-
-    difficultyDragReleasedLevel = lockedLevel;
-    difficultyDragLockedLevel = null;
-    return previewDifficultyDrag(clientX);
-  }
-
-  function nearestDifficultyLevel(clientX) {
-    if (!difficultySlider) {
-      return 3;
-    }
-    const rect = difficultySlider.getBoundingClientRect();
-    const positions = difficultyPositions(difficultySlider);
-    const offsetX = clientX - rect.left;
-    let bestIndex = 0;
-    let bestDistance = Infinity;
-    positions.forEach((position, index) => {
-      const distance = Math.abs(position - offsetX);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestIndex = index;
-      }
-    });
-    return bestIndex + 1;
-  }
-
-  function beginDifficultyDrag(event) {
-    if (!difficultySlider) {
-      return;
-    }
-    difficultyDragging = true;
-    difficultyDragPointerId = event.pointerId ?? null;
-    difficultyDragLockedLevel = normalizeDifficultyLevel(readLauncherState().difficultyLevel);
-    difficultyDragReleasedLevel = null;
-    difficultySlider.classList.add("is-dragging");
-    if (event.pointerId !== undefined) {
-      difficultySlider.setPointerCapture?.(event.pointerId);
-    }
-    previewDifficultyDragFromLockedLevel(event.clientX);
-  }
-
-  function continueDifficultyDrag(event) {
-    if (!difficultyDragging || (difficultyDragPointerId !== null && event.pointerId !== difficultyDragPointerId)) {
-      return;
-    }
-    if (difficultyDragLockedLevel) {
-      previewDifficultyDragFromLockedLevel(event.clientX);
-      return;
-    }
-    previewDifficultyDrag(event.clientX);
-  }
-
-  function endDifficultyDrag(event) {
-    if (!difficultyDragging || !difficultySlider) {
-      return;
-    }
-    difficultyDragging = false;
-    difficultyDragPointerId = null;
-    difficultyDragLockedLevel = null;
-    difficultyDragReleasedLevel = null;
-    difficultySlider.classList.remove("is-dragging");
-    if (event?.pointerId !== undefined) {
-      difficultySlider.releasePointerCapture?.(event.pointerId);
-    }
-    const level = nearestDifficultyLevel(event?.clientX ?? difficultySlider.getBoundingClientRect().left);
-    void commitDifficultyLevel(level);
-  }
-
-  function showDifficultyView() {
-    difficultyView?.classList.remove("beginner-view-hidden");
-    optionsView?.classList.add("beginner-view-hidden");
-    helpView?.classList.add("beginner-view-hidden");
-    toolsView?.classList.add("beginner-view-hidden");
-    colorSchemeView?.classList.add("beginner-view-hidden");
-    contactView?.classList.add("beginner-view-hidden");
-    aboutView?.classList.add("beginner-view-hidden");
-    reportDefinitionView?.classList.add("beginner-view-hidden");
-    reportView?.classList.add("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
-    settingsView?.classList.add("beginner-view-hidden");
-    adminView?.classList.add("beginner-view-hidden");
-    adminUserListView?.classList.add("beginner-view-hidden");
-    closeReportPairMenu();
-    void syncDifficultyFromPair();
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function renderSettingsView() {
@@ -4685,11 +5107,6 @@
     adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderSettingsView();
-    void syncDifficultyFromPair().then(() => {
-      if (!settingsView?.classList.contains("beginner-view-hidden")) {
-        renderSettingsView();
-      }
-    });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -4721,7 +5138,7 @@
     function formatAdminUserTrialSummary(rows) {
       const items = Array.isArray(rows) ? rows : [];
       if (!items.length) {
-        return "No server-side user summary is available right now.";
+        return "The current server-side summary shows no users listed.";
       }
 
       const userWidth = Math.max("User".length, ...items.map((row) => String(row?.user_name || "").length));
@@ -4757,7 +5174,7 @@
         adminUserListSummary.textContent = `Report Date: ${reportDate}   Total Users: ${totalUsers}`;
       }
       if (adminUserListStatus) {
-        adminUserListStatus.textContent = userSummary.length ? "" : "No server-side user summary is available right now.";
+        adminUserListStatus.textContent = userSummary.length ? "" : "The current server-side summary shows no users listed.";
       }
       if (adminUserListOutput) {
         if (userSummary.length) {
@@ -4831,9 +5248,25 @@
     }
   }
 
+  function clearLocalFreshStartState() {
+    try {
+      localStorage.removeItem(launcherKey);
+      localStorage.removeItem(analysisStorageKey);
+      localStorage.removeItem("cones-local-trials-receiver");
+      localStorage.removeItem("conesArrangementHistory");
+      localStorage.removeItem("conesArrangementHistory-v2");
+      localStorage.removeItem("cones-settings-v2-sender");
+      localStorage.removeItem("cones-settings-v2-receiver");
+    } catch (error) {
+      // Ignore local cleanup failures.
+    }
+  }
+
   function showAdminView() {
+    clearReportPanelOffset();
     adminView?.classList.remove("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -5153,6 +5586,13 @@
       const requestedView = String(params.get("open") || "").trim().toLowerCase();
       if (requestedView === "settings") {
         showSettingsView();
+        return;
+      }
+      if (["sender", "receiver", "remote-viewer"].includes(requestedView)) {
+        const matchingCard = findRoleCard(requestedView);
+        if (matchingCard) {
+          ensureCardExpanded(matchingCard, { scrollIntoView: true });
+        }
       }
     } catch (error) {
       // Ignore malformed launcher open requests.
@@ -5562,10 +6002,125 @@
 
   document.querySelectorAll(".role-email-note").forEach((note) => {
     note.addEventListener("click", (event) => {
-      if (event.target instanceof Element && event.target.closest("[data-open-handle-control]")) {
+      if (event.target instanceof Element && event.target.closest("[data-open-handle-control], [data-open-contact-inline]")) {
         return;
       }
       collapseActiveLauncherCard();
+    });
+  });
+  difficultyStacks.forEach((stack) => {
+    const role = String(stack.dataset.roleDifficultyStack || "");
+    if (!role) {
+      return;
+    }
+    stack.addEventListener("mouseenter", () => {
+      previewLevelExplanationFromCurrentLabel(role);
+    });
+    stack.addEventListener("mouseleave", () => {
+      clearRoleLevelExplanation(role);
+      getDifficultyLabelElement(role)?.classList.remove("is-guided-preview");
+    });
+    stack.addEventListener("focusin", () => {
+      previewLevelExplanationFromCurrentLabel(role);
+    });
+    stack.addEventListener("focusout", () => {
+      window.setTimeout(() => {
+        if (!stack.contains(document.activeElement)) {
+          clearRoleLevelExplanation(role);
+          getDifficultyLabelElement(role)?.classList.remove("is-guided-preview");
+        }
+      }, 0);
+    });
+  });
+  difficultyLabels.forEach((label) => {
+    const role = String(label.dataset.pairDifficultyLabel || "");
+    if (!role) {
+      return;
+    }
+    label.addEventListener("mouseenter", () => {
+      clearDifficultyPreviewTimers(label);
+      previewLevelExplanationFromCurrentLabel(role);
+    });
+    label.addEventListener("mouseleave", () => {
+      const stack = label.closest("[data-role-difficulty-stack]");
+      if (stack?.matches(":hover")) {
+        return;
+      }
+      clearRoleLevelExplanation(role);
+      label.classList.remove("is-guided-preview");
+    });
+    label.addEventListener("focusin", () => {
+      clearDifficultyPreviewTimers(label);
+      previewLevelExplanationFromCurrentLabel(role);
+    });
+    label.addEventListener("focusout", () => {
+      window.setTimeout(() => {
+        const stack = label.closest("[data-role-difficulty-stack]");
+        if (!label.matches(":focus") && !(stack && stack.contains(document.activeElement))) {
+          clearRoleLevelExplanation(role);
+          label.classList.remove("is-guided-preview");
+        }
+      }, 0);
+    });
+  });
+  roleSkillTaglines.forEach((tagline) => {
+    const role = String(tagline.dataset.roleSkillTagline || "");
+    if (!role) {
+      return;
+    }
+    tagline.addEventListener("mouseenter", () => {
+      showRoleSkillExplanation(role);
+    });
+    tagline.addEventListener("mouseleave", () => {
+      clearRoleLevelExplanation(role);
+    });
+    tagline.addEventListener("focusin", () => {
+      showRoleSkillExplanation(role);
+    });
+    tagline.addEventListener("focusout", () => {
+      clearRoleLevelExplanation(role);
+    });
+  });
+  openToolsButtons.forEach((button) => {
+    const role = String(button.dataset.openTools || "");
+    if (!role) {
+      return;
+    }
+    button.addEventListener("mouseenter", () => {
+      showRoleToolsExplanation(role);
+    });
+    button.addEventListener("mouseleave", () => {
+      clearRoleLevelExplanation(role);
+    });
+    button.addEventListener("focusin", () => {
+      showRoleToolsExplanation(role);
+    });
+    button.addEventListener("focusout", () => {
+      clearRoleLevelExplanation(role);
+    });
+  });
+  openHandleButtons.forEach((button) => {
+    const role = String(button.dataset.openHandleControl || "");
+    if (!role) {
+      return;
+    }
+    button.addEventListener("mouseenter", () => {
+      showRoleHandleExplanation(role);
+    });
+    button.addEventListener("mouseleave", () => {
+      clearRoleLevelExplanation(role);
+    });
+    button.addEventListener("focusin", () => {
+      showRoleHandleExplanation(role);
+    });
+    button.addEventListener("focusout", () => {
+      clearRoleLevelExplanation(role);
+    });
+  });
+  inlineContactButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showContactView();
     });
   });
 
@@ -5575,17 +6130,123 @@
     });
   });
   renderRemoteViewerCard();
+  if (String(remoteViewerOwnInput?.value || "").trim()) {
+    void hydrateRemoteViewerLauncherProfile();
+  }
   remoteViewerOwnInput?.addEventListener("input", persistRemoteViewerCardState);
-  remoteViewerOwnInput?.addEventListener("change", persistRemoteViewerCardState);
+  remoteViewerOwnInput?.addEventListener("input", () => {
+    scheduleMainUserTypeRefresh();
+  });
+  remoteViewerOwnInput?.addEventListener("change", () => {
+    persistRemoteViewerCardState();
+    void hydrateRemoteViewerLauncherProfile();
+    void refreshMainUserType();
+  });
+  remoteViewerOwnInput?.addEventListener("blur", () => {
+    void hydrateRemoteViewerLauncherProfile();
+    void refreshMainUserType();
+  });
   remoteViewerPartnerInput?.addEventListener("input", persistRemoteViewerCardState);
-  remoteViewerPartnerInput?.addEventListener("change", persistRemoteViewerCardState);
+  remoteViewerPartnerInput?.addEventListener("change", () => {
+    persistRemoteViewerCardState();
+    void persistRemoteViewerLauncherProfile();
+  });
+  remoteViewerPartnerInput?.addEventListener("blur", () => {
+    void persistRemoteViewerLauncherProfile();
+  });
   remoteViewerDisplayDeviceCheckbox?.addEventListener("change", () => {
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox.checked);
     persistRemoteViewerCardState();
   });
-  remoteViewerGoButton?.addEventListener("click", () => {
+  remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
-    window.alert("Remote Viewer runtime flow is not wired up yet.");
+    let ownName = String(remoteViewerOwnInput?.value || "").trim();
+    let partnerName = String(remoteViewerPartnerInput?.value || "").trim();
+    const isDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
+
+    if (!ownName || !partnerName) {
+      if (!ownName) {
+        remoteViewerOwnInput?.focus();
+      } else {
+        remoteViewerPartnerInput?.focus();
+      }
+      return;
+    }
+
+    try {
+      ownName = assertValidParticipantIdentifier(ownName, isDisplayDevice ? "Device identifier" : "Your identifier");
+      partnerName = assertValidParticipantIdentifier(partnerName, isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier");
+    } catch (error) {
+      if (error instanceof Error) {
+        window.alert(error.message);
+      }
+      return;
+    }
+
+    let ownStatus = null;
+    let partnerStatus = null;
+    try {
+      [ownStatus, partnerStatus] = await Promise.all([
+        fetchIdentifierStatus(ownName),
+        fetchIdentifierStatus(partnerName)
+      ]);
+    } catch (error) {
+      // If lookup fails, continue with the identifiers as typed.
+    }
+
+    let latest = readLauncherState();
+    if (ownStatus) {
+      latest = rememberIdentifierStatus(ownName, ownStatus, latest);
+    }
+    if (partnerStatus) {
+      latest = rememberIdentifierStatus(partnerName, partnerStatus, latest);
+    }
+
+    try {
+      ownName = assertAcceptedLauncherIdentifier(
+        ownName,
+        ownStatus,
+        isDisplayDevice ? "Device identifier" : "Your identifier"
+      );
+      partnerName = assertAcceptedLauncherIdentifier(
+        partnerName,
+        partnerStatus,
+        isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier",
+        { allowClaimPrompt: false }
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      }
+      return;
+    }
+
+    latest.ownNames = latest.ownNames || {};
+    latest.currentPartners = latest.currentPartners || {};
+    latest.ownNames["remote-viewer"] = ownName;
+    latest.currentPartners["remote-viewer"] = partnerName;
+    latest.remoteViewerDisplayDevice = isDisplayDevice;
+    writeLauncherState(latest);
+
+    const canonicalOwnName = getPreferredIdentifier(ownName, latest);
+    const canonicalPartnerName = getPreferredIdentifier(partnerName, latest);
+    const existingProfile = getRemoteViewerProfileState(latest, canonicalOwnName);
+    const nextState = writeLauncherProfileState("remote-viewer", canonicalOwnName, {
+      currentPartner: canonicalPartnerName,
+      partnerHistory: uniqueNames([...existingProfile.partnerHistory, canonicalPartnerName]),
+      deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(canonicalPartnerName))
+    });
+    try {
+      await persistRemoteViewerLauncherProfile(nextState);
+    } catch (error) {
+      // Keep local progress even if the server save momentarily fails.
+    }
+    const targetRole = isDisplayDevice ? "sender" : "receiver";
+    const runtimeMode = isDisplayDevice ? "remote-display" : "remote-viewer";
+    window.location.href = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
+      runtimeMode,
+      remoteDisplayDevice: isDisplayDevice
+    });
   });
 
   openOptionsButton?.addEventListener("click", showOptionsView);
@@ -5613,6 +6274,20 @@
   closeUserTypeAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
   closeHandleButton?.addEventListener("click", closeHandleOverlay);
+  handleDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  handleOverlay?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+    if (target.closest("[data-submit-handle], [data-close-handle], [data-handle-input], input, button, label, textarea, select, a")) {
+      return;
+    }
+    closeHandleOverlay();
+  });
   submitHandleButton?.addEventListener("click", () => {
     void submitUniqueHandle();
   });
@@ -5626,6 +6301,9 @@
     }
   });
   closeColorSchemeButton?.addEventListener("click", showOtherSettingsView);
+  cancelProButton?.addEventListener("click", () => {
+    window.alert("Cancel PRO will be added here later.");
+  });
   userTypeHandleInput?.addEventListener("input", () => {
     pendingUserTypeLookupToken += 1;
     logUserTypeAdminDebug("input_event", [{ next_value: String(userTypeHandleInput?.value || "").trim() }]);
@@ -5713,10 +6391,8 @@
       }
     }
   });
-  openDifficultyButton?.addEventListener("click", showDifficultyView);
   openAdvancedButton?.addEventListener("click", showSettingsView);
-  closeDifficultyButton?.addEventListener("click", showOptionsView);
-  closeSettingsButton?.addEventListener("click", showDifficultyView);
+  closeSettingsButton?.addEventListener("click", showReportDefinitionView);
   closeAdminButton?.addEventListener("click", showSettingsView);
   settingsSecondChoiceCheckbox?.addEventListener("change", () => {
     if (settingsStatus) {
@@ -5902,38 +6578,57 @@
       }
     }
   });
+  adminFreshStartButton?.addEventListener("click", async () => {
+    if (!launcherAdminSecret) {
+      return;
+    }
+    if (!window.confirm("Fresh start, are you sure?")) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Applying fresh start...";
+    }
+    try {
+      const data = await launcherAdminApi("fresh_start");
+      launcherAdminState.storage = data?.storage || launcherAdminState.storage;
+      launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
+      launcherAdminState.user_trial_summary = null;
+      launcherAdminState.user_trial_summary_meta = null;
+      launcherAdminState.disk_usage_analysis = null;
+      clearLocalFreshStartState();
+      launcherAdminSecret = "";
+      if (adminStatus) {
+        adminStatus.textContent = "Fresh start complete.";
+      }
+      window.location.href = `telepathybeginner.html?v=${launcherBuildVersion}`;
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to complete fresh start right now.";
+      }
+    }
+  });
   renderMainTitle("standard");
   void refreshMainUserType();
   reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
   reportResizeHandles.forEach((handle) => {
     handle.addEventListener("pointerdown", beginReportResize);
   });
-  difficultySlider?.addEventListener("pointerdown", beginDifficultyDrag);
-  difficultySlider?.addEventListener("pointermove", continueDifficultyDrag);
-  difficultySlider?.addEventListener("pointerup", endDifficultyDrag);
-  difficultySlider?.addEventListener("pointercancel", endDifficultyDrag);
-  difficultySlider?.addEventListener("keydown", (event) => {
-    const current = Number(normalizeDifficultyLevel(readLauncherState().difficultyLevel));
-    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-      event.preventDefault();
-      void commitDifficultyLevel(Math.max(1, current - 1));
-    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-      event.preventDefault();
-      void commitDifficultyLevel(Math.min(3, current + 1));
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      void commitDifficultyLevel(1);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      void commitDifficultyLevel(3);
-    }
-  });
-  window.addEventListener("resize", () => {
-    renderDifficultyState();
+  difficultyBumpButtons.forEach((button) => {
+    button.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    button.addEventListener("click", () => {
+      button.blur();
+      const role = String(button.dataset.roleDifficultyBump || "");
+      const direction = String(button.dataset.direction || "").trim().toLowerCase();
+      const delta = direction === "up" ? 1 : -1;
+      if (role === "sender" || role === "receiver" || role === "remote-viewer") {
+        void changeDifficultyForRole(role, delta);
+      }
+    });
   });
   applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
   renderLocationStatus();
-  renderDifficultyState();
   renderContactWordCount();
   updateInstallButtonLabel();
   void refreshDifficultyLabels();

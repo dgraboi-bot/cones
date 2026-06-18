@@ -9,12 +9,12 @@
       history.scrollRestoration = "manual";
     }
   </script>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260617n">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260618ba">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260617n">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260617n">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260618ba">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260618ba">
 </head>
 <body>
   <main class="beginner-shell">
@@ -49,17 +49,22 @@
                 <span class="role-card-title">I Will Be the Sender</span>
               </button>
               <button class="role-tools-button" type="button" data-open-tools="sender">TOOLS</button>
-              <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
-              <span class="role-card-tagline">Skill: Visual attention focus</span>
+              <div class="role-card-level-stack" data-role-difficulty-stack="sender">
+                <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="sender" data-direction="up" aria-label="Increase sender pair difficulty">▲</button>
+                <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
+                <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="sender" data-direction="down" aria-label="Decrease sender pair difficulty">▼</button>
+              </div>
+              <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Visual attention focus</span>
             </div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="sender" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
                   <p data-role-identifier-note="sender">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
                   <p><button class="role-note-link" type="button" data-open-handle-control="sender">See here for using a unique name instead of email address.</button></p>
+                  <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
-                  <span class="role-field-label" data-own-identifier-label="sender">Your email:</span>
+                  <span class="role-field-label" data-own-identifier-label="sender">You</span>
                   <input
                     class="role-input"
                     type="text"
@@ -70,7 +75,7 @@
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver's email:</span>
+                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
@@ -80,15 +85,15 @@
                       placeholder="name@example.com or unique handle"
                       spellcheck="false"
                     >
-                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver emails" autocomplete="off" title="Press here to select a saved receiver email">
-                      <option value="">Select receiver email</option>
+                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver handles" autocomplete="off" title="Press here to select a saved handle">
+                      <option value="">Select receiver</option>
                     </select>
                     <button
                       class="role-manage"
                       type="button"
                       name="managePartnerNames"
-                      title="Edit dropdown list of receiver emails"
-                    >Manage receivers</button>
+                      title="Edit dropdown list of receiver handles"
+                    >Manage saved receivers</button>
                   </div>
                 </label>
                 <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
@@ -96,6 +101,7 @@
                   <span class="role-location-text">Location: unknown</span>
                   <button class="role-location-retry" type="button" data-retry-location="sender" hidden>Retry location</button>
                 </div>
+                <div class="role-difficulty-status" data-role-difficulty-status="sender" hidden></div>
                 <button class="role-go" type="submit">GO</button>
               </form>
             </div>
@@ -107,17 +113,22 @@
                 <span class="role-card-title">I Will Be the Receiver</span>
               </button>
               <button class="role-tools-button" type="button" data-open-tools="receiver">TOOLS</button>
-              <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
-              <span class="role-card-tagline">Skill: Mind's eye perception</span>
+              <div class="role-card-level-stack" data-role-difficulty-stack="receiver">
+                <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="receiver" data-direction="up" aria-label="Increase receiver pair difficulty">▲</button>
+                <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
+                <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="receiver" data-direction="down" aria-label="Decrease receiver pair difficulty">▼</button>
+              </div>
+              <span class="role-card-tagline" data-role-skill-tagline="receiver">Skill: Mind's eye perception</span>
             </div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
                   <p data-role-identifier-note="receiver">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
                   <p><button class="role-note-link" type="button" data-open-handle-control="receiver">See here for using a unique name instead of email address.</button></p>
+                  <p class="role-note-contact-wrap" data-role-note-contact-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-contact-inline="receiver">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
-                  <span class="role-field-label" data-own-identifier-label="receiver">Your email:</span>
+                  <span class="role-field-label" data-own-identifier-label="receiver">You</span>
                   <input
                     class="role-input"
                     type="text"
@@ -128,7 +139,7 @@
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-partner-identifier-label="receiver">Sender's email:</span>
+                  <span class="role-field-label" data-partner-identifier-label="receiver">Sender</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
@@ -138,15 +149,15 @@
                       placeholder="name@example.com or unique handle"
                       spellcheck="false"
                     >
-                    <select class="role-select" name="partnerHistory" aria-label="Saved sender emails" autocomplete="off" title="Press here to select a saved sender email">
-                      <option value="">Select sender email</option>
+                    <select class="role-select" name="partnerHistory" aria-label="Saved sender handles" autocomplete="off" title="Press here to select a saved handle">
+                      <option value="">Select sender</option>
                     </select>
                     <button
                       class="role-manage"
                       type="button"
                       name="managePartnerNames"
-                      title="Edit dropdown list of sender emails"
-                    >Manage senders</button>
+                      title="Edit dropdown list of sender handles"
+                    >Manage saved senders</button>
                   </div>
                 </label>
                 <div class="role-identifier-status" data-role-identifier-status="receiver" hidden></div>
@@ -154,6 +165,7 @@
                   <span class="role-location-text">Location: unknown</span>
                   <button class="role-location-retry" type="button" data-retry-location="receiver" hidden>Retry location</button>
                 </div>
+                <div class="role-difficulty-status" data-role-difficulty-status="receiver" hidden></div>
                 <button class="role-go" type="submit">GO</button>
               </form>
             </div>
@@ -162,19 +174,25 @@
           <article class="role-card role-card-pro-only" data-role-card="remote-viewer" data-pro-only-card="remote-viewer" hidden>
             <div class="role-card-header">
               <button class="role-card-toggle" type="button" aria-expanded="false">
-                <span class="role-card-title">I Will Be a Remote Viewer</span>
+                <span class="role-card-title">I Will Remote View</span>
               </button>
-              <span class="role-card-level" data-pair-difficulty-label="remote-viewer">Level 1</span>
-              <span class="role-card-tagline">Skill: Guided mind's eye perception</span>
+              <div class="role-card-level-stack" data-role-difficulty-stack="remote-viewer">
+                <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="remote-viewer" data-direction="up" aria-label="Increase remote viewer pair difficulty">▲</button>
+                <span class="role-card-level" data-pair-difficulty-label="remote-viewer">Level 1</span>
+                <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="remote-viewer" data-direction="down" aria-label="Decrease remote viewer pair difficulty">▼</button>
+              </div>
+              <span class="role-card-tagline" data-role-skill-tagline="remote-viewer">Skill: Guided mind's eye perception</span>
             </div>
             <div class="role-card-body">
               <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
                 <div class="role-email-note" aria-label="Remote viewing guidance">
-                  <p>This skill requires the use of two devices. The remote device handle is used to uniquely identify that device. Put the remote device in another place. It is always ready for you to press, "I am ready to remote view." Then, after the countdown, try to see the cone arrangement it is displaying.</p>
+                  <p data-role-identifier-note="remote-viewer">This skill requires the use of two devices. The remote device handle is used to uniquely identify that device. Put the remote device in another place. It is always ready for you to press, "I am ready to remote view." Then, after the countdown, try to see the cone arrangement it is displaying.</p>
+                  <p><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">See here for choosing your unique handle.</button></p>
+                  <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
                   <div class="remote-viewer-label-row">
-                    <span class="role-field-label" data-remote-viewer-own-label>Your unique handle:</span>
+                    <span class="role-field-label" data-remote-viewer-own-label>You</span>
                     <label class="settings-view-checkbox remote-viewer-display-toggle">
                       <input type="checkbox" data-remote-viewer-display-device>
                       <span>check here if this is a remote viewing display device</span>
@@ -191,7 +209,7 @@
                   >
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-remote-viewer-partner-label>Unique Remote Device handle:</span>
+                  <span class="role-field-label" data-remote-viewer-partner-label>Remote Device</span>
                   <input
                     class="role-input"
                     type="text"
@@ -206,6 +224,7 @@
                   <span class="role-location-text">Location: unknown</span>
                   <button class="role-location-retry" type="button" data-retry-location="remote-viewer" hidden>Retry location</button>
                 </div>
+                <div class="role-difficulty-status" data-role-difficulty-status="remote-viewer" hidden></div>
                 <button class="role-go" type="button" data-remote-viewer-go>GO</button>
               </div>
             </div>
@@ -234,7 +253,7 @@
       <div class="handle-overlay beginner-view-hidden" data-handle-overlay>
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="handleDialogTitle">
           <h2 class="about-section-title" id="handleDialogTitle">Choose Unique Handle</h2>
-          <p class="about-section-copy">Choose a unique handle between 3 and 24 characters long using letters, numbers, period, underscore, or hyphen.</p>
+          <p class="about-section-copy">Choose a unique handle between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen.</p>
           <label class="settings-view-field">
             <span class="settings-view-label">Proposed unique handle</span>
             <input class="settings-view-input" type="text" autocomplete="off" spellcheck="false" data-handle-input placeholder="your-handle">
@@ -251,7 +270,7 @@
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-options>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-version">ver. 20260617n</span>
+          <span class="beginner-top-version">ver. 20260618ba</span>
         </div>
 
         <h1 class="beginner-title" id="optionsTitle">Options</h1>
@@ -260,7 +279,6 @@
         <div class="options-actions">
           <button class="options-button" type="button" data-open-help>Help</button>
           <button class="options-button" type="button" data-open-report>Performance Report</button>
-          <button class="options-button" type="button" data-open-difficulty>Change Difficulty Level</button>
           <button class="options-button" type="button" data-open-other-settings>Other Settings</button>
           <button class="options-button" type="button" data-open-go-pro>Go PRO</button>
           </div>
@@ -274,7 +292,7 @@
           </div>
 
           <h1 class="beginner-title" id="goProTitle">Go PRO</h1>
-          <p class="beginner-subtitle">Upgrade to Telepathy Beginner PRO for advanced features, expanded reports, and future premium training tools.</p>
+          <p class="beginner-subtitle">Upgrade to PRO for advanced features, expanded reports, premium training tools and community benefits.</p>
 
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
@@ -308,6 +326,7 @@
 
           <div class="options-actions">
             <button class="options-button" type="button" data-open-color-scheme>Color Scheme Picker</button>
+            <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO</button>
             <button
               class="options-button"
               type="button"
@@ -502,11 +521,14 @@
             <div class="settings-view-note" data-admin-storage-info></div>
             <div class="settings-view-status" data-admin-status></div>
 
+            <div class="admin-button-grid">
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
               <button class="options-button settings-view-save" type="button" data-open-user-type-admin>Assign user type</button>
-          <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260617n'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260618ba'">Send Email</button>
+            </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
             </section>
@@ -678,44 +700,6 @@
         </section>
       </section>
 
-      <section class="beginner-view beginner-view-hidden" data-view="difficulty" aria-labelledby="difficultyTitle">
-        <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-difficulty>BACK</button>
-          <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-spacer" aria-hidden="true"></span>
-        </div>
-
-        <h1 class="beginner-title" id="difficultyTitle">Difficulty Level</h1>
-        <p class="beginner-subtitle">Only the receiver of this sender-receiver pair can change the active difficulty level for telepathy practice.</p>
-
-        <div class="difficulty-panel">
-          <div class="difficulty-slider-wrap">
-            <div
-              class="difficulty-slider"
-              data-difficulty-slider
-              role="slider"
-              tabindex="0"
-              aria-label="Difficulty level"
-              aria-valuemin="1"
-              aria-valuemax="3"
-              aria-valuenow="3"
-            >
-              <div class="difficulty-slider-track"></div>
-              <div class="difficulty-slider-fill" data-difficulty-fill></div>
-              <div class="difficulty-slider-thumb" data-difficulty-thumb></div>
-            </div>
-            <div class="difficulty-label-row" aria-hidden="true">
-              <span>Level 1</span>
-              <span>Level 2</span>
-              <span>Level 3</span>
-            </div>
-          </div>
-          <div class="difficulty-current" data-difficulty-current>Level 3</div>
-          <p class="difficulty-description" data-difficulty-description>
-            In Level 3, one, two or three cones are sent. Try to specify exactly how many cones are sent and in what arrangement those cones are sent.
-          </p>
-        </div>
-      </section>
     </section>
   </main>
   <script>
@@ -730,7 +714,7 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="telepathybeginner.js?v=20260617n"></script>
+<script src="telepathybeginner.js?v=20260618ba"></script>
 </body>
 </html>
 

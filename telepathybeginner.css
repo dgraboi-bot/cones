@@ -278,12 +278,23 @@ body {
   grid-column: 1 / -1;
   margin: 0 0 2px;
   padding: 12px 14px;
+  min-height: 108px;
   border: 1px solid rgba(152, 196, 255, 0.28);
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.03);
   color: rgba(241, 246, 255, 0.9);
   cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, background 180ms ease;
+}
+
+.role-email-note.is-level-preview {
+  border-color: rgba(255, 186, 92, 0.55);
+  background: linear-gradient(180deg, rgba(255, 170, 72, 0.16), rgba(255, 138, 64, 0.08));
+  box-shadow:
+    inset 0 0 18px rgba(255, 178, 92, 0.08),
+    0 0 18px rgba(255, 166, 72, 0.08);
+  color: rgba(255, 236, 214, 0.98);
 }
 
 .role-email-note p {
@@ -294,6 +305,10 @@ body {
 
 .role-email-note p + p {
   margin-top: 6px;
+}
+
+.role-note-contact-wrap[hidden] {
+  display: none;
 }
 
 .remote-viewer-label-row {
@@ -425,10 +440,16 @@ body {
   outline: none;
 }
 
-.role-card-level {
+.role-card-level-stack {
   grid-area: level;
   justify-self: end;
   align-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.role-card-level {
   display: inline;
   color: rgba(255, 233, 210, 0.9);
   font-size: clamp(0.98rem, 1.8vw, 1.18rem);
@@ -438,7 +459,56 @@ body {
   cursor: inherit;
 }
 
+.role-card-level.is-guided-preview {
+  color: #fff4e1;
+  text-shadow:
+    0 0 10px rgba(255, 176, 84, 0.72),
+    0 0 18px rgba(255, 176, 84, 0.35);
+  animation: roleLevelPreviewPulse 1.3s ease-in-out 1;
+}
+
+.role-level-bump {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  color: rgba(255, 250, 244, 0.92);
+  font-size: 0.78rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.role-card.active .role-level-bump {
+  display: inline-flex;
+}
+
+.role-level-bump:hover,
+.role-level-bump:focus-visible {
+  background: linear-gradient(180deg, var(--brand-top-hover), var(--brand-bottom-hover));
+  outline: none;
+}
+
 .role-card-level-hidden {
+  visibility: hidden;
+}
+
+.role-difficulty-status {
+  min-height: 1.45em;
+  color: rgba(255, 240, 228, 0.88);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.role-difficulty-status.is-error {
+  color: #ffd6d6;
+}
+
+.role-card.role-card-level-adjusting .role-go {
   visibility: hidden;
 }
 
@@ -602,6 +672,21 @@ body {
 .role-card-toggle:focus-visible {
   outline: none;
   filter: brightness(1.04);
+}
+
+@keyframes roleLevelPreviewPulse {
+  0% {
+    transform: translateY(0);
+    opacity: 0.88;
+  }
+  35% {
+    transform: translateY(-1px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .name-manager-overlay {
@@ -768,10 +853,13 @@ body {
     font-size: 0.9rem;
   }
 
-  .role-card-level {
+  .role-card-level-stack {
     justify-self: end;
-    white-space: nowrap;
     align-self: center;
+  }
+
+  .role-card-level {
+    white-space: nowrap;
     font-size: 0.95rem;
   }
 
@@ -1371,6 +1459,24 @@ body {
   width: min(100%, 320px);
 }
 
+.admin-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.admin-button-grid .settings-view-save {
+  width: 100%;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .admin-button-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .user-type-admin-actions {
   display: flex;
   justify-content: center;
@@ -1527,106 +1633,6 @@ body {
   margin-top: 4px;
   font-size: 0.82em;
   opacity: 0.88;
-}
-
-.difficulty-panel {
-  width: min(100%, 620px);
-  margin: 38px auto 0;
-  padding: 28px 26px 14px;
-  border: 1px solid var(--brand-surface-border);
-  border-radius: 26px;
-  background:
-    linear-gradient(180deg, var(--brand-surface-top), var(--brand-surface-bottom)),
-    var(--brand-surface-base);
-}
-
-.difficulty-slider-wrap {
-  display: grid;
-  gap: 14px;
-}
-
-.difficulty-slider {
-  position: relative;
-  width: 100%;
-  cursor: pointer;
-  height: 34px;
-  touch-action: none;
-}
-
-.difficulty-slider:focus-visible {
-  outline: none;
-}
-
-.difficulty-slider-track {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  top: 50%;
-  height: 6px;
-  transform: translateY(-50%);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-.difficulty-slider-fill {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  height: 6px;
-  width: 0;
-  transform: translateY(-50%);
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--brand-track-top), var(--brand-track-bottom));
-  box-shadow: 0 0 10px var(--brand-focus);
-  pointer-events: none;
-}
-
-.difficulty-slider-thumb {
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--brand-thumb);
-  box-shadow:
-    0 0 0 3px rgba(255, 243, 232, 0.16),
-    0 3px 10px rgba(0, 0, 0, 0.35);
-}
-
-.difficulty-slider.is-dragging .difficulty-slider-thumb,
-.difficulty-slider:focus-visible .difficulty-slider-thumb {
-  box-shadow:
-    0 0 0 4px rgba(255, 243, 232, 0.22),
-    0 4px 14px rgba(0, 0, 0, 0.42);
-}
-
-.difficulty-label-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  color: var(--muted);
-  font-size: 0.98rem;
-  text-align: center;
-  padding: 0;
-}
-
-.difficulty-current {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 1.24rem;
-  font-weight: 700;
-}
-
-.difficulty-description {
-  margin: 16px 0 0;
-  min-height: 5.2em;
-  color: rgba(248, 240, 232, 0.9);
-  font-size: 1.02rem;
-  line-height: 1.6;
-  text-align: center;
 }
 
 @media (max-width: 760px) {

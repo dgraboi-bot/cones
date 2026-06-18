@@ -36,7 +36,17 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v4";
-  const runtimeBuildVersion = "20260617n";
+  const runtimeBuildVersion = "20260618ba";
+  const runtimeQuery = (() => {
+    try {
+      return new URLSearchParams(window.location.search);
+    } catch (error) {
+      return new URLSearchParams();
+    }
+  })();
+  const runtimeMode = String(runtimeQuery.get("runtime_mode") || "").trim().toLowerCase();
+  const isRemoteViewerMode = runtimeMode === "remote-viewer";
+  const isRemoteDisplayMode = runtimeMode === "remote-display";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -159,6 +169,48 @@
   const levelOneTargetLayoutNumbers = [1, 6, 7, 8, 9];
   const levelOneManyLayoutNumbers = [6, 7, 8, 9];
 
+  function getWaitingOnlinePrompt() {
+    if (role === "sender") {
+      return isRemoteDisplayMode
+        ? "Waiting for remote viewer to be online..."
+        : "Waiting for receiver to be online...";
+    }
+
+    return isRemoteViewerMode
+      ? "Waiting for remote viewer display to be online..."
+      : "Waiting for sender to be online...";
+  }
+
+  function getWaitingReadyPrompt() {
+    return isRemoteDisplayMode
+      ? "Waiting for remote viewer to be ready..."
+      : "Waiting for the receiver to be ready...";
+  }
+
+  function getSenderReadyPrompt() {
+    return isRemoteDisplayMode
+      ? "Remote viewer ready. Display begins shortly..."
+      : "Receiver ready. Press when ready to send.";
+  }
+
+  function getReceiverPressReadyPrompt() {
+    return isRemoteViewerMode
+      ? "Press when ready to remote view."
+      : "Press when ready to receive.";
+  }
+
+  function getReceiverWaitingStartPrompt() {
+    return isRemoteViewerMode
+      ? "Waiting for remote viewer display to begin..."
+      : "Waiting for sender to begin...";
+  }
+
+  function getReceiverDonePrompt() {
+    return isRemoteViewerMode
+      ? "Press here when done remote viewing."
+      : "Press here when done receiving.";
+  }
+
   function detectRuntimePlatform() {
     const ua = navigator.userAgent || "";
     const platform = navigator.platform || "";
@@ -219,6 +271,7 @@
       "sender-waiting-online",
       "receiver-waiting-online",
       "sender-waiting-ready",
+      "sender-ready",
       "receiver-ready"
     ].includes(currentUiMode);
 
@@ -1431,8 +1484,37 @@
     countdownBox.classList.add("hidden");
   }
 
-  function navigateToBeginnerFrontPage() {
-    window.location.href = "telepathybeginner.html";
+  function getLauncherReturnRole() {
+    if (isRemoteViewerMode || isRemoteDisplayMode) {
+      return "remote-viewer";
+    }
+    return role === "sender" ? "sender" : "receiver";
+  }
+
+  function buildLauncherReturnUrl(options = {}) {
+    const params = new URLSearchParams();
+    params.set("v", runtimeBuildVersion);
+    const requestedOpen = String(options.open || getLauncherReturnRole()).trim().toLowerCase();
+    if (requestedOpen) {
+      params.set("open", requestedOpen);
+    }
+
+    const settings = readSettings();
+    if (settings.own_email || settings.partner_email) {
+      params.set("prefill", "1");
+      if (settings.own_email) {
+        params.set("own_email", settings.own_email);
+      }
+      if (settings.partner_email) {
+        params.set("partner_email", settings.partner_email);
+      }
+    }
+
+    return `telepathybeginner.html?${params.toString()}`;
+  }
+
+  function navigateToBeginnerFrontPage(options = {}) {
+    window.location.href = buildLauncherReturnUrl(options);
   }
 
   function showExitedState() {
@@ -1730,14 +1812,14 @@
     return data;
   }
 
-  async function abortTrialAndReturnHome() {
+  async function abortTrialAndReturnHome(options = {}) {
     try {
       const response = await api("abort_to_home");
       await appendTrialServerRecord(response?.state || {}, { aborted: true });
     } catch (error) {
       // Ignore abort sync failures and still return home locally.
     } finally {
-      navigateToBeginnerFrontPage();
+      navigateToBeginnerFrontPage(options);
     }
   }
 
@@ -2961,7 +3043,7 @@
   }
 
   function normalizeDifficultyLevel(level) {
-    return ["1", "2", "3"].includes(String(level || "")) ? String(level) : "1";
+    return ["1", "2", "3", "4", "5"].includes(String(level || "")) ? String(level) : "1";
   }
 
   function getTargetCandidateLayoutNumbers() {
@@ -3038,7 +3120,7 @@
 
     currentUiMode = "receiver-waiting-start";
     hideStage();
-    setPrompt("Waiting for sender to begin...", false);
+    setPrompt(getReceiverWaitingStartPrompt(), false);
     updateSettingsGearVisibility();
   }
 
@@ -3133,7 +3215,8 @@
     awaitingReceiverDone = true;
     currentUiMode = "receiver-done";
     receiverPressedDoneEarly = false;
-    setPrompt("Press here when done receiving.", true, "Press here when done receiving.");
+    const prompt = getReceiverDonePrompt();
+    setPrompt(prompt, true, prompt);
     updateSettingsGearVisibility();
   }
 
@@ -3150,7 +3233,7 @@
     countdownBox.classList.add("interactive");
     countdownBox.setAttribute("role", "button");
     countdownBox.setAttribute("tabindex", "0");
-    countdownBox.setAttribute("aria-label", "Press here when done receiving.");
+    countdownBox.setAttribute("aria-label", getReceiverDonePrompt());
     receiverPressedDoneEarly = false;
     playReceiverBeep();
     updateSettingsGearVisibility();
@@ -3514,6 +3597,9 @@
     }
 
     if (postRound.receiver_choice === "enough") {
+      if (isRemoteDisplayMode && !postRound.sender_choice) {
+        void submitPostRoundChoice("enough");
+      }
       showMessagePanel("The receiver has had enough.", [
         {
           label: "CONTINUE",
@@ -3535,6 +3621,10 @@
           });
       }
       return true;
+    }
+
+    if (isRemoteDisplayMode && !postRound.sender_choice) {
+      void submitPostRoundChoice("another");
     }
 
     showMessagePanel("The receiver can receive another image.", [
@@ -3827,7 +3917,8 @@
       }
     } catch (error) {
       localRoundRunning = false;
-      setPrompt("Unable to start. Please try again.", true, "Press when ready to send");
+      const prompt = isRemoteDisplayMode ? "Unable to start display. Please try again." : "Unable to start. Please try again.";
+      setPrompt(prompt, !isRemoteDisplayMode, isRemoteDisplayMode ? prompt : "Press when ready to send");
       currentUiMode = "sender-ready";
     }
   }
@@ -3937,31 +4028,33 @@
     hideStage();
 
     if (mode === "sender-waiting-online") {
-      setPrompt("Waiting for receiver to be online...", false);
+      setPrompt(getWaitingOnlinePrompt(), false);
       updateSettingsGearVisibility();
       return;
     }
 
     if (mode === "sender-waiting-ready") {
-      setPrompt("Waiting for the receiver to be ready...", false);
+      setPrompt(getWaitingReadyPrompt(), false);
       updateSettingsGearVisibility();
       return;
     }
 
     if (mode === "sender-ready") {
-      setPrompt("Receiver ready. Press when ready to send.", true, "Receiver ready. Press when ready to send.");
+      const prompt = getSenderReadyPrompt();
+      setPrompt(prompt, !isRemoteDisplayMode, prompt);
       updateSettingsGearVisibility();
       return;
     }
 
     if (mode === "receiver-waiting-online") {
-      setPrompt("Waiting for sender to be online...", false);
+      setPrompt(getWaitingOnlinePrompt(), false);
       updateSettingsGearVisibility();
       return;
     }
 
     if (mode === "receiver-ready") {
-      setPrompt("Press when ready to receive.", true, "Press when ready to receive");
+      const prompt = getReceiverPressReadyPrompt();
+      setPrompt(prompt, true, prompt);
       updateSettingsGearVisibility();
       return;
     }
@@ -4087,6 +4180,9 @@
       }
 
       setUiMode("sender-ready");
+      if (isRemoteDisplayMode && !localRoundRunning && !roundScheduled && !senderHoldingResult) {
+        void startSenderRound();
+      }
       return;
     }
 
@@ -4131,11 +4227,7 @@
       applyRemoteState(payload);
     } catch (error) {
       if (!localRoundRunning && !roundScheduled) {
-        if (role === "sender") {
-          setPrompt("Waiting for receiver to be online...", false);
-        } else {
-          setPrompt("Waiting for sender to be online...", false);
-        }
+        setPrompt(getWaitingOnlinePrompt(), false);
       }
     }
   }
@@ -4165,13 +4257,22 @@
     async function boot() {
       void traceClientEvent("boot_client", {
         role,
-        page: role === "sender" ? "sender.html" : "receiver.html"
+        page: role === "sender" ? "sender.html" : "receiver.html",
+        runtime_mode: runtimeMode
       });
-      countdownBox.addEventListener("click", handleActionPress);
+      if (isRemoteDisplayMode) {
+        document.title = "Cones Remote Viewing Display";
+      } else if (isRemoteViewerMode) {
+        document.title = "Cones Remote Viewer";
+      }
+    countdownBox.addEventListener("click", handleActionPress);
     countdownBox.addEventListener("keydown", handleActionKeydown);
     settingsGear?.addEventListener("click", openSettings);
     waitingBackButton?.addEventListener("click", () => {
-      navigateToBeginnerFrontPage();
+      noteUserInteraction();
+      void abortTrialAndReturnHome({
+        open: getLauncherReturnRole()
+      });
     });
     homeLink?.addEventListener("click", (event) => {
       event.preventDefault();
