@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-18T00:00:00Z",
+  "pairs": [
+    {
+      "id": "pair-0001",
+      "images": [
+        "1707.jpg",
+        "4162.jpg"
+      ]
+    },
+    {
+      "id": "pair-0002",
+      "images": [
+        "1295.jpg",
+        "1828.jpg"
+      ]
+    },
+    {
+      "id": "pair-0003",
+      "images": [
+        "1981.jpg",
+        "2075.jpg"
+      ]
+    },
+    {
+      "id": "pair-0004",
+      "images": [
+        "1157.jpg",
+        "2062.jpg"
+      ]
+    },
+    {
+      "id": "pair-0005",
+      "images": [
+        "2214.jpg",
+        "3175.jpg"
+      ]
+    },
+    {
+      "id": "pair-0006",
+      "images": [
+        "1542.jpg",
+        "4228.jpg"
+      ]
+    },
+    {
+      "id": "pair-0007",
+      "images": [
+        "1532.jpg",
+        "1676.jpg"
+      ]
+    },
+    {
+      "id": "pair-0008",
+      "images": [
+        "1025.jpg",
+        "2847.jpg"
+      ]
+    },
+    {
+      "id": "pair-0009",
+      "images": [
+        "1805.jpg",
+        "825.jpg"
+      ]
+    },
+    {
+      "id": "pair-0010",
+      "images": [
+        "2182.jpg",
+        "688.jpg"
+      ]
+    },
+    {
+      "id": "pair-0011",
+      "images": [
+        "1923.jpg",
+        "772.jpg"
+      ]
+    },
+    {
+      "id": "pair-0012",
+      "images": [
+        "969.jpg",
+        "989.jpg"
+      ]
+    },
+    {
+      "id": "pair-0013",
+      "images": [
+        "1131.jpg",
+        "934.jpg"
+      ]
+    },
+    {
+      "id": "pair-0014",
+      "images": [
+        "2761.jpg",
+        "2839.jpg"
+      ]
+    }
+  ]
+}

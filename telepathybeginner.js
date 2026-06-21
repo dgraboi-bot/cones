@@ -14,7 +14,11 @@
   const goProView = document.querySelector('[data-view="go-pro"]');
   const otherSettingsView = document.querySelector('[data-view="other-settings"]');
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
+  const blinkBehaviorView = document.querySelector('[data-view="blink-behavior"]');
   const userTypeAdminView = document.querySelector('[data-view="user-type-admin"]');
+  const handleUpdateAdminView = document.querySelector('[data-view="handle-update-admin"]');
+  const imagePairAdminView = document.querySelector('[data-view="image-pair-admin"]');
+  const subscriptionEmailAdminView = document.querySelector('[data-view="subscription-email-admin"]');
   const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
@@ -28,20 +32,35 @@
   const beginnerPanel = document.querySelector(".beginner-panel");
   const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
+  const appVersionLabel = document.querySelector("[data-app-version-label]");
   const closeOptionsButton = document.querySelector("[data-close-options]");
   const openHelpButton = document.querySelector("[data-open-help]");
   const openToolsButtons = Array.from(document.querySelectorAll("[data-open-tools]"));
   const openGoProButton = document.querySelector("[data-open-go-pro]");
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
+  const openBlinkBehaviorButton = document.querySelector("[data-open-blink-behavior]");
   const cancelProButton = document.querySelector("[data-cancel-pro]");
   const openUserTypeAdminButton = document.querySelector("[data-open-user-type-admin]");
+  const openHandleUpdateAdminButton = document.querySelector("[data-open-handle-update-admin]");
+  const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
+  const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
+  const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
+  const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
   const closeHelpButton = document.querySelector("[data-close-help]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
   const closeGoProButton = document.querySelector("[data-close-go-pro]");
+  const goProMonthlyButton = document.querySelector("[data-go-pro-monthly]");
+  const goProAnnualButton = document.querySelector("[data-go-pro-annual]");
+  const goProStatus = document.querySelector("[data-go-pro-status]");
+  const goProIdentifierNote = document.querySelector("[data-go-pro-identifier-note]");
   const closeOtherSettingsButton = document.querySelector("[data-close-other-settings]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
+  const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
   const closeUserTypeAdminButton = document.querySelector("[data-close-user-type-admin]");
+  const closeHandleUpdateAdminButton = document.querySelector("[data-close-handle-update-admin]");
+  const closeImagePairAdminButton = document.querySelector("[data-close-image-pair-admin]");
+  const closeSubscriptionEmailAdminButton = document.querySelector("[data-close-subscription-email-admin]");
   const closeAdminUserListButton = document.querySelector("[data-close-admin-user-list]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const closeContactButton = document.querySelector("[data-close-contact]");
@@ -59,6 +78,7 @@
   const reportPairMenu = document.querySelector("[data-report-pair-menu]");
   const reportPairOptions = document.querySelector("[data-report-pair-options]");
   const reportGoButton = document.querySelector("[data-report-go]");
+  const reportGlobeButton = document.querySelector("[data-report-globe]");
   const reportVisualizeButton = document.querySelector("[data-report-visualize]");
   const reportAnalyzeButton = document.querySelector("[data-report-analyze]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
@@ -95,6 +115,7 @@
   const difficultyStacks = Array.from(document.querySelectorAll("[data-role-difficulty-stack]"));
   const difficultyBumpButtons = Array.from(document.querySelectorAll("[data-role-difficulty-bump]"));
   const difficultyStatusBlocks = Array.from(document.querySelectorAll("[data-role-difficulty-status]"));
+  const prominentDifficultyStatusBlocks = Array.from(document.querySelectorAll("[data-role-difficulty-status-prominent]"));
   const settingsCurrentPair = document.querySelector("[data-settings-current-pair]");
   const settingsSecondChoiceCheckbox = document.querySelector("[data-settings-second-choice]");
   const settingsImportFilenameInput = document.querySelector("[data-settings-import-filename]");
@@ -108,16 +129,40 @@
   const colorSchemeStatus = document.querySelector("[data-color-scheme-status]");
   const saveColorSchemeButton = document.querySelector("[data-save-color-scheme]");
   const resetColorSchemeButton = document.querySelector("[data-reset-color-scheme]");
+  const blinkEnabledCheckbox = document.querySelector("[data-blink-enabled]");
+  const blinkOnSecondsInput = document.querySelector("[data-blink-on-seconds]");
+  const blinkOffSecondsInput = document.querySelector("[data-blink-off-seconds]");
+  const blinkStatus = document.querySelector("[data-blink-status]");
   const contactStatus = document.querySelector("[data-contact-status]");
   const contactSendButton = document.querySelector("[data-contact-send]");
   const contactCancelButton = document.querySelector("[data-contact-cancel]");
   const adminDebugEnabledCheckbox = document.querySelector("[data-admin-debug-enabled]");
+  const adminSubscriptionEmailsEnabledCheckbox = document.querySelector("[data-admin-subscription-emails-enabled]");
+  const adminSubscriptionRemindersEnabledCheckbox = document.querySelector("[data-admin-subscription-reminders-enabled]");
+  const adminEasyAdminEnabledCheckbox = document.querySelector("[data-admin-easy-admin-enabled]");
   const userTypeHandleInput = document.querySelector("[data-user-type-handle]");
   const userTypeStatus = document.querySelector("[data-user-type-status]");
   const userTypeOptionsWrap = document.querySelector("[data-user-type-options-wrap]");
   const userTypeChoiceButtons = Array.from(document.querySelectorAll("[data-user-type-choice-button]"));
   const userTypeSaveButton = document.querySelector("[data-user-type-save]");
   const userTypeClearButton = document.querySelector("[data-user-type-clear]");
+  const handleUpdateOldInput = document.querySelector("[data-handle-update-old]");
+  const handleUpdateNewInput = document.querySelector("[data-handle-update-new]");
+  const handleUpdateSummary = document.querySelector("[data-handle-update-summary]");
+  const handleUpdateStatus = document.querySelector("[data-handle-update-status]");
+  const handleUpdateSaveButton = document.querySelector("[data-handle-update-save]");
+  const imagePairFileInputA = document.querySelector("[data-image-pair-file-a]");
+  const imagePairFileInputB = document.querySelector("[data-image-pair-file-b]");
+  const imagePairPreviewA = document.querySelector("[data-image-pair-preview-a]");
+  const imagePairPreviewB = document.querySelector("[data-image-pair-preview-b]");
+  const imagePairStatus = document.querySelector("[data-image-pair-status]");
+  const imagePairSubmitButton = document.querySelector("[data-image-pair-submit]");
+  const subscriptionEmailTemplateButtons = Array.from(document.querySelectorAll("[data-subscription-email-template-button]"));
+  const subscriptionEmailAdminStatus = document.querySelector("[data-subscription-email-admin-status]");
+  const subscriptionEmailSubjectInput = document.querySelector("[data-subscription-email-subject]");
+  const subscriptionEmailBodyInput = document.querySelector("[data-subscription-email-body]");
+  const subscriptionEmailLogOutput = document.querySelector("[data-subscription-email-log-output]");
+  const subscriptionEmailSaveButton = document.querySelector("[data-subscription-email-save]");
   const adminStorageInfo = document.querySelector("[data-admin-storage-info]");
   const adminStatus = document.querySelector("[data-admin-status]");
   const adminClearDebugLogButton = document.querySelector("[data-admin-clear-debug-log]");
@@ -151,28 +196,53 @@
   let difficultyLabelToken = 0;
   let selectedReportPair = null;
   let availableReportPairs = [];
+  let pendingOpenReportPair = null;
   let reportCsvRecordsCache = [];
   let reportCsvPathCache = "";
   const analysisStorageKey = "cones-results-analyzer-v1";
+  const demoReportPairKeys = new Set([
+    "demo.globe.receiver@espgym.com|||demo.globe.sender@espgym.com",
+    "demo.mixed.level12.receiver@espgym.com|||demo.mixed.level12.sender@espgym.com",
+    "demo.random.level2.receiver@espgym.com|||demo.random.level2.sender@espgym.com",
+    "demo.random.level3.receiver@espgym.com|||demo.random.level3.sender@espgym.com"
+  ]);
   let activeReportResize = null;
   let activeReportViewPan = null;
   let launcherAdminSecret = "";
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
+  let stripePublicConfigCache = null;
+  let stripeCheckoutInFlight = false;
   let currentUserTypeAdminHandle = "";
+  let handleUpdateLookupTimer = null;
+  let pendingHandleUpdateLookupToken = 0;
   let userTypeLookupTimer = null;
   let pendingUserTypeSelection = "standard";
+  let imagePairPreviewUrlA = "";
+  let imagePairPreviewUrlB = "";
+  let activeSubscriptionEmailTemplateKey = "welcome";
+  const stripeReturnIdentifierStorageKey = "cones-stripe-return-identifier-v1";
   let launcherAdminState = {
       debug_enabled: false,
+      subscription_emails_enabled: false,
+      subscription_reminders_enabled: false,
+      easy_admin_enabled: false,
       storage: null,
       debug_log: null,
+      subscription_email_log: null,
+      subscription_email_templates: null,
       user_trial_summary: null,
       user_trial_summary_meta: null,
       disk_usage_analysis: null
     };
-  const launcherBuildVersion = "20260618ba";
+  const launcherBuildVersion = "20260620au";
   const defaultThemeColor = "#3160b0";
+  const defaultBlinkSettings = Object.freeze({
+    enabled: false,
+    onSeconds: "0.35",
+    offSeconds: "0.8"
+  });
   const difficultyExplanationCopy = {
     1: "In Level 1, simply decide whether the sender is sending one cone or three cones.",
     2: "In Level 2, when there are three cones, try also to specify whether they are arranged horizontally, vertically, or diagonally running up or down from left to right.",
@@ -244,7 +314,10 @@
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
-        remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice
+        remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
+        blinkSenderImage: !!parsed?.blinkSenderImage,
+        blinkImageOnSeconds: typeof parsed?.blinkImageOnSeconds === "string" ? parsed.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
+        blinkImageOffSeconds: typeof parsed?.blinkImageOffSeconds === "string" ? parsed.blinkImageOffSeconds : defaultBlinkSettings.offSeconds
       };
     } catch (error) {
       return {
@@ -258,7 +331,10 @@
         identifierStatusMap: {},
         themeColor: defaultThemeColor,
         difficultyLevel: "1",
-        remoteViewerDisplayDevice: false
+        remoteViewerDisplayDevice: false,
+        blinkSenderImage: defaultBlinkSettings.enabled,
+        blinkImageOnSeconds: defaultBlinkSettings.onSeconds,
+        blinkImageOffSeconds: defaultBlinkSettings.offSeconds
       };
     }
   }
@@ -391,6 +467,63 @@
     return latest.themeColor;
   }
 
+  function normalizeBlinkSecondsValue(value, fallback) {
+    const text = String(value ?? "").trim();
+    if (!text) {
+      return fallback;
+    }
+    const numeric = Number(text);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+    const clamped = clamp(numeric, 0.05, 30);
+    return clamped.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
+  function getBlinkBehaviorSettings(state = readLauncherState()) {
+    return {
+      enabled: !!state?.blinkSenderImage,
+      onSeconds: normalizeBlinkSecondsValue(state?.blinkImageOnSeconds, defaultBlinkSettings.onSeconds),
+      offSeconds: normalizeBlinkSecondsValue(state?.blinkImageOffSeconds, defaultBlinkSettings.offSeconds)
+    };
+  }
+
+  function renderBlinkBehaviorView() {
+    const settings = getBlinkBehaviorSettings();
+    if (blinkEnabledCheckbox) {
+      blinkEnabledCheckbox.checked = settings.enabled;
+    }
+    if (blinkOnSecondsInput) {
+      blinkOnSecondsInput.value = settings.onSeconds;
+    }
+    if (blinkOffSecondsInput) {
+      blinkOffSecondsInput.value = settings.offSeconds;
+    }
+    if (blinkStatus) {
+      blinkStatus.textContent = "";
+    }
+  }
+
+  function persistBlinkBehaviorView({ showMessage = true } = {}) {
+    const latest = readLauncherState();
+    latest.blinkSenderImage = !!blinkEnabledCheckbox?.checked;
+    latest.blinkImageOnSeconds = normalizeBlinkSecondsValue(blinkOnSecondsInput?.value, defaultBlinkSettings.onSeconds);
+    latest.blinkImageOffSeconds = normalizeBlinkSecondsValue(blinkOffSecondsInput?.value, defaultBlinkSettings.offSeconds);
+    writeLauncherState(latest);
+
+    if (blinkOnSecondsInput) {
+      blinkOnSecondsInput.value = latest.blinkImageOnSeconds;
+    }
+    if (blinkOffSecondsInput) {
+      blinkOffSecondsInput.value = latest.blinkImageOffSeconds;
+    }
+    if (blinkStatus && showMessage) {
+      blinkStatus.textContent = latest.blinkSenderImage
+        ? `Blink behavior saved. ON ${latest.blinkImageOnSeconds}s, OFF ${latest.blinkImageOffSeconds}s.`
+        : "Blink behavior saved. Sender image blinking is off.";
+    }
+  }
+
   function buildReportRequestPayload() {
     const payload = {
       action: "report_csv_data"
@@ -460,6 +593,97 @@
     };
   }
 
+  function getCurrentReportPairForGlobe() {
+    if (!selectedReportPair?.receiverName || !selectedReportPair?.senderName) {
+      return null;
+    }
+
+    return {
+      key: selectedReportPair.key || buildPairMatchKey(selectedReportPair.receiverName, selectedReportPair.senderName),
+      pairKey: selectedReportPair.key || buildPairMatchKey(selectedReportPair.receiverName, selectedReportPair.senderName),
+      receiverId: String(selectedReportPair.receiverName || "").trim(),
+      senderId: String(selectedReportPair.senderName || "").trim(),
+      receiverLabel: String(selectedReportPair.receiverName || "").trim(),
+      senderLabel: String(selectedReportPair.senderName || "").trim(),
+      sessionCode: String(selectedReportPair.sessionCode || "").trim()
+    };
+  }
+
+  function getCurrentGlobeLaunchOptions() {
+    return {
+      minTrials: 1,
+      includeIncomplete: false,
+      grouping: "rounded",
+      roundingDecimals: 3
+    };
+  }
+
+  function buildStandaloneModuleUrl(modulePath, params = {}) {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") {
+        return;
+      }
+      search.set(key, String(value));
+    });
+    return `${modulePath}?${search.toString()}`;
+  }
+
+  function buildAbsoluteModuleUrl(modulePath, params = {}) {
+    const baseUrl = new URL(modulePath, window.location.href);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") {
+        return;
+      }
+      baseUrl.searchParams.set(key, String(value));
+    });
+    return baseUrl.toString();
+  }
+
+  function buildCanonicalLauncherUrl(params = {}) {
+    return buildStandaloneModuleUrl("telepathybeginner.html", {
+      v: launcherBuildVersion,
+      ...params
+    });
+  }
+
+  function buildGlobeVisualizationUrl(pairState, options = {}) {
+    const returnUrl = buildAbsoluteModuleUrl("telepathybeginner.html", {
+      v: launcherBuildVersion,
+      open: "report-definition",
+      report_receiver: pairState?.receiverId || "",
+      report_sender: pairState?.senderId || "",
+      report_session_code: pairState?.sessionCode || ""
+    });
+    return buildStandaloneModuleUrl("globe/index.html", {
+      v: launcherBuildVersion,
+      return_url: returnUrl,
+      pair_key: pairState?.pairKey || pairState?.key || "",
+      receiver_id: pairState?.receiverId || "",
+      sender_id: pairState?.senderId || "",
+      session_code: pairState?.sessionCode || "",
+      min_trials: Number.isFinite(Number(options.minTrials)) ? Number(options.minTrials) : 1,
+      include_incomplete: options.includeIncomplete ? 1 : 0,
+      group_by: options.grouping || "rounded",
+      rounding_decimals: Number.isFinite(Number(options.roundingDecimals)) ? Number(options.roundingDecimals) : 3
+    });
+  }
+
+  function openGlobeVisualization(pairState, options = {}) {
+    window.location.href = buildGlobeVisualizationUrl(pairState, options);
+  }
+
+  function handleGlobeLaunchClick() {
+    const pairState = getCurrentReportPairForGlobe();
+    if (!pairState) {
+      if (reportDefinitionStatus) {
+        reportDefinitionStatus.textContent = "Choose a receiver-sender pair before opening the globe.";
+      }
+      return;
+    }
+    openGlobeVisualization(pairState, getCurrentGlobeLaunchOptions());
+  }
+
   async function fetchLauncherProfile(role, ownEmail) {
     const payload = sanitizeLauncherProfileForServer(role, ownEmail, {
       currentPartner: "",
@@ -519,10 +743,76 @@
     return String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
   }
 
+  async function fetchStripePublicConfig() {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_stripe_public_config"
+      })
+    });
+
+    const data = await parseApiResponse(response, `Stripe configuration request failed with status ${response.status}`);
+    return data?.stripe || null;
+  }
+
+  function storePendingStripeReturnIdentifier(identifier) {
+    const cleanIdentifier = String(identifier || "").trim();
+    try {
+      if (!cleanIdentifier) {
+        window.localStorage.removeItem(stripeReturnIdentifierStorageKey);
+        return;
+      }
+      window.localStorage.setItem(stripeReturnIdentifierStorageKey, cleanIdentifier);
+    } catch (_) {
+      // Ignore storage write failures and continue with checkout.
+    }
+  }
+
+  function readPendingStripeReturnIdentifier() {
+    try {
+      return String(window.localStorage.getItem(stripeReturnIdentifierStorageKey) || "").trim();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function clearPendingStripeReturnIdentifier() {
+    try {
+      window.localStorage.removeItem(stripeReturnIdentifierStorageKey);
+    } catch (_) {
+      // Ignore storage cleanup failures.
+    }
+  }
+
+  async function createStripeCheckoutSession(plan, appUserIdentifier) {
+    const cleanPlan = String(plan || "").trim().toLowerCase();
+    if (!["monthly", "annual"].includes(cleanPlan)) {
+      throw new Error("Subscription plan is invalid.");
+    }
+    const cleanIdentifier = assertValidParticipantIdentifier(appUserIdentifier, "app user identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "create_stripe_checkout_session",
+        app_user_identifier: cleanIdentifier,
+        plan: cleanPlan
+      })
+    });
+
+    const data = await parseApiResponse(response, `Stripe checkout request failed with status ${response.status}`);
+    return data?.checkout || null;
+  }
+
   async function assignUserType(userHandle, userType) {
     const cleanHandle = String(userHandle || "").replace(/\s+/g, " ").trim();
-    if (!isValidUniqueHandle(cleanHandle)) {
-      throw new Error("User handle is invalid.");
+    if (!isValidParticipantIdentifier(cleanHandle)) {
+      throw new Error("User identifier is invalid.");
     }
     const normalizedType = String(userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
     const response = await fetch("api.php", {
@@ -532,7 +822,7 @@
       },
       body: JSON.stringify({
         action: "set_user_type",
-        user_handle: cleanHandle,
+        user_identifier: cleanHandle,
         user_type: normalizedType,
         secret_candidate: launcherAdminSecret
       })
@@ -543,6 +833,58 @@
       rememberIdentifierStatus(cleanHandle, data.identifier_status);
     }
     return String(data?.user_type || normalizedType).trim().toLowerCase() === "pro" ? "pro" : "standard";
+  }
+
+  async function adminUpdateHandle(previousHandle, newHandle) {
+    const cleanPreviousHandle = String(previousHandle || "").replace(/\s+/g, " ").trim();
+    const cleanNewHandle = String(newHandle || "").replace(/\s+/g, " ").trim();
+    if (!isValidUniqueHandle(cleanPreviousHandle)) {
+      throw new Error("Current handle is invalid.");
+    }
+    if (!isValidUniqueHandle(cleanNewHandle)) {
+      throw new Error("New handle is invalid.");
+    }
+
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "admin_update_handle",
+        previous_handle: cleanPreviousHandle,
+        new_handle: cleanNewHandle,
+        secret_candidate: launcherAdminSecret
+      })
+    });
+
+    const data = await parseApiResponse(response, `Handle update failed with status ${response.status}`);
+    if (data?.identifier_status) {
+      rememberIdentifierStatus(cleanNewHandle, data.identifier_status);
+    }
+    return data?.handle_update || null;
+  }
+
+  async function fetchHandleAdminSummary(handle) {
+    const cleanHandle = String(handle || "").replace(/\s+/g, " ").trim();
+    if (!isValidUniqueHandle(cleanHandle)) {
+      throw new Error("Handle is invalid.");
+    }
+
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_handle_admin_summary",
+        handle: cleanHandle,
+        secret_candidate: launcherAdminSecret
+      })
+    });
+
+    const data = await parseApiResponse(response, `Handle summary request failed with status ${response.status}`);
+    return data?.handle_summary || null;
   }
 
   async function claimUniqueHandle(currentIdentifier, proposedHandle) {
@@ -608,6 +950,14 @@
   function isValidUniqueHandle(value) {
     const text = String(value || "").replace(/\s+/g, " ").trim();
     return /^[A-Za-z0-9](?:[A-Za-z0-9._ -]{1,22}[A-Za-z0-9])?$/.test(text);
+  }
+
+  function isValidParticipantIdentifier(value) {
+    const text = String(value || "").trim();
+    if (!text || text.length > 254) {
+      return false;
+    }
+    return isValidEmailAddress(text) || isValidUniqueHandle(text);
   }
 
   function assertValidEmailIdentifier(value, fieldName, options = {}) {
@@ -719,6 +1069,10 @@
 
   function buildPairMatchKey(receiverName, senderName) {
     return `${normalizePersonNameForPairMatch(receiverName)}|||${normalizePersonNameForPairMatch(senderName)}`;
+  }
+
+  function isDemoReportPair(receiverName, senderName) {
+    return demoReportPairKeys.has(buildPairMatchKey(receiverName, senderName));
   }
 
   function escapeHtml(value) {
@@ -1199,6 +1553,24 @@
     return !!data?.admin_secret_match;
   }
 
+  async function fetchAdminAccessMode() {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_admin_access_mode"
+      })
+    });
+
+    return parseApiResponse(response, `Admin access mode request failed with status ${response.status}`);
+  }
+
+  function hasLauncherAdminAccess() {
+    return !!launcherAdminSecret || !!launcherAdminState.easy_admin_enabled;
+  }
+
   async function launcherAdminApi(action, payload = {}) {
     const response = await fetch("api.php", {
       method: "POST",
@@ -1217,6 +1589,23 @@
     }
 
     return response.json();
+  }
+
+  async function recordLauncherVisit() {
+    try {
+      await fetch("api.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "record_launcher_visit",
+          frontend_build_version: launcherBuildVersion
+        })
+      });
+    } catch (error) {
+      // Ignore visit-count failures so the launcher remains unaffected.
+    }
   }
 
   function snapshotUserTypeAdminState() {
@@ -1445,13 +1834,69 @@
 
   function setRoleDifficultyStatus(role, message = "", options = {}) {
     const block = difficultyStatusBlocks.find((item) => item.dataset.roleDifficultyStatus === role);
-    if (!block) {
+    const prominentBlock = prominentDifficultyStatusBlocks.find((item) => item.dataset.roleDifficultyStatusProminent === role);
+    if (!block && !prominentBlock) {
       return;
     }
     const text = String(message || "").trim();
-    block.textContent = text;
-    block.hidden = !text;
-    block.classList.toggle("is-error", !!options.isError && !!text);
+    const shouldPromote = !!text && options.prominent !== false;
+    const prominentDurationMs = Number.isFinite(Number(options.prominentDurationMs)) ? Number(options.prominentDurationMs) : 6000;
+
+    if (block) {
+      const settleTimerId = Number(block.dataset.prominentSettleTimer || 0);
+      if (settleTimerId) {
+        window.clearTimeout(settleTimerId);
+      }
+      block.dataset.prominentSettleTimer = "0";
+    }
+
+    if (!text) {
+      if (prominentBlock) {
+        prominentBlock.textContent = "";
+        prominentBlock.hidden = true;
+        prominentBlock.classList.remove("is-error", "is-blinking");
+      }
+      if (block) {
+        block.textContent = "";
+        block.hidden = true;
+        block.classList.remove("is-error");
+      }
+      return;
+    }
+
+    if (prominentBlock && shouldPromote) {
+      prominentBlock.textContent = text;
+      prominentBlock.hidden = false;
+      prominentBlock.classList.toggle("is-error", !!options.isError);
+      prominentBlock.classList.add("is-blinking");
+    } else if (prominentBlock) {
+      prominentBlock.textContent = "";
+      prominentBlock.hidden = true;
+      prominentBlock.classList.remove("is-error", "is-blinking");
+    }
+
+    if (block) {
+      block.textContent = shouldPromote ? "" : text;
+      block.hidden = shouldPromote;
+      block.classList.toggle("is-error", !!options.isError && !shouldPromote);
+    }
+
+    if (!shouldPromote || !block) {
+      return;
+    }
+
+    const settleTimer = window.setTimeout(() => {
+      if (prominentBlock) {
+        prominentBlock.classList.remove("is-blinking", "is-error");
+        prominentBlock.textContent = "";
+        prominentBlock.hidden = true;
+      }
+      block.textContent = text;
+      block.hidden = false;
+      block.classList.toggle("is-error", !!options.isError);
+      block.dataset.prominentSettleTimer = "0";
+    }, prominentDurationMs);
+    block.dataset.prominentSettleTimer = String(settleTimer);
   }
 
   function getRoleNoteElement(role) {
@@ -1479,7 +1924,7 @@
   }
 
   function getHandleExplanation(role) {
-    return "You don't need your email to uniquely identify yourself to the app. You can create your own unique handle. Click here to propose a unique handle for you - one which has not yet already being used.";
+    return "You don't need your email to uniquely identify yourself to the app. You can create your own unique handle. Click here to propose a unique handle for you - one which is not yet being used.";
   }
 
   function showRoleSkillExplanation(role) {
@@ -1541,6 +1986,9 @@
     if (!note || !panel) {
       return;
     }
+    if (isDifficultyExplanationLocked(role)) {
+      return;
+    }
     const defaultText = String(note.dataset.defaultText || "").trim();
     note.dataset.previewActive = "false";
     note.textContent = defaultText;
@@ -1554,17 +2002,12 @@
   function showRoleToolsExplanation(role) {
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
-    const contactWrap = getRoleNoteContactWrap(role);
     if (!note || !panel) {
       return;
     }
     note.dataset.previewActive = "true";
     note.textContent = roleToolsExplanationCopy;
     panel.classList.add("is-level-preview");
-    if (contactWrap) {
-      contactWrap.hidden = false;
-      contactWrap.dataset.previewActive = "true";
-    }
   }
 
   function previewLevelExplanationFromCurrentLabel(role) {
@@ -1592,6 +2035,19 @@
     label.dataset.previewClearTimer = "0";
   }
 
+  function isDifficultyExplanationLocked(role) {
+    const label = getDifficultyLabelElement(role);
+    return String(label?.dataset.explanationLock || "") === "true";
+  }
+
+  function setDifficultyExplanationLocked(role, locked) {
+    const label = getDifficultyLabelElement(role);
+    if (!label) {
+      return;
+    }
+    label.dataset.explanationLock = locked ? "true" : "false";
+  }
+
   function scheduleGuidedLevelExplanation(role, level) {
     const label = getDifficultyLabelElement(role);
     if (!label) {
@@ -1599,26 +2055,24 @@
     }
     clearDifficultyPreviewTimers(label);
     label.classList.remove("is-guided-preview");
-    label.dataset.previewDelayTimer = String(window.setTimeout(() => {
-      label.classList.add("is-guided-preview");
-      showRoleLevelExplanation(role, level);
-      label.dataset.previewClearTimer = String(window.setTimeout(() => {
-        const stack = label.closest("[data-role-difficulty-stack]");
-        const isStillActive = Boolean(
-          label.matches(":hover, :focus") ||
-          stack?.matches(":hover") ||
-          (stack && stack.contains(document.activeElement))
-        );
-        if (isStillActive) {
-          label.dataset.previewClearTimer = "0";
-          return;
-        }
-        label.classList.remove("is-guided-preview");
-        clearRoleLevelExplanation(role);
+    label.classList.add("is-guided-preview");
+    showRoleLevelExplanation(role, level);
+    label.dataset.previewDelayTimer = "0";
+    label.dataset.previewClearTimer = String(window.setTimeout(() => {
+      const stack = label.closest("[data-role-difficulty-stack]");
+      const isStillActive = Boolean(
+        label.matches(":hover, :focus") ||
+        stack?.matches(":hover") ||
+        (stack && stack.contains(document.activeElement))
+      );
+      if (isStillActive) {
         label.dataset.previewClearTimer = "0";
-      }, 2400));
-      label.dataset.previewDelayTimer = "0";
-    }, 120));
+        return;
+      }
+      label.classList.remove("is-guided-preview");
+      clearRoleLevelExplanation(role);
+      label.dataset.previewClearTimer = "0";
+    }, 2400));
   }
 
   function markDifficultyAdjustment(role) {
@@ -1663,6 +2117,52 @@
     return resolvedMainUserType === "pro" ? 5 : 3;
   }
 
+  function getPairMaxDifficultyLevel(difficultyData) {
+    const serverMax = Number(normalizeDifficultyLevel(difficultyData?.pair_difficulty_meta?.max_allowed_difficulty_level));
+    if (Number.isFinite(serverMax) && serverMax >= 1) {
+      return serverMax;
+    }
+    return getMaxDifficultyLevel();
+  }
+
+  function buildDifficultyCeilingMessage(role, pairContext, difficultyData, attemptedLevel) {
+    const normalizedRole = String(role || "").trim();
+    const maxLevel = getPairMaxDifficultyLevel(difficultyData);
+    const receiverType = String(difficultyData?.pair_difficulty_meta?.receiver_type || "").trim().toLowerCase();
+    const senderType = String(difficultyData?.pair_difficulty_meta?.sender_type || "").trim().toLowerCase();
+    const levelNumber = Number(attemptedLevel);
+
+    if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "sender" && senderType === "pro" && receiverType !== "pro") {
+      return "You are PRO, but this receiver is not PRO, so this pair cannot use Level 4.";
+    }
+
+    if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "receiver" && receiverType !== "pro") {
+      return "You must be PRO in the receiver role for this pair to use Level 4.";
+    }
+
+    if (levelNumber >= 5 && maxLevel < 5) {
+      if (receiverType !== "pro" && senderType !== "pro") {
+        return "Both participants must be PRO for this pair to use Level 5.";
+      }
+      if (receiverType !== "pro") {
+        return "The receiver must be PRO for this pair to use Level 5.";
+      }
+      if (senderType !== "pro") {
+        return "The sender must be PRO for this pair to use Level 5.";
+      }
+    }
+
+    return `This pair cannot go above Level ${maxLevel}.`;
+  }
+
+  function getEffectiveLauncherUserType() {
+    return resolvedMainUserType === "pro" ? "pro" : "standard";
+  }
+
+  function isEffectiveLauncherUserPro() {
+    return getEffectiveLauncherUserType() === "pro";
+  }
+
   function readVisibleRoleIdentifiers(role) {
     if (role === "remote-viewer") {
       return {
@@ -1671,6 +2171,54 @@
       };
     }
     return readRoleFormValues(role);
+  }
+
+  function focusMissingDifficultyIdentifier(role, identifiers = null) {
+    const currentIdentifiers = identifiers || readVisibleRoleIdentifiers(role);
+    if (role === "remote-viewer") {
+      if (!String(currentIdentifiers?.ownName || "").trim()) {
+        remoteViewerOwnInput?.focus();
+        return;
+      }
+      if (!String(currentIdentifiers?.partnerName || "").trim()) {
+        remoteViewerPartnerInput?.focus();
+      }
+      return;
+    }
+
+    const form = roleForms.find((item) => item.dataset.roleForm === role) || null;
+    if (!form) {
+      return;
+    }
+    const ownInput = form.querySelector('input[name="ownName"]');
+    const partnerInput = form.querySelector('input[name="partnerName"]');
+    if (!String(currentIdentifiers?.ownName || "").trim()) {
+      ownInput?.focus();
+      return;
+    }
+    if (!String(currentIdentifiers?.partnerName || "").trim()) {
+      partnerInput?.focus();
+    }
+  }
+
+  function getDifficultyLocalLevel(role) {
+    const label = getDifficultyLabelElement(role);
+    const match = String(label?.textContent || "").match(/Level\s+([1-5])/i);
+    if (match) {
+      return Number(normalizeDifficultyLevel(match[1]));
+    }
+    return Number(normalizeDifficultyLevel(readLauncherState().difficultyLevel || "1"));
+  }
+
+  function getDifficultyRequirementMessage(role) {
+    if (role === "remote-viewer") {
+      const ownLabel = String(document.querySelector("[data-remote-viewer-own-label]")?.textContent || "You").trim();
+      const partnerLabel = String(document.querySelector("[data-remote-viewer-partner-label]")?.textContent || "Remote Device").trim();
+      return `Enter both ${ownLabel} and ${partnerLabel} before going above Level 3.`;
+    }
+    const ownLabel = String(document.querySelector(`[data-own-identifier-label="${role}"]`)?.textContent || "You").trim();
+    const partnerLabel = String(document.querySelector(`[data-partner-identifier-label="${role}"]`)?.textContent || "Partner").trim();
+    return `Enter both ${ownLabel} and ${partnerLabel} before going above Level 3.`;
   }
 
   function getActiveOwnIdentifierForUserType() {
@@ -1716,6 +2264,197 @@
     return rememberedOwnIdentifiers.length === 1 ? rememberedOwnIdentifiers : [];
   }
 
+  function getCurrentTelepathyProIdentifier() {
+    const candidates = getCurrentUserTypeCandidates()
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    return candidates.length === 1 ? candidates[0] : "";
+  }
+
+  function setGoProStatus(message, isError = false) {
+    if (!goProStatus) {
+      return;
+    }
+    goProStatus.textContent = String(message || "").trim();
+    goProStatus.dataset.state = isError ? "error" : "info";
+  }
+
+  function setGoProIdentifierNote(message) {
+    if (!goProIdentifierNote) {
+      return;
+    }
+    goProIdentifierNote.textContent = String(message || "").trim();
+  }
+
+  function setGoProButtonsEnabled(enabled) {
+    if (goProMonthlyButton) {
+      goProMonthlyButton.disabled = !enabled;
+    }
+    if (goProAnnualButton) {
+      goProAnnualButton.disabled = !enabled;
+    }
+  }
+
+  function readStripeReturnState() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const result = String(params.get("stripe") || "").trim().toLowerCase();
+      return result === "success" || result === "cancel" ? result : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function clearStripeReturnStateFromUrl() {
+    try {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete("stripe");
+      currentUrl.searchParams.set("v", launcherBuildVersion);
+      const nextUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    } catch (error) {
+      // Ignore URL cleanup failures.
+    }
+  }
+
+  async function refreshUserTypeAfterStripeReturn(identifier, maxAttempts = 6, delayMs = 1200) {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier) {
+      return "standard";
+    }
+
+    let lastUserType = "standard";
+    for (let index = 0; index < maxAttempts; index += 1) {
+      try {
+        lastUserType = await fetchUserType(cleanIdentifier);
+        if (lastUserType === "pro") {
+          return "pro";
+        }
+      } catch (error) {
+        // Ignore transient webhook timing or network issues during the short refresh window.
+      }
+
+      if (index < maxAttempts - 1) {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, delayMs);
+        });
+      }
+    }
+
+    return lastUserType;
+  }
+
+  async function renderGoProViewState() {
+    const currentIdentifier = getCurrentTelepathyProIdentifier();
+    setGoProIdentifierNote(
+      currentIdentifier
+        ? `PRO access will be attached to: ${currentIdentifier}`
+        : "Enter your user identifier on the main page first so PRO can be attached to the correct account."
+    );
+
+    if (stripeCheckoutInFlight) {
+      setGoProButtonsEnabled(false);
+      return;
+    }
+
+    try {
+      stripePublicConfigCache = await fetchStripePublicConfig();
+    } catch (error) {
+      setGoProButtonsEnabled(false);
+      setGoProStatus(error instanceof Error ? error.message : "Unable to load Stripe configuration right now.", true);
+      return;
+    }
+
+    const stripeAvailable = !!stripePublicConfigCache?.available;
+    const monthlyReady = !!stripePublicConfigCache?.has_monthly_price;
+    const annualReady = !!stripePublicConfigCache?.has_annual_price;
+    const canSubscribe = !!currentIdentifier && stripeAvailable && monthlyReady && annualReady;
+
+    setGoProButtonsEnabled(canSubscribe);
+
+    if (!stripeAvailable) {
+      setGoProStatus(String(stripePublicConfigCache?.message || "Stripe is not configured yet on this app."), true);
+      return;
+    }
+
+    const stripeReturnState = readStripeReturnState();
+    if (stripeReturnState === "cancel") {
+      clearPendingStripeReturnIdentifier();
+      clearStripeReturnStateFromUrl();
+      setGoProStatus("Stripe checkout was canceled. No subscription change was made.", false);
+      return;
+    }
+
+    if (stripeReturnState === "success") {
+      const returnIdentifier = currentIdentifier || readPendingStripeReturnIdentifier();
+      if (!returnIdentifier) {
+        setGoProStatus("Payment return detected. If PRO is not already shown, enter the same identifier you used for checkout and reopen this page.", false);
+        return;
+      }
+
+      setGoProStatus(`Payment received. Confirming PRO access for ${returnIdentifier}...`, false);
+      const updatedType = await refreshUserTypeAfterStripeReturn(returnIdentifier);
+      if (updatedType === "pro") {
+        renderMainTitle("pro");
+        renderProOnlyLauncherCards();
+        renderProOnlyOtherSettings();
+        clearPendingStripeReturnIdentifier();
+        window.location.replace(buildCanonicalLauncherUrl());
+        return;
+      } else {
+        clearPendingStripeReturnIdentifier();
+        clearStripeReturnStateFromUrl();
+        setGoProStatus("Payment return was detected, but PRO access has not been confirmed yet. Please wait a moment and reopen this page.", false);
+      }
+      return;
+    }
+
+    if (!currentIdentifier) {
+      setGoProStatus("Enter your user identifier on the main page first, then return here to subscribe.", false);
+      return;
+    }
+
+    if (!monthlyReady || !annualReady) {
+      setGoProStatus("Stripe pricing is not fully configured yet for this app.", true);
+      return;
+    }
+
+    if (isEffectiveLauncherUserPro()) {
+      setGoProStatus(`Telepathy PRO is already active for ${currentIdentifier}.`, false);
+      setGoProButtonsEnabled(false);
+      return;
+    }
+
+    setGoProStatus("Choose a secure Stripe subscription plan below.", false);
+  }
+
+  async function startTelepathyProCheckout(plan) {
+    const currentIdentifier = getCurrentTelepathyProIdentifier();
+    if (!currentIdentifier) {
+      setGoProStatus("Enter your user identifier on the main page first so PRO can be attached to the correct account.", true);
+      setGoProButtonsEnabled(false);
+      return;
+    }
+
+    stripeCheckoutInFlight = true;
+    storePendingStripeReturnIdentifier(currentIdentifier);
+    setGoProButtonsEnabled(false);
+    setGoProStatus("Redirecting to secure Stripe checkout...", false);
+
+    try {
+      const checkout = await createStripeCheckoutSession(plan, currentIdentifier);
+      const checkoutUrl = String(checkout?.url || "").trim();
+      if (!checkoutUrl) {
+        throw new Error("Stripe did not return a checkout URL.");
+      }
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      stripeCheckoutInFlight = false;
+      setGoProStatus(error instanceof Error ? error.message : "Unable to start Stripe checkout right now.", true);
+      await renderGoProViewState();
+    }
+  }
+
   function scheduleMainUserTypeRefresh(delayMs = 180) {
     if (mainUserTypeLookupTimer) {
       window.clearTimeout(mainUserTypeLookupTimer);
@@ -1740,6 +2479,7 @@
     }
     resolvedMainUserType = userType === "pro" ? "pro" : "standard";
     beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "Telepathy PRO" : "Telepathy Beginner";
+    document.title = resolvedMainUserType === "pro" ? "Telepathy PRO" : "Telepathy Beginner";
     if (proHeroFrame) {
       proHeroFrame.hidden = resolvedMainUserType !== "pro";
     }
@@ -1762,7 +2502,7 @@
   }
 
   function renderProOnlyLauncherCards() {
-    const showProCards = resolvedMainUserType === "pro";
+    const showProCards = isEffectiveLauncherUserPro();
     proOnlyRoleCards.forEach((card) => {
       card.hidden = !showProCards;
       if (!showProCards) {
@@ -1782,7 +2522,7 @@
     if (!cancelProButton) {
       return;
     }
-    cancelProButton.hidden = resolvedMainUserType !== "pro";
+    cancelProButton.hidden = !isEffectiveLauncherUserPro();
   }
 
   function getFallbackOwnIdentifierForRemoteViewer() {
@@ -2179,8 +2919,9 @@
               ownNames.has(normalizePersonNameForPairMatch(senderName))
             )
           : false;
+        const demoMatch = isDemoReportPair(receiverName, senderName);
 
-        if ((candidateKeys.size || ownNames.size) && !candidateMatch && !associatedMatch) {
+        if ((candidateKeys.size || ownNames.size) && !candidateMatch && !associatedMatch && !demoMatch) {
           return;
         }
       }
@@ -2239,6 +2980,9 @@
     if (reportGoButton) {
       reportGoButton.hidden = !selectedReportPair;
     }
+    if (reportGlobeButton) {
+      reportGlobeButton.hidden = !selectedReportPair;
+    }
     if (reportVisualizeButton) {
       reportVisualizeButton.hidden = !selectedReportPair;
     }
@@ -2294,6 +3038,17 @@
     }
 
     availableReportPairs = getAvailableReportPairs(csvResult.records);
+    if (pendingOpenReportPair?.receiverName && pendingOpenReportPair?.senderName) {
+      const requestedKey = buildPairMatchKey(pendingOpenReportPair.receiverName, pendingOpenReportPair.senderName);
+      const matchedPair = availableReportPairs.find((pairInfo) =>
+        pairInfo.key === requestedKey &&
+        (!pendingOpenReportPair.sessionCode || String(pairInfo.sessionCode || "").trim() === pendingOpenReportPair.sessionCode)
+      );
+      if (matchedPair) {
+        setSelectedReportPair(matchedPair);
+      }
+      pendingOpenReportPair = null;
+    }
     const ownNames = collectReportOwnNames();
     const candidatePairs = collectReportCandidatePairs();
     if (reportPairTrigger) {
@@ -2496,8 +3251,25 @@
     firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
 
     reportSummary.append(firstLine);
-    const scoredTrials = getReportSummaryStats(records).totalTrials;
-    reportStatus.textContent = `${scoredTrials} trial record${scoredTrials === 1 ? "" : "s"} found for this pair.`;
+    const completedTrials = getScoredRecords(records).length;
+    const summaryStats = getReportSummaryStats(records);
+    const interpretation = buildInterpretationBundle(summaryStats, buildLevelBreakdown(records));
+    const interpretationLines = [
+      interpretation.overall_interpretation,
+      interpretation.dataset_makeup,
+      ...interpretation.level_interpretations,
+      ...interpretation.pattern_interpretations
+    ];
+    interpretationLines.forEach((text) => {
+      if (!text) {
+        return;
+      }
+      const line = document.createElement("p");
+      line.className = "report-summary-line";
+      line.textContent = text;
+      reportSummary.append(line);
+    });
+    reportStatus.textContent = `${completedTrials} completed trial record${completedTrials === 1 ? "" : "s"} found for this pair.`;
   }
 
   function createReportLayoutThumbnailCell(value) {
@@ -2524,6 +3296,26 @@
       thumb.appendChild(cone);
     });
 
+    return thumb;
+  }
+
+  function createReportImageThumbnailCell(value, label = "Image") {
+    const src = String(value ?? "").trim();
+    if (!src) {
+      return document.createTextNode("");
+    }
+
+    const thumb = document.createElement("div");
+    thumb.className = "report-image-thumb";
+
+    const image = document.createElement("img");
+    image.className = "report-image-thumb-asset";
+    image.src = src;
+    image.alt = label;
+    image.loading = "lazy";
+    image.decoding = "async";
+
+    thumb.appendChild(image);
     return thumb;
   }
 
@@ -2606,6 +3398,24 @@
     return 0;
   }
 
+  function normalizeLevelFourImageIdentity(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) {
+      return "";
+    }
+    try {
+      const url = new URL(raw, window.location.href);
+      const pathname = decodeURIComponent(url.pathname || "");
+      const lastSegment = pathname.split("/").filter(Boolean).pop() || "";
+      return lastSegment.toLowerCase();
+    } catch (error) {
+      const sanitized = decodeURIComponent(raw.split(/[?#]/, 1)[0] || raw);
+      const normalizedPath = sanitized.replace(/\\/g, "/");
+      const lastSegment = normalizedPath.split("/").filter(Boolean).pop() || normalizedPath;
+      return lastSegment.toLowerCase().trim();
+    }
+  }
+
   function getTrialScoreModel(record) {
     const trialAborted = String(record?.["trial aborted"] ?? "").trim().toLowerCase() === "yes";
     const trialTimedOut = String(record?.["trial timed out"] ?? "").trim().toLowerCase() === "yes";
@@ -2619,6 +3429,24 @@
     }
 
     const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
+    if (difficultyLevel === "4") {
+      const sentImageIdentity = normalizeLevelFourImageIdentity(record?.["sent image"] ?? "");
+      const chosenImageIdentity = normalizeLevelFourImageIdentity(record?.["rx image choice"] ?? "");
+      if (!sentImageIdentity || !chosenImageIdentity) {
+        return {
+          observed: Number.NaN,
+          expected: Number.NaN,
+          variance: Number.NaN,
+          level: 0
+        };
+      }
+      return {
+        observed: sentImageIdentity === chosenImageIdentity ? 1 : 0,
+        expected: 0.5,
+        variance: 0.25,
+        level: 4
+      };
+    }
     const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
     const choiceOneRaw = String(record?.["rx choice1"] ?? "").trim();
     if (!choiceOneRaw) {
@@ -2708,6 +3536,225 @@
     return formatScoreValue(model.observed);
   }
 
+  function getLevelDisplayName(level) {
+    return Number(level) === 4 ? "Level 4 image-discrimination" : `Level ${level}`;
+  }
+
+  function getLevelSpecificSignificanceMethod(targetLevel) {
+    if (targetLevel === 1 || targetLevel === 4) {
+      return "exact-binomial";
+    }
+    if (targetLevel === 2 || targetLevel === 3) {
+      return "exact-enumeration";
+    }
+    return "unknown";
+  }
+
+  function getLevelSpecificSignificanceLabel(targetLevel) {
+    const method = getLevelSpecificSignificanceMethod(targetLevel);
+    if (method === "exact-binomial") {
+      return "exact binomial test";
+    }
+    if (method === "exact-enumeration") {
+      return "exact score-enumeration test";
+    }
+    return "chance analysis";
+  }
+
+  function getExactBinomialRightTailPValue(successes, trials, chanceProbability) {
+    const n = Number(trials);
+    const k = Number(successes);
+    const p = Number(chanceProbability);
+    if (!Number.isInteger(n) || !Number.isInteger(k) || n < 0 || k < 0 || k > n || !(p >= 0 && p <= 1)) {
+      return Number.NaN;
+    }
+    if (n === 0) {
+      return Number.NaN;
+    }
+    if (p === 0) {
+      return k <= 0 ? 1 : 0;
+    }
+    if (p === 1) {
+      return k <= n ? 1 : 0;
+    }
+
+    const q = 1 - p;
+    let pmf = q ** n;
+    let tail = k === 0 ? pmf : 0;
+    for (let i = 0; i < n; i += 1) {
+      pmf *= ((n - i) / (i + 1)) * (p / q);
+      if ((i + 1) >= k) {
+        tail += pmf;
+      }
+    }
+    return Math.max(0, Math.min(1, tail));
+  }
+
+  function getExactNullPmfForTrial(record) {
+    const model = getTrialScoreModel(record);
+    if (!Number.isFinite(model.observed) || !Number.isFinite(model.expected) || !Number.isFinite(model.variance)) {
+      return null;
+    }
+
+    const level = Number(model.level);
+    const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
+    const sentConeCount = getLayoutConeCount(sentLayout);
+    if (!Number.isFinite(sentLayout) || sentConeCount < 1) {
+      return null;
+    }
+
+    if (level === 2) {
+      if (sentConeCount === 1) {
+        return {
+          level,
+          observed: model.observed,
+          pmf: new Map([[0, 4 / 5], [1, 1 / 5]])
+        };
+      }
+      if (sentConeCount === 3) {
+        return {
+          level,
+          observed: model.observed,
+          pmf: new Map([[0, 1 / 5], [1, 3 / 5], [2, 1 / 5]])
+        };
+      }
+      return null;
+    }
+
+    if (level === 3) {
+      if (sentConeCount === 1) {
+        return {
+          level,
+          observed: model.observed,
+          pmf: new Map([[0, 8 / 9], [2, 1 / 9]])
+        };
+      }
+      if (sentConeCount === 2 || sentConeCount === 3) {
+        return {
+          level,
+          observed: model.observed,
+          pmf: new Map([[0, 5 / 9], [1, 3 / 9], [2, 1 / 9]])
+        };
+      }
+    }
+
+    return null;
+  }
+
+  function convolveScorePmfs(pmfA, pmfB) {
+    if (!(pmfA instanceof Map) || !(pmfB instanceof Map) || !pmfA.size || !pmfB.size) {
+      return new Map();
+    }
+
+    const result = new Map();
+    pmfA.forEach((probabilityA, scoreA) => {
+      pmfB.forEach((probabilityB, scoreB) => {
+        const combinedScore = Number(scoreA) + Number(scoreB);
+        const combinedProbability = Number(probabilityA) * Number(probabilityB);
+        result.set(combinedScore, (result.get(combinedScore) || 0) + combinedProbability);
+      });
+    });
+    return result;
+  }
+
+  function buildExactScoreDistribution(records, targetLevel) {
+    let pmf = new Map([[0, 1]]);
+    let completedTrials = 0;
+    let observedScore = 0;
+
+    (Array.isArray(records) ? records : []).forEach((record) => {
+      const exactTrial = getExactNullPmfForTrial(record);
+      if (!exactTrial || Number(exactTrial.level) !== Number(targetLevel) || !(exactTrial.pmf instanceof Map) || !exactTrial.pmf.size) {
+        return;
+      }
+      pmf = convolveScorePmfs(pmf, exactTrial.pmf);
+      completedTrials += 1;
+      observedScore += Number(exactTrial.observed);
+    });
+
+    return {
+      completedTrials,
+      observedScore,
+      pmf
+    };
+  }
+
+  function getExactRightTailPValueFromPmf(pmf, observedScore) {
+    if (!(pmf instanceof Map) || !pmf.size || !Number.isFinite(observedScore)) {
+      return Number.NaN;
+    }
+    let tail = 0;
+    pmf.forEach((probability, score) => {
+      if (Number(score) >= observedScore) {
+        tail += Number(probability);
+      }
+    });
+    return Math.max(0, Math.min(1, tail));
+  }
+
+  function getExactEnumeratedLevelPValue(records, targetLevel) {
+    const distribution = buildExactScoreDistribution(records, targetLevel);
+    if (distribution.completedTrials < 1) {
+      return {
+        pValue: Number.NaN,
+        completedTrials: 0,
+        observedScore: 0,
+        pmf: new Map()
+      };
+    }
+    return {
+      ...distribution,
+      pValue: getExactRightTailPValueFromPmf(distribution.pmf, distribution.observedScore)
+    };
+  }
+
+  function getLevelOneExactPValue(records) {
+    const levelOneRecords = (Array.isArray(records) ? records : []).filter((record) => Number(getTrialScoreModel(record).level) === 1);
+    const completedTrials = levelOneRecords.length;
+    if (completedTrials < 1) {
+      return { pValue: Number.NaN, completedTrials: 0, successes: 0 };
+    }
+    const successes = levelOneRecords.reduce((total, record) => {
+      const model = getTrialScoreModel(record);
+      return total + (Number(model.observed) === 1 ? 1 : 0);
+    }, 0);
+    return {
+      pValue: getExactBinomialRightTailPValue(successes, completedTrials, 0.5),
+      completedTrials,
+      successes
+    };
+  }
+
+  function getLevelFourExactPValue(records) {
+    const levelFourRecords = (Array.isArray(records) ? records : []).filter((record) => Number(getTrialScoreModel(record).level) === 4);
+    const completedTrials = levelFourRecords.length;
+    if (completedTrials < 1) {
+      return { pValue: Number.NaN, completedTrials: 0, successes: 0 };
+    }
+    const successes = levelFourRecords.reduce((total, record) => {
+      const model = getTrialScoreModel(record);
+      return total + (Number(model.observed) === 1 ? 1 : 0);
+    }, 0);
+    return {
+      pValue: getExactBinomialRightTailPValue(successes, completedTrials, 0.5),
+      completedTrials,
+      successes
+    };
+  }
+
+  function getLevelSpecificPValue(records, targetLevel) {
+    if (targetLevel === 1) {
+      return getLevelOneExactPValue(records).pValue;
+    }
+    if (targetLevel === 2 || targetLevel === 3) {
+      return getExactEnumeratedLevelPValue(records, targetLevel).pValue;
+    }
+    if (targetLevel === 4) {
+      return getLevelFourExactPValue(records).pValue;
+    }
+    return Number.NaN;
+  }
+
   function getReportResponseLabel(record) {
     const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
     const rawValue = String(record?.["rx choice1"] ?? "").trim();
@@ -2748,11 +3795,45 @@
     return 1 - normalCdf(zScore);
   }
 
-  function buildReportSummaryLines(summaryStats) {
-    const telepathicSignificance = getTelepathicSignificancePValue(summaryStats);
+  function getOverallSignificanceContext(summaryStats, levelBreakdown = null) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (totalTrials < 1) {
+      return {
+        pValue: Number.NaN,
+        method: "unknown",
+        dominantLevel: null
+      };
+    }
+
+    const levelStats = getLevelStatsList(levelBreakdown);
+    const activeLevels = levelStats.filter((entry) => Number(entry.completed_trials || 0) > 0);
+    if (activeLevels.length === 1) {
+      return {
+        pValue: Number(activeLevels[0].p_value),
+        method: activeLevels[0].significance_method || getLevelSpecificSignificanceMethod(Number(activeLevels[0].level)),
+        dominantLevel: Number(activeLevels[0].level)
+      };
+    }
+
+    return {
+      pValue: getTelepathicSignificancePValue(summaryStats),
+      method: "combined-standardized",
+      dominantLevel: null
+    };
+  }
+
+  function buildReportSummaryLines(summaryStats, levelBreakdown = null) {
+    const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
+    const telepathicSignificance = significance.pValue;
+    let methodText = "This overall P value uses a combined standardized analysis.";
+    if (significance.method === "exact-enumeration") {
+      methodText = `This P value uses an exact score-enumeration test for ${getLevelDisplayName(significance.dominantLevel)}.`;
+    } else if (significance.method === "exact-binomial") {
+      methodText = `This P value uses an exact binomial test for ${getLevelDisplayName(significance.dominantLevel)}.`;
+    }
     return [
       `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
-      `The probability that you would get this high a score by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
+      `The probability that you would get this high a score by chance alone is ${formatProbabilityPercent(telepathicSignificance)}. ${methodText}`
     ];
   }
 
@@ -2854,13 +3935,15 @@
   }
 
   function buildLevelBreakdown(records) {
+    const sourceRecords = Array.isArray(records) ? records : [];
     const levels = new Map([
-      [1, { completed_trials: 0, score: 0, chance_score: 0 }],
-      [2, { completed_trials: 0, score: 0, chance_score: 0 }],
-      [3, { completed_trials: 0, score: 0, chance_score: 0 }]
+      [1, { completed_trials: 0, score: 0, chance_score: 0, total_variance: 0 }],
+      [2, { completed_trials: 0, score: 0, chance_score: 0, total_variance: 0 }],
+      [3, { completed_trials: 0, score: 0, chance_score: 0, total_variance: 0 }],
+      [4, { completed_trials: 0, score: 0, chance_score: 0, total_variance: 0 }]
     ]);
 
-    records.forEach((record) => {
+    sourceRecords.forEach((record) => {
       const model = getTrialScoreModel(record);
       if (!Number.isFinite(model.observed) || !Number.isFinite(model.expected) || !levels.has(model.level)) {
         return;
@@ -2869,59 +3952,370 @@
       entry.completed_trials += 1;
       entry.score += model.observed;
       entry.chance_score += model.expected;
+      entry.total_variance += model.variance;
     });
 
     return Object.fromEntries(
       [...levels.entries()].map(([level, entry]) => [
         `level_${level}`,
-        {
-          completed_trials: entry.completed_trials,
-          score: Number(entry.score.toFixed(3)),
-          chance_score: Number(entry.chance_score.toFixed(3)),
-          excess_over_chance: Number((entry.score - entry.chance_score).toFixed(3))
-        }
+        (() => {
+          const excess = entry.score - entry.chance_score;
+          const totalVariance = entry.total_variance;
+          const zScore = entry.completed_trials > 0 && totalVariance > 0
+            ? excess / Math.sqrt(totalVariance)
+            : Number.NaN;
+          const pValue = entry.completed_trials > 0
+            ? getLevelSpecificPValue(sourceRecords, level)
+            : Number.NaN;
+          return {
+            completed_trials: entry.completed_trials,
+            score: Number(entry.score.toFixed(3)),
+            chance_score: Number(entry.chance_score.toFixed(3)),
+            excess_over_chance: Number(excess.toFixed(3)),
+            total_variance: Number(totalVariance.toFixed(3)),
+            z_score: Number.isFinite(zScore) ? Number(zScore.toFixed(3)) : null,
+            p_value: Number.isFinite(pValue) ? Number(pValue.toPrecision(6)) : null,
+            excess_per_trial: entry.completed_trials > 0 ? Number((excess / entry.completed_trials).toFixed(3)) : null,
+            significance_method: getLevelSpecificSignificanceMethod(level)
+          };
+        })()
       ])
     );
   }
 
-  function getInterpretationHeadline(summaryStats) {
-    const pValue = getTelepathicSignificancePValue(summaryStats);
-    const totalTrials = Number(summaryStats?.totalTrials || 0);
-    if (!Number.isFinite(pValue) || totalTrials < 1) {
-      return "Not enough completed trials are available for interpretation.";
-    }
-    if (pValue < 0.01 && totalTrials >= 20) {
-      return "This pair shows a statistically strong and potentially convincing above-chance result.";
-    }
-    if (pValue < 0.01) {
-      return "This pair shows a statistically strong result, but the completed trial count is still low.";
-    }
-    if (pValue < 0.05) {
-      return "This pair shows a suggestive result, but not yet a convincing one.";
-    }
-    return "This pair does not currently show evidence beyond what could easily occur by chance.";
+  function getLevelStatsList(levelBreakdown) {
+    return [1, 2, 3, 4].map((level) => ({
+      level,
+      ...((levelBreakdown && levelBreakdown[`level_${level}`]) || {})
+    }));
   }
 
-  function getInterpretationRecommendation(summaryStats) {
-    const pValue = getTelepathicSignificancePValue(summaryStats);
-    const totalTrials = Number(summaryStats?.totalTrials || 0);
-    if (!Number.isFinite(pValue) || totalTrials < 1) {
-      return "Collect more completed trials before drawing a conclusion.";
+  function hasInterpretationSizedSample(levelEntry) {
+    return Number(levelEntry?.completed_trials || 0) >= 20;
+  }
+
+  function hasPracticalSizedSample(levelEntry) {
+    return Number(levelEntry?.completed_trials || 0) >= 60;
+  }
+
+  function getSampleStrengthBand(trialCount) {
+    const count = Number(trialCount || 0);
+    if (count < 20) {
+      return "too-small";
     }
-    if (pValue < 0.01 && totalTrials >= 20) {
-      return "Maintain similar test conditions and continue collecting completed trials to see whether the effect replicates across additional sessions.";
+    if (count < 60) {
+      return "modest";
+    }
+    return "practical";
+  }
+
+  function getLevelEvidenceBand(pValue) {
+    if (!Number.isFinite(pValue)) {
+      return "unknown";
     }
     if (pValue < 0.01) {
-      return "A result stronger than P = 0.01 over at least 20 completed trials would generally be considered convincing.";
+      return "strong";
     }
-    return "Continue collecting completed trials and look for stable performance over a larger block.";
+    if (pValue < 0.05) {
+      return "suggestive";
+    }
+    return "chance";
+  }
+
+  function getLevelSpecificInterpretation(levelEntry) {
+    const levelDisplayName = getLevelDisplayName(levelEntry.level);
+    const trialCount = Number(levelEntry.completed_trials || 0);
+    const pValue = Number(levelEntry.p_value);
+    const band = getLevelEvidenceBand(pValue);
+    const significanceLabel = getLevelSpecificSignificanceLabel(Number(levelEntry.level));
+    const sampleBand = getSampleStrengthBand(trialCount);
+
+    if (sampleBand === "too-small") {
+      return `Too few completed ${levelDisplayName} trials are available to interpret.`;
+    }
+    if (sampleBand === "modest") {
+      if (band === "strong") {
+        return `${levelDisplayName} is mathematically significant by ${significanceLabel}, but the sample is still modest. This is encouraging, though not yet practically persuasive on its own.`;
+      }
+      if (band === "suggestive") {
+        return `${levelDisplayName} shows a suggestive above-chance result by ${significanceLabel}. The direction is interesting, but more completed trials are needed before this would count as convincing evidence.`;
+      }
+      return `Current ${levelDisplayName} results are consistent with chance so far by ${significanceLabel}. More completed ${levelDisplayName} trials would help clarify the result.`;
+    }
+    if (band === "strong") {
+      return `${levelDisplayName} shows strong evidence of above-chance performance by ${significanceLabel}. With this many completed trials, the result is statistically strong and practically more persuasive.`;
+    }
+    if (band === "suggestive") {
+      return `${levelDisplayName} shows suggestive above-chance performance by ${significanceLabel}, but even with this many completed trials it is not yet strong enough to be considered convincing.`;
+    }
+    return `${levelDisplayName} results are consistent with chance by ${significanceLabel}, and any practical ${levelDisplayName} telepathic effect appears unlikely.`;
+  }
+
+  function classifyDatasetMakeup(levelStats, totalTrials) {
+    const fractions = levelStats.map((entry) => ({
+      level: entry.level,
+      completed_trials: Number(entry.completed_trials || 0),
+      fraction: totalTrials > 0 ? Number(entry.completed_trials || 0) / totalTrials : 0
+    }));
+    const sorted = [...fractions].sort((left, right) => right.fraction - left.fraction);
+    const dominant = sorted[0] || { level: 0, fraction: 0, completed_trials: 0 };
+    if (dominant.fraction >= 0.8) {
+      return {
+        type: "dominant",
+        dominantLevel: dominant.level,
+        fractions
+      };
+    }
+    if (dominant.fraction >= 0.5) {
+      return {
+        type: "mostly-mixed",
+        dominantLevel: dominant.level,
+        fractions
+      };
+    }
+    return {
+      type: "strongly-mixed",
+      dominantLevel: dominant.level,
+      fractions
+    };
+  }
+
+  function buildDatasetMakeupLine(levelStats, totalTrials) {
+    if (totalTrials < 1) {
+      return "No completed scored trials are available for interpretation.";
+    }
+    const makeup = classifyDatasetMakeup(levelStats, totalTrials);
+    const parts = levelStats
+      .filter((entry) => Number(entry.completed_trials || 0) > 0)
+      .map((entry) => `Level ${entry.level}: ${entry.completed_trials}`);
+    const countsText = parts.length ? parts.join(", ") : "no scored levels";
+
+    if (makeup.type === "dominant") {
+      return `Dataset makeup: ${countsText}. Level ${makeup.dominantLevel} contributes at least 80% of the completed trials, so the overall interpretation is mainly a Level ${makeup.dominantLevel} interpretation.`;
+    }
+    if (makeup.type === "mostly-mixed") {
+      return `Dataset makeup: ${countsText}. This is a mixed-level dataset, although Level ${makeup.dominantLevel} contributes most of the completed trials.`;
+    }
+    return `Dataset makeup: ${countsText}. This is a strongly mixed-level dataset, so the combined result should be read together with the level-by-level breakdown.`;
+  }
+
+  function buildOverallInterpretation(summaryStats, levelStats) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const levelBreakdown = Object.fromEntries(levelStats.map((entry) => [`level_${entry.level}`, entry]));
+    const pValue = getOverallSignificanceContext(summaryStats, levelBreakdown).pValue;
+    if (!Number.isFinite(pValue) || totalTrials < 1) {
+      return "Not enough completed scored trials are available for overall interpretation.";
+    }
+
+    const makeup = classifyDatasetMakeup(levelStats, totalTrials);
+    const band = getLevelEvidenceBand(pValue);
+
+    if (makeup.type === "dominant") {
+      const levelName = `Level ${makeup.dominantLevel}`;
+      const sampleBand = getSampleStrengthBand(totalTrials);
+      if (sampleBand === "too-small") {
+        return `This report is dominated by ${levelName} trials, but there are still too few completed scored trials for a meaningful overall interpretation.`;
+      }
+      if (sampleBand === "modest") {
+        if (band === "strong") {
+          return `This report is dominated by ${levelName} trials and is mathematically significant overall, but the total number of completed scored trials is still modest. The result is promising, though not yet maximally persuasive.`;
+        }
+        if (band === "suggestive") {
+          return `This report is dominated by ${levelName} trials and shows a suggestive overall result. The pattern is interesting, but more completed trials are needed before drawing a strong conclusion.`;
+        }
+        return `This report is dominated by ${levelName} trials and is currently consistent with chance overall.`;
+      }
+      if (band === "strong") {
+        return `This report is dominated by ${levelName} trials and shows strong above-chance performance overall. With this many completed trials, the result is statistically strong and practically more persuasive.`;
+      }
+      if (band === "suggestive") {
+        return `This report is dominated by ${levelName} trials and shows a suggestive overall result, but even with this many completed trials it is not yet strong enough to be considered convincing.`;
+      }
+      return `This report is dominated by ${levelName} trials and is consistent with chance overall, so no practical telepathic effect is indicated in the completed data.`;
+    }
+
+    if (makeup.type === "mostly-mixed") {
+      const sampleBand = getSampleStrengthBand(totalTrials);
+      if (sampleBand === "too-small") {
+        return `This report combines multiple difficulty levels, although Level ${makeup.dominantLevel} contributes most of the completed trials. Too few completed scored trials are available for a meaningful combined interpretation.`;
+      }
+      if (sampleBand === "modest") {
+        if (band === "strong") {
+          return `This report combines multiple difficulty levels, although Level ${makeup.dominantLevel} contributes most of the completed trials. The combined standardized analysis is mathematically significant, but the total number of completed trials is still modest.`;
+        }
+        if (band === "suggestive") {
+          return `This report combines multiple difficulty levels, although Level ${makeup.dominantLevel} contributes most of the completed trials. The combined standardized analysis is suggestive, but more completed trials are needed before drawing a strong conclusion.`;
+        }
+        return `This report combines multiple difficulty levels, although Level ${makeup.dominantLevel} contributes most of the completed trials. The combined result is currently consistent with chance.`;
+      }
+      if (band === "strong") {
+        return `Across these mixed task levels, the combined standardized analysis shows strong above-chance performance overall. With this many completed trials, the result is statistically strong and practically more persuasive.`;
+      }
+      if (band === "suggestive") {
+        return `Across these mixed task levels, the combined standardized analysis is suggestive overall, but not yet strong enough to be considered convincing.`;
+      }
+      return "Across these mixed task levels, the combined results are consistent with chance overall, and no practical telepathic effect is indicated.";
+    }
+
+    const sampleBand = getSampleStrengthBand(totalTrials);
+    if (sampleBand === "too-small") {
+      return "This report combines a strongly mixed set of task levels, and too few completed scored trials are available for a meaningful combined interpretation.";
+    }
+    if (sampleBand === "modest") {
+      if (band === "strong") {
+        return "This report combines a strongly mixed set of task levels. The combined standardized analysis is mathematically significant, but the total number of completed trials is still modest.";
+      }
+      if (band === "suggestive") {
+        return "This report combines a strongly mixed set of task levels. The combined standardized analysis is suggestive, but more completed trials are needed before drawing a strong conclusion.";
+      }
+      return "This report combines a strongly mixed set of task levels. The combined result is currently consistent with chance.";
+    }
+    if (band === "strong") {
+      return "This report combines a strongly mixed set of task levels and shows strong above-chance performance overall by combined standardized analysis. With this many completed trials, the result is statistically strong and practically more persuasive.";
+    }
+    if (band === "suggestive") {
+      return "This report combines a strongly mixed set of task levels and shows a suggestive overall result by combined standardized analysis, but not yet one strong enough to be considered convincing.";
+    }
+    return "This report combines a strongly mixed set of task levels and is consistent with chance overall, so no practical telepathic effect is indicated in the combined data.";
+  }
+
+  function buildPatternInterpretation(levelStats, summaryStats) {
+    const testedLevels = levelStats.filter((entry) => hasInterpretationSizedSample(entry));
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (!testedLevels.length) {
+      return ["Not enough level-specific data are available yet to describe a pattern across levels."];
+    }
+    if (testedLevels.length === 1) {
+      return ["Only one level has enough completed trials for pattern analysis, so no cross-level pattern can yet be assessed."];
+    }
+
+    const level1 = levelStats.find((entry) => entry.level === 1) || null;
+    const level2 = levelStats.find((entry) => entry.level === 2) || null;
+    const level3 = levelStats.find((entry) => entry.level === 3) || null;
+    const level4 = levelStats.find((entry) => entry.level === 4) || null;
+    const band1 = getLevelEvidenceBand(Number(level1?.p_value));
+    const band2 = getLevelEvidenceBand(Number(level2?.p_value));
+    const band3 = getLevelEvidenceBand(Number(level3?.p_value));
+    const band4 = getLevelEvidenceBand(Number(level4?.p_value));
+    const lines = [];
+
+    if (
+      totalTrials >= 60 &&
+      testedLevels.length >= 2 &&
+      testedLevels.every((entry) => getLevelEvidenceBand(Number(entry.p_value)) === "chance")
+    ) {
+      lines.push("Across all tested levels with enough completed trials, the data are consistently chance-like. No practical telepathic effect is indicated in this dataset.");
+      return lines;
+    }
+
+    if (
+      hasInterpretationSizedSample(level1) &&
+      band1 !== "chance" &&
+      (!hasInterpretationSizedSample(level2) || band2 === "chance") &&
+      (!hasInterpretationSizedSample(level3) || band3 === "chance") &&
+      (!hasInterpretationSizedSample(level4) || band4 === "chance")
+    ) {
+      lines.push("Performance appears stronger at Level 1 than at the more discriminating levels. This may indicate a basic telepathic sensitivity that does not yet extend reliably to finer perceptual discrimination.");
+      if (hasInterpretationSizedSample(level2) || hasInterpretationSizedSample(level3)) {
+        lines.push("Additional practice may be needed to improve discrimination of arrangement and finer detail.");
+      }
+      if (hasInterpretationSizedSample(level4)) {
+        lines.push("Basic coarse discrimination may be present, but it does not yet extend reliably to image-level forced-choice discrimination.");
+      }
+      return lines;
+    }
+
+    if (
+      hasInterpretationSizedSample(level4) &&
+      band4 !== "chance" &&
+      (!hasInterpretationSizedSample(level1) || band1 === "chance") &&
+      (!hasInterpretationSizedSample(level2) || band2 === "chance") &&
+      (!hasInterpretationSizedSample(level3) || band3 === "chance")
+    ) {
+      lines.push("Above-chance performance appears to extend to direct image-level forced-choice discrimination.");
+      return lines;
+    }
+
+    if (
+      hasInterpretationSizedSample(level2) &&
+      band2 !== "chance" &&
+      hasInterpretationSizedSample(level1) &&
+      band1 === "chance"
+    ) {
+      lines.push("This is an unusual pattern, because Level 2 requires more discrimination than Level 1. The result may reflect sampling fluctuation, mixed strategy, or a need for additional replication.");
+      return lines;
+    }
+
+    const strongLevels = testedLevels
+      .filter((entry) => getLevelEvidenceBand(Number(entry.p_value)) !== "chance")
+      .sort((left, right) => Number(right.z_score || Number.NEGATIVE_INFINITY) - Number(left.z_score || Number.NEGATIVE_INFINITY));
+    if (
+      strongLevels.length &&
+      strongLevels[0].level === 3 &&
+      hasInterpretationSizedSample(level1) &&
+      hasInterpretationSizedSample(level2)
+    ) {
+      lines.push("Performance appears strongest at the finest discrimination level. If replicated, this would suggest unusually detailed perceptual accuracy rather than merely coarse telepathic sensitivity.");
+      return lines;
+    }
+
+    if (
+      hasInterpretationSizedSample(level1) &&
+      (band1 === "strong" || band1 === "suggestive") &&
+      hasInterpretationSizedSample(level2) &&
+      hasInterpretationSizedSample(level3) &&
+      Number(level1.z_score || Number.NEGATIVE_INFINITY) > Number(level2.z_score || Number.NEGATIVE_INFINITY) &&
+      Number(level2.z_score || Number.NEGATIVE_INFINITY) >= Number(level3.z_score || Number.NEGATIVE_INFINITY)
+    ) {
+      lines.push("Any apparent telepathic effect seems to weaken as the discrimination demand increases.");
+      return lines;
+    }
+
+    lines.push("The level-by-level pattern is mixed and does not yet point to one simple explanation, so the overall result should be read together with the individual level summaries.");
+    return lines;
+  }
+
+  function buildInterpretationBundle(summaryStats, levelBreakdown) {
+    const levelStats = getLevelStatsList(levelBreakdown);
+    const overallInterpretation = buildOverallInterpretation(summaryStats, levelStats);
+    const datasetMakeup = buildDatasetMakeupLine(levelStats, Number(summaryStats?.totalTrials || 0));
+    const levelInterpretations = levelStats
+      .filter((entry) => Number(entry.completed_trials || 0) > 0)
+      .map((entry) => getLevelSpecificInterpretation(entry));
+    const patternInterpretations = buildPatternInterpretation(levelStats, summaryStats);
+    const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
+    const pValue = significance.pValue;
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+
+    let recommendation = "Continue collecting completed trials and look for stable performance over a larger block.";
+    if (!Number.isFinite(pValue) || totalTrials < 1) {
+      recommendation = "Collect more completed trials before drawing a conclusion.";
+    } else if (pValue < 0.01 && totalTrials >= 60) {
+      recommendation = "This is statistically strong and practically more persuasive. Continue testing under similar conditions to see whether the above-chance pattern replicates across additional sessions.";
+    } else if (pValue < 0.01) {
+      recommendation = "This is mathematically significant, but the sample is still modest. A similar result over a larger block of completed trials would make the evidence much more persuasive.";
+    } else if (pValue < 0.05 && totalTrials >= 60) {
+      recommendation = "The result is statistically interesting, but not yet strong enough to count as firm evidence. Additional completed trials would show whether the effect strengthens or fades.";
+    } else if (pValue < 0.05) {
+      recommendation = "The result is suggestive, but with this sample size it should be treated cautiously. More completed trials are needed before drawing a strong conclusion.";
+    } else if (totalTrials >= 60) {
+      recommendation = "With this many completed trials, the present data are consistent with chance rather than telepathy.";
+    }
+
+    return {
+      overall_interpretation: overallInterpretation,
+      dataset_makeup: datasetMakeup,
+      level_interpretations: levelInterpretations,
+      pattern_interpretations: patternInterpretations,
+      recommendation,
+      significance_method: significance.method
+    };
   }
 
   function buildResultsAnalysis(pairInfo, records, sourcePath = "") {
     const rawTrialCount = records.length;
     const scoredRecords = getScoredRecords(records);
     const summaryStats = getReportSummaryStats(records);
-    const pValue = getTelepathicSignificancePValue(summaryStats);
     const abortedTrials = records.filter((record) => String(record?.["trial aborted"] ?? "").trim().toLowerCase() === "yes").length;
     const timedOutTrials = records.filter((record) => String(record?.["trial timed out"] ?? "").trim().toLowerCase() === "yes").length;
     const completedTrials = summaryStats.totalTrials;
@@ -2970,6 +4364,9 @@
     const secondHalfStats = getReportSummaryStats(secondHalfRecords);
     const firstHalfExcess = firstHalfStats.yourScore - firstHalfStats.chanceScore;
     const secondHalfExcess = secondHalfStats.yourScore - secondHalfStats.chanceScore;
+    const levelBreakdown = buildLevelBreakdown(scoredRecords);
+    const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
+    const pValue = significance.pValue;
 
     const analysis = {
       analysis_version: "1",
@@ -2990,6 +4387,7 @@
         chance_score: Number(summaryStats.chanceScore.toFixed(3)),
         excess_over_chance: Number((summaryStats.yourScore - summaryStats.chanceScore).toFixed(3)),
         telepathic_significance_p: Number.isFinite(pValue) ? Number(pValue.toPrecision(6)) : null,
+        telepathic_significance_method: significance.method,
         average_confidence: Number.isFinite(averageConfidence) ? Number(averageConfidence.toFixed(2)) : null,
         confidence_vs_score_correlation: Number.isFinite(confidenceCorrelation) ? Number(confidenceCorrelation.toFixed(3)) : null,
         average_reaction_time_seconds: Number.isFinite(averageReactionMs) ? Number((averageReactionMs / 1000).toFixed(2)) : null,
@@ -2999,11 +4397,9 @@
         sender_location_spread_meters: Number(senderSpreadMeters.toFixed(1)),
         first_half_excess_over_chance: Number(firstHalfExcess.toFixed(3)),
         second_half_excess_over_chance: Number(secondHalfExcess.toFixed(3)),
-        level_breakdown: buildLevelBreakdown(scoredRecords)
+        level_breakdown: levelBreakdown
       },
       messages: {
-        headline: getInterpretationHeadline(summaryStats),
-        recommendation: getInterpretationRecommendation(summaryStats),
         confidence_relationship: summarizeCorrelation(
           confidenceCorrelation,
           "higher confidence tends to accompany better-than-chance scoring",
@@ -3020,6 +4416,10 @@
             : "testing locations appear fairly stable across the completed trials"
       }
     };
+    const interpretation = buildInterpretationBundle(summaryStats, analysis.metrics.level_breakdown);
+    analysis.interpretation = interpretation;
+    analysis.messages.headline = interpretation.overall_interpretation;
+    analysis.messages.recommendation = interpretation.recommendation;
 
     const continuityLines = [
       "RESULTS ANALYZER CONTINUITY TEXT",
@@ -3040,10 +4440,18 @@
       `Your score: ${formatScoreValue(summaryStats.yourScore)}`,
       `Excess over chance: ${formatScoreValue(summaryStats.yourScore - summaryStats.chanceScore)}`,
       `Telepathic significance P: ${formatProbabilityValue(pValue)}`,
+      `Telepathic significance method: ${significance.method}`,
+      "",
+      "INTERPRETATION",
+      `Overall interpretation: ${interpretation.overall_interpretation}`,
+      interpretation.dataset_makeup,
+      ...interpretation.level_interpretations.map((line, index) => `Level note ${index + 1}: ${line}`),
+      ...interpretation.pattern_interpretations.map((line, index) => `Pattern note ${index + 1}: ${line}`),
+      `Recommendation: ${interpretation.recommendation}`,
       "",
       "LEVEL BREAKDOWN",
       ...Object.entries(analysis.metrics.level_breakdown).map(([level, entry]) =>
-        `${level}: completed trials = ${entry.completed_trials}, score = ${formatScoreValue(entry.score)}, chance score = ${formatScoreValue(entry.chance_score)}, excess = ${formatScoreValue(entry.excess_over_chance)}`
+        `${level}: completed trials = ${entry.completed_trials}, score = ${formatScoreValue(entry.score)}, chance score = ${formatScoreValue(entry.chance_score)}, excess = ${formatScoreValue(entry.excess_over_chance)}, P = ${formatProbabilityValue(entry.p_value)}, method = ${entry.significance_method || "unknown"}`
       ),
       "",
       "ADDITIONAL METRICS",
@@ -3059,8 +4467,11 @@
       `Second-half excess over chance: ${formatScoreValue(secondHalfExcess)}`,
       "",
       "STATIC INTERPRETATION",
-      analysis.messages.headline,
-      analysis.messages.recommendation,
+      interpretation.overall_interpretation,
+      interpretation.dataset_makeup,
+      ...interpretation.level_interpretations,
+      ...interpretation.pattern_interpretations,
+      interpretation.recommendation,
       "",
       "REQUEST TO AI",
       "Please analyze this receiver-sender pair using the structured information above. Pay attention to score, chance score, telepathic significance P, confidence, time-to-respond, distance, location stability, first-half versus second-half performance, and whether the result appears stable or bursty."
@@ -3075,9 +4486,18 @@
   function formatAnalysisDisplay(analysis) {
     const metrics = analysis?.metrics || {};
     const messages = analysis?.messages || {};
+    const interpretation = analysis?.interpretation || {};
     return [
-      `Headline: ${messages.headline || "unknown"}`,
-      `Recommendation: ${messages.recommendation || "unknown"}`,
+      `Overall interpretation: ${interpretation.overall_interpretation || messages.headline || "unknown"}`,
+      `${interpretation.dataset_makeup || "Dataset makeup: unknown"}`,
+      ...(Array.isArray(interpretation.level_interpretations) && interpretation.level_interpretations.length
+        ? ["", "Level-specific interpretation:", ...interpretation.level_interpretations.map((line) => `- ${line}`)]
+        : []),
+      ...(Array.isArray(interpretation.pattern_interpretations) && interpretation.pattern_interpretations.length
+        ? ["", "Pattern interpretation:", ...interpretation.pattern_interpretations.map((line) => `- ${line}`)]
+        : []),
+      "",
+      `Recommendation: ${interpretation.recommendation || messages.recommendation || "unknown"}`,
       "",
       `Raw trials: ${metrics.raw_trial_count ?? 0}`,
       `Completed scored trials: ${metrics.completed_trial_count ?? 0}`,
@@ -3088,6 +4508,7 @@
       `Your score: ${formatScoreValue(metrics.score_total)}`,
       `Excess over chance: ${formatScoreValue(metrics.excess_over_chance)}`,
       `Telepathic significance, P: ${formatProbabilityValue(metrics.telepathic_significance_p)}`,
+      `Telepathic significance method: ${metrics.telepathic_significance_method || "unknown"}`,
       "",
       `Average confidence: ${metrics.average_confidence ?? "unknown"}`,
       `Confidence relationship: ${messages.confidence_relationship || "unknown"}`,
@@ -3102,26 +4523,13 @@
     ].join("\n");
   }
 
-  function buildAiInterpretation(summaryStats) {
-    const pValue = getTelepathicSignificancePValue(summaryStats);
-    const totalTrials = Number(summaryStats?.totalTrials || 0);
-    if (!Number.isFinite(pValue) || totalTrials < 1) {
+  function buildAiInterpretation(summaryStats, records = []) {
+    const levelBreakdown = buildLevelBreakdown(records);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown);
+    if (Number(summaryStats?.totalTrials || 0) < 1) {
       return "AI Interpretation: There are not enough completed scored trials yet to interpret these results.";
     }
-
-    if (pValue < 0.01 && totalTrials >= 20) {
-      return "AI Interpretation: This is a statistically significant result and, because it is based on at least 20 completed trials, it would generally be considered convincing.";
-    }
-
-    if (pValue < 0.01 && totalTrials < 20) {
-      return "AI Interpretation: This is a very significant result, but the number of completed trials is still low, so it is not yet very convincing. A score better than P = 0.01 over at least 20 completed trials would generally be considered convincing.";
-    }
-
-    if (pValue < 0.05) {
-      return "AI Interpretation: This is a suggestive result, but it is not yet strong enough to be considered convincing. More completed trials would be needed.";
-    }
-
-    return "AI Interpretation: At present, these results are within the range that could easily occur by chance alone. More completed trials would be needed before drawing a strong conclusion.";
+    return `AI Interpretation: ${interpretation.overall_interpretation}`;
   }
 
   function getLevelOneReportScore(record) {
@@ -3181,6 +4589,9 @@
     }
     if (level === 3) {
       return "#ff8c69";
+    }
+    if (level === 4) {
+      return "#9d7dff";
     }
     return "#f6f3ef";
   }
@@ -3262,6 +4673,7 @@
       const receiverLocation = parseLocationValue(record?.["rx location"] ?? "");
       const senderLocation = parseLocationValue(record?.["tx location"] ?? "");
       const scoreValue = getReportScore(record);
+      const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
       const distanceMeters =
         receiverLocation && senderLocation
           ? haversineDistanceMeters(senderLocation, receiverLocation)
@@ -3282,7 +4694,10 @@
           td.textContent = scoreValue;
         } else if (header === "rx choice1") {
           const responseLabel = getReportResponseLabel(record);
-          if (responseLabel !== null) {
+          if (difficultyLevel === "4") {
+            td.classList.add("report-layout-cell");
+            td.appendChild(createReportImageThumbnailCell(record?.["rx image choice"] ?? "", "Selected image"));
+          } else if (responseLabel !== null) {
             td.textContent = responseLabel;
           } else {
             td.classList.add("report-layout-cell");
@@ -3290,7 +4705,11 @@
           }
         } else if (header === "sent layout") {
           td.classList.add("report-layout-cell");
-          td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
+          if (difficultyLevel === "4") {
+            td.appendChild(createReportImageThumbnailCell(record?.["sent image"] ?? "", "Sent image"));
+          } else {
+            td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
+          }
         } else {
           td.textContent = String(record?.[header] ?? "");
         }
@@ -3304,7 +4723,7 @@
     const summaryCell = document.createElement("td");
     summaryCell.colSpan = headers.length;
     summaryCell.className = "report-table-summary-cell";
-    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats);
+    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats, buildLevelBreakdown(records));
     summaryCell.textContent = summaryText;
     summaryRow.appendChild(summaryCell);
     tfoot.appendChild(summaryRow);
@@ -3339,7 +4758,9 @@
     }
 
     const summaryStats = getReportSummaryStats(records);
-    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats);
+    const levelBreakdown = buildLevelBreakdown(records);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown);
+    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats, levelBreakdown);
     const summaryLine = document.createElement("p");
     summaryLine.className = "report-summary-line";
     summaryLine.textContent = summaryText;
@@ -3352,8 +4773,17 @@
 
     const interpretationLine = document.createElement("p");
     interpretationLine.className = "report-summary-line";
-    interpretationLine.textContent = buildAiInterpretation(summaryStats);
+    interpretationLine.textContent = buildAiInterpretation(summaryStats, records);
     visualizationSummary.append(interpretationLine);
+    [interpretation.dataset_makeup, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
+      if (!text) {
+        return;
+      }
+      const line = document.createElement("p");
+      line.className = "report-summary-line";
+      line.textContent = text;
+      visualizationSummary.append(line);
+    });
 
     visualizationStatus.textContent = `${series.length} completed trial record${series.length === 1 ? "" : "s"} found.`;
   }
@@ -3793,6 +5223,10 @@
     headlineLine.className = "report-summary-line";
     headlineLine.textContent = analysis.messages.headline;
     analyzerSummary.append(headlineLine);
+    const makeupLine = document.createElement("p");
+    makeupLine.className = "report-summary-line";
+    makeupLine.textContent = analysis.interpretation?.dataset_makeup || "";
+    analyzerSummary.append(makeupLine);
 
     analyzerStatus.textContent = `${analysis.metrics.completed_trial_count} completed trial record${analysis.metrics.completed_trial_count === 1 ? "" : "s"} analyzed.`;
     analyzerOutput.textContent = formatAnalysisDisplay(analysis);
@@ -3827,7 +5261,12 @@
 
         if (!cache.has(context.sessionCode)) {
           try {
-            const data = await fetchPairDifficulty(context.sessionCode);
+            const pairParticipants = context.role === "sender"
+              ? { senderName: context.ownName, receiverName: context.partnerName }
+              : context.role === "receiver"
+                ? { senderName: context.partnerName, receiverName: context.ownName }
+                : null;
+            const data = await fetchPairDifficulty(context.sessionCode, null, null, pairParticipants);
             if (token !== difficultyLabelToken) {
               return;
             }
@@ -3844,7 +5283,7 @@
     }
   }
 
-  async function fetchPairDifficulty(sessionCode, requestedLevel = null, traceContext = null) {
+  async function fetchPairDifficulty(sessionCode, requestedLevel = null, traceContext = null, pairParticipants = null) {
     const payload = {
       action: requestedLevel === null ? "get_pair_difficulty" : "set_pair_difficulty",
       session_code: sessionCode,
@@ -3853,6 +5292,17 @@
 
     if (requestedLevel !== null) {
       payload.difficulty_level = normalizeDifficultyLevel(requestedLevel);
+    }
+
+    if (pairParticipants && typeof pairParticipants === "object") {
+      const senderName = String(pairParticipants.senderName || "").trim();
+      const receiverName = String(pairParticipants.receiverName || "").trim();
+      if (senderName) {
+        payload.sender_name = senderName;
+      }
+      if (receiverName) {
+        payload.receiver_name = receiverName;
+      }
     }
 
     if (traceContext && typeof traceContext === "object") {
@@ -3873,11 +5323,73 @@
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-      throw new Error(`Difficulty request failed with status ${response.status}`);
+    return parseApiResponse(response, `Difficulty request failed with status ${response.status}`);
+  }
+
+  async function fetchPairAuthorizationForLauncherRole(role, ownName, partnerName, options = {}) {
+    const normalizedRole = String(role || "").trim();
+    const cleanOwnName = String(ownName || "").trim();
+    const cleanPartnerName = String(partnerName || "").trim();
+    const targetRole = normalizedRole === "remote-viewer"
+      ? String(options.targetRole || "receiver").trim()
+      : normalizedRole;
+    const sessionCode =
+      String(options.sessionCode || "").trim() ||
+      buildSessionCodeFromNames(cleanOwnName, cleanPartnerName);
+    const pairParticipants = targetRole === "sender"
+      ? { senderName: cleanOwnName, receiverName: cleanPartnerName }
+      : { senderName: cleanPartnerName, receiverName: cleanOwnName };
+
+    if (!sessionCode || !cleanOwnName || !cleanPartnerName) {
+      return null;
     }
 
-    return response.json();
+    const difficultyData = await fetchPairDifficulty(sessionCode, null, null, pairParticipants);
+    const difficultyLevel = normalizeDifficultyLevel(difficultyData?.pair_difficulty);
+    if (["1", "2", "3"].includes(difficultyLevel)) {
+      return {
+        allowed: true,
+        difficultyLevel,
+        message: "",
+        ownType: "standard",
+        partnerType: "standard"
+      };
+    }
+
+    const [ownType, partnerType] = await Promise.all([
+      fetchUserType(cleanOwnName),
+      fetchUserType(cleanPartnerName)
+    ]);
+    const receiverType = targetRole === "receiver" ? ownType : partnerType;
+    const senderType = targetRole === "sender" ? ownType : partnerType;
+
+    if (difficultyLevel === "4" && receiverType !== "pro") {
+      return {
+        allowed: false,
+        difficultyLevel,
+        message: "Level 4 requires the receiver to be a PRO user.",
+        ownType,
+        partnerType
+      };
+    }
+
+    if (difficultyLevel === "5" && (receiverType !== "pro" || senderType !== "pro")) {
+      return {
+        allowed: false,
+        difficultyLevel,
+        message: "Level 5 requires both participants to be PRO users.",
+        ownType,
+        partnerType
+      };
+    }
+
+    return {
+      allowed: true,
+      difficultyLevel,
+      message: "",
+      ownType,
+      partnerType
+    };
   }
 
   function buildTargetUrl(role, ownName, exactPartnerName, options = {}) {
@@ -3891,6 +5403,10 @@
     params.set("prefill", "1");
     params.set("own_email", canonicalOwnName);
     params.set("partner_email", canonicalPartnerName);
+    const blinkSettings = getBlinkBehaviorSettings(state);
+    params.set("blink_sender_image", blinkSettings.enabled ? "1" : "0");
+    params.set("blink_image_on_seconds", blinkSettings.onSeconds);
+    params.set("blink_image_off_seconds", blinkSettings.offSeconds);
     if (typeof options.runtimeMode === "string" && options.runtimeMode.trim()) {
       params.set("runtime_mode", options.runtimeMode.trim());
     }
@@ -4614,6 +6130,22 @@
 
       const canonicalOwnName = getPreferredIdentifier(ownName, latest);
       const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
+      const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
+
+      try {
+        const authorization = await fetchPairAuthorizationForLauncherRole(
+          role,
+          canonicalOwnName,
+          canonicalPartnerName,
+          { sessionCode: pairSessionCode }
+        );
+        if (authorization && authorization.allowed === false) {
+          window.alert(authorization.message || "This pair is not authorized for the current difficulty level.");
+          return;
+        }
+      } catch (error) {
+        // If the authorization precheck fails, let the runtime/server make the final decision.
+      }
 
       latest.ownNames = latest.ownNames || {};
       latest.ownNames[role] = ownName;
@@ -4765,6 +6297,7 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -4775,6 +6308,8 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
   }
@@ -4789,6 +6324,7 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -4799,6 +6335,8 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4815,6 +6353,7 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -4824,6 +6363,8 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     void renderReportDefinition();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4840,6 +6381,7 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
@@ -4848,6 +6390,8 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void renderPerformanceReport(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4865,6 +6409,7 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
@@ -4872,6 +6417,8 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void renderPerformanceVisualization(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4890,12 +6437,14 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     void renderResultsAnalysis(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4910,6 +6459,7 @@
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -4918,6 +6468,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -4942,6 +6493,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -4963,6 +6515,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     resetContactView({ clearMessage: false, clearStatus: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4984,6 +6537,8 @@
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -4992,10 +6547,21 @@
     const identifiers = readVisibleRoleIdentifiers(role);
     const finishAdjustment = markDifficultyAdjustment(role);
     setRoleDifficultyStatus(role, "");
+    setDifficultyExplanationLocked(role, true);
 
     if (!identifiers.ownName || !identifiers.partnerName) {
-      setRoleDifficultyStatus(role, "Level can be changed only when both identity fields are filled.", { isError: true });
+      const currentLevel = getDifficultyLocalLevel(role);
+      const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
+      if (nextLevel !== currentLevel) {
+        rememberDifficultyLevel(String(nextLevel));
+        setRoleDifficultyLabel(role, String(nextLevel));
+        scheduleGuidedLevelExplanation(role, String(nextLevel));
+      } else if (delta > 0) {
+        setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true });
+        focusMissingDifficultyIdentifier(role, identifiers);
+      }
       finishAdjustment();
+      setDifficultyExplanationLocked(role, false);
       return;
     }
 
@@ -5003,21 +6569,45 @@
       assertValidParticipantIdentifier(identifiers.ownName, "Your identifier");
       assertValidParticipantIdentifier(identifiers.partnerName, "Partner identifier");
     } catch (error) {
-      setRoleDifficultyStatus(role, error instanceof Error ? error.message : "Please provide valid identifiers before changing the level.", { isError: true });
+      const currentLevel = getDifficultyLocalLevel(role);
+      const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
+      if (nextLevel !== currentLevel) {
+        rememberDifficultyLevel(String(nextLevel));
+        setRoleDifficultyLabel(role, String(nextLevel));
+        scheduleGuidedLevelExplanation(role, String(nextLevel));
+      } else if (delta > 0) {
+        setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true });
+      }
       finishAdjustment();
+      setDifficultyExplanationLocked(role, false);
       return;
     }
 
     const pairContext = getPairContextForRole(role);
     if (!pairContext) {
-      setRoleDifficultyStatus(role, "Level can be changed only when both identity fields are filled.", { isError: true });
+      const currentLevel = getDifficultyLocalLevel(role);
+      const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
+      if (nextLevel !== currentLevel) {
+        rememberDifficultyLevel(String(nextLevel));
+        setRoleDifficultyLabel(role, String(nextLevel));
+        scheduleGuidedLevelExplanation(role, String(nextLevel));
+      } else if (delta > 0) {
+        setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true });
+        focusMissingDifficultyIdentifier(role, identifiers);
+      }
       finishAdjustment();
+      setDifficultyExplanationLocked(role, false);
       return;
     }
 
     activeLauncherRole = role;
     activeDifficultyContext = pairContext;
     activePairDifficultyCode = pairContext.sessionCode;
+    const pairParticipants = role === "sender"
+      ? { senderName: pairContext.ownName, receiverName: pairContext.partnerName }
+      : role === "receiver"
+        ? { senderName: pairContext.partnerName, receiverName: pairContext.ownName }
+        : null;
 
     try {
       const currentData = await fetchPairDifficulty(pairContext.sessionCode, null, {
@@ -5025,12 +6615,17 @@
         activePairDifficultyCode,
         activeDifficultySessionCode: pairContext.sessionCode,
         activeDifficultyRole: pairContext.role
-      });
+      }, pairParticipants);
       const currentLevel = Number(normalizeDifficultyLevel(currentData?.pair_difficulty));
-      const nextLevel = Math.max(1, Math.min(getMaxDifficultyLevel(), currentLevel + delta));
+      const maxAllowedLevel = getPairMaxDifficultyLevel(currentData);
+      const nextLevel = Math.max(1, Math.min(maxAllowedLevel, currentLevel + delta));
 
       if (nextLevel === currentLevel) {
-        setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`);
+        if (delta > 0 && currentLevel >= maxAllowedLevel) {
+          setRoleDifficultyStatus(role, buildDifficultyCeilingMessage(role, pairContext, currentData, currentLevel + 1), { isError: true });
+        } else {
+          setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`);
+        }
         rememberDifficultyLevel(String(currentLevel));
         setRoleDifficultyLabel(role, String(currentLevel));
         scheduleGuidedLevelExplanation(role, String(currentLevel));
@@ -5042,7 +6637,7 @@
         activePairDifficultyCode: pairContext.sessionCode,
         activeDifficultySessionCode: pairContext.sessionCode,
         activeDifficultyRole: pairContext.role
-      });
+      }, pairParticipants);
       const confirmedLevel = normalizeDifficultyLevel(updatedData?.pair_difficulty);
       rememberDifficultyLevel(confirmedLevel);
       setRoleDifficultyLabel(role, confirmedLevel);
@@ -5051,8 +6646,15 @@
       setRoleDifficultyStatus(role, `${pairLabel} set to Level ${confirmedLevel}.`);
       scheduleGuidedLevelExplanation(role, confirmedLevel);
     } catch (error) {
-      setRoleDifficultyStatus(role, "Unable to change the difficulty level right now.", { isError: true });
+      setRoleDifficultyStatus(
+        role,
+        error instanceof Error && error.message
+          ? error.message
+          : "Unable to change the difficulty level right now.",
+        { isError: true }
+      );
     } finally {
+      setDifficultyExplanationLocked(role, false);
       finishAdjustment();
     }
   }
@@ -5104,6 +6706,8 @@
     launcherView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderSettingsView();
@@ -5191,6 +6795,15 @@
       if (adminDebugEnabledCheckbox) {
         adminDebugEnabledCheckbox.checked = !!launcherAdminState.debug_enabled;
       }
+      if (adminSubscriptionEmailsEnabledCheckbox) {
+        adminSubscriptionEmailsEnabledCheckbox.checked = !!launcherAdminState.subscription_emails_enabled;
+      }
+      if (adminSubscriptionRemindersEnabledCheckbox) {
+        adminSubscriptionRemindersEnabledCheckbox.checked = !!launcherAdminState.subscription_reminders_enabled;
+      }
+      if (adminEasyAdminEnabledCheckbox) {
+        adminEasyAdminEnabledCheckbox.checked = !!launcherAdminState.easy_admin_enabled;
+      }
       if (adminClearDebugLogButton) {
         const debugLog = launcherAdminState.debug_log;
         const sizeLabel = debugLog?.size_formatted ? debugLog.size_formatted : "0 B";
@@ -5215,7 +6828,7 @@
   }
 
   async function refreshAdminView() {
-    if (!launcherAdminSecret) {
+    if (!launcherAdminSecret && !launcherAdminState.easy_admin_enabled) {
       if (adminStatus) {
         adminStatus.textContent = "Admin access is not active.";
       }
@@ -5228,8 +6841,13 @@
       const data = await launcherAdminApi("heartbeat");
         launcherAdminState = {
           debug_enabled: !!data?.debug_enabled,
+          subscription_emails_enabled: !!data?.subscription_emails_enabled,
+          subscription_reminders_enabled: !!data?.subscription_reminders_enabled,
+          easy_admin_enabled: !!data?.easy_admin_enabled,
           storage: data?.storage || null,
           debug_log: data?.debug_log || null,
+          subscription_email_log: data?.subscription_email_log || null,
+          subscription_email_templates: data?.subscription_email_templates || null,
           user_trial_summary: data?.user_trial_summary || null,
           user_trial_summary_meta: data?.user_trial_summary_meta || null,
           disk_usage_analysis: data?.disk_usage_analysis || null
@@ -5267,6 +6885,9 @@
     adminView?.classList.remove("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -5290,6 +6911,9 @@
     adminUserListView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -5368,6 +6992,116 @@
     logUserTypeAdminDebug("reset_view");
   }
 
+  function resetHandleUpdateAdminView() {
+    if (handleUpdateLookupTimer) {
+      clearTimeout(handleUpdateLookupTimer);
+      handleUpdateLookupTimer = null;
+    }
+    pendingHandleUpdateLookupToken += 1;
+    if (handleUpdateOldInput) {
+      handleUpdateOldInput.value = "";
+    }
+    if (handleUpdateNewInput) {
+      handleUpdateNewInput.value = "";
+    }
+    if (handleUpdateSummary) {
+      handleUpdateSummary.hidden = true;
+      handleUpdateSummary.textContent = "";
+    }
+    if (handleUpdateStatus) {
+      handleUpdateStatus.textContent = "";
+    }
+  }
+
+  function renderHandleUpdateSummary(summary) {
+    if (!handleUpdateSummary) {
+      return;
+    }
+
+    if (!summary) {
+      handleUpdateSummary.hidden = true;
+      handleUpdateSummary.textContent = "";
+      return;
+    }
+
+    const history = Array.isArray(summary?.handle_history) ? summary.handle_history.filter(Boolean) : [];
+    const currentHandle = String(summary?.current_handle || "").trim() || "unknown";
+    const userType = String(summary?.user_type || "").trim() || "STD";
+    const ownerEmail = String(summary?.owner_email || "").trim();
+    const ownerLine = ownerEmail ? ownerEmail : "not available";
+    const stateLabel = summary?.is_active ? "Active" : (summary?.is_retired ? "Retired" : "Unknown");
+    const historyLine = history.length ? history.join(" -> ") : currentHandle;
+
+    handleUpdateSummary.textContent =
+      `Current handle: ${currentHandle}\n` +
+      `Status: ${userType}\n` +
+      `Email: ${ownerLine}\n` +
+      `Handle state: ${stateLabel}\n` +
+      `Handle history: ${historyLine}`;
+    handleUpdateSummary.hidden = false;
+  }
+
+  async function lookupHandleUpdateSummary() {
+    if (handleUpdateLookupTimer) {
+      clearTimeout(handleUpdateLookupTimer);
+      handleUpdateLookupTimer = null;
+    }
+
+    const handle = String(handleUpdateOldInput?.value || "").replace(/\s+/g, " ").trim();
+    const lookupToken = pendingHandleUpdateLookupToken + 1;
+    pendingHandleUpdateLookupToken = lookupToken;
+
+    if (!handle) {
+      renderHandleUpdateSummary(null);
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = "";
+      }
+      return;
+    }
+
+    if (!isValidUniqueHandle(handle)) {
+      renderHandleUpdateSummary(null);
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = "Current handle is invalid.";
+      }
+      return;
+    }
+
+    if (handleUpdateStatus) {
+      handleUpdateStatus.textContent = "Checking handle history...";
+    }
+
+    try {
+      const summary = await fetchHandleAdminSummary(handle);
+      if (lookupToken !== pendingHandleUpdateLookupToken) {
+        return;
+      }
+      renderHandleUpdateSummary(summary);
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = "";
+      }
+    } catch (error) {
+      if (lookupToken !== pendingHandleUpdateLookupToken) {
+        return;
+      }
+      renderHandleUpdateSummary(null);
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = error instanceof Error ? error.message : "Unable to look up that handle right now.";
+      }
+    }
+  }
+
+  function scheduleHandleUpdateSummaryLookup(delayMs = 300) {
+    if (handleUpdateLookupTimer) {
+      clearTimeout(handleUpdateLookupTimer);
+      handleUpdateLookupTimer = null;
+    }
+    handleUpdateLookupTimer = setTimeout(() => {
+      handleUpdateLookupTimer = null;
+      void lookupHandleUpdateSummary();
+    }, delayMs);
+  }
+
   async function lookupUserTypeForAdminHandle() {
     if (userTypeLookupTimer) {
       clearTimeout(userTypeLookupTimer);
@@ -5388,19 +7122,19 @@
       return;
     }
 
-    if (!isValidUniqueHandle(handle)) {
+    if (!isValidParticipantIdentifier(handle)) {
       renderUserTypeAdminState({
-        statusText: "That handle is invalid.",
+        statusText: "That identifier is invalid.",
         showChoices: false,
         currentType: "standard"
       });
-      logUserTypeAdminDebug("lookup_invalid_handle", [{ attempted_handle: handle }]);
+      logUserTypeAdminDebug("lookup_invalid_identifier", [{ attempted_identifier: handle }]);
       return;
     }
 
-    logUserTypeAdminDebug("lookup_start", [{ attempted_handle: handle, lookup_token: lookupToken }]);
+    logUserTypeAdminDebug("lookup_start", [{ attempted_identifier: handle, lookup_token: lookupToken }]);
     renderUserTypeAdminState({
-      statusText: "Checking user handle...",
+      statusText: "Checking user identifier...",
       showChoices: false,
       currentType: "standard"
     });
@@ -5419,17 +7153,17 @@
 
       const data = await parseApiResponse(response, `User-type lookup failed with status ${response.status}`);
       if (lookupToken !== pendingUserTypeLookupToken) {
-        logUserTypeAdminDebug("lookup_stale_ignored", [{ attempted_handle: handle, lookup_token: lookupToken }]);
+        logUserTypeAdminDebug("lookup_stale_ignored", [{ attempted_identifier: handle, lookup_token: lookupToken }]);
         return;
       }
       const identifierStatus = data?.identifier_status || null;
-      if (!identifierStatus?.is_handle) {
+      if (!data?.identifier_exists) {
         renderUserTypeAdminState({
-          statusText: "That user handle does not exist.",
+          statusText: "That user identifier does not exist.",
           showChoices: false,
           currentType: "standard"
         });
-        logUserTypeAdminDebug("lookup_not_handle", [{ attempted_handle: handle }]);
+        logUserTypeAdminDebug("lookup_missing_identifier", [{ attempted_identifier: handle }]);
         return;
       }
 
@@ -5440,7 +7174,7 @@
         currentType: String(data?.user_type || "standard")
       });
       logUserTypeAdminDebug("lookup_success", [{
-        attempted_handle: handle,
+        attempted_identifier: handle,
         returned_user_type: String(data?.user_type || "standard"),
         identifier_status: {
           input_identifier: identifierStatus?.input_identifier || "",
@@ -5453,7 +7187,7 @@
       }]);
     } catch (error) {
       if (lookupToken !== pendingUserTypeLookupToken) {
-        logUserTypeAdminDebug("lookup_error_stale_ignored", [{ attempted_handle: handle, lookup_token: lookupToken }]);
+        logUserTypeAdminDebug("lookup_error_stale_ignored", [{ attempted_identifier: handle, lookup_token: lookupToken }]);
         return;
       }
       renderUserTypeAdminState({
@@ -5462,7 +7196,7 @@
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_error", [{
-        attempted_handle: handle,
+        attempted_identifier: handle,
         error: error instanceof Error ? error.message : String(error)
       }]);
     }
@@ -5487,13 +7221,13 @@
       return;
     }
 
-    if (!isValidUniqueHandle(handle)) {
+    if (!isValidParticipantIdentifier(handle)) {
       renderUserTypeAdminState({
-        statusText: "That handle is invalid.",
+        statusText: "That identifier is invalid.",
         showChoices: false,
         currentType: "standard"
       });
-      logUserTypeAdminDebug("schedule_invalid_handle", [{ attempted_handle: handle }]);
+      logUserTypeAdminDebug("schedule_invalid_identifier", [{ attempted_identifier: handle }]);
       return;
     }
 
@@ -5502,7 +7236,7 @@
       showChoices: false,
       currentType: "standard"
     });
-    logUserTypeAdminDebug("schedule_lookup", [{ attempted_handle: handle, delay_ms: delayMs }]);
+    logUserTypeAdminDebug("schedule_lookup", [{ attempted_identifier: handle, delay_ms: delayMs }]);
 
     userTypeLookupTimer = setTimeout(() => {
       userTypeLookupTimer = null;
@@ -5513,15 +7247,15 @@
   async function saveUserTypeAssignment() {
     const selectedType = pendingUserTypeSelection || "standard";
     const handle = currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "").trim();
-    logUserTypeAdminDebug("save_start", [{ attempted_handle: handle, selected_type: selectedType }]);
+    logUserTypeAdminDebug("save_start", [{ attempted_identifier: handle, selected_type: selectedType }]);
 
-    if (!isValidUniqueHandle(handle)) {
+    if (!isValidParticipantIdentifier(handle)) {
       renderUserTypeAdminState({
-        statusText: "That handle is invalid.",
+        statusText: "That identifier is invalid.",
         showChoices: false,
         currentType: "standard"
       });
-      logUserTypeAdminDebug("save_invalid_handle", [{ attempted_handle: handle, selected_type: selectedType }]);
+      logUserTypeAdminDebug("save_invalid_identifier", [{ attempted_identifier: handle, selected_type: selectedType }]);
       return;
     }
 
@@ -5539,7 +7273,7 @@
         showChoices: true,
         currentType: savedType
       });
-      logUserTypeAdminDebug("save_success", [{ attempted_handle: handle, saved_type: savedType }]);
+      logUserTypeAdminDebug("save_success", [{ attempted_identifier: handle, saved_type: savedType }]);
       void refreshMainUserType();
     } catch (error) {
       renderUserTypeAdminState({
@@ -5548,10 +7282,102 @@
         currentType: selectedType
       });
       logUserTypeAdminDebug("save_error", [{
-        attempted_handle: handle,
+        attempted_identifier: handle,
         selected_type: selectedType,
         error: error instanceof Error ? error.message : String(error)
       }]);
+    }
+  }
+
+  async function saveHandleUpdateAssignment() {
+    const previousHandle = String(handleUpdateOldInput?.value || "").replace(/\s+/g, " ").trim();
+    const newHandle = String(handleUpdateNewInput?.value || "").replace(/\s+/g, " ").trim();
+
+    if (!isValidUniqueHandle(previousHandle)) {
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = "Current handle is invalid.";
+      }
+      return;
+    }
+    if (!isValidUniqueHandle(newHandle)) {
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = "New handle is invalid.";
+      }
+      return;
+    }
+
+    if (handleUpdateStatus) {
+      handleUpdateStatus.textContent = "Updating handle...";
+    }
+
+    try {
+      const updateResult = await adminUpdateHandle(previousHandle, newHandle);
+      if (handleUpdateOldInput) {
+        handleUpdateOldInput.value = newHandle;
+      }
+      if (handleUpdateNewInput) {
+        handleUpdateNewInput.value = newHandle;
+      }
+      await lookupHandleUpdateSummary();
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = String(updateResult?.message || "Handle successfully updated.");
+      }
+      void refreshMainUserType();
+      void refreshAdminView();
+    } catch (error) {
+      if (handleUpdateStatus) {
+        handleUpdateStatus.textContent = error instanceof Error ? error.message : "Unable to update that handle right now.";
+      }
+    }
+  }
+
+  async function submitImagePairAdmin() {
+    const fileA = imagePairFileInputA?.files?.[0] || null;
+    const fileB = imagePairFileInputB?.files?.[0] || null;
+
+    if (!fileA || !fileB) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = "Please choose both images before submitting.";
+      }
+      return;
+    }
+
+    if (imagePairSubmitButton) {
+      imagePairSubmitButton.disabled = true;
+    }
+    if (imagePairStatus) {
+      imagePairStatus.textContent = "Uploading image pair...";
+    }
+
+    try {
+      const [dataUrlA, dataUrlB] = await Promise.all([
+        readFileAsDataUrl(fileA),
+        readFileAsDataUrl(fileB)
+      ]);
+      const response = await launcherAdminApi("add_image_pair", {
+        image_a: {
+          name: fileA.name,
+          data_url: dataUrlA
+        },
+        image_b: {
+          name: fileB.name,
+          data_url: dataUrlB
+        }
+      });
+
+      resetImagePairAdminView();
+      if (imagePairStatus) {
+        imagePairStatus.textContent = `Image pair ${String(response?.image_pair?.id || "").trim() || "saved"} added successfully.`;
+      }
+      void refreshAdminView();
+    } catch (error) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = error instanceof Error ? error.message : "Unable to add that image pair right now.";
+      }
+    } finally {
+      if (imagePairSubmitButton) {
+        imagePairSubmitButton.disabled = false;
+      }
     }
   }
 
@@ -5576,16 +7402,333 @@
     launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     resetUserTypeAdminView();
+    resetHandleUpdateAdminView();
+    imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showHandleUpdateAdminView() {
+    clearReportPanelOffset();
+    handleUpdateAdminView?.classList.remove("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    resetHandleUpdateAdminView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetImagePairAdminView() {
+    if (imagePairFileInputA) {
+      imagePairFileInputA.value = "";
+    }
+    if (imagePairFileInputB) {
+      imagePairFileInputB.value = "";
+    }
+    if (imagePairPreviewUrlA) {
+      URL.revokeObjectURL(imagePairPreviewUrlA);
+      imagePairPreviewUrlA = "";
+    }
+    if (imagePairPreviewUrlB) {
+      URL.revokeObjectURL(imagePairPreviewUrlB);
+      imagePairPreviewUrlB = "";
+    }
+    if (imagePairPreviewA) {
+      imagePairPreviewA.src = "";
+      imagePairPreviewA.hidden = true;
+    }
+    if (imagePairPreviewB) {
+      imagePairPreviewB.src = "";
+      imagePairPreviewB.hidden = true;
+    }
+    if (imagePairStatus) {
+      imagePairStatus.textContent = "";
+    }
+    if (imagePairSubmitButton) {
+      imagePairSubmitButton.disabled = false;
+    }
+  }
+
+  function updateImagePairPreview() {
+    const fileA = imagePairFileInputA?.files?.[0] || null;
+    const fileB = imagePairFileInputB?.files?.[0] || null;
+
+    if (imagePairPreviewUrlA) {
+      URL.revokeObjectURL(imagePairPreviewUrlA);
+      imagePairPreviewUrlA = "";
+    }
+    if (imagePairPreviewUrlB) {
+      URL.revokeObjectURL(imagePairPreviewUrlB);
+      imagePairPreviewUrlB = "";
+    }
+
+    if (imagePairPreviewA) {
+      if (fileA) {
+        imagePairPreviewUrlA = URL.createObjectURL(fileA);
+        imagePairPreviewA.src = imagePairPreviewUrlA;
+        imagePairPreviewA.hidden = false;
+      } else {
+        imagePairPreviewA.src = "";
+        imagePairPreviewA.hidden = true;
+      }
+    }
+
+    if (imagePairPreviewB) {
+      if (fileB) {
+        imagePairPreviewUrlB = URL.createObjectURL(fileB);
+        imagePairPreviewB.src = imagePairPreviewUrlB;
+        imagePairPreviewB.hidden = false;
+      } else {
+        imagePairPreviewB.src = "";
+        imagePairPreviewB.hidden = true;
+      }
+    }
+  }
+
+  function showImagePairAdminView() {
+    clearReportPanelOffset();
+    imagePairAdminView?.classList.remove("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    resetImagePairAdminView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function renderSubscriptionEmailAdminStatus(message = "") {
+    if (subscriptionEmailAdminStatus) {
+      subscriptionEmailAdminStatus.textContent = message;
+    }
+  }
+
+  function getSubscriptionEmailTemplateMap() {
+    const templates = launcherAdminState.subscription_email_templates;
+    return templates && typeof templates === "object" ? templates : {};
+  }
+
+  function renderSubscriptionEmailTemplateSelection(templateKey = activeSubscriptionEmailTemplateKey) {
+    activeSubscriptionEmailTemplateKey = String(templateKey || "welcome").trim() || "welcome";
+    const isLogView = activeSubscriptionEmailTemplateKey === "email-log";
+    const templates = getSubscriptionEmailTemplateMap();
+    const template = !isLogView && templates[activeSubscriptionEmailTemplateKey] && typeof templates[activeSubscriptionEmailTemplateKey] === "object"
+      ? templates[activeSubscriptionEmailTemplateKey]
+      : null;
+
+    subscriptionEmailTemplateButtons.forEach((button) => {
+      const isSelected = String(button.dataset.subscriptionEmailTemplateButton || "").trim() === activeSubscriptionEmailTemplateKey;
+      button.classList.toggle("is-selected", isSelected);
+      button.setAttribute("aria-pressed", isSelected ? "true" : "false");
+    });
+
+    if (subscriptionEmailSubjectInput) {
+      subscriptionEmailSubjectInput.hidden = isLogView;
+      subscriptionEmailSubjectInput.disabled = isLogView;
+      subscriptionEmailSubjectInput.value = template ? String(template.subject || "").trim() : "";
+    }
+    const subjectField = subscriptionEmailSubjectInput?.closest(".settings-view-field") || null;
+    if (subjectField) {
+      subjectField.hidden = isLogView;
+    }
+
+    if (subscriptionEmailBodyInput) {
+      subscriptionEmailBodyInput.hidden = isLogView;
+      subscriptionEmailBodyInput.disabled = isLogView;
+      subscriptionEmailBodyInput.value = template ? String(template.body || "").trim() : "";
+    }
+    const bodyField = subscriptionEmailBodyInput?.closest(".settings-view-field") || null;
+    if (bodyField) {
+      bodyField.hidden = isLogView;
+    }
+
+    if (subscriptionEmailSaveButton) {
+      subscriptionEmailSaveButton.hidden = isLogView;
+      subscriptionEmailSaveButton.disabled = isLogView;
+    }
+
+    if (subscriptionEmailLogOutput) {
+      const logText = String(launcherAdminState.subscription_email_log?.content || "").trim();
+      subscriptionEmailLogOutput.hidden = !isLogView;
+      subscriptionEmailLogOutput.textContent = isLogView
+        ? (logText || "No subscription email activity has been logged yet.")
+        : "";
+    }
+
+    if (isLogView) {
+      renderSubscriptionEmailAdminStatus("Viewing the subscription email log.");
+      return;
+    }
+
+    if (!template) {
+      renderSubscriptionEmailAdminStatus("Select a subscription email template to review or edit it.");
+      return;
+    }
+
+    renderSubscriptionEmailAdminStatus(`Editing template: ${String(template.label || activeSubscriptionEmailTemplateKey)}`);
+  }
+
+  function showSubscriptionEmailAdminView() {
+    clearReportPanelOffset();
+    subscriptionEmailAdminView?.classList.remove("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderSubscriptionEmailTemplateSelection(activeSubscriptionEmailTemplateKey || "welcome");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function saveSubscriptionEmailTemplate() {
+    const templateKey = String(activeSubscriptionEmailTemplateKey || "").trim();
+    if (!templateKey || templateKey === "email-log") {
+      renderSubscriptionEmailAdminStatus("Choose a subscription email template before saving.");
+      return;
+    }
+
+    const subject = String(subscriptionEmailSubjectInput?.value || "").trim();
+    const body = String(subscriptionEmailBodyInput?.value || "").trim();
+    if (!subject || !body) {
+      renderSubscriptionEmailAdminStatus("Both subject and body are required.");
+      return;
+    }
+
+    renderSubscriptionEmailAdminStatus("Saving subscription email template...");
+    try {
+      const data = await launcherAdminApi("save_subscription_email_template", {
+        template_key: templateKey,
+        subject,
+        body
+      });
+      launcherAdminState.subscription_email_templates = data?.subscription_email_templates || launcherAdminState.subscription_email_templates;
+      renderSubscriptionEmailTemplateSelection(templateKey);
+      renderSubscriptionEmailAdminStatus("Subscription email template saved.");
+    } catch (error) {
+      renderSubscriptionEmailAdminStatus("Unable to save the subscription email template right now.");
+    }
+  }
+
+  async function runSubscriptionReminderScan(testMode = false) {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+
+    if (adminStatus) {
+      adminStatus.textContent = testMode
+        ? "Sending annual reminder test..."
+        : "Running annual reminder scan...";
+    }
+
+    try {
+      const data = await launcherAdminApi("run_subscription_reminder_scan", {
+        test_mode: !!testMode
+      });
+      launcherAdminState.subscription_email_log = data?.subscription_email_log || launcherAdminState.subscription_email_log;
+      const summary = data?.reminder_scan || null;
+      const sentCount = Number(summary?.sent || 0);
+      const eligibleCount = Number(summary?.eligible || 0);
+      const checkedCount = Number(summary?.checked || 0);
+      if (adminStatus) {
+        adminStatus.textContent = testMode
+          ? `Annual reminder test completed. ${sentCount} reminder${sentCount === 1 ? "" : "s"} sent from ${eligibleCount} eligible annual subscription${eligibleCount === 1 ? "" : "s"} checked among ${checkedCount} record${checkedCount === 1 ? "" : "s"}.`
+          : `Annual reminder scan completed. ${sentCount} reminder${sentCount === 1 ? "" : "s"} sent from ${eligibleCount} eligible annual subscription${eligibleCount === 1 ? "" : "s"} checked among ${checkedCount} record${checkedCount === 1 ? "" : "s"}.`;
+      }
+      renderAdminView();
+      if (subscriptionEmailAdminView && !subscriptionEmailAdminView.classList.contains("beginner-view-hidden")) {
+        renderSubscriptionEmailTemplateSelection(activeSubscriptionEmailTemplateKey || "welcome");
+      }
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = testMode
+          ? "Unable to send the annual reminder test right now."
+          : "Unable to run the annual reminder scan right now.";
+      }
+    }
   }
 
   function applyLauncherOpenRequest() {
     try {
       const params = new URLSearchParams(window.location.search);
       const requestedView = String(params.get("open") || "").trim().toLowerCase();
+      const stripeReturnState = String(params.get("stripe") || "").trim().toLowerCase();
+      const requestedReportReceiver = String(params.get("report_receiver") || "").trim();
+      const requestedReportSender = String(params.get("report_sender") || "").trim();
+      const requestedReportSessionCode = String(params.get("report_session_code") || "").trim();
+      if (requestedView === "go-pro") {
+        showGoProView();
+        return;
+      }
+      if (stripeReturnState === "success") {
+        scheduleMainUserTypeRefresh(0);
+        return;
+      }
+      if (stripeReturnState === "cancel") {
+        return;
+      }
       if (requestedView === "settings") {
         showSettingsView();
+        return;
+      }
+      if (requestedView === "report-definition") {
+        pendingOpenReportPair = requestedReportReceiver && requestedReportSender
+          ? {
+              receiverName: requestedReportReceiver,
+              senderName: requestedReportSender,
+              sessionCode: requestedReportSessionCode
+            }
+          : null;
+        showReportDefinitionView();
         return;
       }
       if (["sender", "receiver", "remote-viewer"].includes(requestedView)) {
@@ -5614,6 +7757,7 @@
 
   function showColorSchemeView() {
     colorSchemeView?.classList.remove("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -5628,6 +7772,7 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderColorSchemeView();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -5642,6 +7787,7 @@
     toolsView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -5652,7 +7798,9 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    void renderGoProViewState();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -5665,6 +7813,7 @@
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -5675,7 +7824,34 @@
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showBlinkBehaviorView() {
+    clearReportPanelOffset();
+    blinkBehaviorView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderBlinkBehaviorView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -5690,6 +7866,15 @@
       return 0;
     }
     return trimmed.split(/\s+/).filter(Boolean).length;
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error(`Unable to read ${file?.name || "the selected file"}.`));
+      reader.readAsDataURL(file);
+    });
   }
 
   function buildContactMessageMeta() {
@@ -5779,6 +7964,19 @@
           if (settingsImportFilenameInput) {
             settingsImportFilenameInput.value = "";
           }
+          if (settingsStatus) {
+            settingsStatus.textContent = "";
+            settingsStatus.dataset.persistedMessage = "";
+          }
+          showAdminView();
+          return;
+        }
+      }
+
+      if (!desiredName) {
+        const adminAccessMode = await fetchAdminAccessMode();
+        launcherAdminState.easy_admin_enabled = !!adminAccessMode?.easy_admin_enabled;
+        if (launcherAdminState.easy_admin_enabled) {
           if (settingsStatus) {
             settingsStatus.textContent = "";
             settingsStatus.dataset.persistedMessage = "";
@@ -5989,8 +8187,19 @@
     populateCard(card);
     const header = card.querySelector(".role-card-header");
     const toggle = card.querySelector(".role-card-toggle");
+    const role = String(card.dataset.roleCard || "").trim();
     toggle?.addEventListener("click", () => {
       activateCard(card);
+    });
+    toggle?.addEventListener("mouseenter", () => {
+      if (role) {
+        clearRoleLevelExplanation(role);
+      }
+    });
+    toggle?.addEventListener("focusin", () => {
+      if (role) {
+        clearRoleLevelExplanation(role);
+      }
     });
     header?.addEventListener("click", (event) => {
       if (isLauncherInteractiveTarget(event.target)) {
@@ -6230,6 +8439,27 @@
 
     const canonicalOwnName = getPreferredIdentifier(ownName, latest);
     const canonicalPartnerName = getPreferredIdentifier(partnerName, latest);
+    const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
+    const targetRole = isDisplayDevice ? "sender" : "receiver";
+
+    try {
+      const authorization = await fetchPairAuthorizationForLauncherRole(
+        "remote-viewer",
+        canonicalOwnName,
+        canonicalPartnerName,
+        {
+          sessionCode: pairSessionCode,
+          targetRole
+        }
+      );
+      if (authorization && authorization.allowed === false) {
+        window.alert(authorization.message || "This pair is not authorized for the current difficulty level.");
+        return;
+      }
+    } catch (error) {
+      // If the authorization precheck fails, let the runtime/server make the final decision.
+    }
+
     const existingProfile = getRemoteViewerProfileState(latest, canonicalOwnName);
     const nextState = writeLauncherProfileState("remote-viewer", canonicalOwnName, {
       currentPartner: canonicalPartnerName,
@@ -6241,7 +8471,6 @@
     } catch (error) {
       // Keep local progress even if the server save momentarily fails.
     }
-    const targetRole = isDisplayDevice ? "sender" : "receiver";
     const runtimeMode = isDisplayDevice ? "remote-display" : "remote-viewer";
     window.location.href = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
@@ -6253,8 +8482,18 @@
   closeOptionsButton?.addEventListener("click", showLauncherView);
   openHelpButton?.addEventListener("click", showHelpView);
   openGoProButton?.addEventListener("click", showGoProView);
+  goProMonthlyButton?.addEventListener("click", () => {
+    void startTelepathyProCheckout("monthly");
+  });
+  goProAnnualButton?.addEventListener("click", () => {
+    void startTelepathyProCheckout("annual");
+  });
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
+  openBlinkBehaviorButton?.addEventListener("click", showBlinkBehaviorView);
   openUserTypeAdminButton?.addEventListener("click", showUserTypeAdminView);
+  openHandleUpdateAdminButton?.addEventListener("click", showHandleUpdateAdminView);
+  openImagePairAdminButton?.addEventListener("click", showImagePairAdminView);
+  openSubscriptionEmailAdminButton?.addEventListener("click", showSubscriptionEmailAdminView);
   openHandleButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -6272,6 +8511,9 @@
   closeGoProButton?.addEventListener("click", showOptionsView);
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
   closeUserTypeAdminButton?.addEventListener("click", showAdminView);
+  closeHandleUpdateAdminButton?.addEventListener("click", showAdminView);
+  closeImagePairAdminButton?.addEventListener("click", showAdminView);
+  closeSubscriptionEmailAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
   closeHandleButton?.addEventListener("click", closeHandleOverlay);
   handleDialog?.addEventListener("click", (event) => {
@@ -6301,8 +8543,27 @@
     }
   });
   closeColorSchemeButton?.addEventListener("click", showOtherSettingsView);
+  closeBlinkBehaviorButton?.addEventListener("click", showOtherSettingsView);
   cancelProButton?.addEventListener("click", () => {
     window.alert("Cancel PRO will be added here later.");
+  });
+  subscriptionEmailTemplateButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const templateKey = String(button.dataset.subscriptionEmailTemplateButton || "").trim();
+      renderSubscriptionEmailTemplateSelection(templateKey);
+    });
+  });
+  subscriptionEmailSaveButton?.addEventListener("click", () => {
+    void saveSubscriptionEmailTemplate();
+  });
+  blinkEnabledCheckbox?.addEventListener("change", () => {
+    persistBlinkBehaviorView();
+  });
+  blinkOnSecondsInput?.addEventListener("change", () => {
+    persistBlinkBehaviorView();
+  });
+  blinkOffSecondsInput?.addEventListener("change", () => {
+    persistBlinkBehaviorView();
   });
   userTypeHandleInput?.addEventListener("input", () => {
     pendingUserTypeLookupToken += 1;
@@ -6333,6 +8594,25 @@
     resetUserTypeAdminView();
     userTypeHandleInput?.focus();
   });
+  handleUpdateOldInput?.addEventListener("input", () => {
+    pendingHandleUpdateLookupToken += 1;
+    scheduleHandleUpdateSummaryLookup(300);
+  });
+  handleUpdateOldInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      pendingHandleUpdateLookupToken += 1;
+      void lookupHandleUpdateSummary();
+    }
+  });
+  handleUpdateSaveButton?.addEventListener("click", () => {
+    void saveHandleUpdateAssignment();
+  });
+  imagePairFileInputA?.addEventListener("change", updateImagePairPreview);
+  imagePairFileInputB?.addEventListener("change", updateImagePairPreview);
+  imagePairSubmitButton?.addEventListener("click", () => {
+    void submitImagePairAdmin();
+  });
   openContactButton?.addEventListener("click", showContactView);
   closeContactButton?.addEventListener("click", showHelpView);
   openAboutButton?.addEventListener("click", showAboutView);
@@ -6357,6 +8637,7 @@
       showReportView(selectedReportPair);
     }
   });
+  reportGlobeButton?.addEventListener("click", handleGlobeLaunchClick);
   reportVisualizeButton?.addEventListener("click", () => {
     if (selectedReportPair) {
       showVisualizationView(selectedReportPair);
@@ -6486,7 +8767,7 @@
   });
   installAppButton?.addEventListener("click", handleInstallRequest);
   adminDebugEnabledCheckbox?.addEventListener("change", async () => {
-    if (!launcherAdminSecret) {
+    if (!hasLauncherAdminAccess()) {
       return;
     }
     if (adminStatus) {
@@ -6507,8 +8788,74 @@
       }
     }
   });
+  adminSubscriptionEmailsEnabledCheckbox?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Saving subscription email setting...";
+    }
+    try {
+      const data = await launcherAdminApi("set_subscription_emails_enabled", { enabled: adminSubscriptionEmailsEnabledCheckbox.checked });
+      launcherAdminState.subscription_emails_enabled = !!data?.subscription_emails_enabled;
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.subscription_emails_enabled
+          ? "Subscription emails are currently enabled."
+          : "Subscription emails are currently disabled.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save subscription email setting right now.";
+      }
+    }
+  });
+  adminSubscriptionRemindersEnabledCheckbox?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Saving annual reminder setting...";
+    }
+    try {
+      const data = await launcherAdminApi("set_subscription_reminders_enabled", { enabled: adminSubscriptionRemindersEnabledCheckbox.checked });
+      launcherAdminState.subscription_reminders_enabled = !!data?.subscription_reminders_enabled;
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.subscription_reminders_enabled
+          ? "Annual subscription reminders are currently enabled."
+          : "Annual subscription reminders are currently disabled.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the annual reminder setting right now.";
+      }
+    }
+  });
+  adminEasyAdminEnabledCheckbox?.addEventListener("change", async () => {
+    if (!launcherAdminSecret && !launcherAdminState.easy_admin_enabled) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Saving Easy Admin setting...";
+    }
+    try {
+      const data = await launcherAdminApi("set_easy_admin_enabled", { enabled: adminEasyAdminEnabledCheckbox.checked });
+      launcherAdminState.easy_admin_enabled = !!data?.easy_admin_enabled;
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.easy_admin_enabled
+          ? "Easy Admin is currently enabled."
+          : "Easy Admin is currently disabled.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the Easy Admin setting right now.";
+      }
+    }
+  });
   adminClearDebugLogButton?.addEventListener("click", async () => {
-    if (!launcherAdminSecret) {
+    if (!hasLauncherAdminAccess()) {
       return;
     }
     if (adminStatus) {
@@ -6529,7 +8876,7 @@
     }
   });
       adminListUsersButton?.addEventListener("click", async () => {
-        if (!launcherAdminSecret) {
+        if (!hasLauncherAdminAccess()) {
           return;
       }
       if (adminStatus) {
@@ -6557,7 +8904,7 @@
       }
     });
   adminAnalyzeDiskButton?.addEventListener("click", async () => {
-      if (!launcherAdminSecret) {
+      if (!hasLauncherAdminAccess()) {
         return;
     }
     if (adminStatus) {
@@ -6579,7 +8926,7 @@
     }
   });
   adminFreshStartButton?.addEventListener("click", async () => {
-    if (!launcherAdminSecret) {
+    if (!hasLauncherAdminAccess()) {
       return;
     }
     if (!window.confirm("Fresh start, are you sure?")) {
@@ -6607,6 +8954,12 @@
       }
     }
   });
+  adminRunRemindersButton?.addEventListener("click", async () => {
+    await runSubscriptionReminderScan(false);
+  });
+  adminRunRemindersTestButton?.addEventListener("click", async () => {
+    await runSubscriptionReminderScan(true);
+  });
   renderMainTitle("standard");
   void refreshMainUserType();
   reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
@@ -6617,20 +8970,36 @@
     button.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
     });
-    button.addEventListener("click", () => {
-      button.blur();
+    button.addEventListener("mouseenter", () => {
+      const role = String(button.dataset.roleDifficultyBump || "");
+      if (role === "sender" || role === "receiver" || role === "remote-viewer") {
+        previewLevelExplanationFromCurrentLabel(role);
+      }
+    });
+    button.addEventListener("focusin", () => {
+      const role = String(button.dataset.roleDifficultyBump || "");
+      if (role === "sender" || role === "receiver" || role === "remote-viewer") {
+        previewLevelExplanationFromCurrentLabel(role);
+      }
+    });
+    button.addEventListener("click", async () => {
       const role = String(button.dataset.roleDifficultyBump || "");
       const direction = String(button.dataset.direction || "").trim().toLowerCase();
       const delta = direction === "up" ? 1 : -1;
       if (role === "sender" || role === "receiver" || role === "remote-viewer") {
-        void changeDifficultyForRole(role, delta);
+        await changeDifficultyForRole(role, delta);
+        previewLevelExplanationFromCurrentLabel(role);
       }
     });
   });
   applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
+  if (appVersionLabel) {
+    appVersionLabel.textContent = `ver. ${launcherBuildVersion}`;
+  }
   renderLocationStatus();
   renderContactWordCount();
   updateInstallButtonLabel();
+  void recordLauncherVisit();
   void refreshDifficultyLabels();
   applyLauncherOpenRequest();
 

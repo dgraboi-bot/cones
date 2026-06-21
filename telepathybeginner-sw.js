@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260618ba";
-const APP_VERSION = "20260618ba";
+const CACHE_NAME = "telepathybeginner-v20260620au";
+const APP_VERSION = "20260620au";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
@@ -7,6 +7,12 @@ const APP_ASSETS = [
   `./telepathybeginner.webmanifest?v=${APP_VERSION}`,
   `./telepathybeginner-email-test.html?v=${APP_VERSION}`,
   `./telepathybeginner-email-test.js?v=${APP_VERSION}`,
+  `./globe/index.html?v=${APP_VERSION}`,
+  `./globe/globe.css?v=${APP_VERSION}`,
+  `./globe/globe-config.js?v=${APP_VERSION}`,
+  `./globe/globe.js?v=${APP_VERSION}`,
+  `./globe/globe-data.js?v=${APP_VERSION}`,
+  `./globe/globe-ui.js?v=${APP_VERSION}`,
   "./tb-test-icon-1.png",
   "./tb-test-icon-2.png",
   "./tb-test-icon-3.png",

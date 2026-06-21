@@ -27,6 +27,8 @@
   const senderLevelOneChoiceNodes = new Map();
   const levelTwoChoiceNodes = new Map();
   const senderLevelTwoChoiceNodes = new Map();
+  const levelFourChoiceNodes = new Map();
+  const senderLevelFourChoiceNodes = new Map();
   const levelOneFeedbackNodes = new Map();
   const senderLevelOneFeedbackNodes = new Map();
   const heartbeatMs = 1000;
@@ -35,8 +37,8 @@
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
-  const exportSchemaVersion = "cones-trials-v4";
-  const runtimeBuildVersion = "20260618ba";
+  const exportSchemaVersion = "cones-trials-v5";
+const runtimeBuildVersion = "20260620ac";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -129,6 +131,11 @@
   let senderConfidencePanel = null;
   let senderConfidenceValue = null;
   let senderConfidenceDescription = null;
+  let imageDisplayPanel = null;
+  let imageDisplayElement = null;
+  let imageDisplayCaption = null;
+  let imageBlinkTimeoutHandle = null;
+  let imageBlinkVisible = true;
   let decisionPanel = null;
   let enoughButton = null;
   let anotherButton = null;
@@ -161,6 +168,7 @@
   let pendingLoggedRoundId = "";
   let settingsDraftSnapshot = "";
   let settingsConfirmDialog = null;
+  let returningToLauncher = false;
 
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
@@ -168,6 +176,34 @@
   const localTrialRecordsKey = `cones-local-trials-v2-${role}`;
   const levelOneTargetLayoutNumbers = [1, 6, 7, 8, 9];
   const levelOneManyLayoutNumbers = [6, 7, 8, 9];
+
+  function isLevelFourDifficulty() {
+    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "4" && !isRemoteViewerMode && !isRemoteDisplayMode;
+  }
+
+  function getLevelFourChoiceUrls(roundLike = activeRound) {
+    if (!roundLike || String(roundLike?.stimulus_kind || "") !== "image_pair") {
+      return null;
+    }
+
+    const choiceA = String(roundLike.image_choice_a || "").trim();
+    const choiceB = String(roundLike.image_choice_b || "").trim();
+    if (!choiceA || !choiceB) {
+      return null;
+    }
+
+    return {
+      1: choiceA,
+      2: choiceB
+    };
+  }
+
+  function getLevelFourSentImageUrl(roundLike = activeRound) {
+    if (!roundLike || String(roundLike?.stimulus_kind || "") !== "image_pair") {
+      return "";
+    }
+    return String(roundLike.image_sent || "").trim();
+  }
 
   function getWaitingOnlinePrompt() {
     if (role === "sender") {
@@ -292,7 +328,10 @@
         export_email: typeof parsed?.export_email === "string" ? parsed.export_email : "",
         device_location: typeof parsed?.device_location === "string" ? parsed.device_location : "",
         data_folder_label: typeof parsed?.data_folder_label === "string" ? parsed.data_folder_label : "",
-        last_logged_round_id: typeof parsed?.last_logged_round_id === "string" ? parsed.last_logged_round_id : ""
+        last_logged_round_id: typeof parsed?.last_logged_round_id === "string" ? parsed.last_logged_round_id : "",
+        blink_sender_image: typeof parsed?.blink_sender_image === "boolean" ? parsed.blink_sender_image : false,
+        blink_image_on_seconds: typeof parsed?.blink_image_on_seconds === "string" ? parsed.blink_image_on_seconds : "0.35",
+        blink_image_off_seconds: typeof parsed?.blink_image_off_seconds === "string" ? parsed.blink_image_off_seconds : "0.8"
       };
     } catch (error) {
       return {
@@ -302,7 +341,10 @@
         export_email: "",
         device_location: "",
         data_folder_label: "",
-        last_logged_round_id: ""
+        last_logged_round_id: "",
+        blink_sender_image: false,
+        blink_image_on_seconds: "0.35",
+        blink_image_off_seconds: "0.8"
       };
     }
   }
@@ -462,6 +504,60 @@
     return platformInfo.family === "iphone" || platformInfo.family === "android";
   }
 
+  function normalizeBlinkSecondsValue(value, fallbackSeconds) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return fallbackSeconds;
+    }
+    return clamp(numeric, 0.05, 30);
+  }
+
+  function getSenderBlinkSettings() {
+    const settings = readSettings();
+    return {
+      enabled: role === "sender" && !!settings.blink_sender_image,
+      onSeconds: normalizeBlinkSecondsValue(settings.blink_image_on_seconds, 0.35),
+      offSeconds: normalizeBlinkSecondsValue(settings.blink_image_off_seconds, 0.8)
+    };
+  }
+
+  function clearImageBlinkCycle({ keepVisible = true } = {}) {
+    if (imageBlinkTimeoutHandle) {
+      window.clearTimeout(imageBlinkTimeoutHandle);
+      imageBlinkTimeoutHandle = null;
+    }
+    imageBlinkVisible = true;
+    if (imageDisplayElement) {
+      imageDisplayElement.style.visibility = keepVisible ? "visible" : "hidden";
+    }
+  }
+
+  function scheduleImageBlinkToggle(nextVisible, delayMs, settings) {
+    if (!imageDisplayElement) {
+      return;
+    }
+    imageBlinkTimeoutHandle = window.setTimeout(() => {
+      if (!imageDisplayElement || !imageDisplayPanel?.classList.contains("visible")) {
+        clearImageBlinkCycle();
+        return;
+      }
+      imageBlinkVisible = nextVisible;
+      imageDisplayElement.style.visibility = nextVisible ? "visible" : "hidden";
+      scheduleImageBlinkToggle(!nextVisible, (nextVisible ? settings.onSeconds : settings.offSeconds) * 1000, settings);
+    }, delayMs);
+  }
+
+  function startImageBlinkCycle() {
+    const settings = getSenderBlinkSettings();
+    clearImageBlinkCycle();
+    if (!settings.enabled || !imageDisplayElement) {
+      return;
+    }
+    imageDisplayElement.style.visibility = "visible";
+    imageBlinkVisible = true;
+    scheduleImageBlinkToggle(false, settings.onSeconds * 1000, settings);
+  }
+
   function applyLauncherPrefillFromQuery() {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -475,6 +571,9 @@
       const longitude = Number(params.get("loc_longitude"));
       const accuracy = Number(params.get("loc_accuracy"));
       const timestamp = Number(params.get("loc_timestamp"));
+      const blinkSenderImage = String(params.get("blink_sender_image") || "").trim();
+      const blinkOnSeconds = String(params.get("blink_image_on_seconds") || "").trim();
+      const blinkOffSeconds = String(params.get("blink_image_off_seconds") || "").trim();
 
       if (!ownEmail && !partnerEmail) {
         return;
@@ -490,6 +589,15 @@
           accuracy: Number.isFinite(accuracy) ? accuracy : null,
           timestamp: Number.isFinite(timestamp) ? timestamp : Date.now()
         });
+      }
+      if (blinkSenderImage) {
+        settings.blink_sender_image = blinkSenderImage === "1";
+      }
+      if (blinkOnSeconds) {
+        settings.blink_image_on_seconds = String(normalizeBlinkSecondsValue(blinkOnSeconds, 0.35));
+      }
+      if (blinkOffSeconds) {
+        settings.blink_image_off_seconds = String(normalizeBlinkSecondsValue(blinkOffSeconds, 0.8));
       }
       writeSettings(settings);
 
@@ -1577,6 +1685,56 @@
     updateSettingsGearVisibility();
   }
 
+  function showSessionLimitState(message) {
+    senderHoldingResult = false;
+    receiverReady = false;
+    awaitingReceiverDone = false;
+    receiverChoiceOpen = false;
+    localRoundRunning = false;
+    roundScheduled = false;
+    confidenceScreenOpen = false;
+    instructionScreenOpen = false;
+    receiverMirrorPhase = "idle";
+    currentUiMode = "session-limit";
+    hideStage();
+    hideChoiceGrid();
+    hideConfidencePanel();
+    hideInstructionPanel();
+    hideDecisionPanel();
+    hideMessagePanel();
+    setPrompt(
+      message || "This session has reached its image-pair limit. Press here to end the session.",
+      true,
+      "This session has reached its image-pair limit. Press here to end the session."
+    );
+    updateSettingsGearVisibility();
+  }
+
+  function showAuthorizationEndState(message) {
+    senderHoldingResult = false;
+    receiverReady = false;
+    awaitingReceiverDone = false;
+    receiverChoiceOpen = false;
+    localRoundRunning = false;
+    roundScheduled = false;
+    confidenceScreenOpen = false;
+    instructionScreenOpen = false;
+    receiverMirrorPhase = "idle";
+    currentUiMode = "authorization-ended";
+    hideStage();
+    hideChoiceGrid();
+    hideConfidencePanel();
+    hideInstructionPanel();
+    hideDecisionPanel();
+    hideMessagePanel();
+    setPrompt(
+      message || "This session is no longer authorized for the current difficulty. Press here to return to the home screen.",
+      true,
+      "This session is no longer authorized for the current difficulty. Press here to return to the home screen."
+    );
+    updateSettingsGearVisibility();
+  }
+
   function showPartnerDisconnectState(message) {
     senderHoldingResult = false;
     receiverReady = false;
@@ -1600,6 +1758,10 @@
       "Partner disconnect - run over"
     );
     updateSettingsGearVisibility();
+  }
+
+  function handleAuthorizationFailure(message) {
+    showAuthorizationEndState(message);
   }
 
   function showRoleConflictState(message) {
@@ -1643,6 +1805,10 @@
   }
 
   function showSettingsRequiredState() {
+    if (returningToLauncher) {
+      return;
+    }
+    returningToLauncher = true;
     senderHoldingResult = false;
     receiverReady = false;
     receiverMirrorPhase = "idle";
@@ -1654,12 +1820,17 @@
     hideInstructionPanel();
     hideDecisionPanel();
     hideMessagePanel();
-    currentUiMode = "settings-required";
-    setPrompt("Settings are managed from the Telepathy Beginner home screen. Click the gear icon at the upper right to return there.", false);
+    currentUiMode = "returning-home";
+    setPrompt("Returning to the Telepathy Beginner home screen...", false);
     countdownNumber.classList.add("settings-required-text");
     countdownNumber.style.fontSize = "clamp(1.25rem, 2.6vw, 2rem)";
     countdownNumber.style.lineHeight = "1.22";
     updateSettingsGearVisibility();
+    window.setTimeout(() => {
+      navigateToBeginnerFrontPage({
+        open: getLauncherReturnRole()
+      });
+    }, 25);
   }
 
   function showStage() {
@@ -1675,6 +1846,7 @@
   }
 
   function clearStageVisibility() {
+    clearImageBlinkCycle();
     arrangementNodes.forEach((node) => {
       node.classList.remove("visible");
     });
@@ -1699,6 +1871,7 @@
   }
 
   function resetVisualState() {
+    clearImageBlinkCycle();
     senderHoldingResult = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2244,6 +2417,103 @@
     stage.appendChild(grid);
   }
 
+  function buildLevelFourChoiceCard(choiceIndex, readOnly = false) {
+    const card = document.createElement("button");
+    card.className = "image-choice-card";
+    card.type = "button";
+    card.setAttribute("data-layout-number", String(choiceIndex));
+    card.setAttribute("data-arrangement-code", `image-choice-${choiceIndex}`);
+    card.setAttribute("aria-label", `Choose image ${choiceIndex}`);
+    if (readOnly) {
+      card.disabled = true;
+    }
+
+    const image = document.createElement("img");
+    image.className = "image-choice-thumb";
+    image.alt = "";
+    image.loading = "eager";
+    image.decoding = "async";
+
+    card.appendChild(image);
+    return card;
+  }
+
+  function setLevelFourChoiceImages(nodesMap, choiceUrls) {
+    nodesMap.forEach((node, choiceIndex) => {
+      const image = node.querySelector(".image-choice-thumb");
+      if (!(image instanceof HTMLImageElement)) {
+        return;
+      }
+      const nextUrl = String(choiceUrls?.[choiceIndex] || "").trim();
+      image.src = nextUrl;
+      image.alt = nextUrl ? `Image choice ${choiceIndex}` : "";
+    });
+  }
+
+  function buildReceiverLevelFourChoiceGrid() {
+    if (role !== "receiver") {
+      return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "image-pair-grid arrangement";
+    grid.id = "receiverLevelFourChoiceGrid";
+
+    [1, 2].forEach((choiceIndex) => {
+      const card = buildLevelFourChoiceCard(choiceIndex);
+      card.addEventListener("click", () => {
+        void handleReceiverChoice(choiceIndex);
+      });
+      levelFourChoiceNodes.set(choiceIndex, card);
+      grid.appendChild(card);
+    });
+
+    arrangementNodes.set("receiver-level-four-choice-grid", grid);
+    stage.appendChild(grid);
+  }
+
+  function buildSenderLevelFourChoiceGrid() {
+    if (role !== "sender") {
+      return;
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "image-pair-grid arrangement read-only";
+    grid.id = "senderLevelFourChoiceGrid";
+
+    [1, 2].forEach((choiceIndex) => {
+      const card = buildLevelFourChoiceCard(choiceIndex, true);
+      senderLevelFourChoiceNodes.set(choiceIndex, card);
+      grid.appendChild(card);
+    });
+
+    arrangementNodes.set("sender-level-four-choice-grid", grid);
+    stage.appendChild(grid);
+  }
+
+  function buildImageDisplayPanel() {
+    const panel = document.createElement("section");
+    panel.className = "image-display-panel arrangement";
+    panel.id = `${role}ImageDisplayPanel`;
+
+    const image = document.createElement("img");
+    image.className = "image-display-asset";
+    image.alt = "Target image";
+    image.loading = "eager";
+    image.decoding = "async";
+
+    const caption = document.createElement("p");
+    caption.className = "image-display-caption";
+    caption.textContent = "";
+
+    panel.append(image, caption);
+    imageDisplayPanel = panel;
+    imageDisplayElement = image;
+    imageDisplayCaption = caption;
+    arrangementNodes.set(`${role}-image-display-panel`, panel);
+    stage.appendChild(panel);
+  }
+
   function buildDecisionPanel() {
     const panel = document.createElement("section");
     panel.className = "decision-panel arrangement";
@@ -2380,6 +2650,21 @@
     }
   }
 
+  function showImageDisplay(imageUrl, captionText = "") {
+    if (!imageDisplayPanel || !imageDisplayElement || !imageDisplayCaption) {
+      return;
+    }
+
+    arrangementNodes.forEach((node) => {
+      node.classList.remove("visible");
+    });
+    imageDisplayElement.src = String(imageUrl || "").trim();
+    imageDisplayElement.style.visibility = "visible";
+    imageDisplayCaption.textContent = captionText;
+    imageDisplayPanel.classList.add("visible");
+    startImageBlinkCycle();
+  }
+
   function buildChoiceGrid() {
     if (role !== "receiver") {
       return;
@@ -2422,6 +2707,10 @@
       return role === "receiver" ? "receiver-level-two-choice-grid" : "sender-level-two-choice-grid";
     }
 
+    if (isLevelFourDifficulty()) {
+      return role === "receiver" ? "receiver-level-four-choice-grid" : "sender-level-four-choice-grid";
+    }
+
     return role === "receiver" ? "receiver-choice-grid" : "sender-choice-grid";
   }
 
@@ -2434,6 +2723,10 @@
       return role === "receiver" ? levelTwoChoiceNodes : senderLevelTwoChoiceNodes;
     }
 
+    if (isLevelFourDifficulty()) {
+      return role === "receiver" ? levelFourChoiceNodes : senderLevelFourChoiceNodes;
+    }
+
     return role === "receiver" ? choiceNodes : senderChoiceNodes;
   }
 
@@ -2442,6 +2735,11 @@
 
     if (!grid) {
       return;
+    }
+
+    if (isLevelFourDifficulty()) {
+      const choiceUrls = getLevelFourChoiceUrls();
+      setLevelFourChoiceImages(getActiveSelectionNodesMap(), choiceUrls);
     }
 
     receiverChoiceOpen = true;
@@ -2638,6 +2936,8 @@
       "sender-choice-grid",
       "receiver-level-two-choice-grid",
       "sender-level-two-choice-grid",
+      "receiver-level-four-choice-grid",
+      "sender-level-four-choice-grid",
       "receiver-level-one-feedback-grid",
       "sender-level-one-feedback-grid"
     ];
@@ -2720,6 +3020,15 @@
       node.removeAttribute("tabindex");
     });
     resetChoiceNodes(levelTwoChoiceNodes);
+
+    const levelFourGrid = arrangementNodes.get("receiver-level-four-choice-grid");
+    levelFourGrid?.classList.remove("results-locked");
+    levelFourChoiceNodes.forEach((node) => {
+      node.disabled = false;
+      node.style.pointerEvents = "";
+      node.removeAttribute("tabindex");
+    });
+    resetChoiceNodes(levelFourChoiceNodes);
   }
 
   function markPendingChoices(selectedLayoutNumbers) {
@@ -2829,6 +3138,9 @@
     if (aborted || timedOut) {
       return true;
     }
+    if (String(round?.stimulus_kind || "") === "image_pair") {
+      return round?.guess_layout_number !== null;
+    }
     return !!round?.layout_number && round?.guess_layout_number !== null;
   }
 
@@ -2860,6 +3172,15 @@
       : "";
     const syncEst = syncWorst === "" ? "" : Math.round(syncWorst / 2);
     const syncBest = syncWorst === "" ? "" : 0;
+    const isImagePairRound = String(round?.stimulus_kind || "") === "image_pair";
+    const sentImage = isImagePairRound ? String(round?.image_sent || "").trim() : "";
+    const imageChoiceA = isImagePairRound ? String(round?.image_choice_a || "").trim() : "";
+    const imageChoiceB = isImagePairRound ? String(round?.image_choice_b || "").trim() : "";
+    const imageChoiceIndex = Number(round?.guess_layout_number);
+    const receiverImageChoice =
+      isImagePairRound && Number.isInteger(imageChoiceIndex)
+        ? (imageChoiceIndex === 1 ? imageChoiceA : (imageChoiceIndex === 2 ? imageChoiceB : ""))
+        : "";
 
     return [
       exportSchemaVersion,
@@ -2868,7 +3189,7 @@
       senderProfile.name || "",
       localDate,
       localTime,
-      round?.layout_number ?? "",
+      isImagePairRound ? "" : (round?.layout_number ?? ""),
       normalizeDifficultyLevel(currentPairDifficultyLevel),
       aborted ? "yes" : "no",
       timedOut ? "yes" : "no",
@@ -2881,7 +3202,12 @@
       senderProfile.location || "",
       syncEst,
       syncBest,
-      syncWorst
+      syncWorst,
+      isImagePairRound ? (round?.image_pair_id ?? "") : "",
+      sentImage,
+      imageChoiceA,
+      imageChoiceB,
+      receiverImageChoice
     ];
   }
 
@@ -2913,7 +3239,12 @@
       "tx location",
       "sync est",
       "sync best",
-      "sync worst"
+      "sync worst",
+      "image pair id",
+      "sent image",
+      "image choice a",
+      "image choice b",
+      "rx image choice"
     ];
 
     return Object.fromEntries(keys.map((key, index) => [key, values[index]]));
@@ -3295,6 +3626,20 @@
       return;
     }
 
+    if (isLevelFourDifficulty()) {
+      const actualLayoutNumber = revealActual
+        ? (Number(activeRound?.image_sent_index ?? 0) || null)
+        : null;
+      const choiceUrls = getLevelFourChoiceUrls(activeRound) || getLevelFourChoiceUrls();
+      setLevelFourChoiceImages(senderLevelFourChoiceNodes, choiceUrls);
+      renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
+      clearStageVisibility();
+      showStage();
+      arrangementNodes.get("sender-level-four-choice-grid")?.classList.add("visible");
+      updateSettingsGearVisibility();
+      return;
+    }
+
     const actualLayoutNumber = revealActual ? getLayoutNumberFromArrangementCode(actualArrangementCode) : null;
     renderChoiceSelection(senderChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
     clearStageVisibility();
@@ -3339,11 +3684,29 @@
     }
 
     if (phase === "choices") {
+      if (isLevelFourDifficulty()) {
+        const actualLayoutNumber = Number(remoteState.round?.image_sent_index ?? activeRound?.image_sent_index ?? 0) || null;
+        setLevelFourChoiceImages(senderLevelFourChoiceNodes, getLevelFourChoiceUrls(remoteState.round) || getLevelFourChoiceUrls(activeRound));
+        renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
+        clearStageVisibility();
+        showStage();
+        arrangementNodes.get("sender-level-four-choice-grid")?.classList.add("visible");
+        return true;
+      }
       showSenderChoiceMirror(actualArrangementCode, selectedLayoutNumbers, true);
       return true;
     }
 
     if (phase === "results" || phase === "confidence-final") {
+      if (isLevelFourDifficulty()) {
+        const actualLayoutNumber = Number(remoteState.round?.image_sent_index ?? activeRound?.image_sent_index ?? 0) || null;
+        setLevelFourChoiceImages(senderLevelFourChoiceNodes, getLevelFourChoiceUrls(remoteState.round) || getLevelFourChoiceUrls(activeRound));
+        renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
+        clearStageVisibility();
+        showStage();
+        arrangementNodes.get("sender-level-four-choice-grid")?.classList.add("visible");
+        return true;
+      }
       if (isLevelOneDifficulty()) {
         const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
         showSenderLevelOneFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers);
@@ -3358,6 +3721,29 @@
   }
 
   function markReceiverResult(actualArrangementCode, selectedArrangementCodes) {
+    if (isLevelFourDifficulty()) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
+      showChoiceGrid();
+      const grid = arrangementNodes.get("receiver-level-four-choice-grid");
+      grid?.classList.add("results-locked");
+      levelFourChoiceNodes.forEach((node) => {
+        node.disabled = true;
+        node.style.pointerEvents = "none";
+        node.setAttribute("tabindex", "-1");
+        node.blur();
+      });
+      const actualLayoutNumber = Number(activeRound?.image_sent_index ?? 0) || null;
+      setLevelFourChoiceImages(levelFourChoiceNodes, getLevelFourChoiceUrls(activeRound));
+      renderChoiceSelection(levelFourChoiceNodes, pendingGuessLayoutNumbers, actualLayoutNumber);
+      if (!postRoundChoiceSubmitted) {
+        showDecisionPanel();
+      }
+      return;
+    }
+
     if (isLevelOneDifficulty()) {
       const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
       const highlightedLayoutNumbers = getLevelOneFeedbackSelectedLayoutNumbers(pendingGuessLayoutNumbers, actualLayoutNumber);
@@ -3664,7 +4050,7 @@
   }
 
   function beginReceiverSelection(selectionLimit) {
-    receiverSelectionLimit = isLevelOneDifficulty() ? 1 : selectionLimit;
+    receiverSelectionLimit = (isLevelOneDifficulty() || isLevelFourDifficulty()) ? 1 : selectionLimit;
     pendingGuessLayoutNumbers = [];
     pendingGuessArrangementCodes = [];
     choiceInstructionShown = false;
@@ -3772,6 +4158,7 @@
         confidence,
         done_reaction_ms: doneReactionMs
       });
+      const isImagePairRound = String(response?.round?.stimulus_kind || activeRound?.stimulus_kind || "") === "image_pair";
       let actualArrangementCode = getResolvedActualArrangementCode({
         arrangement_code: response.actual_arrangement_code,
         layout_number: response.actual_layout_number
@@ -3788,11 +4175,13 @@
           await waitForRoundArrangementCode(activeRound.id);
       }
 
-      if (actualArrangementCode) {
+      if (actualArrangementCode || isImagePairRound) {
         void logDebugEvent("receiver_resolved_actual", {
           round_id: activeRound?.id ?? "",
           actual_arrangement_code: actualArrangementCode,
           actual_layout_number: activeRound?.layout_number ?? "",
+          actual_image_sent_index: activeRound?.image_sent_index ?? "",
+          actual_image_sent: activeRound?.image_sent ?? "",
           selected_arrangement_codes: selectedArrangementCodes,
           confidence,
           done_reaction_ms: doneReactionMs
@@ -3866,23 +4255,44 @@
           return;
         }
 
-        const layoutNumber = pickArrangementNumber();
-        const arrangementCode = getArrangementCode(layoutNumber);
-        void logDebugEvent("sender_picked_target", {
-          round_id: activeRound?.id ?? "",
-          layout_number: layoutNumber,
-          arrangement_code: arrangementCode
-        });
         hideCountdown();
         showStage();
-        showArrangement(layoutNumber);
         senderHoldingResult = true;
         updateSettingsGearVisibility();
-        if (activeRound) {
-          activeRound.layout_number = layoutNumber;
-          activeRound.arrangement_code = arrangementCode;
+
+        if (isLevelFourDifficulty() && String(round?.stimulus_kind || "") === "image_pair") {
+          const imageUrl = getLevelFourSentImageUrl(round);
+          void logDebugEvent("sender_picked_level_four_target", {
+            round_id: activeRound?.id ?? "",
+            image_pair_id: round?.image_pair_id ?? "",
+            image_sent_index: round?.image_sent_index ?? "",
+            image_sent: imageUrl
+          });
+          showImageDisplay(imageUrl);
+          if (activeRound) {
+            activeRound.stimulus_kind = "image_pair";
+            activeRound.image_pair_id = round.image_pair_id;
+            activeRound.image_choice_a = round.image_choice_a;
+            activeRound.image_choice_b = round.image_choice_b;
+            activeRound.image_sent_index = round.image_sent_index;
+            activeRound.image_sent = round.image_sent;
+          }
+          completeRound(null, "");
+        } else {
+          const layoutNumber = pickArrangementNumber();
+          const arrangementCode = getArrangementCode(layoutNumber);
+          void logDebugEvent("sender_picked_target", {
+            round_id: activeRound?.id ?? "",
+            layout_number: layoutNumber,
+            arrangement_code: arrangementCode
+          });
+          showArrangement(layoutNumber);
+          if (activeRound) {
+            activeRound.layout_number = layoutNumber;
+            activeRound.arrangement_code = arrangementCode;
+          }
+          completeRound(layoutNumber, arrangementCode);
         }
-        completeRound(layoutNumber, arrangementCode);
         localRoundRunning = false;
       } else {
         showReceiverRevealState();
@@ -3914,6 +4324,8 @@
 
       if (response.round) {
         scheduleSynchronizedRound(response.round);
+      } else {
+        applyRemoteState(response);
       }
     } catch (error) {
       localRoundRunning = false;
@@ -3959,12 +4371,26 @@
       return;
     }
 
+    if (currentUiMode === "session-limit") {
+      void api("abort_to_home", { abort_reason: "session-limit" })
+        .catch(() => null)
+        .finally(() => {
+          navigateToBeginnerFrontPage();
+        });
+      return;
+    }
+
     if (currentUiMode === "partner-disconnect") {
       void api("abort_to_home", { abort_reason: "disconnect" })
         .catch(() => null)
         .finally(() => {
           navigateToBeginnerFrontPage();
         });
+      return;
+    }
+
+    if (currentUiMode === "authorization-ended") {
+      navigateToBeginnerFrontPage();
       return;
     }
 
@@ -4069,7 +4495,7 @@
       return null;
     }
 
-    if (round.layout_number !== null || round.arrangement_code) {
+    if (round.completed_server_ms || round.layout_number !== null || round.arrangement_code) {
       return null;
     }
 
@@ -4108,6 +4534,16 @@
 
     const remoteState = payload.state || {};
 
+    if (remoteState.authorization_notice) {
+      void logDebugEvent("authorization_notice_seen", {
+        role,
+        current_ui_mode: currentUiMode,
+        message: remoteState.authorization_notice.message || ""
+      });
+      handleAuthorizationFailure(remoteState.authorization_notice.message);
+      return;
+    }
+
     if (remoteState.timeout_exit) {
       void logDebugEvent("timeout_exit_seen", {
         role,
@@ -4126,6 +4562,11 @@
       });
       void appendTrialServerRecord(remoteState, { aborted: true });
       showPartnerAbortState(remoteState.abort_notice.message);
+      return;
+    }
+
+    if (remoteState.session_limit_notice) {
+      showSessionLimitState(remoteState.session_limit_notice.message);
       return;
     }
 
@@ -4295,10 +4736,12 @@
 
     if (role === "sender") {
       buildAllArrangements();
+      buildImageDisplayPanel();
       buildSenderConfidencePanel();
       buildSenderChoiceGrid();
       buildSenderLevelOneChoiceGrid();
       buildSenderLevelTwoChoiceGrid();
+      buildSenderLevelFourChoiceGrid();
       buildSenderLevelOneFeedbackGrid();
       buildDecisionPanel();
       buildMessagePanel();
@@ -4307,9 +4750,11 @@
         setUiMode("sender-waiting-online");
       }
     } else {
+      buildImageDisplayPanel();
       buildChoiceGrid();
       buildReceiverLevelOneChoiceGrid();
       buildReceiverLevelTwoChoiceGrid();
+      buildReceiverLevelFourChoiceGrid();
       buildReceiverLevelOneFeedbackGrid();
       buildConfidencePanel();
       buildInstructionPanel();

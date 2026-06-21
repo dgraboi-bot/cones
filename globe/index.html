@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Location Visualization</title>
+  <link rel="stylesheet" href="./globe.css?v=20260619t">
+</head>
+<body>
+  <main class="globe-page">
+    <header class="globe-topbar">
+      <button class="globe-pill" type="button" data-globe-back>BACK</button>
+      <div class="globe-title-wrap">
+        <p class="globe-kicker">ESP GYM</p>
+        <h1 class="globe-title">Location Visualization</h1>
+        <p class="globe-subtitle" data-globe-pair-label>Receiver-sender pair: loading...</p>
+      </div>
+      <span class="globe-version">ver. 20260619t</span>
+    </header>
+
+    <section class="globe-controls">
+      <button class="globe-control" type="button" data-globe-fly>FLY TO FIT</button>
+      <button class="globe-control" type="button" data-globe-reset>RESET GLOBE</button>
+      <label class="globe-toggle">
+        <input type="checkbox" data-globe-labels checked>
+        <span>Show labels</span>
+      </label>
+    </section>
+
+    <section class="globe-layout">
+      <div class="globe-canvas-wrap">
+        <div id="globeViewer" class="globe-viewer" aria-label="3D globe visualization"></div>
+        <div class="globe-overlay-status" data-globe-overlay-status hidden></div>
+      </div>
+
+      <aside class="globe-sidepanel">
+        <section class="globe-panel">
+          <h2 class="globe-panel-title">Summary</h2>
+          <div class="globe-summary" data-globe-summary></div>
+          <div class="globe-status" data-globe-status></div>
+        </section>
+
+        <section class="globe-panel">
+          <h2 class="globe-panel-title">Legend</h2>
+          <div class="globe-legend" data-globe-legend></div>
+        </section>
+
+        <section class="globe-panel">
+          <h2 class="globe-panel-title">Connection Details</h2>
+          <div class="globe-details" data-globe-details>Click a connection line to inspect that route.</div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/three@0.166.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
+  <script src="./globe-config.js?v=20260619t"></script>
+  <script src="./globe-data.js?v=20260619t"></script>
+  <script src="./globe-ui.js?v=20260619t"></script>
+  <script src="./globe.js?v=20260619t"></script>
+</body>
+</html>

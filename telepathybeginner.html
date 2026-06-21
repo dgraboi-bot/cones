@@ -9,12 +9,12 @@
       history.scrollRestoration = "manual";
     }
   </script>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260618ba">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260620au">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260618ba">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260618ba">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260620au">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260620au">
 </head>
 <body>
   <main class="beginner-shell">
@@ -56,6 +56,7 @@
               </div>
               <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Visual attention focus</span>
             </div>
+            <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="sender" hidden></div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="sender" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
@@ -120,6 +121,7 @@
               </div>
               <span class="role-card-tagline" data-role-skill-tagline="receiver">Skill: Mind's eye perception</span>
             </div>
+            <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="receiver" hidden></div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
@@ -183,6 +185,7 @@
               </div>
               <span class="role-card-tagline" data-role-skill-tagline="remote-viewer">Skill: Guided mind's eye perception</span>
             </div>
+            <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="remote-viewer" hidden></div>
             <div class="role-card-body">
               <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
                 <div class="role-email-note" aria-label="Remote viewing guidance">
@@ -270,7 +273,7 @@
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-options>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-version">ver. 20260618ba</span>
+          <span class="beginner-top-version" data-app-version-label>ver. 20260620au</span>
         </div>
 
         <h1 class="beginner-title" id="optionsTitle">Options</h1>
@@ -278,9 +281,9 @@
 
         <div class="options-actions">
           <button class="options-button" type="button" data-open-help>Help</button>
-          <button class="options-button" type="button" data-open-report>Performance Report</button>
+          <button class="options-button" type="button" data-open-report>Performance Reports</button>
           <button class="options-button" type="button" data-open-other-settings>Other Settings</button>
-          <button class="options-button" type="button" data-open-go-pro>Go PRO</button>
+          <button class="options-button" type="button" data-open-go-pro>Telepathy PRO</button>
           </div>
         </section>
 
@@ -291,7 +294,7 @@
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="goProTitle">Go PRO</h1>
+          <h1 class="beginner-title" id="goProTitle">Telepathy PRO</h1>
           <p class="beginner-subtitle">Upgrade to PRO for advanced features, expanded reports, premium training tools and community benefits.</p>
 
           <section class="settings-view-panel about-view-panel">
@@ -305,11 +308,13 @@
             </div>
             <div class="about-section">
               <h2 class="about-section-title">Billing</h2>
-              <p class="about-section-copy">Payments will be handled securely through Stripe. A hosted checkout button and a manage-subscription button can be added here next.</p>
+              <p class="about-section-copy">Payments will be handled securely through Stripe.</p>
             </div>
+            <div class="settings-view-note" data-go-pro-identifier-note></div>
+            <div class="settings-view-status" data-go-pro-status></div>
             <div class="contact-actions">
-              <button class="options-button contact-action-button" type="button" disabled>Monthly PRO Coming Soon</button>
-              <button class="options-button contact-action-button" type="button" disabled>Annual PRO Coming Soon</button>
+              <button class="options-button contact-action-button" type="button" data-go-pro-monthly>Subscribe Monthly - $2.99</button>
+              <button class="options-button contact-action-button" type="button" data-go-pro-annual>Subscribe Annual - $25.00</button>
             </div>
           </section>
         </section>
@@ -326,7 +331,8 @@
 
           <div class="options-actions">
             <button class="options-button" type="button" data-open-color-scheme>Color Scheme Picker</button>
-            <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO</button>
+            <button class="options-button" type="button" data-open-blink-behavior>Blink Behavior</button>
+            <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO Subscription</button>
             <button
               class="options-button"
               type="button"
@@ -386,6 +392,52 @@
               <button class="options-button contact-action-button" type="button" data-reset-color-scheme>Reset Default Blue</button>
               <button class="options-button contact-action-button" type="button" data-save-color-scheme>Save This Blue</button>
             </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="blink-behavior" aria-labelledby="blinkBehaviorTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-blink-behavior>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="blinkBehaviorTitle">Blink Behavior</h1>
+          <p class="beginner-subtitle">Control whether the Sender's viewed image blinks and how long it stays on and off.</p>
+
+          <section class="settings-view-panel">
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-blink-enabled>
+              <span>Blink image viewed by Sender</span>
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Image ON time (example, 0.35)</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                spellcheck="false"
+                data-blink-on-seconds
+                placeholder="0.35"
+              >
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Image OFF time (example, 0.8)</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                spellcheck="false"
+                data-blink-off-seconds
+                placeholder="0.8"
+              >
+            </label>
+
+            <div class="settings-view-status" data-blink-status></div>
           </section>
         </section>
 
@@ -517,6 +569,18 @@
               <input type="checkbox" data-admin-debug-enabled>
               <span>Enable debugging</span>
             </label>
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-admin-subscription-emails-enabled>
+              <span>Enable Subscription Emails</span>
+            </label>
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-admin-subscription-reminders-enabled>
+              <span>Enable Annual Subscription Reminders</span>
+            </label>
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-admin-easy-admin-enabled>
+              <span>Enable Easy Admin</span>
+            </label>
 
             <div class="settings-view-note" data-admin-storage-info></div>
             <div class="settings-view-status" data-admin-status></div>
@@ -526,8 +590,13 @@
               <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
               <button class="options-button settings-view-save" type="button" data-open-user-type-admin>Assign user type</button>
+              <button class="options-button settings-view-save" type="button" data-open-handle-update-admin>Update a user handle</button>
+              <button class="options-button settings-view-save" type="button" data-open-image-pair-admin>Add image pairs</button>
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260618ba'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
+              <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
+              <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260620au'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -558,18 +627,18 @@
           </div>
 
           <h1 class="beginner-title" id="userTypeAdminTitle">Assign User Type</h1>
-          <p class="beginner-subtitle">Assign a Standard or PRO status to an existing user handle.</p>
+          <p class="beginner-subtitle">Assign a Standard or PRO status to an existing user identifier.</p>
 
           <section class="settings-view-panel">
             <label class="settings-view-field">
-              <span class="settings-view-label">User handle:</span>
+              <span class="settings-view-label">User identifier:</span>
               <input
                 class="settings-view-input"
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
                 data-user-type-handle
-                placeholder="enter user handle"
+                placeholder="enter user email or handle"
               >
             </label>
 
@@ -589,6 +658,136 @@
             </div>
           </section>
         </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="handle-update-admin" aria-labelledby="handleUpdateAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-handle-update-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="handleUpdateAdminTitle">Update A User Handle</h1>
+          <p class="beginner-subtitle">Update an existing user handle to a new one, then propagate that change through server history and related state.</p>
+
+          <section class="settings-view-panel">
+            <label class="settings-view-field">
+              <span class="settings-view-label">Current handle:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-handle-update-old
+                placeholder="enter current handle"
+              >
+            </label>
+
+            <div class="settings-view-note" data-handle-update-summary hidden></div>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">New handle:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-handle-update-new
+                placeholder="enter new handle"
+              >
+            </label>
+
+            <div class="settings-view-status" data-handle-update-status></div>
+
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-handle-update-save>Update</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="image-pair-admin" aria-labelledby="imagePairAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-image-pair-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="imagePairAdminTitle">Add Image Pairs</h1>
+          <p class="beginner-subtitle">Pick two images, preview them side by side, then submit them as a new Level 4 image pair.</p>
+
+          <section class="settings-view-panel">
+            <div class="settings-view-field">
+              <span class="settings-view-label">Image A:</span>
+              <input class="settings-view-input" type="file" accept="image/*" data-image-pair-file-a>
+            </div>
+
+            <div class="settings-view-field">
+              <span class="settings-view-label">Image B:</span>
+              <input class="settings-view-input" type="file" accept="image/*" data-image-pair-file-b>
+            </div>
+
+            <div class="image-pair-admin-preview" data-image-pair-preview>
+              <div class="image-pair-admin-preview-card">
+                <img alt="" data-image-pair-preview-a hidden>
+              </div>
+              <div class="image-pair-admin-preview-card">
+                <img alt="" data-image-pair-preview-b hidden>
+              </div>
+            </div>
+
+            <div class="settings-view-status" data-image-pair-status></div>
+
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-image-pair-submit>Submit</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="subscription-email-admin" aria-labelledby="subscriptionEmailAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-subscription-email-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="subscriptionEmailAdminTitle">Edit Subscription Emails</h1>
+          <p class="beginner-subtitle">Choose a subscription email template to review or edit.</p>
+
+          <section class="settings-view-panel">
+            <div class="options-actions">
+              <button class="options-button" type="button" data-subscription-email-template-button="welcome">Welcome to ESP Gym</button>
+              <button class="options-button" type="button" data-subscription-email-template-button="annual-reminder">Annual Subscription Reminder</button>
+              <button class="options-button" type="button" data-subscription-email-template-button="annual-thank-you">Annual Subscription Renewal Thank You</button>
+              <button class="options-button" type="button" data-subscription-email-template-button="cancellation">Subscription Cancellation</button>
+              <button class="options-button" type="button" data-subscription-email-template-button="email-log">Email Subscription Log</button>
+            </div>
+            <div class="settings-view-status" data-subscription-email-admin-status></div>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Subject:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-subscription-email-subject
+                placeholder="Select a subscription email template"
+              >
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Body:</span>
+              <textarea
+                class="analyzer-textarea"
+                rows="12"
+                spellcheck="false"
+                data-subscription-email-body
+                placeholder="Select a subscription email template to review or edit it."
+              ></textarea>
+            </label>
+            <pre class="report-definition-debug" data-subscription-email-log-output hidden></pre>
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-subscription-email-save>Save Template</button>
+            </div>
+          </section>
+        </section>
  
         <section class="beginner-view beginner-view-hidden" data-view="report-definition" aria-labelledby="reportDefinitionTitle">
         <div class="beginner-top-row">
@@ -597,7 +796,7 @@
           <button class="beginner-top-button beginner-top-pill" type="button" data-open-advanced>ADVANCED</button>
         </div>
 
-        <h1 class="beginner-title" id="reportDefinitionTitle">Performance Report</h1>
+        <h1 class="beginner-title" id="reportDefinitionTitle">Performance Reports</h1>
         <p class="beginner-subtitle">Choose the receiver-sender pair whose performance history you want to review.</p>
 
         <section class="report-definition-panel">
@@ -620,8 +819,9 @@
           <div class="report-definition-status" data-report-definition-status></div>
           <pre class="report-definition-debug" data-report-definition-debug hidden></pre>
           <div class="report-definition-actions">
-            <button class="options-button report-definition-go" type="button" data-report-go hidden>GO</button>
+            <button class="options-button report-definition-go" type="button" data-report-go hidden>RAW DATA</button>
             <button class="options-button report-definition-visualize" type="button" data-report-visualize hidden>VISUALIZE</button>
+            <button class="options-button report-definition-globe" type="button" data-report-globe hidden>GLOBE</button>
             <button class="options-button report-definition-analyze" type="button" data-report-analyze hidden>ANALYZE</button>
           </div>
         </section>
@@ -634,7 +834,7 @@
           <span class="beginner-top-spacer" aria-hidden="true"></span>
         </div>
 
-        <h1 class="beginner-title" id="reportTitle">Performance Report</h1>
+        <h1 class="beginner-title" id="reportTitle">Performance Reports</h1>
         <section class="report-panel">
           <div class="report-summary" data-report-summary></div>
           <div class="report-status" data-report-status></div>
@@ -664,6 +864,7 @@
             <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level1"></span>Level 1</span>
             <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level2"></span>Level 2</span>
             <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level3"></span>Level 3</span>
+            <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level4"></span>Level 4</span>
             <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-band"></span>95% chance band</span>
           </div>
           <div class="visualization-chart-wrap" data-visualization-chart-wrap hidden>
@@ -714,7 +915,7 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="telepathybeginner.js?v=20260618ba"></script>
+  <script src="telepathybeginner.js?v=20260620au"></script>
 </body>
 </html>
 
