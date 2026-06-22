@@ -1770,6 +1770,17 @@ function default_level_four_session_state(): array
     ];
 }
 
+function default_level_four_receiver_pool_state(string $receiverIdentifier = ''): array
+{
+    return [
+        'receiver_identifier' => trim($receiverIdentifier),
+        'dataset_signature' => '',
+        'remaining_pair_ids' => [],
+        'used_pair_ids' => [],
+        'updated_ms' => 0
+    ];
+}
+
 function reset_level_four_session(array &$session): void
 {
     $session['level_four'] = default_level_four_session_state();
@@ -1843,6 +1854,126 @@ function pick_level_four_image_pair_for_session(array &$session, array $pairs, i
     $session['level_four']['remaining_pair_ids'] = $remainingIds;
     $session['level_four']['used_pair_ids'] = $usedIds;
     $session['level_four']['updated_ms'] = $nowMs;
+
+    return [
+        'id' => $selectedPairId,
+        'images' => (array) ($selectedPair['images'] ?? []),
+        'image_choice_a' => (string) ($selectedPair['choice_a'] ?? ''),
+        'image_choice_b' => (string) ($selectedPair['choice_b'] ?? ''),
+        'image_sent_index' => $selectedImageIndex,
+        'image_sent' => $sentImage,
+        'remaining_after_pick' => count($remainingIds)
+    ];
+}
+
+function get_level_four_receiver_pool_key(array $state, string $receiverIdentifier): string
+{
+    $preferred = trim($receiverIdentifier);
+    if ($preferred === '') {
+        return '';
+    }
+
+    $canonicalKey = get_canonical_identifier_key($state, $preferred);
+    if ($canonicalKey !== '') {
+        return $canonicalKey;
+    }
+
+    return normalize_identifier_for_lookup($preferred);
+}
+
+function ensure_level_four_receiver_pool(array &$state, string $receiverIdentifier, array $pairs, int $nowMs): string
+{
+    if (!is_array($state['level_four_receiver_pools'] ?? null)) {
+        $state['level_four_receiver_pools'] = [];
+    }
+
+    $poolKey = get_level_four_receiver_pool_key($state, $receiverIdentifier);
+    if ($poolKey === '') {
+        return '';
+    }
+
+    $pairIds = array_values(array_filter(array_map(
+        static fn (array $pair): string => (string) ($pair['id'] ?? ''),
+        $pairs
+    )));
+    $datasetSignature = implode('|', $pairIds);
+    $pool = is_array($state['level_four_receiver_pools'][$poolKey] ?? null)
+        ? $state['level_four_receiver_pools'][$poolKey]
+        : default_level_four_receiver_pool_state($receiverIdentifier);
+
+    $currentSignature = trim((string) ($pool['dataset_signature'] ?? ''));
+    if ($currentSignature !== $datasetSignature) {
+        $state['level_four_receiver_pools'][$poolKey] = [
+            'receiver_identifier' => trim($receiverIdentifier),
+            'dataset_signature' => $datasetSignature,
+            'remaining_pair_ids' => $pairIds,
+            'used_pair_ids' => [],
+            'updated_ms' => $nowMs
+        ];
+        return $poolKey;
+    }
+
+    if (!is_array($pool['remaining_pair_ids'] ?? null)) {
+        $pool['remaining_pair_ids'] = $pairIds;
+    }
+    if (!is_array($pool['used_pair_ids'] ?? null)) {
+        $pool['used_pair_ids'] = [];
+    }
+    $pool['receiver_identifier'] = trim($receiverIdentifier);
+    $pool['updated_ms'] = $nowMs;
+    $state['level_four_receiver_pools'][$poolKey] = $pool;
+    return $poolKey;
+}
+
+function pick_level_four_image_pair_for_receiver(array &$state, string $receiverIdentifier, array $pairs, int $nowMs): ?array
+{
+    $poolKey = ensure_level_four_receiver_pool($state, $receiverIdentifier, $pairs, $nowMs);
+    if ($poolKey === '') {
+        return null;
+    }
+
+    $pool = is_array($state['level_four_receiver_pools'][$poolKey] ?? null)
+        ? $state['level_four_receiver_pools'][$poolKey]
+        : default_level_four_receiver_pool_state($receiverIdentifier);
+    $remainingIds = array_values(array_filter(array_map('strval', (array) ($pool['remaining_pair_ids'] ?? []))));
+    if ($remainingIds === []) {
+        return null;
+    }
+
+    $pairIndexById = [];
+    foreach ($pairs as $pair) {
+        $pairIndexById[(string) ($pair['id'] ?? '')] = $pair;
+    }
+
+    $remainingIds = array_values(array_filter($remainingIds, static fn (string $id): bool => isset($pairIndexById[$id])));
+    if ($remainingIds === []) {
+        $pool['remaining_pair_ids'] = [];
+        $pool['updated_ms'] = $nowMs;
+        $state['level_four_receiver_pools'][$poolKey] = $pool;
+        return null;
+    }
+
+    $selectedRemainingOffset = random_int(0, count($remainingIds) - 1);
+    $selectedPairId = $remainingIds[$selectedRemainingOffset];
+    $selectedPair = $pairIndexById[$selectedPairId] ?? null;
+    if (!is_array($selectedPair)) {
+        return null;
+    }
+
+    unset($remainingIds[$selectedRemainingOffset]);
+    $remainingIds = array_values($remainingIds);
+    $usedIds = array_values(array_filter(array_map('strval', (array) ($pool['used_pair_ids'] ?? []))));
+    $usedIds[] = $selectedPairId;
+
+    $selectedImageIndex = random_int(1, 2);
+    $sentImage = $selectedImageIndex === 1
+        ? (string) ($selectedPair['choice_a'] ?? '')
+        : (string) ($selectedPair['choice_b'] ?? '');
+
+    $pool['remaining_pair_ids'] = $remainingIds;
+    $pool['used_pair_ids'] = $usedIds;
+    $pool['updated_ms'] = $nowMs;
+    $state['level_four_receiver_pools'][$poolKey] = $pool;
 
     return [
         'id' => $selectedPairId,
@@ -3203,6 +3334,23 @@ function get_pair_trial_csv_path(string $pairsDir, string $receiverName, string 
     return $pairsDir . DIRECTORY_SEPARATOR . build_pair_storage_key($receiverName, $senderName, $sessionCode) . '.csv';
 }
 
+function resolve_pair_trial_csv_path(string $pairsDir, string $receiverName, string $senderName, string $sessionCode = ''): string
+{
+    $exactPath = get_pair_trial_csv_path($pairsDir, $receiverName, $senderName, $sessionCode);
+    if (is_file($exactPath)) {
+        return $exactPath;
+    }
+
+    if ($sessionCode !== '') {
+        $fallbackPath = get_pair_trial_csv_path($pairsDir, $receiverName, $senderName, '');
+        if (is_file($fallbackPath)) {
+            return $fallbackPath;
+        }
+    }
+
+    return $exactPath;
+}
+
 function get_pair_analysis_json_path(string $pairsDir, string $receiverName, string $senderName, string $sessionCode = ''): string
 {
     return $pairsDir . DIRECTORY_SEPARATOR . build_pair_storage_key($receiverName, $senderName, $sessionCode) . '.analysis.json';
@@ -3498,7 +3646,7 @@ function read_pair_trial_records_for_pair(string $pairsDir, array $pairInfo): ar
         return [];
     }
 
-    $path = get_pair_trial_csv_path($pairsDir, $receiverName, $senderName, $sessionCode);
+    $path = resolve_pair_trial_csv_path($pairsDir, $receiverName, $senderName, $sessionCode);
     if (!is_file($path)) {
         return [];
     }
@@ -4236,6 +4384,7 @@ function default_session_state(): array
         'round' => null,
         'post_round' => null,
         'abort_notice' => null,
+        'partner_finished_notice' => null,
         'authorization_notice' => null,
         'session_limit_notice' => null,
         'timeout_notice' => null,
@@ -4340,6 +4489,9 @@ function ensure_session_shape(array &$session): void
     if (!array_key_exists('abort_notice', $session)) {
         $session['abort_notice'] = null;
     }
+    if (!array_key_exists('partner_finished_notice', $session)) {
+        $session['partner_finished_notice'] = null;
+    }
     if (!array_key_exists('authorization_notice', $session)) {
         $session['authorization_notice'] = null;
     }
@@ -4428,6 +4580,7 @@ function apply_abort_to_home(array &$session, int $nowMs, string $role, string $
         'message' => $abortMessage,
         'round_snapshot' => $roundSnapshot
     ];
+    $session['partner_finished_notice'] = null;
     $session['post_round'] = null;
     $session['round'] = null;
     $session['receiver']['ready'] = false;
@@ -5096,6 +5249,7 @@ if (!is_array($state)) {
         'unique_handles' => [],
         'identifier_aliases' => [],
         'user_types' => [],
+        'level_four_receiver_pools' => [],
         'retired_handles' => [],
         'handle_owners' => [],
         'stripe_users' => [],
@@ -5123,6 +5277,7 @@ if (!array_key_exists('sessions', $state)) {
         'unique_handles' => [],
         'identifier_aliases' => [],
         'user_types' => [],
+        'level_four_receiver_pools' => [],
         'retired_handles' => [],
         'handle_owners' => [],
         'stripe_users' => [],
@@ -5158,6 +5313,9 @@ if (!is_array($state['identifier_aliases'] ?? null)) {
 }
 if (!is_array($state['user_types'] ?? null)) {
     $state['user_types'] = [];
+}
+if (!is_array($state['level_four_receiver_pools'] ?? null)) {
+    $state['level_four_receiver_pools'] = [];
 }
 if (!isset($state['launcher_visit_count']) || !is_numeric($state['launcher_visit_count'])) {
     $state['launcher_visit_count'] = 0;
@@ -6287,6 +6445,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['unique_handles'] = [];
     $state['identifier_aliases'] = [];
     $state['user_types'] = [];
+    $state['level_four_receiver_pools'] = [];
     $state['retired_handles'] = [];
     $state['handle_owners'] = [];
     $state['stripe_users'] = [];
@@ -6440,7 +6599,11 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
 
     if ($difficultyLevel === '4') {
         $levelFourPairs = get_level_four_image_pairs($imagePairsManifestFile);
-        $selectedImagePair = pick_level_four_image_pair_for_session($session, $levelFourPairs, $nowMs);
+        $pairParticipants = get_pair_participants_for_session($state, $session, $sessionCode);
+        $receiverIdentifierForLevelFour = trim((string) ($pairParticipants['receiver_name'] ?? ''));
+        $selectedImagePair = $receiverIdentifierForLevelFour !== ''
+            ? pick_level_four_image_pair_for_receiver($state, $receiverIdentifierForLevelFour, $levelFourPairs, $nowMs)
+            : pick_level_four_image_pair_for_session($session, $levelFourPairs, $nowMs);
 
         if ($selectedImagePair === null) {
             $session['round'] = null;
@@ -6451,7 +6614,7 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
             $session['session_limit_notice'] = [
                 'created_ms' => $nowMs,
                 'message' => count($levelFourPairs) > 0
-                    ? 'This Level 4 session has reached its image-pair limit. Press here to end the session.'
+                    ? 'This receiver has now seen all available Level 4 image pairs. Press here to end the session.'
                     : 'No Level 4 image pairs are available right now. Press here to end the session.',
                 'total_pairs' => count($levelFourPairs)
             ];
@@ -6548,6 +6711,14 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
         clear_authorization_notice($session);
         $session['session_limit_notice'] = null;
         if ($mode === 'end') {
+            $partnerRole = $role === 'sender' ? 'receiver' : 'sender';
+            $finishingRoleLabel = $role === 'sender' ? 'sender' : 'receiver';
+            $session['partner_finished_notice'] = [
+                'created_ms' => $nowMs,
+                'target_role' => $partnerRole,
+                'by_role' => $role,
+                'message' => "The {$finishingRoleLabel} has had enough. Press here to return."
+            ];
             reset_level_four_session($session);
             $session['timeout_exit'] = [
                 'created_ms' => $nowMs,
@@ -6578,6 +6749,18 @@ if ($roleConflict === null && $action === 'clear_timeout_exit') {
     $session['timeout_exit'] = null;
 }
 
+if ($roleConflict === null && $action === 'clear_partner_finished_notice') {
+    $notice = $session['partner_finished_notice'] ?? null;
+    if (is_array($notice)) {
+        $targetRole = isset($notice['target_role']) ? (string) $notice['target_role'] : '';
+        if ($targetRole === '' || $targetRole === $role) {
+            $session['partner_finished_notice'] = null;
+        }
+    } else {
+        $session['partner_finished_notice'] = null;
+    }
+}
+
 if ($roleConflict === null && $action === 'abort_to_home') {
     $abortReason = isset($input['abort_reason']) ? (string) $input['abort_reason'] : '';
     apply_abort_to_home($session, $nowMs, $role, $sessionCode, $debugLogFile, $safetyLogFile, $safetyLogMaxBytes, $debugEnabled, $abortReason);
@@ -6585,6 +6768,28 @@ if ($roleConflict === null && $action === 'abort_to_home') {
 
 if ($roleConflict === null && $action === 'clear_abort_notice') {
     $session['abort_notice'] = null;
+}
+
+if ($roleConflict === null && $action === 'clear_entry_notices_on_boot') {
+    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
+        'time_ms' => $nowMs,
+        'session_code' => $sessionCode,
+        'role' => $role,
+        'label' => 'clear_entry_notices_on_boot_called',
+        'details' => [
+            'timeout_notice_present' => is_array($session['timeout_notice'] ?? null),
+            'timeout_exit_present' => is_array($session['timeout_exit'] ?? null),
+            'abort_notice_present' => is_array($session['abort_notice'] ?? null),
+            'session_limit_notice_present' => is_array($session['session_limit_notice'] ?? null),
+            'round_present' => is_array($session['round'] ?? null),
+            'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : ''
+        ]
+    ]);
+    $session['timeout_notice'] = null;
+    $session['timeout_exit'] = null;
+    $session['abort_notice'] = null;
+    $session['partner_finished_notice'] = null;
+    $session['session_limit_notice'] = null;
 }
 
 if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action === 'complete_round' && $role === 'sender' && is_array($session['round'] ?? null)) {
@@ -6737,6 +6942,7 @@ $response = [
         'receiver_view' => $session['receiver']['view'] ?? null,
         'post_round' => $session['post_round'],
         'abort_notice' => $session['abort_notice'],
+        'partner_finished_notice' => $session['partner_finished_notice'],
         'authorization_notice' => $session['authorization_notice'],
         'session_limit_notice' => $session['session_limit_notice'],
         'timeout_notice' => $session['timeout_notice'],
@@ -6845,7 +7051,7 @@ if ($action === 'report_pair_csv_data') {
     $response['report_csv'] = [
         'available' => count($pairRecords) > 0,
         'path' => ($selectedReceiver !== '' && $selectedSender !== '')
-            ? get_pair_trial_csv_path($pairsDir, $selectedReceiver, $selectedSender, trim((string) ($selectedPair['session_code'] ?? '')))
+            ? resolve_pair_trial_csv_path($pairsDir, $selectedReceiver, $selectedSender, trim((string) ($selectedPair['session_code'] ?? '')))
             : $pairsDir,
         'records' => $pairRecords,
         'message' => count($pairRecords) > 0

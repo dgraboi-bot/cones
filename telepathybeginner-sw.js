@@ -1,10 +1,12 @@
-const CACHE_NAME = "telepathybeginner-v20260620au";
-const APP_VERSION = "20260620au";
+const CACHE_NAME = "telepathybeginner-v20260622u";
+const APP_VERSION = "20260622u";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
   `./telepathybeginner.js?v=${APP_VERSION}`,
   `./telepathybeginner.webmanifest?v=${APP_VERSION}`,
+  `./vendor/leaflet/leaflet.css?v=${APP_VERSION}`,
+  `./vendor/leaflet/leaflet.js?v=${APP_VERSION}`,
   `./telepathybeginner-email-test.html?v=${APP_VERSION}`,
   `./telepathybeginner-email-test.js?v=${APP_VERSION}`,
   `./globe/index.html?v=${APP_VERSION}`,
@@ -20,6 +22,7 @@ const APP_ASSETS = [
   "./BeginnerUserManual.html",
   "./BeginnerUserManual.html?v=20260503a",
   "./minds-connected-uncropped.png",
+  "./rewire.png",
   "./RV1.png",
   `./tb-icon-192.png?v=${APP_VERSION}`,
   `./tb-icon-512.png?v=${APP_VERSION}`

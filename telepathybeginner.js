@@ -1,5 +1,7 @@
 (() => {
+  try {
   const launcherKey = "cones-beginner-launcher-v2";
+  const launcherBuildVersion = "20260622u";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -7,14 +9,21 @@
   const beginnerMainTitle = document.querySelector("[data-beginner-main-title]");
   const launcherSubtitle = document.querySelector("[data-launcher-subtitle]");
   const launcherCopy = document.querySelector("[data-launcher-copy]");
-  const proHeroFrame = document.querySelector("[data-pro-hero-frame]");
   const optionsView = document.querySelector('[data-view="options"]');
   const helpView = document.querySelector('[data-view="help"]');
+  const learnMoreView = document.querySelector('[data-view="learn-more"]');
+  const clairvoyanceLearnMoreView = document.querySelector('[data-view="clairvoyance-learn-more"]');
+  const aidsView = document.querySelector('[data-view="aids"]');
+  const rewireView = document.querySelector('[data-view="rewire"]');
   const toolsView = document.querySelector('[data-view="tools"]');
   const goProView = document.querySelector('[data-view="go-pro"]');
   const otherSettingsView = document.querySelector('[data-view="other-settings"]');
+  const clairvoyanceViewingView = document.querySelector('[data-view="clairvoyance-viewing"]');
+  const subscriptionManagementView = document.querySelector('[data-view="subscription-management"]');
+  const behaviorsView = document.querySelector('[data-view="behaviors"]');
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
   const blinkBehaviorView = document.querySelector('[data-view="blink-behavior"]');
+  const confidenceBehaviorView = document.querySelector('[data-view="confidence-behavior"]');
   const userTypeAdminView = document.querySelector('[data-view="user-type-admin"]');
   const handleUpdateAdminView = document.querySelector('[data-view="handle-update-admin"]');
   const imagePairAdminView = document.querySelector('[data-view="image-pair-admin"]');
@@ -32,14 +41,25 @@
   const beginnerPanel = document.querySelector(".beginner-panel");
   const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
+  const openLearnMoreButton = document.querySelector("[data-open-learn-more]");
   const appVersionLabel = document.querySelector("[data-app-version-label]");
   const closeOptionsButton = document.querySelector("[data-close-options]");
+  const closeLearnMoreButton = document.querySelector("[data-close-learn-more]");
+  const saveLearnMoreButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
+  const openAidsButton = document.querySelector("[data-open-aids]");
+  const openRewireButton = document.querySelector("[data-open-rewire]");
   const openToolsButtons = Array.from(document.querySelectorAll("[data-open-tools]"));
   const openGoProButton = document.querySelector("[data-open-go-pro]");
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
+  const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
+  const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
+  const openBehaviorsButton = document.querySelector("[data-open-behaviors]");
+  const openSubscriptionManagementButton = document.querySelector("[data-open-subscription-management]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
+  const openLocationPickerSettingsButton = document.querySelector("[data-open-location-picker-settings]");
   const openBlinkBehaviorButton = document.querySelector("[data-open-blink-behavior]");
+  const openConfidenceBehaviorButton = document.querySelector("[data-open-confidence-behavior]");
   const cancelProButton = document.querySelector("[data-cancel-pro]");
   const openUserTypeAdminButton = document.querySelector("[data-open-user-type-admin]");
   const openHandleUpdateAdminButton = document.querySelector("[data-open-handle-update-admin]");
@@ -48,6 +68,8 @@
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
   const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
   const closeHelpButton = document.querySelector("[data-close-help]");
+  const closeAidsButton = document.querySelector("[data-close-aids]");
+  const closeRewireButton = document.querySelector("[data-close-rewire]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
   const closeGoProButton = document.querySelector("[data-close-go-pro]");
   const goProMonthlyButton = document.querySelector("[data-go-pro-monthly]");
@@ -55,8 +77,15 @@
   const goProStatus = document.querySelector("[data-go-pro-status]");
   const goProIdentifierNote = document.querySelector("[data-go-pro-identifier-note]");
   const closeOtherSettingsButton = document.querySelector("[data-close-other-settings]");
+  const closeClairvoyanceViewingButton = document.querySelector("[data-close-clairvoyance-viewing]");
+  const closeClairvoyanceLearnMoreButton = document.querySelector("[data-close-clairvoyance-learn-more]");
+  const saveClairvoyanceLearnMoreButton = document.querySelector("[data-save-clairvoyance-learn-more]");
+  const closeSubscriptionManagementButton = document.querySelector("[data-close-subscription-management]");
+  const otherSettingsHomeButton = document.querySelector("[data-other-settings-home]");
+  const closeBehaviorsButton = document.querySelector("[data-close-behaviors]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
+  const closeConfidenceBehaviorButton = document.querySelector("[data-close-confidence-behavior]");
   const closeUserTypeAdminButton = document.querySelector("[data-close-user-type-admin]");
   const closeHandleUpdateAdminButton = document.querySelector("[data-close-handle-update-admin]");
   const closeImagePairAdminButton = document.querySelector("[data-close-image-pair-admin]");
@@ -88,6 +117,12 @@
   const installAppButton = document.querySelector("[data-install-app]");
   const reportSummary = document.querySelector("[data-report-summary]");
   const reportStatus = document.querySelector("[data-report-status]");
+  let reportImageLightbox = null;
+  let reportImageLightboxImage = null;
+  let levelFourImagePairsCachePromise = null;
+  let contactReturnView = "help";
+  let goProReturnView = "subscription-management";
+  const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
   const reportTableWrap = document.querySelector("[data-report-table-wrap]");
   const reportTable = document.querySelector("[data-report-table]");
   const visualizationSummary = document.querySelector("[data-visualization-summary]");
@@ -124,6 +159,12 @@
   const contactMessageInput = document.querySelector("[data-contact-message]");
   const contactWordCount = document.querySelector("[data-contact-word-count]");
   const contactEmailInput = document.querySelector("[data-contact-email]");
+  const learnMoreTextInput = document.querySelector("[data-learn-more-text]");
+  const learnMoreStatus = document.querySelector("[data-learn-more-status]");
+  const learnMorePreview = document.querySelector("[data-learn-more-preview]");
+  const clairvoyanceLearnMoreTextInput = document.querySelector("[data-clairvoyance-learn-more-text]");
+  const clairvoyanceLearnMoreStatus = document.querySelector("[data-clairvoyance-learn-more-status]");
+  const clairvoyanceLearnMorePreview = document.querySelector("[data-clairvoyance-learn-more-preview]");
   const colorSchemeInput = document.querySelector("[data-color-scheme-input]");
   const colorSchemeHexInput = document.querySelector("[data-color-scheme-hex]");
   const colorSchemeStatus = document.querySelector("[data-color-scheme-status]");
@@ -133,6 +174,8 @@
   const blinkOnSecondsInput = document.querySelector("[data-blink-on-seconds]");
   const blinkOffSecondsInput = document.querySelector("[data-blink-off-seconds]");
   const blinkStatus = document.querySelector("[data-blink-status]");
+  const confidenceModeButtons = Array.from(document.querySelectorAll("[data-confidence-mode]"));
+  const confidenceStatus = document.querySelector("[data-confidence-status]");
   const contactStatus = document.querySelector("[data-contact-status]");
   const contactSendButton = document.querySelector("[data-contact-send]");
   const contactCancelButton = document.querySelector("[data-contact-cancel]");
@@ -174,7 +217,16 @@
   const adminUserListStatus = document.querySelector("[data-admin-user-list-status]");
   const adminUserListOutput = document.querySelector("[data-admin-user-list-output]");
   const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
+  const exactLocationButtons = Array.from(document.querySelectorAll("[data-open-exact-location]"));
   const retryLocationButtons = Array.from(document.querySelectorAll("[data-retry-location]"));
+  const locationPickerOverlay = document.querySelector("[data-location-picker-overlay]");
+  const locationPickerDialog = locationPickerOverlay?.querySelector(".location-picker-dialog") || null;
+  const locationPickerStatus = document.querySelector("[data-location-picker-status]");
+  const locationPickerMapNode = document.querySelector("[data-location-picker-map]");
+  const locationPickerCoordinates = document.querySelector("[data-location-picker-coordinates]");
+  const locationPickerSaveButton = document.querySelector("[data-location-picker-save]");
+  const locationPickerCancelButton = document.querySelector("[data-location-picker-cancel]");
+  locationPickerOverlay?.classList.add("beginner-view-hidden");
   const remoteViewerForm = document.querySelector("[data-remote-viewer-form]");
   const remoteViewerOwnInput = document.querySelector("[data-remote-viewer-own]");
   const remoteViewerPartnerInput = document.querySelector("[data-remote-viewer-partner]");
@@ -188,6 +240,17 @@
   let activeToolsRole = "";
   let locationRequestInFlight = false;
   let lastLocationAttemptAt = 0;
+  let locationPickerLeafletPromise = null;
+  let locationPickerMap = null;
+  let locationPickerMarker = null;
+  let locationPickerSelection = null;
+  let locationPickerOpening = false;
+  let locationPickerReturnRole = "";
+  let locationPickerPromptSourceTimestamp = 0;
+  let locationPickerPendingContinuation = null;
+  let locationAutoPromptTimer = 0;
+  let locationPermissionStatusHandle = null;
+  let locationIndicatorWarmupTried = false;
   let activePairDifficultyCode = "";
   let activeHandleRole = "";
   let activeLauncherRole = "";
@@ -212,6 +275,28 @@
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
+  const defaultLearnMoreText = `INFORMATION ABOUT TELEPATHY
+
+The more you know about this ESP skill, the more effective you can be. This section explains what is known about telepathy and how best to become able to tune into it.
+
+DISTANCE DOES NOT MATTER
+Because telepathy is insensitive to distance, you can work with a partner anywhere in the world. Your telepathic experience is the same if the Sender is next to you in the same room, or thousands of miles away, or deep in a submarine. You can experiment with partners, even the friends of partners whom you have never met, anywhere on earth.
+If you have an old friend that lives across the world, your friend can be the Sender, and you can be the Receiver. All that each partner needs is a device that connects to the Internet. The fact that distance does not matter has been substantiated in a multitude of documented cases.`;
+  const defaultClairvoyanceLearnMoreText = `Croiset Finds Girl in Dike
+For the purposes of parapsychological research, Croiset recorded telephone calls of clients that
+were later turned into verbatim typewritten reports by his assistants. …
+The … victim was an eight-year-old girl that fell through the ice. When a two-day search failed
+to reveal the body, Croiset was consulted by telephone. He responded as follows:
+You are speaking with Croiset. I know you are searching for a girl that drowned the day before
+yesterday. You are calling now from a house not far from the dike. If you walk towards the dike
+in the direction of an excavator you will see two inlets. At the end of the second inlet you make
+an angle of 50 degrees on the axis of the dike. You must dive approximately 35 metres out from
+that point. You will not find the child immediately. She is covered completely with a layer of
+sand. Only the little boot with the skate attached protrudes above the sand. The wall of earth
+collapsed.
+A hole was cut in the ice at the place indicated by the psychic. Within five minutes a diver came
+up with the little skate, and the body was found.
+https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   let stripePublicConfigCache = null;
   let stripeCheckoutInFlight = false;
   let currentUserTypeAdminHandle = "";
@@ -236,12 +321,15 @@
       user_trial_summary_meta: null,
       disk_usage_analysis: null
     };
-  const launcherBuildVersion = "20260620au";
   const defaultThemeColor = "#3160b0";
+  const preciseLocationAccuracyThresholdMeters = 120;
   const defaultBlinkSettings = Object.freeze({
     enabled: false,
     onSeconds: "0.35",
     offSeconds: "0.8"
+  });
+  const defaultConfidenceSettings = Object.freeze({
+    include: true
   });
   const difficultyExplanationCopy = {
     1: "In Level 1, simply decide whether the sender is sending one cone or three cones.",
@@ -309,15 +397,19 @@
         deletedPartners: typeof parsed?.deletedPartners === "object" && parsed.deletedPartners ? parsed.deletedPartners : {},
         deviceLocation: typeof parsed?.deviceLocation === "object" && parsed.deviceLocation ? parsed.deviceLocation : null,
         locationPermission: typeof parsed?.locationPermission === "string" ? parsed.locationPermission : "",
+        locationFineTuneDismissedForTimestamp: Number.isFinite(Number(parsed?.locationFineTuneDismissedForTimestamp)) ? Number(parsed.locationFineTuneDismissedForTimestamp) : 0,
         partnerHistory: typeof parsed?.partnerHistory === "object" && parsed.partnerHistory ? parsed.partnerHistory : {},
         launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
+        learnMoreText: typeof parsed?.learnMoreText === "string" && parsed.learnMoreText.trim() ? parsed.learnMoreText : defaultLearnMoreText,
+        clairvoyanceLearnMoreText: typeof parsed?.clairvoyanceLearnMoreText === "string" && parsed.clairvoyanceLearnMoreText.trim() ? parsed.clairvoyanceLearnMoreText : defaultClairvoyanceLearnMoreText,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
         remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
         blinkSenderImage: !!parsed?.blinkSenderImage,
         blinkImageOnSeconds: typeof parsed?.blinkImageOnSeconds === "string" ? parsed.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
-        blinkImageOffSeconds: typeof parsed?.blinkImageOffSeconds === "string" ? parsed.blinkImageOffSeconds : defaultBlinkSettings.offSeconds
+        blinkImageOffSeconds: typeof parsed?.blinkImageOffSeconds === "string" ? parsed.blinkImageOffSeconds : defaultBlinkSettings.offSeconds,
+        includeConfidence: typeof parsed?.includeConfidence === "boolean" ? parsed.includeConfidence : defaultConfidenceSettings.include
       };
     } catch (error) {
       return {
@@ -326,21 +418,48 @@
         deletedPartners: {},
         deviceLocation: null,
         locationPermission: "",
+        locationFineTuneDismissedForTimestamp: 0,
         partnerHistory: {},
         launcherProfiles: {},
         identifierStatusMap: {},
         themeColor: defaultThemeColor,
+        learnMoreText: defaultLearnMoreText,
+        clairvoyanceLearnMoreText: defaultClairvoyanceLearnMoreText,
         difficultyLevel: "1",
         remoteViewerDisplayDevice: false,
         blinkSenderImage: defaultBlinkSettings.enabled,
         blinkImageOnSeconds: defaultBlinkSettings.onSeconds,
-        blinkImageOffSeconds: defaultBlinkSettings.offSeconds
+        blinkImageOffSeconds: defaultBlinkSettings.offSeconds,
+        includeConfidence: defaultConfidenceSettings.include
       };
     }
   }
 
   function writeLauncherState(state) {
     localStorage.setItem(launcherKey, JSON.stringify(state));
+  }
+
+  function getLearnMoreText(state = readLauncherState()) {
+    const value = typeof state?.learnMoreText === "string" ? state.learnMoreText : "";
+    return value.trim() ? value : defaultLearnMoreText;
+  }
+
+  function getClairvoyanceLearnMoreText(state = readLauncherState()) {
+    const value = typeof state?.clairvoyanceLearnMoreText === "string" ? state.clairvoyanceLearnMoreText : "";
+    return value.trim() ? value : defaultClairvoyanceLearnMoreText;
+  }
+
+  function clearLauncherStoredLocation(state, permissionValue = state?.locationPermission || "") {
+    const next = state && typeof state === "object" ? state : readLauncherState();
+    next.deviceLocation = null;
+    next.locationFineTuneDismissedForTimestamp = 0;
+    next.locationPermission = String(permissionValue || "").trim();
+    return next;
+  }
+
+  function getLocationForRuntimeState(state = readLauncherState()) {
+    const location = getSavedDeviceLocation(state);
+    return location ? JSON.stringify(location) : "";
   }
 
   function clamp(value, min, max) {
@@ -524,6 +643,36 @@
     }
   }
 
+  function getConfidenceBehaviorSettings(state = readLauncherState()) {
+    return {
+      include: state?.includeConfidence !== false
+    };
+  }
+
+  function renderConfidenceBehaviorView() {
+    const settings = getConfidenceBehaviorSettings();
+    confidenceModeButtons.forEach((button) => {
+      const mode = String(button.dataset.confidenceMode || "").trim().toLowerCase();
+      const selected =
+        (mode === "include" && settings.include)
+        || (mode === "exclude" && !settings.include);
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+    if (confidenceStatus) {
+      confidenceStatus.textContent = settings.include
+        ? "Receiver confidence is included before the target is revealed."
+        : "Receiver confidence is skipped. The target is revealed as soon as the Receiver completes the selection.";
+    }
+  }
+
+  function persistConfidenceBehavior(includeConfidence) {
+    const latest = readLauncherState();
+    latest.includeConfidence = includeConfidence !== false;
+    writeLauncherState(latest);
+    renderConfidenceBehaviorView();
+  }
+
   function buildReportRequestPayload() {
     const payload = {
       action: "report_csv_data"
@@ -609,13 +758,19 @@
     };
   }
 
-  function getCurrentGlobeLaunchOptions() {
+  async function getCurrentGlobeLaunchOptions() {
+    const latestState = await syncBrowserLocationPermission();
     return {
       minTrials: 1,
       includeIncomplete: false,
       grouping: "rounded",
-      roundingDecimals: 3
+      roundingDecimals: 3,
+      locationDisabled: isLocationPrivacyDisabled(latestState)
     };
+  }
+
+  function isLocationPrivacyDisabled(state = readLauncherState()) {
+    return String(state?.locationPermission || "").trim().toLowerCase() === "denied";
   }
 
   function buildStandaloneModuleUrl(modulePath, params = {}) {
@@ -664,8 +819,9 @@
       session_code: pairState?.sessionCode || "",
       min_trials: Number.isFinite(Number(options.minTrials)) ? Number(options.minTrials) : 1,
       include_incomplete: options.includeIncomplete ? 1 : 0,
-      group_by: options.grouping || "rounded",
-      rounding_decimals: Number.isFinite(Number(options.roundingDecimals)) ? Number(options.roundingDecimals) : 3
+      group_by: options.grouping || "exact",
+      rounding_decimals: Number.isFinite(Number(options.roundingDecimals)) ? Number(options.roundingDecimals) : 3,
+      location_disabled: options.locationDisabled ? 1 : 0
     });
   }
 
@@ -673,7 +829,7 @@
     window.location.href = buildGlobeVisualizationUrl(pairState, options);
   }
 
-  function handleGlobeLaunchClick() {
+  async function handleGlobeLaunchClick() {
     const pairState = getCurrentReportPairForGlobe();
     if (!pairState) {
       if (reportDefinitionStatus) {
@@ -681,7 +837,7 @@
       }
       return;
     }
-    openGlobeVisualization(pairState, getCurrentGlobeLaunchOptions());
+    openGlobeVisualization(pairState, await getCurrentGlobeLaunchOptions());
   }
 
   async function fetchLauncherProfile(role, ownEmail) {
@@ -1082,6 +1238,84 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
+  }
+
+  function sanitizeLearnMorePreviewUrl(value) {
+    const url = String(value || "").trim();
+    if (!url) {
+      return "";
+    }
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    if (/^(\/|\.\/|\.\.\/)/.test(url)) {
+      return url;
+    }
+    if (/^[a-z0-9][a-z0-9._/-]*$/i.test(url) && !/^[a-z]+:/i.test(url)) {
+      return url;
+    }
+    return "";
+  }
+
+  function renderLearnMoreInlineMarkup(value) {
+    let source = String(value || "");
+    const placeholders = [];
+    const addPlaceholder = (markup) => {
+      const token = `%%LEARN_MORE_${placeholders.length}%%`;
+      placeholders.push({ token, markup });
+      return token;
+    };
+
+    source = source.replace(/!\[([^\]\n]*)\]\(([^)\n]+)\)/g, (match, altText, urlText) => {
+      const safeUrl = sanitizeLearnMorePreviewUrl(urlText);
+      if (!safeUrl) {
+        return match;
+      }
+      return addPlaceholder(
+        `<img class="learn-more-preview-image" src="${escapeHtml(safeUrl)}" alt="${escapeHtml(altText)}">`
+      );
+    });
+
+    source = source.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, (match, linkText, urlText) => {
+      const safeUrl = sanitizeLearnMorePreviewUrl(urlText);
+      if (!safeUrl) {
+        return match;
+      }
+      return addPlaceholder(
+        `<a class="learn-more-preview-link" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkText)}</a>`
+      );
+    });
+
+    let rendered = escapeHtml(source)
+      .replace(/\*\*([^*\n][^]*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/\n/g, "<br>");
+
+    placeholders.forEach(({ token, markup }) => {
+      rendered = rendered.replace(token, markup);
+    });
+    return rendered;
+  }
+
+  function renderLearnMorePreviewMarkup(value) {
+    const normalized = String(value || "").replace(/\r\n?/g, "\n").trim();
+    if (!normalized) {
+      return "<p></p>";
+    }
+    const paragraphs = normalized.split(/\n{2,}/);
+    return paragraphs
+      .map((paragraph) => {
+        const withMarkup = renderLearnMoreInlineMarkup(paragraph);
+        return `<p>${withMarkup}</p>`;
+      })
+      .join("");
+  }
+
+  function updateLearnMorePreview(previewElement, value) {
+    if (!previewElement) {
+      return;
+    }
+    previewElement.innerHTML = renderLearnMorePreviewMarkup(value);
   }
 
   function partnerRole(role) {
@@ -1506,6 +1740,19 @@
     return next;
   }
 
+  function persistLauncherRuntimeIdentity(role, ownIdentifier, partnerIdentifier, extraUpdates = {}) {
+    const cleanOwn = String(ownIdentifier || "").trim();
+    const cleanPartner = String(partnerIdentifier || "").trim();
+    if (!cleanOwn && !cleanPartner && !Object.keys(extraUpdates || {}).length) {
+      return;
+    }
+    writeRuntimeSettings(role, {
+      own_email: cleanOwn,
+      partner_email: cleanPartner,
+      ...extraUpdates
+    });
+  }
+
   function migrateRuntimeSettingsIdentifier(previousIdentifier, nextIdentifier) {
     const prior = String(previousIdentifier || "").trim();
     const next = String(nextIdentifier || "").trim();
@@ -1664,18 +1911,28 @@
     };
   }
 
+  function getRoleHandleWrap(role) {
+    return document.querySelector(`[data-role-handle-wrap="${role}"]`);
+  }
+
   function applyRoleIdentifierPresentation(role, options = {}) {
     const { ownUsesHandle = false, partnerUsesHandle = false } = options;
     const { ownLabel, partnerLabel } = getRoleLabelElements(role);
+    const handleWrap = getRoleHandleWrap(role);
     if (ownLabel) {
       ownLabel.textContent = "You";
     }
     if (partnerLabel) {
       partnerLabel.textContent = role === "sender" ? "Receiver" : "Sender";
     }
+    if (handleWrap) {
+      handleWrap.hidden = !!ownUsesHandle;
+    }
     setRoleDefaultNoteText(
       role,
-      ownUsesHandle || partnerUsesHandle
+      ownUsesHandle
+        ? ""
+        : ownUsesHandle || partnerUsesHandle
         ? "These unique handles are used to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify both Sender and Receiver unique identifiers carefully."
         : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
     );
@@ -1840,7 +2097,7 @@
     }
     const text = String(message || "").trim();
     const shouldPromote = !!text && options.prominent !== false;
-    const prominentDurationMs = Number.isFinite(Number(options.prominentDurationMs)) ? Number(options.prominentDurationMs) : 6000;
+    const prominentDurationMs = Number.isFinite(Number(options.prominentDurationMs)) ? Number(options.prominentDurationMs) : 12000;
 
     if (block) {
       const settleTimerId = Number(block.dataset.prominentSettleTimer || 0);
@@ -2125,9 +2382,38 @@
     return getMaxDifficultyLevel();
   }
 
+  function getRoleMaxDifficultyLevel(role, difficultyData) {
+    const normalizedRole = String(role || "").trim();
+    const pairMax = getPairMaxDifficultyLevel(difficultyData);
+    const receiverType = String(difficultyData?.pair_difficulty_meta?.receiver_type || "").trim().toLowerCase();
+    const senderType = String(difficultyData?.pair_difficulty_meta?.sender_type || "").trim().toLowerCase();
+
+    if (normalizedRole === "receiver") {
+      if (receiverType === "pro" && senderType === "pro") {
+        return Math.min(pairMax, 5);
+      }
+      if (receiverType === "pro") {
+        return Math.min(pairMax, 4);
+      }
+      return Math.min(pairMax, 3);
+    }
+
+    if (normalizedRole === "sender") {
+      if (receiverType === "pro" && senderType === "pro") {
+        return Math.min(pairMax, 5);
+      }
+      if (receiverType === "pro") {
+        return Math.min(pairMax, 4);
+      }
+      return Math.min(pairMax, 3);
+    }
+
+    return Math.min(pairMax, getMaxDifficultyLevel());
+  }
+
   function buildDifficultyCeilingMessage(role, pairContext, difficultyData, attemptedLevel) {
     const normalizedRole = String(role || "").trim();
-    const maxLevel = getPairMaxDifficultyLevel(difficultyData);
+    const maxLevel = getRoleMaxDifficultyLevel(role, difficultyData);
     const receiverType = String(difficultyData?.pair_difficulty_meta?.receiver_type || "").trim().toLowerCase();
     const senderType = String(difficultyData?.pair_difficulty_meta?.sender_type || "").trim().toLowerCase();
     const levelNumber = Number(attemptedLevel);
@@ -2478,11 +2764,8 @@
       return;
     }
     resolvedMainUserType = userType === "pro" ? "pro" : "standard";
-    beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "Telepathy PRO" : "Telepathy Beginner";
-    document.title = resolvedMainUserType === "pro" ? "Telepathy PRO" : "Telepathy Beginner";
-    if (proHeroFrame) {
-      proHeroFrame.hidden = resolvedMainUserType !== "pro";
-    }
+    beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
+    document.title = resolvedMainUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
     renderLauncherIntroCopy();
     renderProOnlyLauncherCards();
     renderProOnlyOtherSettings();
@@ -2491,13 +2774,11 @@
   function renderLauncherIntroCopy() {
     if (launcherSubtitle) {
       launcherSubtitle.textContent = resolvedMainUserType === "pro"
-        ? "A training app for psi sensitivity development."
+        ? "A training app for ESP development."
         : "A sender-receiver training app for telepathic development.";
     }
     if (launcherCopy) {
-      launcherCopy.textContent = resolvedMainUserType === "pro"
-        ? "Choose whether you will be sender, receiver, or remote viewer for this session."
-        : "Choose whether you will act as the sender or the receiver for this session.";
+      launcherCopy.textContent = "Choose your role in this session:";
     }
   }
 
@@ -2519,10 +2800,13 @@
   }
 
   function renderProOnlyOtherSettings() {
-    if (!cancelProButton) {
-      return;
+    const showProControls = isEffectiveLauncherUserPro();
+    if (cancelProButton) {
+      cancelProButton.hidden = !showProControls;
     }
-    cancelProButton.hidden = !isEffectiveLauncherUserPro();
+    proOnlyOtherSettingsButtons.forEach((button) => {
+      button.hidden = !showProControls;
+    });
   }
 
   function getFallbackOwnIdentifierForRemoteViewer() {
@@ -2647,15 +2931,22 @@
   }
 
   function renderRemoteViewerLabels(isDisplayDevice = false) {
+    const ownIdentifier = String(remoteViewerOwnInput?.value || "").trim();
+    const ownStatus = getCachedIdentifierStatus(ownIdentifier);
+    const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
+    const handleWrap = getRoleHandleWrap("remote-viewer");
     if (remoteViewerOwnLabel) {
       remoteViewerOwnLabel.textContent = isDisplayDevice ? "This Device" : "You";
     }
     if (remoteViewerPartnerLabel) {
       remoteViewerPartnerLabel.textContent = isDisplayDevice ? "Remote Viewer" : "Remote Device";
     }
+    if (handleWrap) {
+      handleWrap.hidden = !!ownUsesHandle;
+    }
     setRoleDefaultNoteText(
       "remote-viewer",
-      "These unique handles are used to identify the remote viewer and the remote display device. The app can connect only if both handles are entered with the same spellings. Please verify both unique handles."
+      "This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being."
     );
   }
 
@@ -3108,10 +3399,15 @@
   }
 
   function getRecordSessionCode(record) {
-    return buildSessionCodeFromNames(
-      String(record?.["rx name"] || "").trim(),
-      String(record?.["tx name"] || "").trim()
-    );
+    const explicitSessionCode = String(
+      record?.["session code"] ??
+      record?.session_code ??
+      ""
+    ).trim();
+    if (explicitSessionCode) {
+      return explicitSessionCode;
+    }
+    return "";
   }
 
   function parseLocationValue(rawValue) {
@@ -3300,23 +3596,161 @@
   }
 
   function createReportImageThumbnailCell(value, label = "Image") {
-    const src = String(value ?? "").trim();
+    const src = resolveReportImageThumbnailSrc(value);
     if (!src) {
       return document.createTextNode("");
     }
 
     const thumb = document.createElement("div");
     thumb.className = "report-image-thumb";
+    thumb.setAttribute("role", "img");
+    thumb.setAttribute("aria-label", label);
+    thumb.title = label;
+    thumb.style.backgroundImage = `url("${src.replace(/"/g, "%22")}")`;
 
     const image = document.createElement("img");
     image.className = "report-image-thumb-asset";
     image.src = src;
-    image.alt = label;
+    image.alt = "";
+    image.setAttribute("aria-hidden", "true");
     image.loading = "lazy";
     image.decoding = "async";
 
     thumb.appendChild(image);
+    thumb.tabIndex = 0;
+    thumb.setAttribute("aria-label", `${label}. Click to enlarge.`);
+    thumb.addEventListener("click", () => {
+      openReportImageLightbox(src, label);
+    });
+    thumb.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openReportImageLightbox(src, label);
+      }
+    });
     return thumb;
+  }
+
+  function ensureReportImageLightbox() {
+    if (reportImageLightbox) {
+      return;
+    }
+    reportImageLightbox = document.createElement("div");
+    reportImageLightbox.className = "report-image-lightbox beginner-view-hidden";
+    reportImageLightbox.innerHTML = `
+      <div class="report-image-lightbox-frame">
+        <img class="report-image-lightbox-image" alt="">
+      </div>
+    `;
+    reportImageLightboxImage = reportImageLightbox.querySelector(".report-image-lightbox-image");
+    reportImageLightbox.addEventListener("click", () => {
+      closeReportImageLightbox();
+    });
+    document.body.appendChild(reportImageLightbox);
+  }
+
+  function openReportImageLightbox(src, label) {
+    ensureReportImageLightbox();
+    if (!reportImageLightbox || !reportImageLightboxImage) {
+      return;
+    }
+    reportImageLightboxImage.src = src;
+    reportImageLightboxImage.alt = label;
+    reportImageLightbox.classList.remove("beginner-view-hidden");
+  }
+
+  function closeReportImageLightbox() {
+    if (!reportImageLightbox || !reportImageLightboxImage) {
+      return;
+    }
+    reportImageLightbox.classList.add("beginner-view-hidden");
+    reportImageLightboxImage.src = "";
+    reportImageLightboxImage.alt = "";
+  }
+
+  function resolveReportImageThumbnailSrc(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) {
+      return "";
+    }
+    if (/^(https?:|data:)/i.test(raw)) {
+      return raw;
+    }
+    const normalized = raw.replace(/\\/g, "/").trim();
+    if (/^imagepairs\//i.test(normalized)) {
+      return new URL(`./${normalized}`, window.location.href).toString();
+    }
+    const lastSegment = normalized.split("/").filter(Boolean).pop() || "";
+    if (!lastSegment) {
+      return "";
+    }
+    return new URL(`./imagepairs/${encodeURIComponent(lastSegment)}`, window.location.href).toString();
+  }
+
+  async function fetchLevelFourImagePairsIndex() {
+    if (levelFourImagePairsCachePromise) {
+      return levelFourImagePairsCachePromise;
+    }
+
+    levelFourImagePairsCachePromise = (async () => {
+      try {
+        const manifestUrl = new URL(`./imagepairs/pairs.json?v=${launcherBuildVersion}`, window.location.href).toString();
+        const response = await fetch(manifestUrl, {
+          cache: "no-store"
+        });
+        if (!response.ok) {
+          throw new Error(`Image-pair manifest request failed with status ${response.status}`);
+        }
+        const parsed = await response.json();
+        const pairs = Array.isArray(parsed?.pairs) ? parsed.pairs : [];
+        const index = new Map();
+        pairs.forEach((pair) => {
+          const pairId = String(pair?.id || "").trim();
+          const images = Array.isArray(pair?.images) ? pair.images : [];
+          if (!pairId || images.length !== 2) {
+            return;
+          }
+          const resolvedImages = images
+            .map((value) => resolveReportImageThumbnailSrc(value))
+            .filter(Boolean);
+          if (resolvedImages.length !== 2) {
+            return;
+          }
+          index.set(pairId, resolvedImages);
+        });
+        return index;
+      } catch (error) {
+        levelFourImagePairsCachePromise = Promise.resolve(new Map());
+        return new Map();
+      }
+    })();
+
+    return levelFourImagePairsCachePromise;
+  }
+
+  function getLevelFourDecoyImageUrl(record, imagePairsIndex) {
+    if (!(imagePairsIndex instanceof Map)) {
+      return "";
+    }
+
+    const pairId = String(record?.["image pair id"] ?? "").trim();
+    const pairImages = imagePairsIndex.get(pairId);
+    if (!Array.isArray(pairImages) || pairImages.length !== 2) {
+      return "";
+    }
+
+    const sentImageIdentity = normalizeLevelFourImageIdentity(record?.["sent image"] ?? "");
+    if (!sentImageIdentity) {
+      return "";
+    }
+
+    const matchingImage = pairImages.find((imageUrl) => normalizeLevelFourImageIdentity(imageUrl) === sentImageIdentity);
+    const decoyImage = pairImages.find((imageUrl) => normalizeLevelFourImageIdentity(imageUrl) !== sentImageIdentity);
+    if (matchingImage && decoyImage) {
+      return decoyImage;
+    }
+
+    return pairImages[0] || "";
   }
 
   function getLayoutArrangementCategory(layoutNumber) {
@@ -4607,7 +5041,7 @@
     return String(value ?? "");
   }
 
-  function renderReportTable(records) {
+  function renderReportTable(records, options = {}) {
     if (!reportTable || !reportTableWrap) {
       return;
     }
@@ -4619,11 +5053,17 @@
       return;
     }
 
+    const locationHidden = isLocationPrivacyDisabled();
+    const hasLevelFourTrials = !!options.hasLevelFourTrials;
+    const levelFourImagePairsIndex = options.levelFourImagePairsIndex instanceof Map
+      ? options.levelFourImagePairsIndex
+      : new Map();
     const headers = [
       "local date",
       "local time",
       "sent layout",
       "rx choice1",
+      ...(hasLevelFourTrials ? ["decoy"] : []),
       "score",
       "confidence",
       "difficulty level",
@@ -4635,6 +5075,7 @@
       "local time": "Local time",
       "sent layout": "Sent",
       "rx choice1": "Response",
+      "decoy": "Decoy",
       "score": "Score",
       "confidence": "Conf",
       "difficulty level": "Level",
@@ -4642,17 +5083,19 @@
       "rx done rt": "Time"
     };
     const colgroup = document.createElement("colgroup");
-    [
+    const widths = [
       "92px",
       "108px",
       "90px",
       "90px",
+      ...(hasLevelFourTrials ? ["90px"] : []),
       "58px",
       "54px",
       "66px",
       "94px",
       "58px"
-    ].forEach((width) => {
+    ];
+    widths.forEach((width) => {
       const col = document.createElement("col");
       col.style.width = width;
       colgroup.appendChild(col);
@@ -4684,7 +5127,9 @@
           const content = document.createElement("div");
           content.className = "report-cell-clamp";
           content.textContent =
-            receiverLocation && senderLocation
+            locationHidden
+              ? ""
+              : receiverLocation && senderLocation
               ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "miles" : "meters")
               : "unknown";
           td.appendChild(content);
@@ -4692,6 +5137,12 @@
           td.textContent = formatReactionTimeTenths(record?.[header] ?? "");
         } else if (header === "score") {
           td.textContent = scoreValue;
+        } else if (header === "decoy") {
+          if (difficultyLevel === "4") {
+            td.classList.add("report-layout-cell");
+            const decoyImageUrl = getLevelFourDecoyImageUrl(record, levelFourImagePairsIndex);
+            td.appendChild(createReportImageThumbnailCell(decoyImageUrl, "Decoy image"));
+          }
         } else if (header === "rx choice1") {
           const responseLabel = getReportResponseLabel(record);
           if (difficultyLevel === "4") {
@@ -5093,7 +5544,7 @@
       return;
     }
 
-    if (!pairInfo?.sessionCode) {
+    if (!pairInfo?.receiverName || !pairInfo?.senderName) {
       reportSummary.replaceChildren();
       reportStatus.textContent = "Choose a receiver-sender pair in Report Definition first, then open this report again.";
       if (reportTableWrap) {
@@ -5126,7 +5577,14 @@
     }
 
     renderReportSummary(pairInfo, records);
-    renderReportTable(records);
+    const hasLevelFourTrials = records.some((record) => String(record?.["difficulty level"] ?? "").trim() === "4");
+    const levelFourImagePairsIndex = hasLevelFourTrials
+      ? await fetchLevelFourImagePairsIndex()
+      : new Map();
+    renderReportTable(records, {
+      hasLevelFourTrials,
+      levelFourImagePairsIndex
+    });
   }
 
   async function renderPerformanceVisualization(pairInfo = selectedReportPair) {
@@ -5149,7 +5607,7 @@
       return;
     }
 
-    if (!pairInfo?.sessionCode) {
+    if (!pairInfo?.receiverName || !pairInfo?.senderName) {
       visualizationSummary.replaceChildren();
       visualizationStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open the visualization again.";
       visualizationChart.replaceChildren();
@@ -5184,7 +5642,7 @@
     analyzerOutput.textContent = "";
     analyzerText.value = "";
 
-    if (!pairInfo?.sessionCode) {
+    if (!pairInfo?.receiverName || !pairInfo?.senderName) {
       analyzerStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open Analyze Results again.";
       return;
     }
@@ -5270,16 +5728,23 @@
             if (token !== difficultyLabelToken) {
               return;
             }
-            cache.set(context.sessionCode, normalizeDifficultyLevel(data?.pair_difficulty));
+            cache.set(context.sessionCode, data);
           } catch (error) {
-            cache.set(context.sessionCode, "1");
+            cache.set(context.sessionCode, null);
           }
         }
 
       if (token !== difficultyLabelToken) {
         return;
       }
-      setRoleDifficultyLabel(role, cache.get(context.sessionCode) || fallbackLevel);
+      const difficultyData = cache.get(context.sessionCode);
+      if (!difficultyData) {
+        setRoleDifficultyLabel(role, fallbackLevel);
+        continue;
+      }
+      const pairLevel = Number(normalizeDifficultyLevel(difficultyData?.pair_difficulty));
+      const visibleLevel = String(Math.min(pairLevel, getRoleMaxDifficultyLevel(role, difficultyData)));
+      setRoleDifficultyLabel(role, visibleLevel || fallbackLevel);
     }
   }
 
@@ -5407,13 +5872,15 @@
     params.set("blink_sender_image", blinkSettings.enabled ? "1" : "0");
     params.set("blink_image_on_seconds", blinkSettings.onSeconds);
     params.set("blink_image_off_seconds", blinkSettings.offSeconds);
+    const confidenceSettings = getConfidenceBehaviorSettings(state);
+    params.set("include_confidence", confidenceSettings.include ? "1" : "0");
     if (typeof options.runtimeMode === "string" && options.runtimeMode.trim()) {
       params.set("runtime_mode", options.runtimeMode.trim());
     }
     if (options.remoteDisplayDevice === true) {
       params.set("remote_display_device", "1");
     }
-    const deviceLocation = state?.deviceLocation;
+    const deviceLocation = getSavedDeviceLocation(state);
     if (
       deviceLocation &&
       Number.isFinite(Number(deviceLocation.latitude)) &&
@@ -5439,6 +5906,165 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function finishDirectLauncherOpen() {
+    document.documentElement.classList.remove("launcher-direct-open-pending");
+  }
+
+  function getSavedDeviceLocation(state = readLauncherState()) {
+    if (String(state?.locationPermission || "").trim().toLowerCase() === "denied") {
+      return null;
+    }
+    const location = state?.deviceLocation;
+    if (
+      location &&
+      Number.isFinite(Number(location.latitude)) &&
+      Number.isFinite(Number(location.longitude))
+    ) {
+      return {
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
+        accuracy: Number.isFinite(Number(location.accuracy)) ? Number(location.accuracy) : null,
+        timestamp: Number.isFinite(Number(location.timestamp)) ? Number(location.timestamp) : Date.now(),
+        source: String(location.source || "").trim()
+      };
+    }
+    return null;
+  }
+
+  function getLocationAccuracy(location) {
+    const accuracy = Number(location?.accuracy);
+    return Number.isFinite(accuracy) && accuracy > 0 ? accuracy : null;
+  }
+
+  function locationNeedsFineTune(location) {
+    if (!location || String(location.source || "").trim() === "manual-map") {
+      return false;
+    }
+    const accuracy = getLocationAccuracy(location);
+    return accuracy === null || accuracy > preciseLocationAccuracyThresholdMeters;
+  }
+
+  function isLauncherVisible() {
+    return !!launcherView && !launcherView.classList.contains("beginner-view-hidden");
+  }
+
+  function clearLocationAutoPromptTimer() {
+    if (locationAutoPromptTimer) {
+      window.clearTimeout(locationAutoPromptTimer);
+      locationAutoPromptTimer = 0;
+    }
+  }
+
+  function maybePromptForLocationFineTune(state = readLauncherState()) {
+    clearLocationAutoPromptTimer();
+    if (!isLauncherVisible() || locationPickerOpening || !locationPickerOverlay) {
+      return;
+    }
+    const savedLocation = getSavedDeviceLocation(state);
+    if (!savedLocation || state.locationPermission !== "granted" || !locationNeedsFineTune(savedLocation)) {
+      return;
+    }
+    const dismissedTimestamp = Number(state.locationFineTuneDismissedForTimestamp || 0);
+    if (dismissedTimestamp && dismissedTimestamp === Number(savedLocation.timestamp || 0)) {
+      return;
+    }
+    locationAutoPromptTimer = window.setTimeout(() => {
+      clearLocationAutoPromptTimer();
+      if (!isLauncherVisible()) {
+        return;
+      }
+      void showLocationPicker(activeLauncherRole || "sender", {
+        mode: "auto-coarse",
+        sourceTimestamp: Number(savedLocation.timestamp || 0)
+      });
+    }, 450);
+  }
+
+  function shouldGateGoForLocation(state = readLauncherState()) {
+    const savedLocation = getSavedDeviceLocation(state);
+    if (!savedLocation) {
+      return true;
+    }
+    if (String(savedLocation.source || "").trim() === "manual-map") {
+      return false;
+    }
+    const dismissedTimestamp = Number(state.locationFineTuneDismissedForTimestamp || 0);
+    if (locationNeedsFineTune(savedLocation) && dismissedTimestamp !== Number(savedLocation.timestamp || 0)) {
+      return true;
+    }
+    return false;
+  }
+
+  async function prepareLocationForGo(role = "", options = {}) {
+    let state = await syncBrowserLocationPermission();
+    if (state.locationPermission === "denied") {
+      renderLocationStatus();
+      return true;
+    }
+    if (!getSavedDeviceLocation(state) && navigator.geolocation && !locationRequestInFlight && state.locationPermission !== "denied") {
+      await new Promise((resolve) => {
+        lastLocationAttemptAt = Date.now();
+        locationRequestInFlight = true;
+        renderLocationStatus();
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latest = readLauncherState();
+            latest.deviceLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              timestamp: Date.now(),
+              source: "device-geolocation"
+            };
+            latest.locationPermission = "granted";
+            if (!locationNeedsFineTune(latest.deviceLocation)) {
+              latest.locationFineTuneDismissedForTimestamp = 0;
+            }
+            writeLauncherState(latest);
+            locationRequestInFlight = false;
+            renderLocationStatus();
+            resolve();
+          },
+          (error) => {
+            const latest = readLauncherState();
+            if (error?.code === 1) {
+              clearLauncherStoredLocation(latest, "denied");
+            } else {
+              latest.locationPermission = "error";
+            }
+            writeLauncherState(latest);
+            locationRequestInFlight = false;
+            renderLocationStatus();
+            resolve();
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 300000,
+            timeout: 12000
+          }
+        );
+      });
+      state = readLauncherState();
+    }
+
+    if (shouldGateGoForLocation(state)) {
+      const continuationTargetUrl = String(options?.targetUrl || "").trim();
+      locationPickerPendingContinuation = continuationTargetUrl
+        ? {
+            kind: "go-navigation",
+            role: String(role || activeLauncherRole || "sender").trim(),
+            targetUrl: continuationTargetUrl
+          }
+        : null;
+      await showLocationPicker(role || activeLauncherRole || "sender", {
+        sourceTimestamp: Number(state.deviceLocation?.timestamp || 0)
+      });
+      return false;
+    }
+
+    return true;
+  }
+
   function shouldRequestLocation(state = readLauncherState()) {
     if (!navigator.geolocation || locationRequestInFlight) {
       return false;
@@ -5448,7 +6074,12 @@
       return false;
     }
 
-    const timestamp = Number(state?.deviceLocation?.timestamp || 0);
+    const savedLocation = getSavedDeviceLocation(state);
+    if (savedLocation?.source === "manual-map") {
+      return false;
+    }
+
+    const timestamp = Number(savedLocation?.timestamp || 0);
     if (!timestamp) {
       return true;
     }
@@ -5461,35 +6092,55 @@
     if (locationRequestInFlight) {
       return {
         text: "Device location: checking...",
-        showRetry: false
-      };
-    }
-
-    if (state?.deviceLocation?.latitude && state?.deviceLocation?.longitude) {
-      const accuracy = Math.round(Number(state.deviceLocation.accuracy || 0));
-      return {
-        text: `Device location: confirmed | Accuracy: about ${accuracy || "?"} meters`,
-        showRetry: false
+        showRetry: false,
+        showExactButton: true
       };
     }
 
     if (state.locationPermission === "denied") {
       return {
-        text: "Device location: permission denied. Enable location in device/browser settings, then retry.",
-        showRetry: true
+        text: "Device location: disabled in the browser. Location will not be used by this app on this device.",
+        showRetry: false,
+        showExactButton: true
+      };
+    }
+
+    const savedLocation = getSavedDeviceLocation(state);
+    if (savedLocation) {
+      if (savedLocation.source === "manual-map") {
+        return {
+          text: "Device location: exact location chosen on map.",
+          showRetry: false,
+          showExactButton: false
+        };
+      }
+      const accuracy = Math.round(Number(savedLocation.accuracy || 0));
+      if (locationNeedsFineTune(savedLocation)) {
+        return {
+          text: `Device location: approximate | Accuracy: about ${accuracy || "?"} meters. The app can open a map so you can fine-tune this location.`,
+          showRetry: false,
+          showExactButton: true
+        };
+      }
+      return {
+        text: `Device location: confirmed | Accuracy: about ${accuracy || "?"} meters`,
+        showRetry: false,
+        showExactButton: false
       };
     }
 
     if (state.locationPermission === "error" && lastLocationAttemptAt) {
       return {
         text: "Device location: unavailable right now. Please try again.",
-        showRetry: true
+        showRetry: true,
+        showExactButton: true
       };
     }
 
     return {
       text: "Device location: unknown",
-      showRetry: true
+      showRetry: true,
+      showExactButton: true
     };
   }
 
@@ -5499,9 +6150,14 @@
 
     locationStatusBlocks.forEach((block) => {
       const textNode = block.querySelector(".role-location-text");
+      const exactButton = block.querySelector(".role-location-exact");
       const retryButton = block.querySelector(".role-location-retry");
       if (textNode) {
         textNode.textContent = presentation.text;
+      }
+      if (exactButton) {
+        exactButton.hidden = !presentation.showExactButton;
+        exactButton.disabled = locationRequestInFlight;
       }
       if (retryButton) {
         retryButton.hidden = !presentation.showRetry;
@@ -5510,8 +6166,12 @@
     });
   }
 
-  function requestDeviceLocationIfNeeded(force = false) {
-    const state = readLauncherState();
+  async function requestDeviceLocationIfNeeded(force = false) {
+    const state = await syncBrowserLocationPermission();
+    if (state.locationPermission === "denied") {
+      renderLocationStatus();
+      return;
+    }
     if (!force && !shouldRequestLocation(state)) {
       return;
     }
@@ -5526,19 +6186,28 @@
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          source: "device-geolocation"
         };
         latest.locationPermission = "granted";
+        if (!locationNeedsFineTune(latest.deviceLocation)) {
+          latest.locationFineTuneDismissedForTimestamp = 0;
+        }
         writeLauncherState(latest);
         locationRequestInFlight = false;
         renderLocationStatus();
       },
       (error) => {
         const latest = readLauncherState();
-        latest.locationPermission = error?.code === 1 ? "denied" : "error";
+        if (error?.code === 1) {
+          clearLauncherStoredLocation(latest, "denied");
+        } else {
+          latest.locationPermission = "error";
+        }
         writeLauncherState(latest);
         locationRequestInFlight = false;
         renderLocationStatus();
+        clearLocationAutoPromptTimer();
       },
       {
         enableHighAccuracy: true,
@@ -5546,6 +6215,404 @@
         timeout: 12000
       }
     );
+  }
+
+  function ensureLeafletResources() {
+    if (window.L?.map) {
+      return Promise.resolve(window.L);
+    }
+    if (locationPickerLeafletPromise) {
+      return locationPickerLeafletPromise;
+    }
+
+    const leafletCssHref = `./vendor/leaflet/leaflet.css?v=${launcherBuildVersion}`;
+    const leafletJsSrc = `./vendor/leaflet/leaflet.js?v=${launcherBuildVersion}`;
+
+    locationPickerLeafletPromise = new Promise((resolve, reject) => {
+      if (!document.querySelector(`link[data-leaflet-css="1"]`)) {
+        const cssLink = document.createElement("link");
+        cssLink.rel = "stylesheet";
+        cssLink.href = leafletCssHref;
+        cssLink.dataset.leafletCss = "1";
+        document.head.appendChild(cssLink);
+      }
+
+      if (window.L?.map) {
+        resolve(window.L);
+        return;
+      }
+
+      const existingScript = document.querySelector('script[data-leaflet-js="1"]');
+      if (existingScript) {
+        existingScript.addEventListener("load", () => resolve(window.L), { once: true });
+        existingScript.addEventListener("error", () => reject(new Error("Unable to load the map library.")), { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = leafletJsSrc;
+      script.async = true;
+      script.dataset.leafletJs = "1";
+      script.addEventListener("load", () => {
+        if (window.L?.map) {
+          resolve(window.L);
+        } else {
+          reject(new Error("The map library loaded incompletely."));
+        }
+      }, { once: true });
+      script.addEventListener("error", () => reject(new Error("Unable to load the map library.")), { once: true });
+      document.head.appendChild(script);
+    }).catch((error) => {
+      locationPickerLeafletPromise = null;
+      throw error;
+    });
+
+    return locationPickerLeafletPromise;
+  }
+
+  function setLocationPickerStatus(text) {
+    if (locationPickerStatus) {
+      locationPickerStatus.textContent = text;
+    }
+  }
+
+  function setLocationPickerCoordinates(selection = null) {
+    if (!locationPickerCoordinates) {
+      return;
+    }
+    if (!selection || !Number.isFinite(Number(selection.latitude)) || !Number.isFinite(Number(selection.longitude))) {
+      locationPickerCoordinates.textContent = "No location selected yet.";
+      return;
+    }
+    const latitude = Number(selection.latitude);
+    const longitude = Number(selection.longitude);
+    locationPickerCoordinates.textContent = `Selected location: lat ${latitude.toFixed(6)}, long ${longitude.toFixed(6)}.`;
+  }
+
+  function updateLocationPickerMarker(selection, options = {}) {
+    if (!locationPickerMap || !window.L || !selection) {
+      return;
+    }
+    const latlng = [Number(selection.latitude), Number(selection.longitude)];
+    if (!locationPickerMarker) {
+      locationPickerMarker = window.L.marker(latlng, {
+        draggable: true,
+        icon: window.L.divIcon({
+          className: "",
+          html: '<div class="location-picker-pin" aria-hidden="true"></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        })
+      }).addTo(locationPickerMap);
+      locationPickerMarker.on("dragend", () => {
+        const nextLatLng = locationPickerMarker.getLatLng();
+        locationPickerSelection = {
+          latitude: Number(nextLatLng.lat),
+          longitude: Number(nextLatLng.lng),
+          accuracy: null,
+          timestamp: Date.now(),
+          source: "manual-map"
+        };
+        setLocationPickerCoordinates(locationPickerSelection);
+        if (locationPickerSaveButton) {
+          locationPickerSaveButton.disabled = false;
+        }
+      });
+    } else {
+      locationPickerMarker.setLatLng(latlng);
+    }
+
+    if (options.center !== false) {
+      locationPickerMap.setView(latlng, options.zoom || 15);
+    }
+
+    if (locationPickerSaveButton) {
+      locationPickerSaveButton.disabled = false;
+    }
+    setLocationPickerCoordinates(selection);
+  }
+
+  function initializeLocationPickerMap() {
+    if (!window.L || !locationPickerMapNode) {
+      return;
+    }
+    if (!locationPickerMap) {
+      locationPickerMap = window.L.map(locationPickerMapNode, {
+        zoomControl: true
+      });
+      window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(locationPickerMap);
+      locationPickerMap.on("click", (event) => {
+        locationPickerSelection = {
+          latitude: Number(event.latlng.lat),
+          longitude: Number(event.latlng.lng),
+          accuracy: null,
+          timestamp: Date.now(),
+          source: "manual-map"
+        };
+        updateLocationPickerMarker(locationPickerSelection, { center: false });
+      });
+    }
+    setTimeout(() => {
+      locationPickerMap?.invalidateSize();
+    }, 30);
+  }
+
+  async function warmupLocationIndicatorOnLoad() {
+    if (locationIndicatorWarmupTried) {
+      return;
+    }
+    locationIndicatorWarmupTried = true;
+    if (!navigator.geolocation) {
+      return;
+    }
+    try {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          // No-op: this startup probe exists only to let the browser surface location state.
+        },
+        () => {
+          // No-op: denied or unavailable is expected in this experiment.
+        },
+        {
+          enableHighAccuracy: false,
+          maximumAge: 300000,
+          timeout: 5000
+        }
+      );
+    } catch (error) {
+      // Ignore experimental warmup failures.
+    }
+  }
+
+  function hideLocationPicker() {
+    if (!locationPickerOverlay) {
+      return;
+    }
+    locationPickerOverlay.classList.add("beginner-view-hidden");
+    locationPickerReturnRole = "";
+    locationPickerPromptSourceTimestamp = 0;
+    locationPickerOpening = false;
+  }
+
+  function resumePendingLocationPickerContinuation() {
+    const continuation = locationPickerPendingContinuation;
+    locationPickerPendingContinuation = null;
+    if (!continuation || continuation.kind !== "go-navigation" || !continuation.targetUrl) {
+      return false;
+    }
+    window.location.href = continuation.targetUrl;
+    return true;
+  }
+
+  function getLocationPermissionBlockedMessage() {
+    return "Location is currently not allowed by the browser for this app on this device. Before your exact location can be set, please allow location in the browser or PWA settings.";
+  }
+
+  async function syncBrowserLocationPermission() {
+    const state = readLauncherState();
+    const geolocationAvailable = typeof navigator !== "undefined" && !!navigator.geolocation;
+
+    if (!geolocationAvailable) {
+      clearLauncherStoredLocation(state, "unsupported");
+      writeLauncherState(state);
+      return state;
+    }
+
+    if (!navigator.permissions?.query) {
+      if (state.locationPermission === "denied" && state.deviceLocation) {
+        clearLauncherStoredLocation(state, "denied");
+        writeLauncherState(state);
+      }
+      return state;
+    }
+
+    try {
+      const status = await navigator.permissions.query({ name: "geolocation" });
+      const permissionState = String(status?.state || "").trim().toLowerCase();
+      const latest = readLauncherState();
+      let changed = false;
+
+      if (permissionState === "denied") {
+        clearLauncherStoredLocation(latest, "denied");
+        changed = true;
+      } else if (permissionState === "granted") {
+        if (latest.locationPermission !== "granted") {
+          latest.locationPermission = "granted";
+          changed = true;
+        }
+      } else if (permissionState === "prompt") {
+        if (latest.locationPermission === "denied") {
+          latest.locationPermission = "prompt";
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        writeLauncherState(latest);
+      }
+
+      if (status !== locationPermissionStatusHandle) {
+        locationPermissionStatusHandle = status;
+        status.onchange = () => {
+          void syncBrowserLocationPermission().then((nextState) => {
+            renderLocationStatus();
+            if (nextState.locationPermission === "denied") {
+              hideLocationPicker();
+            }
+          });
+        };
+      }
+
+      return changed ? latest : state;
+    } catch (error) {
+      return state;
+    }
+  }
+
+  function dismissLocationPicker() {
+    if (locationPickerPromptSourceTimestamp) {
+      const latest = readLauncherState();
+      const savedTimestamp = Number(latest.deviceLocation?.timestamp || 0);
+      if (savedTimestamp && savedTimestamp === locationPickerPromptSourceTimestamp) {
+        latest.locationFineTuneDismissedForTimestamp = savedTimestamp;
+        writeLauncherState(latest);
+      }
+    }
+    renderLocationStatus();
+    hideLocationPicker();
+    resumePendingLocationPickerContinuation();
+  }
+
+  async function showLocationPicker(role = "", options = {}) {
+    const hiddenWarmup = options.hiddenWarmup === true;
+    const permissionState = await syncBrowserLocationPermission();
+    if (permissionState.locationPermission === "denied" && !hiddenWarmup) {
+      window.alert(getLocationPermissionBlockedMessage());
+      renderLocationStatus();
+      return;
+    }
+    if (!locationPickerOverlay || locationPickerOpening) {
+      return;
+    }
+    clearLocationAutoPromptTimer();
+    locationPickerOpening = true;
+    locationPickerReturnRole = role;
+    locationPickerPromptSourceTimestamp = Number(options.sourceTimestamp || 0);
+    locationPickerSelection = null;
+    if (locationPickerSaveButton) {
+      locationPickerSaveButton.disabled = true;
+    }
+    setLocationPickerStatus("Loading map...");
+    setLocationPickerCoordinates(null);
+    if (!hiddenWarmup) {
+      locationPickerOverlay.classList.remove("beginner-view-hidden");
+    }
+
+    try {
+      await ensureLeafletResources();
+      initializeLocationPickerMap();
+
+      const savedLocation = getSavedDeviceLocation();
+      if (savedLocation) {
+        locationPickerSelection = {
+          latitude: savedLocation.latitude,
+          longitude: savedLocation.longitude,
+          accuracy: null,
+          timestamp: Date.now(),
+          source: "manual-map"
+        };
+        updateLocationPickerMarker(locationPickerSelection, {
+          zoom: savedLocation.source === "manual-map" ? 16 : 14
+        });
+        if (locationNeedsFineTune(savedLocation)) {
+          setLocationPickerStatus("Since this device does not appear to have a precise GPS fix, drag the dot to your true location on this map, then save.");
+        } else {
+          setLocationPickerStatus("Your saved device location is shown. Drag the dot if you want to fine-tune it, then save.");
+        }
+      } else {
+        locationPickerMap?.setView([20, 0], 2);
+        setLocationPickerStatus("Click the map or drag the dot to the exact device location, then save.");
+      }
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              if (hiddenWarmup) {
+                return;
+              }
+              if (!locationPickerOverlay || locationPickerOverlay.classList.contains("beginner-view-hidden")) {
+                return;
+              }
+            const estimate = {
+              latitude: Number(position.coords.latitude),
+              longitude: Number(position.coords.longitude),
+              accuracy: Number.isFinite(Number(position.coords.accuracy)) ? Number(position.coords.accuracy) : null,
+              timestamp: Date.now(),
+              source: "manual-map"
+            };
+            if (!locationPickerSelection) {
+              locationPickerSelection = estimate;
+              updateLocationPickerMarker(locationPickerSelection, { zoom: 15 });
+            } else if (!savedLocation) {
+              locationPickerMap?.setView([estimate.latitude, estimate.longitude], 15);
+            }
+            const accuracyText = Number.isFinite(estimate.accuracy) ? `about ${Math.round(estimate.accuracy)} meters` : "an approximate area";
+            if (locationNeedsFineTune(estimate)) {
+              setLocationPickerStatus(`The browser found only ${accuracyText}. Since this device does not appear to have a precise GPS fix, drag the dot to your true location, then save.`);
+            } else {
+              setLocationPickerStatus(`The map opened near your current location with accuracy ${accuracyText}. Drag the dot if needed, then save.`);
+            }
+            },
+            () => {
+              if (hiddenWarmup) {
+                return;
+              }
+              if (!savedLocation) {
+                setLocationPickerStatus("Browser location was unavailable. Click the map to set the exact device location, then save.");
+              }
+          },
+          {
+            enableHighAccuracy: false,
+            maximumAge: 300000,
+            timeout: 8000
+          }
+        );
+      } else if (!savedLocation) {
+        setLocationPickerStatus("Browser location is unavailable on this device. Click the map to set the exact device location, then save.");
+      }
+    } catch (error) {
+      setLocationPickerStatus("Unable to load the map right now. Please check your connection and try again.");
+    } finally {
+      locationPickerOpening = false;
+    }
+  }
+
+  function saveExactLocationSelection() {
+    if (!locationPickerSelection) {
+      return;
+    }
+    const latest = readLauncherState();
+    latest.deviceLocation = {
+      latitude: Number(locationPickerSelection.latitude),
+      longitude: Number(locationPickerSelection.longitude),
+      accuracy: null,
+      timestamp: Date.now(),
+      source: "manual-map"
+    };
+    latest.locationPermission = "manual";
+    latest.locationFineTuneDismissedForTimestamp = 0;
+    writeLauncherState(latest);
+    renderLocationStatus();
+    hideLocationPicker();
+    if (resumePendingLocationPickerContinuation()) {
+      return;
+    }
+    if (otherSettingsView && !otherSettingsView.classList.contains("beginner-view-hidden")) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
   }
 
   function getPartnerHistory(role, state = readLauncherState(), ownIdentifier = "") {
@@ -6162,7 +7229,16 @@
         // Keep local progress even if the server save momentarily fails.
       }
 
-      window.location.href = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName);
+      persistLauncherRuntimeIdentity(role, canonicalOwnName, canonicalPartnerName, {
+        device_location: getLocationForRuntimeState(latest)
+      });
+
+      const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName);
+      if (!(await prepareLocationForGo(role, { targetUrl }))) {
+        return;
+      }
+
+      window.location.href = targetUrl;
     });
 
     if (savedOwn) {
@@ -6186,7 +7262,6 @@
     });
 
     if (shouldActivate) {
-      requestDeviceLocationIfNeeded();
       card.classList.add("active");
       activeLauncherRole = role;
       void refreshDifficultyLabels();
@@ -6226,7 +7301,6 @@
     }
     const shouldScrollIntoView = options.scrollIntoView === true;
     const role = String(card.dataset.roleCard || "");
-    requestDeviceLocationIfNeeded();
     roleCards.forEach((item) => {
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
@@ -6291,13 +7365,20 @@
     activeDifficultyContext = null;
     clearReportPanelOffset();
     launcherView?.classList.remove("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -6314,17 +7395,112 @@
     closeReportPairMenu();
   }
 
+  function showClairvoyanceViewingView() {
+    clearReportPanelOffset();
+    clairvoyanceViewingView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    const remoteViewerCard = findRoleCard("remote-viewer");
+    if (remoteViewerCard) {
+      remoteViewerCard.hidden = false;
+      remoteViewerCard.classList.remove("role-card-hidden");
+      remoteViewerCard.classList.remove("active");
+      const toggle = remoteViewerCard.querySelector(".role-card-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "false");
+      }
+      activeLauncherRole = "remote-viewer";
+      void refreshDifficultyLabels();
+    }
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showOptionsView() {
     activeDifficultyContext = null;
     clearReportPanelOffset();
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showClairvoyanceLearnMoreView() {
+    clearReportPanelOffset();
+    if (clairvoyanceLearnMoreTextInput) {
+      clairvoyanceLearnMoreTextInput.value = getClairvoyanceLearnMoreText(readLauncherState());
+      updateLearnMorePreview(clairvoyanceLearnMorePreview, clairvoyanceLearnMoreTextInput.value);
+    }
+    if (clairvoyanceLearnMoreStatus) {
+      clairvoyanceLearnMoreStatus.textContent = "";
+    }
+    clairvoyanceLearnMoreView?.classList.remove("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -6348,12 +7524,17 @@
     reportDefinitionView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -6376,12 +7557,17 @@
     reportDefinitionView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
@@ -6404,12 +7590,17 @@
     reportView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
@@ -6432,12 +7623,17 @@
     visualizationView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -6454,12 +7650,18 @@
     clearReportPanelOffset();
     helpView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -6473,16 +7675,168 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showLearnMoreView() {
+    clearReportPanelOffset();
+    if (learnMoreTextInput) {
+      learnMoreTextInput.value = getLearnMoreText(readLauncherState());
+      updateLearnMorePreview(learnMorePreview, learnMoreTextInput.value);
+    }
+    if (learnMoreStatus) {
+      learnMoreStatus.textContent = "";
+    }
+    learnMoreView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function saveLearnMoreContent() {
+    if (!learnMoreTextInput) {
+      return;
+    }
+    const latest = readLauncherState();
+    const nextValue = String(learnMoreTextInput.value || "").trim();
+    latest.learnMoreText = nextValue || defaultLearnMoreText;
+    writeLauncherState(latest);
+    if (learnMoreTextInput.value !== latest.learnMoreText) {
+      learnMoreTextInput.value = latest.learnMoreText;
+    }
+    updateLearnMorePreview(learnMorePreview, latest.learnMoreText);
+    if (learnMoreStatus) {
+      learnMoreStatus.textContent = "Learn More text saved.";
+    }
+  }
+
+  function saveClairvoyanceLearnMoreContent() {
+    if (!clairvoyanceLearnMoreTextInput) {
+      return;
+    }
+    const latest = readLauncherState();
+    const nextValue = String(clairvoyanceLearnMoreTextInput.value || "").trim();
+    latest.clairvoyanceLearnMoreText = nextValue || defaultClairvoyanceLearnMoreText;
+    writeLauncherState(latest);
+    if (clairvoyanceLearnMoreTextInput.value !== latest.clairvoyanceLearnMoreText) {
+      clairvoyanceLearnMoreTextInput.value = latest.clairvoyanceLearnMoreText;
+    }
+    updateLearnMorePreview(clairvoyanceLearnMorePreview, latest.clairvoyanceLearnMoreText);
+    if (clairvoyanceLearnMoreStatus) {
+      clairvoyanceLearnMoreStatus.textContent = "Learn More text saved.";
+    }
+  }
+
+  function showAidsView() {
+    clearReportPanelOffset();
+    aidsView?.classList.remove("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showRewireView() {
+    clearReportPanelOffset();
+    rewireView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showToolsView(role = "") {
     clearReportPanelOffset();
     activeToolsRole = role === "sender" || role === "receiver" ? role : "";
     toolsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -6498,16 +7852,24 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showContactView() {
+  function showContactView(returnView = "help") {
+    contactReturnView = returnView;
     clearReportPanelOffset();
     contactView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -6521,17 +7883,40 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function closeContactViewToOrigin() {
+    if (contactReturnView === "other-settings") {
+      showOtherSettingsView();
+      return;
+    }
+    if (contactReturnView === "clairvoyance-viewing") {
+      showClairvoyanceViewingView();
+      return;
+    }
+    if (contactReturnView === "launcher") {
+      showLauncherView();
+      return;
+    }
+    showHelpView();
+  }
+
   function showAboutView() {
     clearReportPanelOffset();
     aboutView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
@@ -6617,7 +8002,7 @@
         activeDifficultyRole: pairContext.role
       }, pairParticipants);
       const currentLevel = Number(normalizeDifficultyLevel(currentData?.pair_difficulty));
-      const maxAllowedLevel = getPairMaxDifficultyLevel(currentData);
+      const maxAllowedLevel = getRoleMaxDifficultyLevel(role, currentData);
       const nextLevel = Math.max(1, Math.min(maxAllowedLevel, currentLevel + delta));
 
       if (nextLevel === currentLevel) {
@@ -6639,12 +8024,18 @@
         activeDifficultyRole: pairContext.role
       }, pairParticipants);
       const confirmedLevel = normalizeDifficultyLevel(updatedData?.pair_difficulty);
+      const visibleConfirmedLevel = String(
+        Math.min(
+          Number(confirmedLevel),
+          getRoleMaxDifficultyLevel(role, updatedData)
+        )
+      );
       rememberDifficultyLevel(confirmedLevel);
-      setRoleDifficultyLabel(role, confirmedLevel);
+      setRoleDifficultyLabel(role, visibleConfirmedLevel);
       void refreshDifficultyLabels();
       const pairLabel = describeDifficultyChange(role, pairContext);
       setRoleDifficultyStatus(role, `${pairLabel} set to Level ${confirmedLevel}.`);
-      scheduleGuidedLevelExplanation(role, confirmedLevel);
+      scheduleGuidedLevelExplanation(role, visibleConfirmedLevel);
     } catch (error) {
       setRoleDifficultyStatus(
         role,
@@ -6694,10 +8085,14 @@
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -6894,7 +8289,10 @@
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -7701,6 +9099,7 @@
     try {
       const params = new URLSearchParams(window.location.search);
       const requestedView = String(params.get("open") || "").trim().toLowerCase();
+      const directOpen = params.get("direct_open") === "1";
       const stripeReturnState = String(params.get("stripe") || "").trim().toLowerCase();
       const requestedReportReceiver = String(params.get("report_receiver") || "").trim();
       const requestedReportSender = String(params.get("report_sender") || "").trim();
@@ -7732,13 +9131,26 @@
         return;
       }
       if (["sender", "receiver", "remote-viewer"].includes(requestedView)) {
+        if (requestedView === "remote-viewer") {
+          showClairvoyanceViewingView();
+          return;
+        } else {
+          showLauncherView();
+        }
         const matchingCard = findRoleCard(requestedView);
         if (matchingCard) {
-          ensureCardExpanded(matchingCard, { scrollIntoView: true });
+          if (directOpen) {
+            window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+            ensureCardExpanded(matchingCard, { scrollIntoView: false });
+          } else {
+            ensureCardExpanded(matchingCard, { scrollIntoView: true });
+          }
         }
       }
     } catch (error) {
       // Ignore malformed launcher open requests.
+    } finally {
+      finishDirectLauncherOpen();
     }
   }
 
@@ -7759,9 +9171,11 @@
     colorSchemeView?.classList.remove("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
@@ -7778,16 +9192,23 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showGoProView() {
+  function showGoProView(returnView = "subscription-management") {
+    goProReturnView = returnView;
     clearReportPanelOffset();
     goProView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -7804,16 +9225,35 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function closeGoProViewToOrigin() {
+    if (goProReturnView === "subscription-management") {
+      showSubscriptionManagementView();
+      return;
+    }
+    if (goProReturnView === "other-settings") {
+      showOtherSettingsView();
+      return;
+    }
+    showOptionsView();
+  }
+
   function showOtherSettingsView() {
     clearReportPanelOffset();
     otherSettingsView?.classList.remove("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -7829,15 +9269,86 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showSubscriptionManagementView() {
+    clearReportPanelOffset();
+    subscriptionManagementView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showBehaviorsView() {
+    clearReportPanelOffset();
+    behaviorsView?.classList.remove("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showBlinkBehaviorView() {
     clearReportPanelOffset();
     blinkBehaviorView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
@@ -7852,6 +9363,40 @@
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderBlinkBehaviorView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showConfidenceBehaviorView() {
+    clearReportPanelOffset();
+    confidenceBehaviorView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderConfidenceBehaviorView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -8010,10 +9555,30 @@
         return;
       }
 
-      const header = Object.keys(records[0]);
+      const locationHidden = isLocationPrivacyDisabled();
+      const sanitizedRecords = locationHidden
+        ? records.map((record) => {
+            const next = { ...record };
+            if (Object.prototype.hasOwnProperty.call(next, "rx location")) {
+              next["rx location"] = "";
+            }
+            if (Object.prototype.hasOwnProperty.call(next, "tx location")) {
+              next["tx location"] = "";
+            }
+            if (Object.prototype.hasOwnProperty.call(next, "dist")) {
+              next.dist = "";
+            }
+            if (Object.prototype.hasOwnProperty.call(next, "distance")) {
+              next.distance = "";
+            }
+            return next;
+          })
+        : records;
+
+      const header = Object.keys(sanitizedRecords[0]);
       const lines = [
         header.map(encodeCsvCell).join(","),
-        ...records.map((record) => header.map((key) => encodeCsvCell(record[key])).join(","))
+        ...sanitizedRecords.map((record) => header.map((key) => encodeCsvCell(record[key])).join(","))
       ];
       const csv = `${lines.join("\n")}\n`;
       const fileName = desiredName
@@ -8329,14 +9894,70 @@
   inlineContactButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      showContactView();
+      const role = String(button.getAttribute("data-open-contact-inline") || "").trim();
+      showContactView(role === "remote-viewer" ? "clairvoyance-viewing" : "launcher");
     });
   });
 
   retryLocationButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      requestDeviceLocationIfNeeded(true);
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void requestDeviceLocationIfNeeded(true);
     });
+  });
+  exactLocationButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const role = String(button.dataset.openExactLocation || activeLauncherRole || "").trim();
+      void showLocationPicker(role, { sourceTimestamp: Number(readLauncherState().deviceLocation?.timestamp || 0) });
+    });
+  });
+  locationPickerOverlay?.addEventListener("click", (event) => {
+    if (event.target === locationPickerOverlay) {
+      dismissLocationPicker();
+    }
+  });
+  locationPickerDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  locationPickerCancelButton?.addEventListener("click", () => {
+    dismissLocationPicker();
+  });
+  locationPickerSaveButton?.addEventListener("click", () => {
+    saveExactLocationSelection();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && locationPickerOverlay && !locationPickerOverlay.classList.contains("beginner-view-hidden")) {
+      dismissLocationPicker();
+      return;
+    }
+    if (event.key === "Escape" && reportImageLightbox && !reportImageLightbox.classList.contains("beginner-view-hidden")) {
+      closeReportImageLightbox();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("[data-location-picker-save], [data-location-picker-cancel], [data-open-exact-location]") : null;
+    if (!target) {
+      return;
+    }
+    if (target.hasAttribute("data-location-picker-save")) {
+      event.preventDefault();
+      event.stopPropagation();
+      saveExactLocationSelection();
+      return;
+    }
+    if (target.hasAttribute("data-location-picker-cancel")) {
+      event.preventDefault();
+      event.stopPropagation();
+      dismissLocationPicker();
+      return;
+    }
+    if (target.hasAttribute("data-open-exact-location")) {
+      event.preventDefault();
+      event.stopPropagation();
+      const role = String(target.getAttribute("data-open-exact-location") || activeLauncherRole || "").trim();
+      void showLocationPicker(role, { sourceTimestamp: Number(readLauncherState().deviceLocation?.timestamp || 0) });
+    }
   });
   renderRemoteViewerCard();
   if (String(remoteViewerOwnInput?.value || "").trim()) {
@@ -8471,17 +10092,40 @@
     } catch (error) {
       // Keep local progress even if the server save momentarily fails.
     }
+    persistLauncherRuntimeIdentity(targetRole, canonicalOwnName, canonicalPartnerName, {
+      device_location: getLocationForRuntimeState(latest)
+    });
     const runtimeMode = isDisplayDevice ? "remote-display" : "remote-viewer";
-    window.location.href = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
+    const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
       remoteDisplayDevice: isDisplayDevice
     });
+    if (!(await prepareLocationForGo("remote-viewer", { targetUrl }))) {
+      return;
+    }
+    window.location.href = targetUrl;
   });
 
   openOptionsButton?.addEventListener("click", showOptionsView);
+  openLearnMoreButton?.addEventListener("click", showLearnMoreView);
+  openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
+  openRewireButton?.addEventListener("click", showRewireView);
   closeOptionsButton?.addEventListener("click", showLauncherView);
+  closeLearnMoreButton?.addEventListener("click", showLauncherView);
+  saveLearnMoreButton?.addEventListener("click", saveLearnMoreContent);
+  learnMoreTextInput?.addEventListener("input", () => {
+    updateLearnMorePreview(learnMorePreview, learnMoreTextInput.value);
+  });
+  closeClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceViewingView);
+  saveClairvoyanceLearnMoreButton?.addEventListener("click", saveClairvoyanceLearnMoreContent);
+  clairvoyanceLearnMoreTextInput?.addEventListener("input", () => {
+    updateLearnMorePreview(clairvoyanceLearnMorePreview, clairvoyanceLearnMoreTextInput.value);
+  });
   openHelpButton?.addEventListener("click", showHelpView);
-  openGoProButton?.addEventListener("click", showGoProView);
+  openAidsButton?.addEventListener("click", showAidsView);
+  openGoProButton?.addEventListener("click", () => {
+    showGoProView("subscription-management");
+  });
   goProMonthlyButton?.addEventListener("click", () => {
     void startTelepathyProCheckout("monthly");
   });
@@ -8489,7 +10133,16 @@
     void startTelepathyProCheckout("annual");
   });
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
+  openClairvoyanceViewingButton?.addEventListener("click", showClairvoyanceViewingView);
+  openSubscriptionManagementButton?.addEventListener("click", showSubscriptionManagementView);
+  openBehaviorsButton?.addEventListener("click", showBehaviorsView);
+  openLocationPickerSettingsButton?.addEventListener("click", () => {
+    void showLocationPicker(activeLauncherRole || "sender", {
+      sourceTimestamp: Number(readLauncherState().deviceLocation?.timestamp || 0)
+    });
+  });
   openBlinkBehaviorButton?.addEventListener("click", showBlinkBehaviorView);
+  openConfidenceBehaviorButton?.addEventListener("click", showConfidenceBehaviorView);
   openUserTypeAdminButton?.addEventListener("click", showUserTypeAdminView);
   openHandleUpdateAdminButton?.addEventListener("click", showHandleUpdateAdminView);
   openImagePairAdminButton?.addEventListener("click", showImagePairAdminView);
@@ -8508,8 +10161,13 @@
   });
   openColorSchemeButton?.addEventListener("click", showColorSchemeView);
   closeHelpButton?.addEventListener("click", showOptionsView);
-  closeGoProButton?.addEventListener("click", showOptionsView);
+  closeAidsButton?.addEventListener("click", showOptionsView);
+  closeRewireButton?.addEventListener("click", showAidsView);
+  closeGoProButton?.addEventListener("click", closeGoProViewToOrigin);
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
+  closeClairvoyanceViewingButton?.addEventListener("click", showOtherSettingsView);
+  closeSubscriptionManagementButton?.addEventListener("click", showOtherSettingsView);
+  otherSettingsHomeButton?.addEventListener("click", showLauncherView);
   closeUserTypeAdminButton?.addEventListener("click", showAdminView);
   closeHandleUpdateAdminButton?.addEventListener("click", showAdminView);
   closeImagePairAdminButton?.addEventListener("click", showAdminView);
@@ -8543,7 +10201,9 @@
     }
   });
   closeColorSchemeButton?.addEventListener("click", showOtherSettingsView);
-  closeBlinkBehaviorButton?.addEventListener("click", showOtherSettingsView);
+  closeBehaviorsButton?.addEventListener("click", showOtherSettingsView);
+  closeBlinkBehaviorButton?.addEventListener("click", showBehaviorsView);
+  closeConfidenceBehaviorButton?.addEventListener("click", showBehaviorsView);
   cancelProButton?.addEventListener("click", () => {
     window.alert("Cancel PRO will be added here later.");
   });
@@ -8564,6 +10224,12 @@
   });
   blinkOffSecondsInput?.addEventListener("change", () => {
     persistBlinkBehaviorView();
+  });
+  confidenceModeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const include = String(button.dataset.confidenceMode || "").trim().toLowerCase() !== "exclude";
+      persistConfidenceBehavior(include);
+    });
   });
   userTypeHandleInput?.addEventListener("input", () => {
     pendingUserTypeLookupToken += 1;
@@ -8613,8 +10279,10 @@
   imagePairSubmitButton?.addEventListener("click", () => {
     void submitImagePairAdmin();
   });
-  openContactButton?.addEventListener("click", showContactView);
-  closeContactButton?.addEventListener("click", showHelpView);
+  openContactButton?.addEventListener("click", () => {
+    showContactView("other-settings");
+  });
+  closeContactButton?.addEventListener("click", closeContactViewToOrigin);
   openAboutButton?.addEventListener("click", showAboutView);
   closeAboutButton?.addEventListener("click", showHelpView);
   openReportButton?.addEventListener("click", showReportDefinitionView);
@@ -8996,12 +10664,20 @@
   if (appVersionLabel) {
     appVersionLabel.textContent = `ver. ${launcherBuildVersion}`;
   }
+  hideLocationPicker();
   renderLocationStatus();
+  void syncBrowserLocationPermission().then((state) => {
+    renderLocationStatus();
+    maybePromptForLocationFineTune(state);
+  });
   renderContactWordCount();
   updateInstallButtonLabel();
   void recordLauncherVisit();
   void refreshDifficultyLabels();
   applyLauncherOpenRequest();
+  window.setTimeout(() => {
+    void warmupLocationIndicatorOnLoad();
+  }, 250);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -9012,6 +10688,23 @@
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     updateInstallButtonLabel();
+  });
+
+  window.addEventListener("pageshow", () => {
+    hideLocationPicker();
+    void syncBrowserLocationPermission().then((state) => {
+      renderLocationStatus();
+      maybePromptForLocationFineTune(state);
+    });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void syncBrowserLocationPermission().then((state) => {
+        renderLocationStatus();
+        maybePromptForLocationFineTune(state);
+      });
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -9038,6 +10731,27 @@
           // Ignore service worker registration failures and fall back to browser guidance.
         });
     });
+  }
+  } catch (error) {
+    try {
+      console.error("telepathybeginner.js startup error", error);
+      const pre = document.createElement("pre");
+      pre.textContent = `telepathybeginner.js startup error: ${error && error.message ? error.message : String(error)}`;
+      pre.style.position = "fixed";
+      pre.style.left = "12px";
+      pre.style.right = "12px";
+      pre.style.bottom = "12px";
+      pre.style.zIndex = "99999";
+      pre.style.padding = "12px";
+      pre.style.whiteSpace = "pre-wrap";
+      pre.style.background = "rgba(120,0,0,0.92)";
+      pre.style.color = "#fff";
+      pre.style.border = "1px solid rgba(255,255,255,0.28)";
+      pre.style.font = "12px/1.35 monospace";
+      document.body.appendChild(pre);
+    } catch (_inner) {
+      // If even this fails, leave the original exception visible in the console.
+    }
   }
 })();
 

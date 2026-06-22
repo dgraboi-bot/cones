@@ -11,8 +11,9 @@
       level: String(params.get("level") || "all").trim() || "all",
       minTrials: Number.isFinite(Number(params.get("min_trials"))) ? Math.max(1, Number(params.get("min_trials"))) : 1,
       includeIncomplete: params.get("include_incomplete") === "1",
-      groupBy: String(params.get("group_by") || "rounded").trim() || "rounded",
+      groupBy: String(params.get("group_by") || "exact").trim() || "exact",
       roundingDecimals: Number.isFinite(Number(params.get("rounding_decimals"))) ? Math.max(0, Math.min(6, Number(params.get("rounding_decimals")))) : 3,
+      locationDisabled: params.get("location_disabled") === "1",
       dateFrom: String(params.get("date_from") || "").trim(),
       dateTo: String(params.get("date_to") || "").trim()
     };

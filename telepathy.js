@@ -38,7 +38,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-const runtimeBuildVersion = "20260620ac";
+const runtimeBuildVersion = "20260621aq";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -47,6 +47,7 @@ const runtimeBuildVersion = "20260620ac";
     }
   })();
   const runtimeMode = String(runtimeQuery.get("runtime_mode") || "").trim().toLowerCase();
+  const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
   const layouts = {
@@ -107,6 +108,7 @@ const runtimeBuildVersion = "20260620ac";
   let doneTimeoutHandle = null;
   let senderHoldingResult = false;
   let preloadedConeImage = null;
+  const preloadedRuntimeImages = new Map();
   let receiverPressedDoneEarly = false;
   let receiverRevealStartedMs = 0;
   let receiverBeepEndPerformanceMs = 0;
@@ -203,6 +205,55 @@ const runtimeBuildVersion = "20260620ac";
       return "";
     }
     return String(roundLike.image_sent || "").trim();
+  }
+
+  async function preloadRuntimeImage(imageUrl) {
+    const normalizedUrl = String(imageUrl || "").trim();
+    if (!normalizedUrl) {
+      return null;
+    }
+
+    const existing = preloadedRuntimeImages.get(normalizedUrl);
+    if (existing) {
+      return existing;
+    }
+
+    const loadPromise = new Promise((resolve, reject) => {
+      const image = new Image();
+      image.loading = "eager";
+      image.decoding = "sync";
+      image.onload = async () => {
+        try {
+          if (typeof image.decode === "function") {
+            await image.decode();
+          }
+        } catch (error) {
+          // Ignore decode failures after a successful load.
+        }
+        resolve(image);
+      };
+      image.onerror = () => {
+        preloadedRuntimeImages.delete(normalizedUrl);
+        reject(new Error(`Unable to preload image asset: ${normalizedUrl}`));
+      };
+      image.src = normalizedUrl;
+    });
+
+    preloadedRuntimeImages.set(normalizedUrl, loadPromise);
+    return loadPromise;
+  }
+
+  async function preloadLevelFourRoundAssets(roundLike = activeRound) {
+    const imageUrls = [
+      getLevelFourSentImageUrl(roundLike),
+      ...Object.values(getLevelFourChoiceUrls(roundLike) || {})
+    ].filter(Boolean);
+
+    if (imageUrls.length === 0) {
+      return;
+    }
+
+    await Promise.allSettled(imageUrls.map((imageUrl) => preloadRuntimeImage(imageUrl)));
   }
 
   function getWaitingOnlinePrompt() {
@@ -331,7 +382,8 @@ const runtimeBuildVersion = "20260620ac";
         last_logged_round_id: typeof parsed?.last_logged_round_id === "string" ? parsed.last_logged_round_id : "",
         blink_sender_image: typeof parsed?.blink_sender_image === "boolean" ? parsed.blink_sender_image : false,
         blink_image_on_seconds: typeof parsed?.blink_image_on_seconds === "string" ? parsed.blink_image_on_seconds : "0.35",
-        blink_image_off_seconds: typeof parsed?.blink_image_off_seconds === "string" ? parsed.blink_image_off_seconds : "0.8"
+        blink_image_off_seconds: typeof parsed?.blink_image_off_seconds === "string" ? parsed.blink_image_off_seconds : "0.8",
+        include_confidence: typeof parsed?.include_confidence === "boolean" ? parsed.include_confidence : true
       };
     } catch (error) {
       return {
@@ -344,7 +396,8 @@ const runtimeBuildVersion = "20260620ac";
         last_logged_round_id: "",
         blink_sender_image: false,
         blink_image_on_seconds: "0.35",
-        blink_image_off_seconds: "0.8"
+        blink_image_off_seconds: "0.8",
+        include_confidence: true
       };
     }
   }
@@ -521,6 +574,10 @@ const runtimeBuildVersion = "20260620ac";
     };
   }
 
+  function getIncludeConfidenceEnabled() {
+    return readSettings().include_confidence !== false;
+  }
+
   function clearImageBlinkCycle({ keepVisible = true } = {}) {
     if (imageBlinkTimeoutHandle) {
       window.clearTimeout(imageBlinkTimeoutHandle);
@@ -574,6 +631,7 @@ const runtimeBuildVersion = "20260620ac";
       const blinkSenderImage = String(params.get("blink_sender_image") || "").trim();
       const blinkOnSeconds = String(params.get("blink_image_on_seconds") || "").trim();
       const blinkOffSeconds = String(params.get("blink_image_off_seconds") || "").trim();
+      const includeConfidence = String(params.get("include_confidence") || "").trim();
 
       if (!ownEmail && !partnerEmail) {
         return;
@@ -598,6 +656,9 @@ const runtimeBuildVersion = "20260620ac";
       }
       if (blinkOffSeconds) {
         settings.blink_image_off_seconds = String(normalizeBlinkSecondsValue(blinkOffSeconds, 0.8));
+      }
+      if (includeConfidence) {
+        settings.include_confidence = includeConfidence === "1";
       }
       writeSettings(settings);
 
@@ -1606,6 +1667,9 @@ const runtimeBuildVersion = "20260620ac";
     if (requestedOpen) {
       params.set("open", requestedOpen);
     }
+    if (options.directOpen) {
+      params.set("direct_open", "1");
+    }
 
     const settings = readSettings();
     if (settings.own_email || settings.partner_email) {
@@ -1760,6 +1824,31 @@ const runtimeBuildVersion = "20260620ac";
     updateSettingsGearVisibility();
   }
 
+  function showPartnerFinishedState(message) {
+    senderHoldingResult = false;
+    receiverReady = false;
+    awaitingReceiverDone = false;
+    receiverChoiceOpen = false;
+    localRoundRunning = false;
+    roundScheduled = false;
+    confidenceScreenOpen = false;
+    instructionScreenOpen = false;
+    receiverMirrorPhase = "idle";
+    currentUiMode = "partner-finished";
+    hideStage();
+    hideChoiceGrid();
+    hideConfidencePanel();
+    hideInstructionPanel();
+    hideDecisionPanel();
+    hideMessagePanel();
+    setPrompt(
+      message || "The receiver has had enough. Press here to return.",
+      true,
+      "The receiver has had enough. Press here to return."
+    );
+    updateSettingsGearVisibility();
+  }
+
   function handleAuthorizationFailure(message) {
     showAuthorizationEndState(message);
   }
@@ -1828,7 +1917,8 @@ const runtimeBuildVersion = "20260620ac";
     updateSettingsGearVisibility();
     window.setTimeout(() => {
       navigateToBeginnerFrontPage({
-        open: getLauncherReturnRole()
+        open: getLauncherReturnRole(),
+        directOpen: true
       });
     }, 25);
   }
@@ -2432,7 +2522,7 @@ const runtimeBuildVersion = "20260620ac";
     image.className = "image-choice-thumb";
     image.alt = "";
     image.loading = "eager";
-    image.decoding = "async";
+    image.decoding = "sync";
 
     card.appendChild(image);
     return card;
@@ -3676,7 +3766,7 @@ const runtimeBuildVersion = "20260620ac";
       getResolvedActualArrangementCode(remoteState.round) ||
       getResolvedActualArrangementCode(activeRound);
     const lockedAt = Number(receiverView.confidence_locked_at_ms) || 0;
-    const holdConfidence = lockedAt > 0 && (serverNowMs - lockedAt) < 3000;
+    const holdConfidence = lockedAt > 0 && (serverNowMs - lockedAt) < 50;
 
     if (phase === "confidence" || holdConfidence) {
       showSenderConfidenceMirror(confidenceValueNumber);
@@ -3691,6 +3781,11 @@ const runtimeBuildVersion = "20260620ac";
         clearStageVisibility();
         showStage();
         arrangementNodes.get("sender-level-four-choice-grid")?.classList.add("visible");
+        if (selectedLayoutNumbers.length === 0) {
+          showMessagePanel("The receiver is deciding the best pick.", []);
+        } else {
+          hideMessagePanel();
+        }
         return true;
       }
       showSenderChoiceMirror(actualArrangementCode, selectedLayoutNumbers, true);
@@ -3705,6 +3800,7 @@ const runtimeBuildVersion = "20260620ac";
         clearStageVisibility();
         showStage();
         arrangementNodes.get("sender-level-four-choice-grid")?.classList.add("visible");
+        hideMessagePanel();
         return true;
       }
       if (isLevelOneDifficulty()) {
@@ -3965,7 +4061,7 @@ const runtimeBuildVersion = "20260620ac";
 
       if (postRound.resolved === "continue" && postRound.sender_choice === "another") {
         schedulePostRoundClear("continue");
-      } else if (postRound.resolved === "end" && postRound.sender_choice === "enough") {
+      } else if (postRound.resolved === "end") {
         void clearPostRound("end", { preserveExited: true })
           .catch(() => null)
           .finally(() => {
@@ -3986,6 +4082,11 @@ const runtimeBuildVersion = "20260620ac";
       if (isRemoteDisplayMode && !postRound.sender_choice) {
         void submitPostRoundChoice("enough");
       }
+      if (postRound.resolved === "end") {
+        showPartnerFinishedState("The receiver has had enough. Press here to return.");
+        return true;
+      }
+
       showMessagePanel("The receiver has had enough.", [
         {
           label: "CONTINUE",
@@ -3998,14 +4099,6 @@ const runtimeBuildVersion = "20260620ac";
               }
         }
       ]);
-
-      if (postRound.resolved === "end" && postRound.sender_choice === "enough") {
-        void clearPostRound("end", { preserveExited: true })
-          .catch(() => null)
-          .finally(() => {
-            showExitedState();
-          });
-      }
       return true;
     }
 
@@ -4114,7 +4207,15 @@ const runtimeBuildVersion = "20260620ac";
     window.setTimeout(() => {
       hideChoiceGrid();
       hideMessagePanel();
-      showConfidencePanel();
+      if (getIncludeConfidenceEnabled()) {
+        showConfidencePanel();
+      } else {
+        pendingConfidenceValue = null;
+        receiverConfidenceLockedAtMs = 0;
+        hideConfidencePanel();
+        hideInstructionPanel();
+        void submitReceiverGuessAndReveal();
+      }
       receiverTransitioningScreen = false;
       void triggerImmediateSync();
     }, transitionDelayMs);
@@ -4221,6 +4322,9 @@ const runtimeBuildVersion = "20260620ac";
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
     activeRound = round;
+    if (String(round?.stimulus_kind || "") === "image_pair") {
+      void preloadLevelFourRoundAssets(round);
+    }
     resetReceiverChoices();
     updateSettingsGearVisibility();
 
@@ -4268,7 +4372,9 @@ const runtimeBuildVersion = "20260620ac";
             image_sent_index: round?.image_sent_index ?? "",
             image_sent: imageUrl
           });
-          showImageDisplay(imageUrl);
+          void preloadLevelFourRoundAssets(round).finally(() => {
+            showImageDisplay(imageUrl);
+          });
           if (activeRound) {
             activeRound.stimulus_kind = "image_pair";
             activeRound.image_pair_id = round.image_pair_id;
@@ -4382,6 +4488,15 @@ const runtimeBuildVersion = "20260620ac";
 
     if (currentUiMode === "partner-disconnect") {
       void api("abort_to_home", { abort_reason: "disconnect" })
+        .catch(() => null)
+        .finally(() => {
+          navigateToBeginnerFrontPage();
+        });
+      return;
+    }
+
+    if (currentUiMode === "partner-finished") {
+      void api("clear_partner_finished_notice")
         .catch(() => null)
         .finally(() => {
           navigateToBeginnerFrontPage();
@@ -4565,6 +4680,15 @@ const runtimeBuildVersion = "20260620ac";
       return;
     }
 
+    const partnerFinishedNotice = remoteState.partner_finished_notice || null;
+    if (
+      partnerFinishedNotice &&
+      (!partnerFinishedNotice.target_role || String(partnerFinishedNotice.target_role) === role)
+    ) {
+      showPartnerFinishedState(partnerFinishedNotice.message);
+      return;
+    }
+
     if (remoteState.session_limit_notice) {
       showSessionLimitState(remoteState.session_limit_notice.message);
       return;
@@ -4582,11 +4706,18 @@ const runtimeBuildVersion = "20260620ac";
       return;
     }
 
+    if (currentUiMode === "partner-finished") {
+      return;
+    }
+
     const serverNowMs = payload.server_now_ms || estimatedServerNowMs();
     const normalizedRound = normalizeRound(remoteState.round, serverNowMs);
 
     if (remoteState.round && remoteState.round.id) {
       activeRound = remoteState.round;
+      if (String(remoteState.round?.stimulus_kind || "") === "image_pair") {
+        void preloadLevelFourRoundAssets(remoteState.round);
+      }
     }
 
     void appendTrialServerRecord(remoteState);
@@ -4695,6 +4826,21 @@ const runtimeBuildVersion = "20260620ac";
     }
   }
 
+  async function clearEntryNoticesOnBoot() {
+    if (!launchedFromLauncher) {
+      return;
+    }
+    try {
+      await api("clear_entry_notices_on_boot", {
+        receiver_ready: false,
+        stale_ms: staleMs,
+        frontend_build_version: runtimeBuildVersion
+      });
+    } catch (error) {
+      // Ignore startup cleanup failures.
+    }
+  }
+
     async function boot() {
       void traceClientEvent("boot_client", {
         role,
@@ -4768,6 +4914,7 @@ const runtimeBuildVersion = "20260620ac";
 
     window.addEventListener("resize", updateChoiceGridLayout);
     if (!settingsOpen && hasRequiredSettings()) {
+      await clearEntryNoticesOnBoot();
       await clearAbortNoticeOnBoot();
       await clearTimeoutExitOnBoot();
       await syncState();

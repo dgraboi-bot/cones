@@ -8,22 +8,41 @@
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var requestedOpen = String(params.get("open") || "").trim().toLowerCase();
+        var directOpen = params.get("direct_open") === "1";
+        if (directOpen && (requestedOpen === "sender" || requestedOpen === "receiver" || requestedOpen === "remote-viewer")) {
+          document.documentElement.classList.add("launcher-direct-open-pending");
+        }
+      } catch (error) {}
+    })();
   </script>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260620au">
+  <style>
+    html.launcher-direct-open-pending body {
+      visibility: hidden;
+    }
+  </style>
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260622u">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260620au">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260620au">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260622u">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260622u">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260622u">
 </head>
 <body>
   <main class="beginner-shell">
     <section class="beginner-panel" aria-labelledby="beginnerTitle">
       <section class="beginner-view" data-view="launcher">
         <div class="beginner-top-row">
-          <a class="beginner-top-link beginner-top-pill" href="https://telepathyexperiment.com/slide0.php">GYM HOME</a>
+          <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-learn-more>LEARN MORE</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <button class="beginner-top-button beginner-top-pill" type="button" data-open-options>OPTIONS</button>
+          <button class="beginner-top-button beginner-top-pill beginner-top-menu-button" type="button" data-open-options aria-label="Open menu">
+            <span>MENU</span>
+            <span class="beginner-top-menu-icon" aria-hidden="true"><span></span></span>
+          </button>
         </div>
 
         <h1 class="beginner-title" id="beginnerTitle" data-beginner-main-title>Telepathy Beginner</h1>
@@ -33,13 +52,10 @@
           <div class="telepathy-hero-frame">
             <img class="telepathy-hero-image" src="minds-connected-uncropped.png" alt="">
           </div>
-          <div class="telepathy-hero-frame" data-pro-hero-frame hidden>
-            <img class="telepathy-hero-image" src="RV1.png" alt="">
-          </div>
         </section>
 
         <div class="beginner-copy">
-          <p data-launcher-copy>Choose whether you will act as the sender or the receiver for this session.</p>
+          <p data-launcher-copy>Choose your role in this session:</p>
         </div>
 
         <section class="role-panels" aria-label="Role selection">
@@ -61,7 +77,7 @@
               <form class="role-form" data-role-form="sender" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
                   <p data-role-identifier-note="sender">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
-                  <p><button class="role-note-link" type="button" data-open-handle-control="sender">See here for using a unique name instead of email address.</button></p>
+                  <p data-role-handle-wrap="sender"><button class="role-note-link" type="button" data-open-handle-control="sender">Choose unique name instead of email address</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
@@ -100,7 +116,10 @@
                 <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
                 <div class="role-location-status" data-location-status="sender">
                   <span class="role-location-text">Location: unknown</span>
-                  <button class="role-location-retry" type="button" data-retry-location="sender" hidden>Retry location</button>
+                  <div class="role-location-actions">
+                    <button class="role-location-exact" type="button" data-open-exact-location="sender">Set exact location</button>
+                    <button class="role-location-retry" type="button" data-retry-location="sender" hidden>Retry location</button>
+                  </div>
                 </div>
                 <div class="role-difficulty-status" data-role-difficulty-status="sender" hidden></div>
                 <button class="role-go" type="submit">GO</button>
@@ -126,7 +145,7 @@
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
                   <p data-role-identifier-note="receiver">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
-                  <p><button class="role-note-link" type="button" data-open-handle-control="receiver">See here for using a unique name instead of email address.</button></p>
+                  <p data-role-handle-wrap="receiver"><button class="role-note-link" type="button" data-open-handle-control="receiver">Choose unique name instead of email address</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-contact-inline="receiver">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
@@ -165,7 +184,10 @@
                 <div class="role-identifier-status" data-role-identifier-status="receiver" hidden></div>
                 <div class="role-location-status" data-location-status="receiver">
                   <span class="role-location-text">Location: unknown</span>
-                  <button class="role-location-retry" type="button" data-retry-location="receiver" hidden>Retry location</button>
+                  <div class="role-location-actions">
+                    <button class="role-location-exact" type="button" data-open-exact-location="receiver">Set exact location</button>
+                    <button class="role-location-retry" type="button" data-retry-location="receiver" hidden>Retry location</button>
+                  </div>
                 </div>
                 <div class="role-difficulty-status" data-role-difficulty-status="receiver" hidden></div>
                 <button class="role-go" type="submit">GO</button>
@@ -173,65 +195,6 @@
             </div>
           </article>
 
-          <article class="role-card role-card-pro-only" data-role-card="remote-viewer" data-pro-only-card="remote-viewer" hidden>
-            <div class="role-card-header">
-              <button class="role-card-toggle" type="button" aria-expanded="false">
-                <span class="role-card-title">I Will Remote View</span>
-              </button>
-              <div class="role-card-level-stack" data-role-difficulty-stack="remote-viewer">
-                <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="remote-viewer" data-direction="up" aria-label="Increase remote viewer pair difficulty">▲</button>
-                <span class="role-card-level" data-pair-difficulty-label="remote-viewer">Level 1</span>
-                <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="remote-viewer" data-direction="down" aria-label="Decrease remote viewer pair difficulty">▼</button>
-              </div>
-              <span class="role-card-tagline" data-role-skill-tagline="remote-viewer">Skill: Guided mind's eye perception</span>
-            </div>
-            <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="remote-viewer" hidden></div>
-            <div class="role-card-body">
-              <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
-                <div class="role-email-note" aria-label="Remote viewing guidance">
-                  <p data-role-identifier-note="remote-viewer">This skill requires the use of two devices. The remote device handle is used to uniquely identify that device. Put the remote device in another place. It is always ready for you to press, "I am ready to remote view." Then, after the countdown, try to see the cone arrangement it is displaying.</p>
-                  <p><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">See here for choosing your unique handle.</button></p>
-                  <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
-                </div>
-                <label class="role-field">
-                  <div class="remote-viewer-label-row">
-                    <span class="role-field-label" data-remote-viewer-own-label>You</span>
-                    <label class="settings-view-checkbox remote-viewer-display-toggle">
-                      <input type="checkbox" data-remote-viewer-display-device>
-                      <span>check here if this is a remote viewing display device</span>
-                    </label>
-                  </div>
-                  <input
-                    class="role-input"
-                    type="text"
-                    name="ownName"
-                    autocomplete="off"
-                    placeholder="your unique handle"
-                    spellcheck="false"
-                    data-remote-viewer-own
-                  >
-                </label>
-                <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-remote-viewer-partner-label>Remote Device</span>
-                  <input
-                    class="role-input"
-                    type="text"
-                    name="partnerName"
-                    autocomplete="off"
-                    placeholder="remote device handle"
-                    spellcheck="false"
-                    data-remote-viewer-partner
-                  >
-                </label>
-                <div class="role-location-status" data-location-status="remote-viewer">
-                  <span class="role-location-text">Location: unknown</span>
-                  <button class="role-location-retry" type="button" data-retry-location="remote-viewer" hidden>Retry location</button>
-                </div>
-                <div class="role-difficulty-status" data-role-difficulty-status="remote-viewer" hidden></div>
-                <button class="role-go" type="button" data-remote-viewer-go>GO</button>
-              </div>
-            </div>
-          </article>
         </section>
       </section>
 
@@ -253,6 +216,32 @@
         </section>
       </section>
 
+      <section class="beginner-view beginner-view-hidden" data-view="learn-more" aria-labelledby="learnMoreTitle">
+        <div class="beginner-top-row">
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-learn-more>BACK</button>
+          <p class="beginner-kicker">ESP GYM</p>
+          <button class="beginner-top-button beginner-top-pill beginner-top-button-right" type="button" data-save-learn-more>SAVE</button>
+        </div>
+
+        <h1 class="beginner-title" id="learnMoreTitle">Learn More</h1>
+
+        <section class="settings-view-panel learn-more-panel">
+          <label class="settings-view-field">
+            <span class="settings-view-label">Editable text</span>
+            <textarea
+              class="settings-view-input settings-view-textarea learn-more-textarea"
+              spellcheck="true"
+              data-learn-more-text
+            ></textarea>
+          </label>
+          <div class="learn-more-preview-wrap">
+            <span class="settings-view-label">Rendered preview</span>
+            <div class="learn-more-preview" data-learn-more-preview></div>
+          </div>
+          <div class="settings-view-status" data-learn-more-status></div>
+        </section>
+      </section>
+
       <div class="handle-overlay beginner-view-hidden" data-handle-overlay>
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="handleDialogTitle">
           <h2 class="about-section-title" id="handleDialogTitle">Choose Unique Handle</h2>
@@ -269,22 +258,73 @@
         </div>
       </div>
 
+      <div class="location-picker-overlay beginner-view-hidden" data-location-picker-overlay>
+        <div class="location-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="locationPickerTitle">
+          <h2 class="about-section-title" id="locationPickerTitle">Fine-Tune Device Location</h2>
+          <p class="about-section-copy">If this device does not appear to have a precise GPS fix, you can drag the dot to your true location on this map and save it.</p>
+          <div class="location-picker-status" data-location-picker-status>Loading map…</div>
+          <div class="location-picker-map" data-location-picker-map aria-label="Exact location map"></div>
+          <div class="location-picker-coordinates" data-location-picker-coordinates>No location selected yet.</div>
+          <div class="contact-actions">
+            <button class="options-button contact-action-button" type="button" data-location-picker-save disabled>SAVE LOCATION</button>
+            <button class="options-button contact-action-button" type="button" data-location-picker-cancel>NOT NOW</button>
+          </div>
+        </div>
+      </div>
+
       <section class="beginner-view beginner-view-hidden" data-view="options" aria-labelledby="optionsTitle">
-        <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-options>BACK</button>
+        <div class="beginner-top-row options-top-row">
+          <button class="beginner-top-button beginner-top-pill beginner-top-home-button" type="button" data-close-options aria-label="Go to main screen">
+            <svg class="beginner-top-home-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+              <path d="M5 14.5 16 5l11 9.5"></path>
+              <path d="M9 13.5V27h14V13.5"></path>
+            </svg>
+          </button>
           <p class="beginner-kicker">ESP GYM</p>
-          <span class="beginner-top-version" data-app-version-label>ver. 20260620au</span>
+              <span class="beginner-top-version" data-app-version-label>ver. 20260622u</span>
         </div>
 
-        <h1 class="beginner-title" id="optionsTitle">Options</h1>
-        <p class="beginner-subtitle">Choose an option for this device.</p>
+        <h1 class="beginner-title beginner-title-icon-only" id="optionsTitle" aria-label="Menu">
+          <span class="options-title-menu-icon" aria-hidden="true"><span></span></span>
+        </h1>
 
         <div class="options-actions">
           <button class="options-button" type="button" data-open-help>Help</button>
           <button class="options-button" type="button" data-open-report>Performance Reports</button>
-          <button class="options-button" type="button" data-open-other-settings>Other Settings</button>
-          <button class="options-button" type="button" data-open-go-pro>Telepathy PRO</button>
+          <button class="options-button" type="button" data-open-aids>Aids</button>
+          <button class="options-button" type="button" data-open-other-settings>Other Settings and ESP Tasks</button>
+        </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="aids" aria-labelledby="aidsTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-aids>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
+
+          <h1 class="beginner-title" id="aidsTitle">Aids</h1>
+          <p class="beginner-subtitle">This page is a placeholder for future aids and support tools.</p>
+
+          <div class="options-actions">
+            <button class="options-button" type="button" data-open-rewire>Rewire</button>
+          </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="rewire" aria-labelledby="rewireTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-rewire>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="rewireTitle">Rewire</h1>
+
+          <section class="settings-view-panel rewire-panel">
+            <div class="rewire-image-frame">
+              <img class="rewire-image" src="rewire.png" alt="Rewire visual aid">
+            </div>
+          </section>
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="go-pro" aria-labelledby="goProTitle">
@@ -320,25 +360,166 @@
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="other-settings" aria-labelledby="otherSettingsTitle">
+          <div class="beginner-top-row other-settings-top-row">
+            <button class="beginner-top-button beginner-top-pill beginner-top-home-button" type="button" data-other-settings-home aria-label="Go to main screen">
+              <svg class="beginner-top-home-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                <path d="M5 14.5 16 5l11 9.5"></path>
+                <path d="M9 13.5V27h14V13.5"></path>
+              </svg>
+            </button>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-other-settings>BACK</button>
+          </div>
+
+          <h1 class="beginner-title" id="otherSettingsTitle">Other Settings and ESP Tasks</h1>
+
+          <div class="options-actions">
+            <button class="options-button" type="button" data-open-behaviors>Behaviors</button>
+            <button class="options-button" type="button" data-open-location-picker-settings>Set Exact Location</button>
+            <button class="options-button" type="button" data-open-contact>Contact ESP Gym</button>
+            <button class="options-button" type="button" data-open-clairvoyance-viewing data-pro-only-other-settings hidden>Clairvoyance / Remote Viewing</button>
+            <button class="options-button" type="button" data-open-subscription-management>PRO Subscription</button>
+          </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="clairvoyance-viewing" aria-labelledby="clairvoyanceViewingTitle">
+          <div class="beginner-top-row clairvoyance-top-row">
+            <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-clairvoyance-learn-more>LEARN MORE</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-clairvoyance-viewing>BACK</button>
+          </div>
+
+          <h1 class="beginner-title" id="clairvoyanceViewingTitle">Clairvoyance / Remote Viewing</h1>
+          <section class="clairvoyance-hero" aria-hidden="true">
+            <div class="telepathy-hero-frame clairvoyance-hero-frame">
+              <img class="telepathy-hero-image clairvoyance-hero-image" src="RV1.png" alt="">
+            </div>
+          </section>
+          <div class="beginner-copy beginner-copy-compact">
+            <p>You don't need a partner to see what is happening in another place or time.</p>
+          </div>
+
+          <section class="role-panels role-panels-clairvoyance" aria-label="Clairvoyance and remote viewing setup">
+            <article class="role-card role-card-pro-only" data-role-card="remote-viewer" data-pro-only-card="remote-viewer" hidden>
+              <div class="role-card-header">
+                <button class="role-card-toggle" type="button" aria-expanded="false">
+                  <span class="role-card-title">I Will Remote View</span>
+                </button>
+                <div class="role-card-level-stack" data-role-difficulty-stack="remote-viewer">
+                  <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="remote-viewer" data-direction="up" aria-label="Increase remote viewer pair difficulty">▲</button>
+                  <span class="role-card-level" data-pair-difficulty-label="remote-viewer">Level 1</span>
+                  <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="remote-viewer" data-direction="down" aria-label="Decrease remote viewer pair difficulty">▼</button>
+                </div>
+                <span class="role-card-tagline" data-role-skill-tagline="remote-viewer">Skill: Guided mind's eye perception</span>
+              </div>
+              <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="remote-viewer" hidden></div>
+              <div class="role-card-body">
+                <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
+                  <div class="role-email-note" aria-label="Remote viewing guidance">
+                    <p data-role-identifier-note="remote-viewer">This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being.</p>
+                    <p data-role-handle-wrap="remote-viewer"><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">See here for choosing your unique handle.</button></p>
+                    <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
+                  </div>
+                  <label class="role-field">
+                    <div class="remote-viewer-label-row">
+                      <span class="role-field-label" data-remote-viewer-own-label>You</span>
+                      <label class="settings-view-checkbox remote-viewer-display-toggle">
+                        <input type="checkbox" data-remote-viewer-display-device>
+                        <span>check here if this is a remote viewing display device</span>
+                      </label>
+                    </div>
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="ownName"
+                      autocomplete="off"
+                      placeholder="your unique handle"
+                      spellcheck="false"
+                      data-remote-viewer-own
+                    >
+                  </label>
+                  <label class="role-field role-field-partner">
+                    <span class="role-field-label" data-remote-viewer-partner-label>Remote Device</span>
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="partnerName"
+                      autocomplete="off"
+                      placeholder="remote device handle"
+                      spellcheck="false"
+                      data-remote-viewer-partner
+                    >
+                  </label>
+                  <div class="role-location-status" data-location-status="remote-viewer">
+                    <span class="role-location-text">Location: unknown</span>
+                    <div class="role-location-actions">
+                      <button class="role-location-exact" type="button" data-open-exact-location="remote-viewer">Set exact location</button>
+                      <button class="role-location-retry" type="button" data-retry-location="remote-viewer" hidden>Retry location</button>
+                    </div>
+                  </div>
+                  <div class="role-difficulty-status" data-role-difficulty-status="remote-viewer" hidden></div>
+                  <button class="role-go" type="button" data-remote-viewer-go>GO</button>
+                </div>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="clairvoyance-learn-more" aria-labelledby="clairvoyanceLearnMoreTitle">
+          <div class="beginner-top-row clairvoyance-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-left" type="button" data-close-clairvoyance-learn-more>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <button class="beginner-top-button beginner-top-pill beginner-top-button-right" type="button" data-save-clairvoyance-learn-more>SAVE</button>
+          </div>
+
+          <h1 class="beginner-title" id="clairvoyanceLearnMoreTitle">Learn More</h1>
+
+          <section class="settings-view-panel learn-more-panel">
+            <label class="settings-view-field">
+              <span class="settings-view-label">Editable text</span>
+              <textarea
+                class="settings-view-input settings-view-textarea learn-more-textarea"
+                spellcheck="true"
+                data-clairvoyance-learn-more-text
+              ></textarea>
+            </label>
+            <div class="learn-more-preview-wrap">
+              <span class="settings-view-label">Rendered preview</span>
+              <div class="learn-more-preview" data-clairvoyance-learn-more-preview></div>
+            </div>
+            <div class="settings-view-status" data-clairvoyance-learn-more-status></div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="subscription-management" aria-labelledby="subscriptionManagementTitle">
           <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-other-settings>BACK</button>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-subscription-management>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="otherSettingsTitle">Other Settings</h1>
-          <p class="beginner-subtitle">Adjust appearance and device-specific app settings.</p>
+          <h1 class="beginner-title" id="subscriptionManagementTitle">PRO Subscription</h1>
+
+          <div class="options-actions">
+            <button class="options-button" type="button" data-open-go-pro>PRO Subscription</button>
+            <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO Subscription</button>
+          </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="behaviors" aria-labelledby="behaviorsTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-behaviors>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="behaviorsTitle">Behaviors</h1>
+          <p class="beginner-subtitle">Adjust trial behaviors for this device.</p>
 
           <div class="options-actions">
             <button class="options-button" type="button" data-open-color-scheme>Color Scheme Picker</button>
             <button class="options-button" type="button" data-open-blink-behavior>Blink Behavior</button>
-            <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO Subscription</button>
-            <button
-              class="options-button"
-              type="button"
-              data-install-app
-              title="As an app, it does not work inside a browser tab, but acts just like a regular app with its own icon."
-            >Install Telepathy Beginner as an app on this device</button>
+            <button class="options-button" type="button" data-open-confidence-behavior>Confidence</button>
           </div>
         </section>
 
@@ -441,6 +622,25 @@
           </section>
         </section>
 
+        <section class="beginner-view beginner-view-hidden" data-view="confidence-behavior" aria-labelledby="confidenceBehaviorTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-confidence-behavior>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="confidenceBehaviorTitle">Confidence</h1>
+          <p class="beginner-subtitle">Choose whether the Receiver reports confidence before the target is revealed.</p>
+
+          <section class="settings-view-panel">
+            <div class="options-actions">
+              <button class="options-button confidence-choice-button" type="button" data-confidence-mode="include">Include Confidence</button>
+              <button class="options-button confidence-choice-button" type="button" data-confidence-mode="exclude">Don't Include Confidence</button>
+            </div>
+            <div class="settings-view-status" data-confidence-status></div>
+          </section>
+        </section>
+
         <section class="beginner-view beginner-view-hidden" data-view="help" aria-labelledby="helpTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-help>BACK</button>
@@ -449,11 +649,9 @@
           </div>
 
           <h1 class="beginner-title" id="helpTitle">Help</h1>
-          <p class="beginner-subtitle">Choose a help topic or a way to get in touch with ESP Gym.</p>
 
           <div class="options-actions">
             <button class="options-button" type="button" onclick="window.location.href='BeginnerUserManual.html?v=20260503a'">User Guide</button>
-            <button class="options-button" type="button" data-open-contact>Contact ESP Gym</button>
             <button class="options-button" type="button" data-open-about>About</button>
           </div>
         </section>
@@ -596,7 +794,7 @@
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260620au'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260622u'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -915,7 +1113,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="telepathybeginner.js?v=20260620au"></script>
+  <script src="vendor/leaflet/leaflet.js?v=20260622u"></script>
+  <script src="telepathybeginner.js?v=20260622u"></script>
 </body>
 </html>
 

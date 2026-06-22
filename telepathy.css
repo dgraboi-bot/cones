@@ -487,8 +487,9 @@ body {
 
 .image-choice-card.selected,
 .image-choice-card.pending {
-  border-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+  border-width: 4px;
+  border-color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.68);
 }
 
 .image-choice-card.actual {
@@ -500,8 +501,8 @@ body {
 .image-choice-card.actual.selected,
 .image-choice-card.actual.pending {
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.92),
-    0 0 0 6px rgba(47, 211, 107, 0.72);
+    0 0 0 4px rgba(255, 255, 255, 0.94),
+    0 0 0 8px rgba(47, 211, 107, 0.72);
 }
 
 .image-choice-thumb {
