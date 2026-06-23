@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\VAPID;
+use Minishlink\WebPush\WebPush;
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
@@ -13,6 +17,7 @@ $backupDir = $privateRoot . DIRECTORY_SEPARATOR . 'backup';
 $logsDir = $privateRoot . DIRECTORY_SEPARATOR . 'logs';
 $configDir = $privateRoot . DIRECTORY_SEPARATOR . 'config';
 $pairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'pairs';
+$webPushConfigFile = $configDir . DIRECTORY_SEPARATOR . 'webpush.json';
 $publicImagePairsDir = __DIR__ . DIRECTORY_SEPARATOR . 'imagepairs';
 $imagePairsManifestFile = $publicImagePairsDir . DIRECTORY_SEPARATOR . 'pairs.json';
 $stateFile = $stateDir . DIRECTORY_SEPARATOR . 'session-state.json';
@@ -38,6 +43,11 @@ foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $pairsDir, 
     if (!is_dir($directory)) {
         mkdir($directory, 0777, true);
     }
+}
+
+$composerAutoloadFile = __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+if (is_file($composerAutoloadFile)) {
+    require_once $composerAutoloadFile;
 }
 
 ensure_demo_pair_records($pairsDir);
@@ -2078,6 +2088,846 @@ function default_launcher_profile_state(): array
     ];
 }
 
+function load_webpush_config(string $path): array
+{
+    if (!is_file($path)) {
+        return [
+            'available' => false,
+            'message' => 'Web Push configuration file is missing.'
+        ];
+    }
+
+    $raw = file_get_contents($path);
+    $decoded = is_string($raw) ? json_decode($raw, true) : null;
+    if (!is_array($decoded)) {
+        return [
+            'available' => false,
+            'message' => 'Web Push configuration file is not valid JSON.'
+        ];
+    }
+
+    $subject = trim((string) ($decoded['subject'] ?? ''));
+    $publicKey = trim((string) ($decoded['publicKey'] ?? ''));
+    $privateKey = trim((string) ($decoded['privateKey'] ?? ''));
+    if ($subject === '' || $publicKey === '' || $privateKey === '') {
+        return [
+            'available' => false,
+            'message' => 'Web Push configuration is incomplete.'
+        ];
+    }
+
+    try {
+        $validated = VAPID::validate([
+            'subject' => $subject,
+            'publicKey' => $publicKey,
+            'privateKey' => $privateKey
+        ]);
+    } catch (Throwable $exception) {
+        return [
+            'available' => false,
+            'message' => 'Web Push configuration is invalid: ' . $exception->getMessage()
+        ];
+    }
+
+    return [
+        'available' => true,
+        'subject' => $subject,
+        'publicKey' => $publicKey,
+        'privateKey' => $privateKey,
+        'validated' => $validated
+    ];
+}
+
+function normalize_device_id_value($value): string
+{
+    return trim((string) $value);
+}
+
+function validate_device_id_value($value, string $field = 'device_id'): string
+{
+    $text = normalize_device_id_value($value);
+    if ($text === '' || strlen($text) < 8 || strlen($text) > 128 || !preg_match('/^[A-Za-z0-9._:-]+$/', $text)) {
+        throw new RuntimeException($field . ' must be 8 to 128 characters long and use only letters, numbers, period, underscore, colon, or hyphen.');
+    }
+    return $text;
+}
+
+function validate_push_subscription_payload($value, string $field = 'push_subscription'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an object.');
+    }
+
+    require_allowed_keys($value, ['endpoint', 'keys', 'expirationTime', 'contentEncoding'], $field);
+
+    $endpoint = trim((string) ($value['endpoint'] ?? ''));
+    if ($endpoint === '' || !filter_var($endpoint, FILTER_VALIDATE_URL)) {
+        throw new RuntimeException($field . '.endpoint must be a valid URL.');
+    }
+
+    $keys = $value['keys'] ?? null;
+    if (!is_array($keys)) {
+        throw new RuntimeException($field . '.keys must be an object.');
+    }
+    require_allowed_keys($keys, ['p256dh', 'auth'], $field . '.keys');
+
+    $p256dh = trim((string) ($keys['p256dh'] ?? ''));
+    $auth = trim((string) ($keys['auth'] ?? ''));
+    if ($p256dh === '' || $auth === '') {
+        throw new RuntimeException($field . '.keys must include p256dh and auth.');
+    }
+
+    $contentEncoding = trim((string) ($value['contentEncoding'] ?? 'aes128gcm'));
+    if ($contentEncoding === '') {
+        $contentEncoding = 'aes128gcm';
+    }
+
+    $expirationTime = $value['expirationTime'] ?? null;
+    if ($expirationTime !== null && $expirationTime !== '' && !is_numeric($expirationTime)) {
+        throw new RuntimeException($field . '.expirationTime must be numeric or null.');
+    }
+
+    return [
+        'endpoint' => $endpoint,
+        'keys' => [
+            'p256dh' => $p256dh,
+            'auth' => $auth
+        ],
+        'contentEncoding' => $contentEncoding,
+        'expirationTime' => $expirationTime === null || $expirationTime === '' ? null : (int) round((float) $expirationTime)
+    ];
+}
+
+function build_push_registration_key(string $deviceId, string $endpoint): string
+{
+    return md5($deviceId . '||' . trim($endpoint));
+}
+
+function normalize_push_subscription_record(array $record): array
+{
+    return [
+        'identifier' => trim((string) ($record['identifier'] ?? '')),
+        'device_id' => normalize_device_id_value($record['device_id'] ?? ''),
+        'endpoint' => trim((string) ($record['endpoint'] ?? '')),
+        'keys' => [
+            'p256dh' => trim((string) ($record['keys']['p256dh'] ?? '')),
+            'auth' => trim((string) ($record['keys']['auth'] ?? ''))
+        ],
+        'content_encoding' => trim((string) ($record['content_encoding'] ?? 'aes128gcm')) ?: 'aes128gcm',
+        'expiration_time' => isset($record['expiration_time']) && is_numeric($record['expiration_time']) ? (int) round((float) $record['expiration_time']) : null,
+        'created_ms' => isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0,
+        'updated_ms' => isset($record['updated_ms']) && is_numeric($record['updated_ms']) ? (int) $record['updated_ms'] : 0,
+        'active' => !empty($record['active']),
+        'app_version' => trim((string) ($record['app_version'] ?? '')),
+        'is_installed_app' => !empty($record['is_installed_app']),
+        'user_agent' => trim((string) ($record['user_agent'] ?? ''))
+    ];
+}
+
+function build_partner_message_thread_key(string $leftIdentifier, string $rightIdentifier): string
+{
+    $participants = [
+        trim((string) $leftIdentifier),
+        trim((string) $rightIdentifier)
+    ];
+
+    usort($participants, static function (string $left, string $right): int {
+        return strcmp(normalize_identifier_for_lookup($left), normalize_identifier_for_lookup($right));
+    });
+
+    return md5(implode('|||', $participants));
+}
+
+function default_partner_message_thread(string $leftIdentifier, string $rightIdentifier): array
+{
+    return [
+        'participants' => [
+            trim((string) $leftIdentifier),
+            trim((string) $rightIdentifier)
+        ],
+        'updated_ms' => 0,
+        'messages' => []
+    ];
+}
+
+function normalize_partner_message_thread(array $thread): array
+{
+    $participants = is_array($thread['participants'] ?? null) ? $thread['participants'] : [];
+    $left = trim((string) ($participants[0] ?? ''));
+    $right = trim((string) ($participants[1] ?? ''));
+    $messages = [];
+
+    foreach ((array) ($thread['messages'] ?? []) as $message) {
+        if (!is_array($message)) {
+            continue;
+        }
+        $messages[] = [
+            'id' => trim((string) ($message['id'] ?? '')),
+            'sender_identifier' => trim((string) ($message['sender_identifier'] ?? '')),
+            'recipient_identifier' => trim((string) ($message['recipient_identifier'] ?? '')),
+            'sender_role' => trim((string) ($message['sender_role'] ?? '')),
+            'recipient_role' => trim((string) ($message['recipient_role'] ?? '')),
+            'text' => trim((string) ($message['text'] ?? '')),
+            'created_ms' => isset($message['created_ms']) && is_numeric($message['created_ms']) ? (int) $message['created_ms'] : 0,
+            'recipient_seen' => !empty($message['recipient_seen'])
+        ];
+    }
+
+    usort($messages, static function (array $leftMessage, array $rightMessage): int {
+        return ($leftMessage['created_ms'] ?? 0) <=> ($rightMessage['created_ms'] ?? 0);
+    });
+
+    return [
+        'participants' => [$left, $right],
+        'updated_ms' => isset($thread['updated_ms']) && is_numeric($thread['updated_ms']) ? (int) $thread['updated_ms'] : 0,
+        'messages' => array_slice($messages, -100)
+    ];
+}
+
+function build_partner_message_read_key(string $ownerIdentifier, string $partnerIdentifier): string
+{
+    return md5(
+        normalize_identifier_for_lookup(trim((string) $ownerIdentifier))
+        . '|||'
+        . normalize_identifier_for_lookup(trim((string) $partnerIdentifier))
+    );
+}
+
+function normalize_partner_message_read_entry(array $entry): array
+{
+    $readMessageIds = [];
+    foreach ((array) ($entry['read_message_ids'] ?? []) as $messageId) {
+        $normalizedId = trim((string) $messageId);
+        if ($normalizedId === '') {
+            continue;
+        }
+        $readMessageIds[$normalizedId] = $normalizedId;
+    }
+    $hiddenMessageIds = [];
+    foreach ((array) ($entry['hidden_message_ids'] ?? []) as $messageId) {
+        $normalizedId = trim((string) $messageId);
+        if ($normalizedId === '') {
+            continue;
+        }
+        $hiddenMessageIds[$normalizedId] = $normalizedId;
+    }
+    return [
+        'owner_identifier' => trim((string) ($entry['owner_identifier'] ?? '')),
+        'partner_identifier' => trim((string) ($entry['partner_identifier'] ?? '')),
+        'last_read_ms' => isset($entry['last_read_ms']) && is_numeric($entry['last_read_ms']) ? (int) $entry['last_read_ms'] : 0,
+        'updated_ms' => isset($entry['updated_ms']) && is_numeric($entry['updated_ms']) ? (int) $entry['updated_ms'] : 0,
+        'read_message_ids' => array_values($readMessageIds),
+        'hidden_message_ids' => array_values($hiddenMessageIds)
+    ];
+}
+
+function get_partner_message_last_read_ms(array $state, string $ownerIdentifier, string $partnerIdentifier): int
+{
+    if (!is_array($state['partner_message_reads'] ?? null)) {
+        return 0;
+    }
+
+    $entry = $state['partner_message_reads'][build_partner_message_read_key($ownerIdentifier, $partnerIdentifier)] ?? null;
+    if (!is_array($entry)) {
+        return 0;
+    }
+
+    $normalizedEntry = normalize_partner_message_read_entry($entry);
+    return (int) $normalizedEntry['last_read_ms'];
+}
+
+function get_partner_message_read_ids(array $state, string $ownerIdentifier, string $partnerIdentifier): array
+{
+    if (!is_array($state['partner_message_reads'] ?? null)) {
+        return [];
+    }
+
+    $entry = $state['partner_message_reads'][build_partner_message_read_key($ownerIdentifier, $partnerIdentifier)] ?? null;
+    if (!is_array($entry)) {
+        return [];
+    }
+
+    $normalizedEntry = normalize_partner_message_read_entry($entry);
+    return array_values(array_filter((array) ($normalizedEntry['read_message_ids'] ?? []), static function ($messageId): bool {
+        return trim((string) $messageId) !== '';
+    }));
+}
+
+function get_partner_message_hidden_ids(array $state, string $ownerIdentifier, string $partnerIdentifier): array
+{
+    if (!is_array($state['partner_message_reads'] ?? null)) {
+        return [];
+    }
+
+    $entry = $state['partner_message_reads'][build_partner_message_read_key($ownerIdentifier, $partnerIdentifier)] ?? null;
+    if (!is_array($entry)) {
+        return [];
+    }
+
+    $normalizedEntry = normalize_partner_message_read_entry($entry);
+    return array_values(array_filter((array) ($normalizedEntry['hidden_message_ids'] ?? []), static function ($messageId): bool {
+        return trim((string) $messageId) !== '';
+    }));
+}
+
+function is_partner_message_read_for_owner(array $message, string $ownerIdentifier, array $readMessageIds = [], int $lastReadMs = 0): bool
+{
+    $ownerLookup = normalize_identifier_for_lookup($ownerIdentifier);
+    if ($ownerLookup === '') {
+        return false;
+    }
+    if (normalize_identifier_for_lookup((string) ($message['recipient_identifier'] ?? '')) !== $ownerLookup) {
+        return true;
+    }
+    $messageId = trim((string) ($message['id'] ?? ''));
+    if ($messageId !== '' && in_array($messageId, $readMessageIds, true)) {
+        return true;
+    }
+    $createdMs = isset($message['created_ms']) && is_numeric($message['created_ms']) ? (int) $message['created_ms'] : 0;
+    return $createdMs > 0 && $createdMs <= $lastReadMs;
+}
+
+function mark_partner_messages_read(array &$state, string $ownerIdentifier, string $partnerIdentifier, int $nowMs, ?string $messageId = null): array
+{
+    if (!is_array($state['partner_message_reads'] ?? null)) {
+        $state['partner_message_reads'] = [];
+    }
+
+    $entryKey = build_partner_message_read_key($ownerIdentifier, $partnerIdentifier);
+    $existingEntry = is_array($state['partner_message_reads'][$entryKey] ?? null)
+        ? normalize_partner_message_read_entry($state['partner_message_reads'][$entryKey])
+        : [
+            'owner_identifier' => trim((string) $ownerIdentifier),
+            'partner_identifier' => trim((string) $partnerIdentifier),
+            'last_read_ms' => 0,
+            'updated_ms' => 0,
+            'read_message_ids' => [],
+            'hidden_message_ids' => []
+        ];
+
+    $normalizedMessageId = trim((string) $messageId);
+    if ($normalizedMessageId !== '') {
+        $readIds = [];
+        foreach ((array) ($existingEntry['read_message_ids'] ?? []) as $existingMessageId) {
+            $candidate = trim((string) $existingMessageId);
+            if ($candidate === '') {
+                continue;
+            }
+            $readIds[$candidate] = $candidate;
+        }
+        $readIds[$normalizedMessageId] = $normalizedMessageId;
+        $existingEntry['read_message_ids'] = array_values($readIds);
+        $existingEntry['updated_ms'] = $nowMs;
+        $state['partner_message_reads'][$entryKey] = normalize_partner_message_read_entry($existingEntry);
+        return $existingEntry;
+    }
+
+    $existingEntry['last_read_ms'] = $nowMs;
+    $existingEntry['updated_ms'] = $nowMs;
+    $existingEntry['read_message_ids'] = [];
+    $state['partner_message_reads'][$entryKey] = normalize_partner_message_read_entry($existingEntry);
+    return $existingEntry;
+}
+
+function hide_partner_message_for_owner(array &$state, string $ownerIdentifier, string $partnerIdentifier, string $messageId, int $nowMs): array
+{
+    if (!is_array($state['partner_message_reads'] ?? null)) {
+        $state['partner_message_reads'] = [];
+    }
+
+    $entryKey = build_partner_message_read_key($ownerIdentifier, $partnerIdentifier);
+    $existingEntry = is_array($state['partner_message_reads'][$entryKey] ?? null)
+        ? normalize_partner_message_read_entry($state['partner_message_reads'][$entryKey])
+        : [
+            'owner_identifier' => trim((string) $ownerIdentifier),
+            'partner_identifier' => trim((string) $partnerIdentifier),
+            'last_read_ms' => 0,
+            'updated_ms' => 0,
+            'read_message_ids' => [],
+            'hidden_message_ids' => []
+        ];
+
+    $normalizedMessageId = trim((string) $messageId);
+    if ($normalizedMessageId === '') {
+        return $existingEntry;
+    }
+
+    $hiddenIds = [];
+    foreach ((array) ($existingEntry['hidden_message_ids'] ?? []) as $existingMessageId) {
+        $candidate = trim((string) $existingMessageId);
+        if ($candidate === '') {
+            continue;
+        }
+        $hiddenIds[$candidate] = $candidate;
+    }
+    $hiddenIds[$normalizedMessageId] = $normalizedMessageId;
+    $existingEntry['hidden_message_ids'] = array_values($hiddenIds);
+    $existingEntry['updated_ms'] = $nowMs;
+    $state['partner_message_reads'][$entryKey] = normalize_partner_message_read_entry($existingEntry);
+    return $existingEntry;
+}
+
+function get_partner_thread_unread_count_for_owner(array $thread, string $ownerIdentifier, int $lastReadMs = 0, array $readMessageIds = []): int
+{
+    $ownerLookup = normalize_identifier_for_lookup($ownerIdentifier);
+    if ($ownerLookup === '') {
+        return 0;
+    }
+
+    $unreadCount = 0;
+    foreach ((array) ($thread['messages'] ?? []) as $message) {
+        if (!is_array($message)) {
+            continue;
+        }
+        if (normalize_identifier_for_lookup((string) ($message['recipient_identifier'] ?? '')) !== $ownerLookup) {
+            continue;
+        }
+        if (!is_partner_message_read_for_owner($message, $ownerIdentifier, $readMessageIds, $lastReadMs)) {
+            $unreadCount += 1;
+        }
+    }
+
+    return $unreadCount;
+}
+
+function is_partner_message_seen_by_recipient(array $state, array $message): bool
+{
+    $senderIdentifier = trim((string) ($message['sender_identifier'] ?? ''));
+    $recipientIdentifier = trim((string) ($message['recipient_identifier'] ?? ''));
+    if ($senderIdentifier === '' || $recipientIdentifier === '') {
+        return false;
+    }
+
+    $messageId = trim((string) ($message['id'] ?? ''));
+    $recipientReadIds = get_partner_message_read_ids($state, $recipientIdentifier, $senderIdentifier);
+    $recipientHiddenIds = get_partner_message_hidden_ids($state, $recipientIdentifier, $senderIdentifier);
+    if ($messageId !== '' && (in_array($messageId, $recipientReadIds, true) || in_array($messageId, $recipientHiddenIds, true))) {
+        return true;
+    }
+
+    $recipientLastReadMs = get_partner_message_last_read_ms($state, $recipientIdentifier, $senderIdentifier);
+    $createdMs = isset($message['created_ms']) && is_numeric($message['created_ms']) ? (int) $message['created_ms'] : 0;
+    return $createdMs > 0 && $createdMs <= $recipientLastReadMs;
+}
+
+function build_partner_message_thread_for_owner(array $state, string $ownIdentifier, string $partnerIdentifier): array
+{
+    $thread = get_partner_message_thread($state, $ownIdentifier, $partnerIdentifier);
+    $hiddenMessageIds = get_partner_message_hidden_ids($state, $ownIdentifier, $partnerIdentifier);
+    $hiddenMap = [];
+    foreach ($hiddenMessageIds as $messageId) {
+        $hiddenMap[trim((string) $messageId)] = true;
+    }
+
+    $messages = [];
+    foreach ((array) ($thread['messages'] ?? []) as $message) {
+        if (!is_array($message)) {
+            continue;
+        }
+        $messageId = trim((string) ($message['id'] ?? ''));
+        if ($messageId !== '' && isset($hiddenMap[$messageId])) {
+            continue;
+        }
+        $message['recipient_seen'] = is_partner_message_seen_by_recipient($state, $message);
+        $messages[] = $message;
+    }
+
+    $thread['messages'] = $messages;
+    return normalize_partner_message_thread($thread);
+}
+
+function build_partner_message_inbox_summary(array $state, string $ownerIdentifier): array
+{
+    $ownerLookup = normalize_identifier_for_lookup($ownerIdentifier);
+    if ($ownerLookup === '') {
+        return [
+            'owner_identifier' => trim((string) $ownerIdentifier),
+            'total_unread' => 0,
+            'conversations' => []
+        ];
+    }
+
+    $conversations = [];
+    foreach ((array) ($state['partner_message_threads'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $thread = normalize_partner_message_thread($entry);
+        $participants = is_array($thread['participants'] ?? null) ? $thread['participants'] : [];
+        $left = trim((string) ($participants[0] ?? ''));
+        $right = trim((string) ($participants[1] ?? ''));
+        if ($left === '' || $right === '') {
+            continue;
+        }
+
+        $partnerIdentifier = '';
+        if (normalize_identifier_for_lookup($left) === $ownerLookup) {
+            $partnerIdentifier = $right;
+        } elseif (normalize_identifier_for_lookup($right) === $ownerLookup) {
+            $partnerIdentifier = $left;
+        }
+        if ($partnerIdentifier === '') {
+            continue;
+        }
+
+        $hiddenMessageIds = get_partner_message_hidden_ids($state, $ownerIdentifier, $partnerIdentifier);
+        $hiddenMap = [];
+        foreach ($hiddenMessageIds as $messageId) {
+            $hiddenMap[trim((string) $messageId)] = true;
+        }
+        $messages = array_values(array_filter((array) ($thread['messages'] ?? null), static function ($message) use ($hiddenMap): bool {
+            if (!is_array($message)) {
+                return false;
+            }
+            $messageId = trim((string) ($message['id'] ?? ''));
+            return $messageId === '' || !isset($hiddenMap[$messageId]);
+        }));
+        $lastMessage = $messages ? $messages[count($messages) - 1] : null;
+        $lastReadMs = get_partner_message_last_read_ms($state, $ownerIdentifier, $partnerIdentifier);
+        $readMessageIds = get_partner_message_read_ids($state, $ownerIdentifier, $partnerIdentifier);
+        $visibleThread = $thread;
+        $visibleThread['messages'] = $messages;
+        $unreadCount = get_partner_thread_unread_count_for_owner($visibleThread, $ownerIdentifier, $lastReadMs, $readMessageIds);
+
+        $conversations[] = [
+            'partner_identifier' => $partnerIdentifier,
+            'updated_ms' => isset($thread['updated_ms']) && is_numeric($thread['updated_ms']) ? (int) $thread['updated_ms'] : 0,
+            'last_read_ms' => $lastReadMs,
+            'read_message_ids' => $readMessageIds,
+            'unread_count' => $unreadCount,
+            'last_message' => is_array($lastMessage) ? [
+                'id' => trim((string) ($lastMessage['id'] ?? '')),
+                'sender_identifier' => trim((string) ($lastMessage['sender_identifier'] ?? '')),
+                'recipient_identifier' => trim((string) ($lastMessage['recipient_identifier'] ?? '')),
+                'text' => trim((string) ($lastMessage['text'] ?? '')),
+                'created_ms' => isset($lastMessage['created_ms']) && is_numeric($lastMessage['created_ms']) ? (int) $lastMessage['created_ms'] : 0
+            ] : null
+        ];
+    }
+
+    usort($conversations, static function (array $left, array $right): int {
+        $leftSort = max((int) ($left['updated_ms'] ?? 0), (int) ($left['last_message']['created_ms'] ?? 0));
+        $rightSort = max((int) ($right['updated_ms'] ?? 0), (int) ($right['last_message']['created_ms'] ?? 0));
+        return $rightSort <=> $leftSort;
+    });
+
+    return [
+        'owner_identifier' => trim((string) $ownerIdentifier),
+        'total_unread' => array_sum(array_map(static function (array $conversation): int {
+            return (int) ($conversation['unread_count'] ?? 0);
+        }, $conversations)),
+        'conversations' => $conversations
+    ];
+}
+
+function build_absolute_launcher_url(array $params = []): string
+{
+    global $isWindows;
+
+    $scheme = 'http';
+    if (
+        (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443'
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https'
+    ) {
+        $scheme = 'https';
+    }
+
+    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host === '') {
+        $host = $isWindows ? 'localhost' : 'telepathyexperiment.com';
+    }
+
+    $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/cones/api.php'));
+    $baseDir = rtrim(dirname($scriptName), '/');
+    $baseUrl = $scheme . '://' . $host . ($baseDir !== '' ? $baseDir : '') . '/telepathybeginner.html';
+
+    if (!$params) {
+        return $baseUrl;
+    }
+
+    return $baseUrl . '?' . http_build_query($params);
+}
+
+function get_active_push_subscriptions_for_identifier(array $state, string $identifier): array
+{
+    $lookup = normalize_identifier_for_lookup($identifier);
+    if ($lookup === '') {
+        return [];
+    }
+
+    $registrations = [];
+    foreach ((array) ($state['push_subscriptions'] ?? []) as $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $normalized = normalize_push_subscription_record($record);
+        if (!$normalized['active']) {
+            continue;
+        }
+        if (normalize_identifier_for_lookup((string) $normalized['identifier']) !== $lookup) {
+            continue;
+        }
+        if ($normalized['endpoint'] === '' || $normalized['keys']['p256dh'] === '' || $normalized['keys']['auth'] === '') {
+            continue;
+        }
+        $registrations[] = $normalized;
+    }
+
+    return $registrations;
+}
+
+function get_push_registration_status(array $state, string $identifier, string $deviceId = ''): array
+{
+    $subscriptions = get_active_push_subscriptions_for_identifier($state, $identifier);
+    $normalizedDeviceId = normalize_device_id_value($deviceId);
+    $deviceRegistration = null;
+
+    foreach ($subscriptions as $record) {
+        if ($normalizedDeviceId !== '' && $record['device_id'] === $normalizedDeviceId) {
+            $deviceRegistration = $record;
+            break;
+        }
+    }
+
+    return [
+        'identifier' => trim((string) $identifier),
+        'subscription_count' => count($subscriptions),
+        'device_subscription_active' => $deviceRegistration !== null,
+        'device_registration' => $deviceRegistration,
+        'notification_ready' => $deviceRegistration !== null && !empty($deviceRegistration['is_installed_app'])
+    ];
+}
+
+function upsert_push_subscription_record(array &$state, string $identifier, string $deviceId, array $subscription, int $nowMs, array $options = []): array
+{
+    if (!is_array($state['push_subscriptions'] ?? null)) {
+        $state['push_subscriptions'] = [];
+    }
+
+    $normalizedIdentifier = trim((string) $identifier);
+    $normalizedDeviceId = normalize_device_id_value($deviceId);
+    $registrationKey = build_push_registration_key($normalizedDeviceId, (string) $subscription['endpoint']);
+    $createdMs = $nowMs;
+
+    foreach ($state['push_subscriptions'] as $existingKey => $existingRecord) {
+        if (!is_array($existingRecord)) {
+            unset($state['push_subscriptions'][$existingKey]);
+            continue;
+        }
+
+        $normalizedRecord = normalize_push_subscription_record($existingRecord);
+        if ($normalizedRecord['device_id'] === $normalizedDeviceId && $existingKey !== $registrationKey) {
+            $normalizedRecord['active'] = false;
+            $normalizedRecord['updated_ms'] = $nowMs;
+            $state['push_subscriptions'][$existingKey] = $normalizedRecord;
+        }
+
+        if ($existingKey === $registrationKey) {
+            $createdMs = $normalizedRecord['created_ms'] > 0 ? $normalizedRecord['created_ms'] : $nowMs;
+        }
+    }
+
+    $record = [
+        'identifier' => $normalizedIdentifier,
+        'device_id' => $normalizedDeviceId,
+        'endpoint' => trim((string) $subscription['endpoint']),
+        'keys' => [
+            'p256dh' => trim((string) ($subscription['keys']['p256dh'] ?? '')),
+            'auth' => trim((string) ($subscription['keys']['auth'] ?? ''))
+        ],
+        'content_encoding' => trim((string) ($subscription['contentEncoding'] ?? 'aes128gcm')) ?: 'aes128gcm',
+        'expiration_time' => $subscription['expirationTime'] ?? null,
+        'created_ms' => $createdMs,
+        'updated_ms' => $nowMs,
+        'active' => true,
+        'app_version' => trim((string) ($options['app_version'] ?? '')),
+        'is_installed_app' => !empty($options['is_installed_app']),
+        'user_agent' => trim((string) ($options['user_agent'] ?? ''))
+    ];
+
+    $state['push_subscriptions'][$registrationKey] = $record;
+    return $record;
+}
+
+function deactivate_push_subscription_record(array &$state, string $identifier, string $deviceId, int $nowMs): bool
+{
+    if (!is_array($state['push_subscriptions'] ?? null)) {
+        $state['push_subscriptions'] = [];
+        return false;
+    }
+
+    $normalizedIdentifier = normalize_identifier_for_lookup($identifier);
+    $normalizedDeviceId = normalize_device_id_value($deviceId);
+    $changed = false;
+
+    foreach ($state['push_subscriptions'] as $key => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $normalizedRecord = normalize_push_subscription_record($record);
+        if ($normalizedDeviceId !== '' && $normalizedRecord['device_id'] !== $normalizedDeviceId) {
+            continue;
+        }
+        if ($normalizedIdentifier !== '' && normalize_identifier_for_lookup((string) $normalizedRecord['identifier']) !== $normalizedIdentifier) {
+            continue;
+        }
+        if ($normalizedRecord['active']) {
+            $normalizedRecord['active'] = false;
+            $normalizedRecord['updated_ms'] = $nowMs;
+            $state['push_subscriptions'][$key] = $normalizedRecord;
+            $changed = true;
+        }
+    }
+
+    return $changed;
+}
+
+function get_partner_message_thread(array $state, string $ownIdentifier, string $partnerIdentifier): array
+{
+    $threadKey = build_partner_message_thread_key($ownIdentifier, $partnerIdentifier);
+    if (!is_array($state['partner_message_threads'] ?? null)) {
+        return default_partner_message_thread($ownIdentifier, $partnerIdentifier);
+    }
+
+    $thread = $state['partner_message_threads'][$threadKey] ?? null;
+    if (!is_array($thread)) {
+        return default_partner_message_thread($ownIdentifier, $partnerIdentifier);
+    }
+
+    return normalize_partner_message_thread($thread);
+}
+
+function append_partner_message(array &$state, string $senderIdentifier, string $recipientIdentifier, string $senderRole, string $recipientRole, string $text, int $nowMs): array
+{
+    if (!is_array($state['partner_message_threads'] ?? null)) {
+        $state['partner_message_threads'] = [];
+    }
+
+    $threadKey = build_partner_message_thread_key($senderIdentifier, $recipientIdentifier);
+    $thread = get_partner_message_thread($state, $senderIdentifier, $recipientIdentifier);
+    $messageRecord = [
+        'id' => bin2hex(random_bytes(8)),
+        'sender_identifier' => trim((string) $senderIdentifier),
+        'recipient_identifier' => trim((string) $recipientIdentifier),
+        'sender_role' => trim((string) $senderRole),
+        'recipient_role' => trim((string) $recipientRole),
+        'text' => trim((string) $text),
+        'created_ms' => $nowMs
+    ];
+
+    $thread['messages'][] = $messageRecord;
+    $thread['updated_ms'] = $nowMs;
+    $state['partner_message_threads'][$threadKey] = normalize_partner_message_thread($thread);
+
+    return $messageRecord;
+}
+
+function delete_partner_message(array &$state, string $ownIdentifier, string $partnerIdentifier, string $messageId, int $nowMs): array
+{
+    $thread = get_partner_message_thread($state, $ownIdentifier, $partnerIdentifier);
+    $messages = is_array($thread['messages'] ?? null) ? $thread['messages'] : [];
+    $normalizedMessageId = trim((string) $messageId);
+    $deleted = false;
+
+    foreach ($messages as $message) {
+        if (!is_array($message)) {
+            continue;
+        }
+        $currentId = trim((string) ($message['id'] ?? ''));
+        if ($normalizedMessageId !== '' && $currentId === $normalizedMessageId) {
+            $deleted = true;
+            break;
+        }
+    }
+
+    if ($deleted) {
+        hide_partner_message_for_owner($state, $ownIdentifier, $partnerIdentifier, $normalizedMessageId, $nowMs);
+    }
+
+    return [
+        'deleted' => $deleted,
+        'thread' => build_partner_message_thread_for_owner($state, $ownIdentifier, $partnerIdentifier)
+    ];
+}
+
+function send_push_notification_to_identifier(array &$state, array $webPushConfig, string $recipientIdentifier, array $payload, int $nowMs): array
+{
+    if (empty($webPushConfig['available'])) {
+        return [
+            'sent_count' => 0,
+            'expired_count' => 0,
+            'message' => trim((string) ($webPushConfig['message'] ?? 'Web Push is unavailable.'))
+        ];
+    }
+
+    $subscriptions = get_active_push_subscriptions_for_identifier($state, $recipientIdentifier);
+    if (!$subscriptions) {
+        return [
+            'sent_count' => 0,
+            'expired_count' => 0,
+            'message' => 'No active notification subscriptions were found for this recipient.'
+        ];
+    }
+
+    $webPush = new WebPush([
+        'VAPID' => [
+            'subject' => (string) $webPushConfig['subject'],
+            'publicKey' => (string) $webPushConfig['publicKey'],
+            'privateKey' => (string) $webPushConfig['privateKey']
+        ]
+    ]);
+
+    $encodedPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($encodedPayload === false) {
+        return [
+            'sent_count' => 0,
+            'expired_count' => 0,
+            'message' => 'Notification payload could not be encoded.'
+        ];
+    }
+
+    $sentCount = 0;
+    $expiredCount = 0;
+    $errors = [];
+
+    foreach ($subscriptions as $subscriptionRecord) {
+        try {
+            $subscription = Subscription::create([
+                'endpoint' => (string) $subscriptionRecord['endpoint'],
+                'keys' => [
+                    'p256dh' => (string) ($subscriptionRecord['keys']['p256dh'] ?? ''),
+                    'auth' => (string) ($subscriptionRecord['keys']['auth'] ?? '')
+                ],
+                'contentEncoding' => (string) ($subscriptionRecord['content_encoding'] ?? 'aes128gcm')
+            ]);
+
+            $report = $webPush->sendOneNotification($subscription, $encodedPayload, ['TTL' => 300]);
+            if ($report->isSuccess()) {
+                $sentCount++;
+                continue;
+            }
+
+            if ($report->isSubscriptionExpired()) {
+                $expiredCount++;
+                deactivate_push_subscription_record($state, (string) $subscriptionRecord['identifier'], (string) $subscriptionRecord['device_id'], $nowMs);
+            }
+
+            $errors[] = $report->getReason();
+        } catch (Throwable $exception) {
+            $errors[] = $exception->getMessage();
+        }
+    }
+
+    return [
+        'sent_count' => $sentCount,
+        'expired_count' => $expiredCount,
+        'message' => $sentCount > 0
+            ? 'Notification sent.'
+            : ($errors ? implode(' ', array_unique($errors)) : 'Notification could not be delivered.')
+    ];
+}
+
 function sanitize_string_list(array $values): array
 {
     $clean = [];
@@ -2111,6 +2961,18 @@ function replace_identifier_in_list(array $values, string $previousIdentifier, s
     }
 
     return sanitize_string_list($updated);
+}
+
+function validate_partner_message_text($value, string $field = 'message_text'): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        throw new RuntimeException($field . ' is required.');
+    }
+    if (mb_strlen($text) > 300) {
+        throw new RuntimeException($field . ' must not exceed 300 characters.');
+    }
+    return $text;
 }
 
 function fail_request($handle, int $nowMs, string $message, int $statusCode = 400, array $extra = []): void
@@ -2425,6 +3287,8 @@ function get_identifier_status(array $state, string $identifier): array
     $canonicalKey = get_canonical_identifier_key($state, $input);
     $uniqueHandles = is_array($state['unique_handles'] ?? null) ? $state['unique_handles'] : [];
     $identifierAliases = is_array($state['identifier_aliases'] ?? null) ? $state['identifier_aliases'] : [];
+    $retiredHandles = is_array($state['retired_handles'] ?? null) ? $state['retired_handles'] : [];
+    $handleOwners = is_array($state['handle_owners'] ?? null) ? $state['handle_owners'] : [];
 
     $preferredHandle = '';
     $ownerIdentifier = $input;
@@ -2438,6 +3302,18 @@ function get_identifier_status(array $state, string $identifier): array
         $preferredHandle = trim((string) $identifierAliases[$lookup]);
         $usesHandle = $preferredHandle !== '';
         $ownerIdentifier = $input;
+    } elseif ($canonicalKey !== '' && isset($retiredHandles[$canonicalKey]) && is_array($retiredHandles[$canonicalKey])) {
+        $retiredEntry = $retiredHandles[$canonicalKey];
+        $ownerIdentifier = trim((string) ($retiredEntry['owner_identifier'] ?? $input));
+        $ownerKey = get_handle_owner_key($ownerIdentifier);
+        $ownerRecord = $ownerKey !== '' && isset($handleOwners[$ownerKey]) && is_array($handleOwners[$ownerKey])
+            ? $handleOwners[$ownerKey]
+            : null;
+        $currentHandle = trim((string) ($ownerRecord['current_handle'] ?? ''));
+        if ($currentHandle !== '') {
+            $preferredHandle = $currentHandle;
+            $usesHandle = true;
+        }
     }
 
     $preferredIdentifier = $preferredHandle !== '' ? $preferredHandle : $input;
@@ -2762,16 +3638,20 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
     ];
 }
 
-function admin_update_unique_handle(array &$state, string $pairsDir, string $previousHandle, string $nextHandle, int $nowMs): array
+function admin_update_unique_handle(array &$state, string $pairsDir, string $previousHandle, string $nextIdentifier, int $nowMs): array
 {
     $oldHandle = trim(preg_replace('/\s+/', ' ', $previousHandle) ?? '');
-    $newHandle = trim(preg_replace('/\s+/', ' ', $nextHandle) ?? '');
+    $newIdentifier = validate_participant_identifier_string($nextIdentifier, 'new_identifier', true);
+    $newIdentifier = filter_var($newIdentifier, FILTER_VALIDATE_EMAIL)
+        ? $newIdentifier
+        : trim(preg_replace('/\s+/', ' ', $newIdentifier) ?? '');
+    $newIsHandle = is_valid_handle_identifier($newIdentifier) && !filter_var($newIdentifier, FILTER_VALIDATE_EMAIL);
 
     if (!is_valid_handle_identifier($oldHandle)) {
         throw new RuntimeException('Current handle is invalid.');
     }
-    if (!is_valid_handle_identifier($newHandle)) {
-        throw new RuntimeException('New handle is invalid.');
+    if ($newIsHandle && !is_valid_handle_identifier($newIdentifier)) {
+        throw new RuntimeException('New identifier is invalid.');
     }
 
     if (!is_array($state['unique_handles'] ?? null)) {
@@ -2794,7 +3674,7 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
     }
 
     $oldKey = canonicalize_handle($oldHandle);
-    $newKey = canonicalize_handle($newHandle);
+    $newKey = $newIsHandle ? canonicalize_handle($newIdentifier) : normalize_identifier_for_lookup($newIdentifier);
     $existingOld = is_array($state['unique_handles'][$oldKey] ?? null) ? $state['unique_handles'][$oldKey] : null;
 
     if (!$existingOld) {
@@ -2802,33 +3682,39 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
     }
 
     if ($newKey !== $oldKey) {
-        $existingNew = is_array($state['unique_handles'][$newKey] ?? null) ? $state['unique_handles'][$newKey] : null;
-        if ($existingNew) {
-            throw new RuntimeException('That new handle is already in use.');
-        }
-        if (is_retired_handle($state, $newKey)) {
-            throw new RuntimeException('That new handle was used previously and is no longer available.');
+        if ($newIsHandle) {
+            $existingNew = is_array($state['unique_handles'][$newKey] ?? null) ? $state['unique_handles'][$newKey] : null;
+            if ($existingNew) {
+                throw new RuntimeException('That new handle is already in use.');
+            }
+            if (is_retired_handle($state, $newKey)) {
+                throw new RuntimeException('That new handle was used previously and is no longer available.');
+            }
         }
     }
 
     $ownerIdentifier = trim((string) ($existingOld['owner_identifier'] ?? $oldHandle));
+    $nextOwnerIdentifier = $newIsHandle ? $ownerIdentifier : $newIdentifier;
     $ownerKey = get_handle_owner_key($ownerIdentifier);
+    $nextOwnerKey = get_handle_owner_key($nextOwnerIdentifier);
     $ownerRecord = get_or_create_handle_owner_record($state, $ownerIdentifier, $nowMs);
 
     if ($newKey !== $oldKey) {
         retire_active_handle($state, $oldKey, $ownerIdentifier, $nowMs);
-        unset($state['unique_handles'][$oldKey]);
     }
+    unset($state['unique_handles'][$oldKey]);
 
-    $state['unique_handles'][$newKey] = [
-        'handle' => $newHandle,
-        'canonical_handle' => $newKey,
-        'owner_identifier' => $ownerIdentifier,
-        'created_ms' => isset($existingOld['created_ms']) && is_numeric($existingOld['created_ms'])
-            ? (int) $existingOld['created_ms']
-            : (isset($existingOld['updated_ms']) && is_numeric($existingOld['updated_ms']) ? (int) $existingOld['updated_ms'] : $nowMs),
-        'updated_ms' => $nowMs
-    ];
+    if ($newIsHandle) {
+        $state['unique_handles'][$newKey] = [
+            'handle' => $newIdentifier,
+            'canonical_handle' => $newKey,
+            'owner_identifier' => $ownerIdentifier,
+            'created_ms' => isset($existingOld['created_ms']) && is_numeric($existingOld['created_ms'])
+                ? (int) $existingOld['created_ms']
+                : (isset($existingOld['updated_ms']) && is_numeric($existingOld['updated_ms']) ? (int) $existingOld['updated_ms'] : $nowMs),
+            'updated_ms' => $nowMs
+        ];
+    }
 
     foreach (array_keys($state['identifier_aliases']) as $aliasKey) {
         $aliasValue = $state['identifier_aliases'][$aliasKey];
@@ -2836,12 +3722,23 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
             continue;
         }
         if (canonicalize_handle($aliasValue) === $oldKey) {
-            $state['identifier_aliases'][$aliasKey] = $newHandle;
+            if ($newIsHandle) {
+                $state['identifier_aliases'][$aliasKey] = $newIdentifier;
+            } else {
+                unset($state['identifier_aliases'][$aliasKey]);
+            }
         }
     }
-    $state['identifier_aliases'][$oldKey] = $newHandle;
-    if ($ownerKey !== '') {
-        $state['identifier_aliases'][$ownerKey] = $newHandle;
+    if ($newIsHandle) {
+        $state['identifier_aliases'][$oldKey] = $newIdentifier;
+        if ($ownerKey !== '') {
+            $state['identifier_aliases'][$ownerKey] = $newIdentifier;
+        }
+    } else {
+        unset($state['identifier_aliases'][$oldKey]);
+        if ($ownerKey !== '') {
+            unset($state['identifier_aliases'][$ownerKey]);
+        }
     }
 
     if ($newKey !== $oldKey && isset($state['user_types'][$oldKey])) {
@@ -2869,15 +3766,15 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
                 ? $updatedLauncherProfiles[$targetProfileKey][$role]
                 : default_launcher_profile_state();
 
-            $ownEmail = replace_identifier_if_match(trim((string) ($profile['own_email'] ?? '')), $oldHandle, $newHandle);
+            $ownEmail = replace_identifier_if_match(trim((string) ($profile['own_email'] ?? '')), $oldHandle, $newIdentifier);
             $preferredHandle = trim((string) ($profile['preferred_handle'] ?? ''));
             if (canonicalize_handle($preferredHandle) === $oldKey) {
-                $preferredHandle = $newHandle;
+                $preferredHandle = $newIsHandle ? $newIdentifier : '';
             }
 
-            $currentPartner = replace_identifier_if_match(trim((string) ($profile['current_partner'] ?? '')), $oldHandle, $newHandle);
-            $partnerHistory = replace_identifier_in_list(is_array($profile['partner_history'] ?? null) ? $profile['partner_history'] : [], $oldHandle, $newHandle);
-            $deletedPartners = replace_identifier_in_list(is_array($profile['deleted_partners'] ?? null) ? $profile['deleted_partners'] : [], $oldHandle, $newHandle);
+            $currentPartner = replace_identifier_if_match(trim((string) ($profile['current_partner'] ?? '')), $oldHandle, $newIdentifier);
+            $partnerHistory = replace_identifier_in_list(is_array($profile['partner_history'] ?? null) ? $profile['partner_history'] : [], $oldHandle, $newIdentifier);
+            $deletedPartners = replace_identifier_in_list(is_array($profile['deleted_partners'] ?? null) ? $profile['deleted_partners'] : [], $oldHandle, $newIdentifier);
 
             $updatedLauncherProfiles[$targetProfileKey][$role] = [
                 'own_email' => $ownEmail !== '' ? $ownEmail : trim((string) ($existingProfile['own_email'] ?? '')),
@@ -2910,7 +3807,7 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
                 $sessionEntry[$roleKey]['profile'][$fieldKey] = replace_identifier_if_match(
                     trim((string) ($sessionEntry[$roleKey]['profile'][$fieldKey] ?? '')),
                     $oldHandle,
-                    $newHandle
+                    $newIdentifier
                 );
             }
         }
@@ -2921,39 +3818,43 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
         if (!is_array($entry)) {
             continue;
         }
-        $state['session_registry'][$sessionCode]['sender_name'] = replace_identifier_if_match(trim((string) ($entry['sender_name'] ?? '')), $oldHandle, $newHandle);
-        $state['session_registry'][$sessionCode]['receiver_name'] = replace_identifier_if_match(trim((string) ($entry['receiver_name'] ?? '')), $oldHandle, $newHandle);
+        $state['session_registry'][$sessionCode]['sender_name'] = replace_identifier_if_match(trim((string) ($entry['sender_name'] ?? '')), $oldHandle, $newIdentifier);
+        $state['session_registry'][$sessionCode]['receiver_name'] = replace_identifier_if_match(trim((string) ($entry['receiver_name'] ?? '')), $oldHandle, $newIdentifier);
     }
 
     foreach ($state['pair_difficulties'] as $sessionCode => $entry) {
         if (!is_array($entry)) {
             continue;
         }
-        $state['pair_difficulties'][$sessionCode]['sender_name'] = replace_identifier_if_match(trim((string) ($entry['sender_name'] ?? '')), $oldHandle, $newHandle);
-        $state['pair_difficulties'][$sessionCode]['receiver_name'] = replace_identifier_if_match(trim((string) ($entry['receiver_name'] ?? '')), $oldHandle, $newHandle);
+        $state['pair_difficulties'][$sessionCode]['sender_name'] = replace_identifier_if_match(trim((string) ($entry['sender_name'] ?? '')), $oldHandle, $newIdentifier);
+        $state['pair_difficulties'][$sessionCode]['receiver_name'] = replace_identifier_if_match(trim((string) ($entry['receiver_name'] ?? '')), $oldHandle, $newIdentifier);
     }
 
-    $ownerRecord['owner_identifier'] = $ownerIdentifier;
-    $ownerRecord['current_handle'] = $newHandle;
-    $ownerRecord['current_canonical_handle'] = $newKey;
+    $ownerRecord['owner_identifier'] = $nextOwnerIdentifier;
+    $ownerRecord['current_handle'] = $newIsHandle ? $newIdentifier : '';
+    $ownerRecord['current_canonical_handle'] = $newIsHandle ? $newKey : '';
     $retiredList = is_array($ownerRecord['retired_handles'] ?? null) ? $ownerRecord['retired_handles'] : [];
     if ($newKey !== $oldKey && !in_array($oldKey, $retiredList, true)) {
         $retiredList[] = $oldKey;
     }
     $ownerRecord['retired_handles'] = array_values(array_unique(array_filter($retiredList, static fn($value): bool => trim((string) $value) !== '')));
     $ownerRecord['updated_ms'] = $nowMs;
-    if ($ownerKey !== '') {
-        $state['handle_owners'][$ownerKey] = $ownerRecord;
+    if ($ownerKey !== '' && $ownerKey !== $nextOwnerKey) {
+        unset($state['handle_owners'][$ownerKey]);
+    }
+    if ($nextOwnerKey !== '') {
+        $state['handle_owners'][$nextOwnerKey] = $ownerRecord;
     }
 
-    migrate_identifier_history_in_pair_storage($pairsDir, $oldHandle, $newHandle);
+    migrate_identifier_history_in_pair_storage($pairsDir, $oldHandle, $newIdentifier);
+    migrate_identifier_in_partner_messaging_state($state, $oldHandle, $newIdentifier);
 
     return [
         'updated' => true,
         'previous_handle' => $oldHandle,
-        'new_handle' => $newHandle,
-        'owner_identifier' => $ownerIdentifier,
-        'message' => 'Handle successfully updated.'
+        'new_handle' => $newIdentifier,
+        'owner_identifier' => $nextOwnerIdentifier,
+        'message' => $newIsHandle ? 'Handle successfully updated.' : 'Handle successfully reverted to an email identifier.'
     ];
 }
 
@@ -3618,6 +4519,86 @@ function migrate_identifier_history_in_pair_storage(string $pairsDir, string $pr
             @unlink($path);
         }
     }
+}
+
+function migrate_identifier_in_partner_messaging_state(array &$state, string $previousIdentifier, string $nextIdentifier): void
+{
+    $priorLookup = normalize_identifier_for_lookup($previousIdentifier);
+    $next = trim(preg_replace('/\s+/', ' ', $nextIdentifier) ?? '');
+    if ($priorLookup === '' || $next === '' || $priorLookup === normalize_identifier_for_lookup($next)) {
+        return;
+    }
+
+    $updatedSubscriptions = [];
+    foreach ((array) ($state['push_subscriptions'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $normalizedEntry = normalize_push_subscription_record($entry);
+        if (normalize_identifier_for_lookup((string) $normalizedEntry['identifier']) === $priorLookup) {
+            $normalizedEntry['identifier'] = $next;
+        }
+        $updatedSubscriptions[build_push_registration_key($normalizedEntry['device_id'], $normalizedEntry['endpoint'])] = $normalizedEntry;
+    }
+    $state['push_subscriptions'] = $updatedSubscriptions;
+
+    $updatedThreads = [];
+    foreach ((array) ($state['partner_message_threads'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $normalizedThread = normalize_partner_message_thread($entry);
+        $participants = is_array($normalizedThread['participants'] ?? null) ? $normalizedThread['participants'] : [];
+        foreach ($participants as $index => $participant) {
+            if (normalize_identifier_for_lookup((string) $participant) === $priorLookup) {
+                $participants[$index] = $next;
+            }
+        }
+        $normalizedThread['participants'] = array_values($participants);
+
+        $messages = [];
+        foreach ((array) ($normalizedThread['messages'] ?? []) as $message) {
+            if (!is_array($message)) {
+                continue;
+            }
+            if (normalize_identifier_for_lookup((string) ($message['sender_identifier'] ?? '')) === $priorLookup) {
+                $message['sender_identifier'] = $next;
+            }
+            if (normalize_identifier_for_lookup((string) ($message['recipient_identifier'] ?? '')) === $priorLookup) {
+                $message['recipient_identifier'] = $next;
+            }
+            $messages[] = $message;
+        }
+        $normalizedThread['messages'] = $messages;
+
+        $left = trim((string) ($normalizedThread['participants'][0] ?? ''));
+        $right = trim((string) ($normalizedThread['participants'][1] ?? ''));
+        if ($left === '' || $right === '') {
+            continue;
+        }
+
+        $updatedThreads[build_partner_message_thread_key($left, $right)] = normalize_partner_message_thread($normalizedThread);
+    }
+    $state['partner_message_threads'] = $updatedThreads;
+
+    $updatedReads = [];
+    foreach ((array) ($state['partner_message_reads'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $normalizedRead = normalize_partner_message_read_entry($entry);
+        if (normalize_identifier_for_lookup((string) $normalizedRead['owner_identifier']) === $priorLookup) {
+            $normalizedRead['owner_identifier'] = $next;
+        }
+        if (normalize_identifier_for_lookup((string) $normalizedRead['partner_identifier']) === $priorLookup) {
+            $normalizedRead['partner_identifier'] = $next;
+        }
+        if ($normalizedRead['owner_identifier'] === '' || $normalizedRead['partner_identifier'] === '') {
+            continue;
+        }
+        $updatedReads[build_partner_message_read_key($normalizedRead['owner_identifier'], $normalizedRead['partner_identifier'])] = $normalizedRead;
+    }
+    $state['partner_message_reads'] = $updatedReads;
 }
 
 function read_all_pair_trial_records(string $pairsDir): array
@@ -5250,6 +6231,9 @@ if (!is_array($state)) {
         'identifier_aliases' => [],
         'user_types' => [],
         'level_four_receiver_pools' => [],
+        'push_subscriptions' => [],
+        'partner_message_threads' => [],
+        'partner_message_reads' => [],
         'retired_handles' => [],
         'handle_owners' => [],
         'stripe_users' => [],
@@ -5278,6 +6262,9 @@ if (!array_key_exists('sessions', $state)) {
         'identifier_aliases' => [],
         'user_types' => [],
         'level_four_receiver_pools' => [],
+        'push_subscriptions' => [],
+        'partner_message_threads' => [],
+        'partner_message_reads' => [],
         'retired_handles' => [],
         'handle_owners' => [],
         'stripe_users' => [],
@@ -5304,6 +6291,15 @@ if (!is_array($state['pair_difficulties'] ?? null)) {
 }
 if (!is_array($state['launcher_profiles'] ?? null)) {
     $state['launcher_profiles'] = [];
+}
+if (!is_array($state['push_subscriptions'] ?? null)) {
+    $state['push_subscriptions'] = [];
+}
+if (!is_array($state['partner_message_threads'] ?? null)) {
+    $state['partner_message_threads'] = [];
+}
+if (!is_array($state['partner_message_reads'] ?? null)) {
+    $state['partner_message_reads'] = [];
 }
 if (!is_array($state['unique_handles'] ?? null)) {
     $state['unique_handles'] = [];
@@ -5335,6 +6331,47 @@ if (!array_key_exists('easy_admin_enabled', $state)) {
     $state['easy_admin_enabled'] = false;
 }
 ensure_subscription_email_state($state);
+
+$normalizedPushSubscriptions = [];
+foreach ((array) ($state['push_subscriptions'] ?? []) as $entry) {
+    if (!is_array($entry)) {
+        continue;
+    }
+    $normalizedEntry = normalize_push_subscription_record($entry);
+    if ($normalizedEntry['identifier'] === '' || $normalizedEntry['device_id'] === '' || $normalizedEntry['endpoint'] === '') {
+        continue;
+    }
+    $normalizedPushSubscriptions[build_push_registration_key($normalizedEntry['device_id'], $normalizedEntry['endpoint'])] = $normalizedEntry;
+}
+$state['push_subscriptions'] = $normalizedPushSubscriptions;
+
+$normalizedPartnerThreads = [];
+foreach ((array) ($state['partner_message_threads'] ?? []) as $entry) {
+    if (!is_array($entry)) {
+        continue;
+    }
+    $normalizedThread = normalize_partner_message_thread($entry);
+    $left = trim((string) ($normalizedThread['participants'][0] ?? ''));
+    $right = trim((string) ($normalizedThread['participants'][1] ?? ''));
+    if ($left === '' || $right === '') {
+        continue;
+    }
+    $normalizedPartnerThreads[build_partner_message_thread_key($left, $right)] = $normalizedThread;
+}
+$state['partner_message_threads'] = $normalizedPartnerThreads;
+
+$normalizedPartnerReads = [];
+foreach ((array) ($state['partner_message_reads'] ?? []) as $entry) {
+    if (!is_array($entry)) {
+        continue;
+    }
+    $normalizedRead = normalize_partner_message_read_entry($entry);
+    if ($normalizedRead['owner_identifier'] === '' || $normalizedRead['partner_identifier'] === '') {
+        continue;
+    }
+    $normalizedPartnerReads[build_partner_message_read_key($normalizedRead['owner_identifier'], $normalizedRead['partner_identifier'])] = $normalizedRead;
+}
+$state['partner_message_reads'] = $normalizedPartnerReads;
 
 foreach ($state['unique_handles'] as $existingHandleKey => $entry) {
     if (!is_array($entry)) {
@@ -5938,6 +6975,7 @@ if ($action === 'claim_unique_handle') {
         $claimResult = claim_unique_handle($state, $currentIdentifier, $proposedHandle, $nowMs);
         foreach (($claimResult['previous_identifiers'] ?? []) as $previousIdentifier) {
             migrate_identifier_history_in_pair_storage($pairsDir, (string) $previousIdentifier, (string) ($claimResult['handle'] ?? ''));
+            migrate_identifier_in_partner_messaging_state($state, (string) $previousIdentifier, (string) ($claimResult['handle'] ?? ''));
         }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -5974,6 +7012,352 @@ if ($action === 'get_user_type') {
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_push_setup') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'device_id'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+        $webPushConfig = load_webpush_config($webPushConfigFile);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $identifierStatus = get_identifier_status($state, $ownIdentifier);
+    $preferredIdentifier = trim((string) ($identifierStatus['preferred_identifier'] ?? $ownIdentifier));
+    $pushStatus = get_push_registration_status($state, $preferredIdentifier, $deviceId);
+
+    $response = [
+        'ok' => true,
+        'web_push' => [
+            'available' => !empty($webPushConfig['available']),
+            'public_key' => !empty($webPushConfig['available']) ? (string) ($webPushConfig['publicKey'] ?? '') : '',
+            'message' => (string) ($webPushConfig['message'] ?? '')
+        ],
+        'identifier_status' => $identifierStatus,
+        'user_type' => get_user_type_for_identifier($state, $preferredIdentifier),
+        'push_status' => $pushStatus,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'save_push_subscription') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'device_id', 'push_subscription', 'app_version', 'is_installed_app'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+        $subscription = validate_push_subscription_payload($input['push_subscription'] ?? [], 'push_subscription');
+        $appVersion = substr(trim((string) ($input['app_version'] ?? '')), 0, 64);
+        $isInstalledApp = !empty($input['is_installed_app']);
+        $webPushConfig = load_webpush_config($webPushConfigFile);
+        if (empty($webPushConfig['available'])) {
+            throw new RuntimeException(trim((string) ($webPushConfig['message'] ?? 'Web Push is unavailable.')));
+        }
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $identifierStatus = get_identifier_status($state, $ownIdentifier);
+    $preferredIdentifier = trim((string) ($identifierStatus['preferred_identifier'] ?? $ownIdentifier));
+    $storedRegistration = upsert_push_subscription_record(
+        $state,
+        $preferredIdentifier,
+        $deviceId,
+        $subscription,
+        $nowMs,
+        [
+            'app_version' => $appVersion,
+            'is_installed_app' => $isInstalledApp,
+            'user_agent' => substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 512)
+        ]
+    );
+
+    $response = [
+        'ok' => true,
+        'identifier_status' => get_identifier_status($state, $preferredIdentifier),
+        'push_status' => get_push_registration_status($state, $preferredIdentifier, $deviceId),
+        'registration' => normalize_push_subscription_record($storedRegistration),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'disable_push_subscription') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'device_id'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $identifierStatus = get_identifier_status($state, $ownIdentifier);
+    $preferredIdentifier = trim((string) ($identifierStatus['preferred_identifier'] ?? $ownIdentifier));
+    $changed = deactivate_push_subscription_record($state, $preferredIdentifier, $deviceId, $nowMs);
+
+    $response = [
+        'ok' => true,
+        'disabled' => $changed,
+        'identifier_status' => get_identifier_status($state, $preferredIdentifier),
+        'push_status' => get_push_registration_status($state, $preferredIdentifier, $deviceId),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_partner_messaging') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'partner_identifier', 'device_id'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $partnerIdentifier = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+        $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $ownStatus = get_identifier_status($state, $ownIdentifier);
+    $partnerStatus = get_identifier_status($state, $partnerIdentifier);
+    $preferredOwnIdentifier = trim((string) ($ownStatus['preferred_identifier'] ?? $ownIdentifier));
+    $preferredPartnerIdentifier = trim((string) ($partnerStatus['preferred_identifier'] ?? $partnerIdentifier));
+    $thread = build_partner_message_thread_for_owner($state, $preferredOwnIdentifier, $preferredPartnerIdentifier);
+    $lastReadMs = get_partner_message_last_read_ms($state, $preferredOwnIdentifier, $preferredPartnerIdentifier);
+    $readMessageIds = get_partner_message_read_ids($state, $preferredOwnIdentifier, $preferredPartnerIdentifier);
+
+    $response = [
+        'ok' => true,
+        'thread' => $thread,
+        'unread_count' => get_partner_thread_unread_count_for_owner(
+            $thread,
+            $preferredOwnIdentifier,
+            $lastReadMs,
+            $readMessageIds
+        ),
+        'read_message_ids' => $readMessageIds,
+        'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
+        'identifier_status' => $ownStatus,
+        'partner_status' => $partnerStatus,
+        'push_status' => get_push_registration_status($state, $preferredOwnIdentifier, $deviceId),
+        'partner_push_status' => get_push_registration_status($state, $preferredPartnerIdentifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_partner_message_inbox') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'device_id'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $ownStatus = get_identifier_status($state, $ownIdentifier);
+    $preferredOwnIdentifier = trim((string) ($ownStatus['preferred_identifier'] ?? $ownIdentifier));
+    $response = [
+        'ok' => true,
+        'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
+        'identifier_status' => $ownStatus,
+        'push_status' => get_push_registration_status($state, $preferredOwnIdentifier, $deviceId),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'mark_partner_messages_read') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'partner_identifier', 'message_id'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $partnerIdentifier = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $ownStatus = get_identifier_status($state, $ownIdentifier);
+    $partnerStatus = get_identifier_status($state, $partnerIdentifier);
+    $preferredOwnIdentifier = trim((string) ($ownStatus['preferred_identifier'] ?? $ownIdentifier));
+    $preferredPartnerIdentifier = trim((string) ($partnerStatus['preferred_identifier'] ?? $partnerIdentifier));
+    $messageId = trim((string) ($input['message_id'] ?? ''));
+    mark_partner_messages_read($state, $preferredOwnIdentifier, $preferredPartnerIdentifier, $nowMs, $messageId !== '' ? $messageId : null);
+    $thread = build_partner_message_thread_for_owner($state, $preferredOwnIdentifier, $preferredPartnerIdentifier);
+    $lastReadMs = get_partner_message_last_read_ms($state, $preferredOwnIdentifier, $preferredPartnerIdentifier);
+    $readMessageIds = get_partner_message_read_ids($state, $preferredOwnIdentifier, $preferredPartnerIdentifier);
+
+    $response = [
+        'ok' => true,
+        'thread' => $thread,
+        'unread_count' => get_partner_thread_unread_count_for_owner($thread, $preferredOwnIdentifier, $lastReadMs, $readMessageIds),
+        'read_message_ids' => $readMessageIds,
+        'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
+        'identifier_status' => $ownStatus,
+        'partner_status' => $partnerStatus,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'send_partner_message') {
+    try {
+        require_allowed_keys($input, ['action', 'sender_identifier', 'recipient_identifier', 'sender_role', 'recipient_role', 'message_text'], 'request');
+        $senderIdentifier = validate_participant_identifier_string($input['sender_identifier'] ?? '', 'sender_identifier', true);
+        $recipientIdentifier = validate_participant_identifier_string($input['recipient_identifier'] ?? '', 'recipient_identifier', true);
+        $senderRole = validate_role_value($input['sender_role'] ?? '', 'sender_role');
+        $recipientRole = validate_role_value($input['recipient_role'] ?? '', 'recipient_role');
+        $messageText = validate_partner_message_text($input['message_text'] ?? '', 'message_text');
+        $webPushConfig = load_webpush_config($webPushConfigFile);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $senderStatus = get_identifier_status($state, $senderIdentifier);
+    $recipientStatus = get_identifier_status($state, $recipientIdentifier);
+    $preferredSenderIdentifier = trim((string) ($senderStatus['preferred_identifier'] ?? $senderIdentifier));
+    $preferredRecipientIdentifier = trim((string) ($recipientStatus['preferred_identifier'] ?? $recipientIdentifier));
+
+    $messageRecord = append_partner_message(
+        $state,
+        $preferredSenderIdentifier,
+        $preferredRecipientIdentifier,
+        $senderRole,
+        $recipientRole,
+        $messageText,
+        $nowMs
+    );
+
+    $notificationTitle = 'ESP GYM message';
+    $notificationBody = $messageText;
+    $notificationUrl = build_absolute_launcher_url([
+        'open' => $recipientRole === 'remote-viewer' ? 'remote-viewer' : $recipientRole,
+        'direct_open' => '1',
+        'message_owner' => $preferredRecipientIdentifier,
+        'message_partner' => $preferredSenderIdentifier,
+        'message_focus' => '1'
+    ]);
+
+    $delivery = send_push_notification_to_identifier(
+        $state,
+        $webPushConfig,
+        $preferredRecipientIdentifier,
+        [
+            'title' => $notificationTitle,
+            'body' => $notificationBody,
+            'url' => $notificationUrl,
+            'tag' => 'esp-gym-message-' . md5($preferredSenderIdentifier . '||' . $preferredRecipientIdentifier),
+            'data' => [
+                'owner_identifier' => $preferredRecipientIdentifier,
+                'partner_identifier' => $preferredSenderIdentifier,
+                'open_role' => $recipientRole
+            ]
+        ],
+        $nowMs
+    );
+
+    $response = [
+        'ok' => true,
+        'message' => $messageRecord,
+        'thread' => build_partner_message_thread_for_owner($state, $preferredSenderIdentifier, $preferredRecipientIdentifier),
+        'recipient_inbox' => build_partner_message_inbox_summary($state, $preferredRecipientIdentifier),
+        'delivery' => $delivery,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'delete_partner_message') {
+    try {
+        require_allowed_keys($input, ['action', 'own_identifier', 'partner_identifier', 'message_id'], 'request');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $partnerIdentifier = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+        $messageId = trim((string) ($input['message_id'] ?? ''));
+        if ($messageId === '' || !preg_match('/^[a-f0-9]{16}$/', $messageId)) {
+            throw new InvalidArgumentException('message_id is invalid.');
+        }
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $ownStatus = get_identifier_status($state, $ownIdentifier);
+    $partnerStatus = get_identifier_status($state, $partnerIdentifier);
+    $preferredOwnIdentifier = trim((string) ($ownStatus['preferred_identifier'] ?? $ownIdentifier));
+    $preferredPartnerIdentifier = trim((string) ($partnerStatus['preferred_identifier'] ?? $partnerIdentifier));
+    $deleteResult = delete_partner_message($state, $preferredOwnIdentifier, $preferredPartnerIdentifier, $messageId, $nowMs);
+
+    $response = [
+        'ok' => true,
+        'deleted' => !empty($deleteResult['deleted']),
+        'thread' => $deleteResult['thread'],
+        'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
+        'identifier_status' => $ownStatus,
+        'partner_status' => $partnerStatus,
         'server_now_ms' => $nowMs
     ];
 
@@ -6452,6 +7836,9 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['stripe_customer_index'] = [];
     $state['stripe_subscription_index'] = [];
     $state['stripe_processed_events'] = [];
+    $state['push_subscriptions'] = [];
+    $state['partner_message_threads'] = [];
+    $state['partner_message_reads'] = [];
     $state['launcher_visit_count'] = 0;
     $state['subscription_emails_enabled'] = false;
     $state['subscription_reminders_enabled'] = false;

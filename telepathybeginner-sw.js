@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260622u";
-const APP_VERSION = "20260622u";
+const CACHE_NAME = "telepathybeginner-v20260623au";
+const APP_VERSION = "20260623au";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
@@ -96,6 +96,88 @@ self.addEventListener("fetch", (event) => {
       });
     })
   );
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (_) {
+    payload = {
+      title: "ESP GYM message",
+      body: event.data ? event.data.text() : ""
+    };
+  }
+
+  const title = String(payload?.title || "ESP GYM message").trim() || "ESP GYM message";
+  const body = String(payload?.body || "").trim();
+  const url = String(payload?.url || `./telepathybeginner.html?v=${APP_VERSION}`).trim() || `./telepathybeginner.html?v=${APP_VERSION}`;
+  const tag = String(payload?.tag || "esp-gym-message").trim() || "esp-gym-message";
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true
+      });
+
+      const runtimeClientOpen = clientList.some((client) => {
+        try {
+          const clientUrl = new URL(client.url);
+          const path = clientUrl.pathname.toLowerCase();
+          return path.endsWith("/sender.html") || path.endsWith("/receiver.html");
+        } catch (_) {
+          return false;
+        }
+      });
+
+      if (runtimeClientOpen) {
+        return;
+      }
+
+      await self.registration.showNotification(title, {
+        body,
+        tag,
+        renotify: true,
+        icon: `./tb-icon-192.png?v=${APP_VERSION}`,
+        badge: `./tb-icon-192.png?v=${APP_VERSION}`,
+        data: {
+          url,
+          payload
+        }
+      });
+    })()
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = String(event.notification?.data?.url || `./telepathybeginner.html?v=${APP_VERSION}`).trim() || `./telepathybeginner.html?v=${APP_VERSION}`;
+
+  event.waitUntil((async () => {
+    const clientList = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    });
+
+    for (const client of clientList) {
+      try {
+        const clientUrl = new URL(client.url);
+        const target = new URL(targetUrl, self.location.origin);
+        if (clientUrl.origin === target.origin) {
+          if ("navigate" in client) {
+            await client.navigate(target.href);
+          }
+          await client.focus();
+          return;
+        }
+      } catch (_) {
+        // Ignore malformed client URLs and continue.
+      }
+    }
+
+    await self.clients.openWindow(targetUrl);
+  })());
 });
 
 

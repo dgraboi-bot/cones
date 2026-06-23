@@ -338,7 +338,7 @@
     ui.setStatusMessage(payload?.available
       ? `${payload.summary?.connections || 0} route${Number(payload.summary?.connections || 0) === 1 ? "" : "s"} are shown on the globe.`
       : (payload?.message || "No usable location records were found for this pair."));
-    ui.setOverlayMessage(payload?.available ? "Drag, zoom, or click a glowing route to inspect that connection." : "");
+    ui.setOverlayMessage(payload?.available ? "Drag to rotate or pan, zoom, or click a glowing route to inspect that connection." : "");
     if (payload?.available) {
       renderConnections(payload);
       fitViewerToConnections();
@@ -397,7 +397,7 @@
       .atmosphereColor("#75b7ff")
       .atmosphereAltitude(0.18);
 
-    globe.controls().enablePan = false;
+    globe.controls().enablePan = true;
     globe.controls().minDistance = 90;
     globe.controls().maxDistance = 12000;
     globe.controls().autoRotate = false;

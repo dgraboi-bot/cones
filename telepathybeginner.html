@@ -10,6 +10,12 @@
     }
     (function () {
       try {
+        var launcherKey = "cones-beginner-launcher-v2";
+        var launcherRaw = localStorage.getItem(launcherKey);
+        var launcherParsed = launcherRaw ? JSON.parse(launcherRaw) : {};
+        var initialUserType = String(launcherParsed && launcherParsed.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+        document.documentElement.dataset.initialUserType = initialUserType;
+        document.title = initialUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
         var params = new URLSearchParams(window.location.search);
         var requestedOpen = String(params.get("open") || "").trim().toLowerCase();
         var directOpen = params.get("direct_open") === "1";
@@ -24,13 +30,13 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260622u">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260623au">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260622u">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260622u">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260622u">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260623au">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260623au">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260623au">
 </head>
 <body>
   <main class="beginner-shell">
@@ -47,6 +53,27 @@
 
         <h1 class="beginner-title" id="beginnerTitle" data-beginner-main-title>Telepathy Beginner</h1>
         <p class="beginner-subtitle" data-launcher-subtitle>A sender-receiver training app for telepathic development.</p>
+        <script>
+          (function () {
+            try {
+              var initialUserType = document.documentElement.dataset.initialUserType === "pro" ? "pro" : "standard";
+              var titleEl = document.querySelector("[data-beginner-main-title]");
+              var subtitleEl = document.querySelector("[data-launcher-subtitle]");
+              var copyEl = document.querySelector("[data-launcher-copy]");
+              if (titleEl) {
+                titleEl.textContent = initialUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
+              }
+              if (subtitleEl) {
+                subtitleEl.textContent = initialUserType === "pro"
+                  ? "A training app for ESP development."
+                  : "A sender-receiver training app for telepathic development.";
+              }
+              if (copyEl) {
+                copyEl.textContent = "Choose your role in this session:";
+              }
+            } catch (error) {}
+          })();
+        </script>
 
         <section class="telepathy-hero" aria-hidden="true">
           <div class="telepathy-hero-frame">
@@ -82,14 +109,22 @@
                 </div>
                 <label class="role-field">
                   <span class="role-field-label" data-own-identifier-label="sender">You</span>
-                  <input
-                    class="role-input"
-                    type="text"
-                    name="ownName"
-                    autocomplete="off"
-                    placeholder="name@example.com or unique handle"
-                    spellcheck="false"
-                  >
+                  <div class="role-own-row">
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="ownName"
+                      autocomplete="off"
+                      placeholder="name@example.com or unique handle"
+                      spellcheck="false"
+                    >
+                    <div class="role-messaging-launch" data-role-messaging-launch="sender">
+                      <button class="role-message-open" type="button" data-open-role-messages="sender">
+                        <span>Messages</span>
+                        <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
+                      </button>
+                    </div>
+                  </div>
                 </label>
                 <label class="role-field role-field-partner">
                   <span class="role-field-label" data-partner-identifier-label="sender">Receiver</span>
@@ -150,14 +185,22 @@
                 </div>
                 <label class="role-field">
                   <span class="role-field-label" data-own-identifier-label="receiver">You</span>
-                  <input
-                    class="role-input"
-                    type="text"
-                    name="ownName"
-                    autocomplete="off"
-                    placeholder="name@example.com or unique handle"
-                    spellcheck="false"
-                  >
+                  <div class="role-own-row">
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="ownName"
+                      autocomplete="off"
+                      placeholder="name@example.com or unique handle"
+                      spellcheck="false"
+                    >
+                    <div class="role-messaging-launch" data-role-messaging-launch="receiver">
+                      <button class="role-message-open" type="button" data-open-role-messages="receiver">
+                        <span>Messages</span>
+                        <span class="role-message-badge" data-role-message-badge="receiver" hidden>0</span>
+                      </button>
+                    </div>
+                  </div>
                 </label>
                 <label class="role-field role-field-partner">
                   <span class="role-field-label" data-partner-identifier-label="receiver">Sender</span>
@@ -198,6 +241,36 @@
         </section>
       </section>
 
+      <section class="beginner-view beginner-view-hidden messages-overlay-view" data-view="messages" aria-labelledby="messagesTitle">
+        <h1 class="visually-hidden" id="messagesTitle">Partner Messages</h1>
+        <p class="visually-hidden" data-messages-subtitle>Your partner messages will appear here.</p>
+
+        <section class="settings-view-panel messages-view-panel messages-overlay-card">
+          <div class="messages-header-row">
+            <label class="settings-view-field messages-conversation-field">
+              <span>Conversation</span>
+              <select class="report-definition-select" data-messages-thread-select></select>
+            </label>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill messages-card-back" type="button" data-close-messages>BACK</button>
+          </div>
+          <div class="report-status" data-messages-summary></div>
+          <div class="role-message-thread messages-thread" data-messages-thread></div>
+          <label class="role-message-compose">
+            <textarea class="role-message-input messages-input" data-messages-input maxlength="300" placeholder="Write a short message to your partner"></textarea>
+          </label>
+          <div class="role-message-actions">
+            <button class="role-message-button" type="button" data-messages-send>SEND</button>
+            <button class="role-message-button role-message-button-cancel" type="button" data-messages-cancel>CANCEL</button>
+            <button class="role-message-button role-message-button-emoji" type="button" data-messages-emoji="👍" aria-label="Insert thumbs up emoji">👍</button>
+            <button class="role-message-button role-message-button-emoji" type="button" data-messages-emoji="👎" aria-label="Insert thumbs down emoji">👎</button>
+            <button class="role-message-button role-message-button-emoji" type="button" data-messages-emoji="⏳" aria-label="Insert hourglass emoji">⏳</button>
+            <button class="role-message-button role-message-button-emoji" type="button" data-messages-emoji="😊" aria-label="Insert happy face emoji">😊</button>
+            <button class="role-message-button role-message-button-emoji" type="button" data-messages-emoji="❤️" aria-label="Insert heart emoji">❤️</button>
+          </div>
+          <div class="role-message-status" data-messages-status hidden></div>
+        </section>
+      </section>
+
       <section class="beginner-view beginner-view-hidden" data-view="tools" aria-labelledby="toolsTitle">
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-tools>BACK</button>
@@ -227,7 +300,10 @@
 
         <section class="settings-view-panel learn-more-panel">
           <label class="settings-view-field">
-            <span class="settings-view-label">Editable text</span>
+            <span class="settings-view-label settings-view-label-row">
+              <span>Editable text</span>
+              <span class="settings-view-inline-status" data-learn-more-inline-status hidden></span>
+            </span>
             <textarea
               class="settings-view-input settings-view-textarea learn-more-textarea"
               spellcheck="true"
@@ -258,6 +334,24 @@
         </div>
       </div>
 
+      <div class="handle-overlay beginner-view-hidden" data-push-setup-overlay>
+        <div class="handle-dialog push-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="pushSetupDialogTitle">
+          <h2 class="about-section-title" id="pushSetupDialogTitle">Enable Partner Messaging</h2>
+          <p class="about-section-copy">Partner messaging works when this app is installed on this device and notifications are allowed for this installed app.</p>
+          <div class="settings-view-status push-setup-status" data-push-setup-status>Checking this device…</div>
+          <div class="push-setup-checklist">
+            <div class="push-setup-step" data-push-setup-install-state>App install: pending</div>
+            <div class="push-setup-step" data-push-setup-notification-state>Notifications: pending</div>
+          </div>
+          <div class="contact-actions push-setup-actions">
+            <button class="options-button contact-action-button" type="button" data-push-setup-install>INSTALL APP</button>
+            <button class="options-button contact-action-button" type="button" data-push-setup-enable>ALLOW NOTIFICATIONS</button>
+            <button class="options-button contact-action-button" type="button" data-push-setup-test>TEST NOTIFICATION</button>
+            <button class="options-button contact-action-button" type="button" data-push-setup-close>NOT NOW</button>
+          </div>
+        </div>
+      </div>
+
       <div class="location-picker-overlay beginner-view-hidden" data-location-picker-overlay>
         <div class="location-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="locationPickerTitle">
           <h2 class="about-section-title" id="locationPickerTitle">Fine-Tune Device Location</h2>
@@ -281,7 +375,7 @@
             </svg>
           </button>
           <p class="beginner-kicker">ESP GYM</p>
-              <span class="beginner-top-version" data-app-version-label>ver. 20260622u</span>
+              <span class="beginner-top-version" data-app-version-label>ver. 20260623au</span>
         </div>
 
         <h1 class="beginner-title beginner-title-icon-only" id="optionsTitle" aria-label="Menu">
@@ -417,7 +511,7 @@
                 <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
                   <div class="role-email-note" aria-label="Remote viewing guidance">
                     <p data-role-identifier-note="remote-viewer">This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being.</p>
-                    <p data-role-handle-wrap="remote-viewer"><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">See here for choosing your unique handle.</button></p>
+                    <p data-role-handle-wrap="remote-viewer"><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">Choose unique name instead of email address</button></p>
                     <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
                   </div>
                   <label class="role-field">
@@ -476,7 +570,10 @@
 
           <section class="settings-view-panel learn-more-panel">
             <label class="settings-view-field">
-              <span class="settings-view-label">Editable text</span>
+              <span class="settings-view-label settings-view-label-row">
+                <span>Editable text</span>
+                <span class="settings-view-inline-status" data-clairvoyance-learn-more-inline-status hidden></span>
+              </span>
               <textarea
                 class="settings-view-input settings-view-textarea learn-more-textarea"
                 spellcheck="true"
@@ -652,6 +749,7 @@
 
           <div class="options-actions">
             <button class="options-button" type="button" onclick="window.location.href='BeginnerUserManual.html?v=20260503a'">User Guide</button>
+            <button class="options-button" type="button" data-open-messaging-setup>Enable Messaging With Partners</button>
             <button class="options-button" type="button" data-open-about>About</button>
           </div>
         </section>
@@ -794,7 +892,7 @@
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260622u'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260623au'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -865,7 +963,7 @@
           </div>
 
           <h1 class="beginner-title" id="handleUpdateAdminTitle">Update A User Handle</h1>
-          <p class="beginner-subtitle">Update an existing user handle to a new one, then propagate that change through server history and related state.</p>
+          <p class="beginner-subtitle">Update an existing user handle to a new handle, or revert it back to an email identifier, then propagate that change through server history and related state.</p>
 
           <section class="settings-view-panel">
             <label class="settings-view-field">
@@ -883,14 +981,14 @@
             <div class="settings-view-note" data-handle-update-summary hidden></div>
 
             <label class="settings-view-field">
-              <span class="settings-view-label">New handle:</span>
+              <span class="settings-view-label">New identifier:</span>
               <input
                 class="settings-view-input"
                 type="text"
                 autocomplete="off"
                 spellcheck="false"
                 data-handle-update-new
-                placeholder="enter new handle"
+                placeholder="enter new handle or email"
               >
             </label>
 
@@ -1113,8 +1211,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="vendor/leaflet/leaflet.js?v=20260622u"></script>
-  <script src="telepathybeginner.js?v=20260622u"></script>
+  <script src="vendor/leaflet/leaflet.js?v=20260623au"></script>
+  <script src="telepathybeginner.js?v=20260623au"></script>
 </body>
 </html>
 

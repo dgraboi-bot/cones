@@ -1,7 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260622u";
+  const launcherBuildVersion = "20260623au";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -47,6 +47,7 @@
   const closeLearnMoreButton = document.querySelector("[data-close-learn-more]");
   const saveLearnMoreButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
+  const openMessagingSetupButton = document.querySelector("[data-open-messaging-setup]");
   const openAidsButton = document.querySelector("[data-open-aids]");
   const openRewireButton = document.querySelector("[data-open-rewire]");
   const openToolsButtons = Array.from(document.querySelectorAll("[data-open-tools]"));
@@ -111,6 +112,7 @@
   const reportVisualizeButton = document.querySelector("[data-report-visualize]");
   const reportAnalyzeButton = document.querySelector("[data-report-analyze]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
+  let lastLauncherPointerDownInsideActiveCard = false;
   const openAdvancedButton = document.querySelector("[data-open-advanced]");
   const closeSettingsButton = document.querySelector("[data-close-settings]");
   const closeAdminButton = document.querySelector("[data-close-admin]");
@@ -143,7 +145,37 @@
   const handleStatus = document.querySelector("[data-handle-status]");
   const submitHandleButton = document.querySelector("[data-submit-handle]");
   const closeHandleButton = document.querySelector("[data-close-handle]");
+  const pushSetupOverlay = document.querySelector("[data-push-setup-overlay]");
+  const pushSetupDialog = pushSetupOverlay?.querySelector(".push-setup-dialog") || null;
+  const pushSetupStatus = document.querySelector("[data-push-setup-status]");
+  const pushSetupInstallState = document.querySelector("[data-push-setup-install-state]");
+  const pushSetupNotificationState = document.querySelector("[data-push-setup-notification-state]");
+  const pushSetupInstallButton = document.querySelector("[data-push-setup-install]");
+  const pushSetupEnableButton = document.querySelector("[data-push-setup-enable]");
+  const pushSetupTestButton = document.querySelector("[data-push-setup-test]");
+  const pushSetupCloseButton = document.querySelector("[data-push-setup-close]");
   const openHandleButtons = Array.from(document.querySelectorAll("[data-open-handle-control]"));
+  const openRoleMessagesButtons = Array.from(document.querySelectorAll("[data-open-role-messages]"));
+  const roleMessageBadges = Array.from(document.querySelectorAll("[data-role-message-badge]"));
+  const roleMessageAreas = Array.from(document.querySelectorAll("[data-role-message-area]"));
+  const roleMessageThreads = Array.from(document.querySelectorAll("[data-role-message-thread]"));
+  const roleMessageInputs = Array.from(document.querySelectorAll("[data-role-message-input]"));
+  const roleMessageSendButtons = Array.from(document.querySelectorAll("[data-role-message-send]"));
+  const roleMessageCancelButtons = Array.from(document.querySelectorAll("[data-role-message-cancel]"));
+  const roleMessageEmojiButtons = Array.from(document.querySelectorAll("[data-role-message-emoji]"));
+  const roleMessageStatuses = Array.from(document.querySelectorAll("[data-role-message-status]"));
+  const roleMessagingRefreshTimers = new Map();
+  const messagesView = document.querySelector('[data-view="messages"]');
+  const closeMessagesButton = document.querySelector("[data-close-messages]");
+  const messagesSubtitle = document.querySelector("[data-messages-subtitle]");
+  const messagesThreadSelect = document.querySelector("[data-messages-thread-select]");
+  const messagesSummary = document.querySelector("[data-messages-summary]");
+  const messagesThread = document.querySelector("[data-messages-thread]");
+  const messagesInput = document.querySelector("[data-messages-input]");
+  const messagesSendButton = document.querySelector("[data-messages-send]");
+  const messagesCancelButton = document.querySelector("[data-messages-cancel]");
+  const messagesEmojiButtons = Array.from(document.querySelectorAll("[data-messages-emoji]"));
+  const messagesStatus = document.querySelector("[data-messages-status]");
   const difficultyLabels = Array.from(document.querySelectorAll("[data-pair-difficulty-label]"));
   const roleSkillTaglines = Array.from(document.querySelectorAll("[data-role-skill-tagline]"));
   const inlineContactButtons = Array.from(document.querySelectorAll("[data-open-contact-inline]"));
@@ -161,9 +193,11 @@
   const contactEmailInput = document.querySelector("[data-contact-email]");
   const learnMoreTextInput = document.querySelector("[data-learn-more-text]");
   const learnMoreStatus = document.querySelector("[data-learn-more-status]");
+  const learnMoreInlineStatus = document.querySelector("[data-learn-more-inline-status]");
   const learnMorePreview = document.querySelector("[data-learn-more-preview]");
   const clairvoyanceLearnMoreTextInput = document.querySelector("[data-clairvoyance-learn-more-text]");
   const clairvoyanceLearnMoreStatus = document.querySelector("[data-clairvoyance-learn-more-status]");
+  const clairvoyanceLearnMoreInlineStatus = document.querySelector("[data-clairvoyance-learn-more-inline-status]");
   const clairvoyanceLearnMorePreview = document.querySelector("[data-clairvoyance-learn-more-preview]");
   const colorSchemeInput = document.querySelector("[data-color-scheme-input]");
   const colorSchemeHexInput = document.querySelector("[data-color-scheme-hex]");
@@ -255,9 +289,27 @@
   let activeHandleRole = "";
   let activeLauncherRole = "";
   let handleOverlayReturnRole = "";
+  let pushSetupReturnRole = "";
+  let pushSetupOwnIdentifier = "";
+  let pushSetupInFlight = false;
+  let messagingRefreshToken = 0;
+  let activeMessagesRole = "";
+  let activeMessagesOwnerIdentifier = "";
+  let activeMessagesPartnerIdentifier = "";
+  let activeMessagesThreadInbox = null;
+  let activeMessagesThreadData = null;
+  let activeMessagesReadMessageIds = [];
+  let activeMessagesReturnView = "launcher";
+  let activeMessagesReturnScrollY = 0;
+  let activeMessagesScrollRestoreTimer = 0;
+  let pendingMessagesOpenScrollY = 0;
+  let lastKnownLauncherScrollY = 0;
+  let hasAttemptedUnreadMessagesAutoOpen = false;
   let activeDifficultyContext = null;
   let difficultyLabelToken = 0;
   let selectedReportPair = null;
+  const partnerMessagePollIntervalMs = 6000;
+  let partnerMessagePollTimer = 0;
   let availableReportPairs = [];
   let pendingOpenReportPair = null;
   let reportCsvRecordsCache = [];
@@ -332,10 +384,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     include: true
   });
   const difficultyExplanationCopy = {
-    1: "In Level 1, simply decide whether the sender is sending one cone or three cones.",
-    2: "In Level 2, when there are three cones, try also to specify whether they are arranged horizontally, vertically, or diagonally running up or down from left to right.",
-    3: "In Level 3, one, two or three cones are sent. Try to specify exactly how many cones are sent and in what arrangement those cones are sent.",
-    4: 'In Level 4 you start using images, and you can talk about what you are receiving, which gets transcribed, and/or photograph a picture you have drawn of what you are receiving. AI is used to determine your level of telepathy over trials.',
+    1: "In Level 1 the receiver simply decides whether the sender is sending one cone or three cones.",
+    2: "In Level 2, either one cone or three cones are sent. When three cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.",
+    3: "In Level 3, one, two or three cones are sent. The receiver tries to specify exactly how many cones are sent and in what arrangement the cones were sent.",
+    4: "In Level 4 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
     5: 'In Level 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
   const roleSkillExplanationCopy = {
@@ -401,6 +453,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         partnerHistory: typeof parsed?.partnerHistory === "object" && parsed.partnerHistory ? parsed.partnerHistory : {},
         launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
+        messagingDeviceId: typeof parsed?.messagingDeviceId === "string" ? parsed.messagingDeviceId : "",
+        notificationPermission: typeof parsed?.notificationPermission === "string" ? parsed.notificationPermission : "",
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
         learnMoreText: typeof parsed?.learnMoreText === "string" && parsed.learnMoreText.trim() ? parsed.learnMoreText : defaultLearnMoreText,
         clairvoyanceLearnMoreText: typeof parsed?.clairvoyanceLearnMoreText === "string" && parsed.clairvoyanceLearnMoreText.trim() ? parsed.clairvoyanceLearnMoreText : defaultClairvoyanceLearnMoreText,
@@ -409,7 +463,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         blinkSenderImage: !!parsed?.blinkSenderImage,
         blinkImageOnSeconds: typeof parsed?.blinkImageOnSeconds === "string" ? parsed.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
         blinkImageOffSeconds: typeof parsed?.blinkImageOffSeconds === "string" ? parsed.blinkImageOffSeconds : defaultBlinkSettings.offSeconds,
-        includeConfidence: typeof parsed?.includeConfidence === "boolean" ? parsed.includeConfidence : defaultConfidenceSettings.include
+        includeConfidence: typeof parsed?.includeConfidence === "boolean" ? parsed.includeConfidence : defaultConfidenceSettings.include,
+        resolvedMainUserType: String(parsed?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
       };
     } catch (error) {
       return {
@@ -422,6 +477,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         partnerHistory: {},
         launcherProfiles: {},
         identifierStatusMap: {},
+        messagingDeviceId: "",
+        notificationPermission: "",
         themeColor: defaultThemeColor,
         learnMoreText: defaultLearnMoreText,
         clairvoyanceLearnMoreText: defaultClairvoyanceLearnMoreText,
@@ -430,7 +487,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         blinkSenderImage: defaultBlinkSettings.enabled,
         blinkImageOnSeconds: defaultBlinkSettings.onSeconds,
         blinkImageOffSeconds: defaultBlinkSettings.offSeconds,
-        includeConfidence: defaultConfidenceSettings.include
+        includeConfidence: defaultConfidenceSettings.include,
+        resolvedMainUserType: "standard"
       };
     }
   }
@@ -997,8 +1055,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (!isValidUniqueHandle(cleanPreviousHandle)) {
       throw new Error("Current handle is invalid.");
     }
-    if (!isValidUniqueHandle(cleanNewHandle)) {
-      throw new Error("New handle is invalid.");
+    if (!isValidParticipantIdentifier(cleanNewHandle)) {
+      throw new Error("New identifier is invalid.");
     }
 
     const response = await fetch("api.php", {
@@ -1088,6 +1146,174 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return data?.launcher_profile || null;
   }
 
+  async function fetchPushSetup(ownIdentifier, deviceId) {
+    const cleanIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanDeviceId = assertValidDeviceId(deviceId);
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_push_setup",
+        own_identifier: cleanIdentifier,
+        device_id: cleanDeviceId
+      })
+    });
+
+    return parseApiResponse(response, `Notification setup request failed with status ${response.status}`);
+  }
+
+  async function savePushSubscription(ownIdentifier, deviceId, pushSubscription) {
+    const cleanIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanDeviceId = assertValidDeviceId(deviceId);
+    if (!pushSubscription || typeof pushSubscription.toJSON !== "function") {
+      throw new Error("Notification subscription is invalid.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_push_subscription",
+        own_identifier: cleanIdentifier,
+        device_id: cleanDeviceId,
+        push_subscription: pushSubscription.toJSON(),
+        app_version: launcherBuildVersion,
+        is_installed_app: isRunningAsInstalledApp()
+      })
+    });
+
+    return parseApiResponse(response, `Notification save failed with status ${response.status}`);
+  }
+
+  async function disablePushSubscription(ownIdentifier, deviceId) {
+    const cleanIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanDeviceId = assertValidDeviceId(deviceId);
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "disable_push_subscription",
+        own_identifier: cleanIdentifier,
+        device_id: cleanDeviceId
+      })
+    });
+
+    return parseApiResponse(response, `Notification disable request failed with status ${response.status}`);
+  }
+
+  async function fetchPartnerMessaging(ownIdentifier, partnerIdentifier, deviceId) {
+    const cleanOwnIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanPartnerIdentifier = assertValidParticipantIdentifier(partnerIdentifier, "partner identifier");
+    const cleanDeviceId = assertValidDeviceId(deviceId);
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_partner_messaging",
+        own_identifier: cleanOwnIdentifier,
+        partner_identifier: cleanPartnerIdentifier,
+        device_id: cleanDeviceId
+      })
+    });
+
+    return parseApiResponse(response, `Partner messaging request failed with status ${response.status}`);
+  }
+
+  async function fetchPartnerMessageInbox(ownIdentifier, deviceId) {
+    const cleanOwnIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanDeviceId = assertValidDeviceId(deviceId);
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_partner_message_inbox",
+        own_identifier: cleanOwnIdentifier,
+        device_id: cleanDeviceId
+      })
+    });
+
+    return parseApiResponse(response, `Partner message inbox request failed with status ${response.status}`);
+  }
+
+  async function markPartnerMessagesReadRequest(ownIdentifier, partnerIdentifier, messageId = "") {
+    const cleanOwnIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanPartnerIdentifier = assertValidParticipantIdentifier(partnerIdentifier, "partner identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "mark_partner_messages_read",
+        own_identifier: cleanOwnIdentifier,
+        partner_identifier: cleanPartnerIdentifier,
+        message_id: String(messageId || "").trim()
+      })
+    });
+
+    return parseApiResponse(response, `Mark messages read request failed with status ${response.status}`);
+  }
+
+  async function sendPartnerMessageRequest(senderIdentifier, recipientIdentifier, senderRole, recipientRole, messageText) {
+    const cleanSenderIdentifier = assertValidParticipantIdentifier(senderIdentifier, "your identifier");
+    const cleanRecipientIdentifier = assertValidParticipantIdentifier(recipientIdentifier, "partner identifier");
+    const cleanMessageText = String(messageText || "").trim();
+    if (!cleanMessageText) {
+      throw new Error("Please enter a message before sending.");
+    }
+    if (cleanMessageText.length > 300) {
+      throw new Error("Messages must be 300 characters or fewer.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "send_partner_message",
+        sender_identifier: cleanSenderIdentifier,
+        recipient_identifier: cleanRecipientIdentifier,
+        sender_role: senderRole,
+        recipient_role: recipientRole,
+        message_text: cleanMessageText
+      })
+    });
+
+    return parseApiResponse(response, `Message send failed with status ${response.status}`);
+  }
+
+  async function deletePartnerMessageRequest(ownIdentifier, partnerIdentifier, messageId) {
+    const cleanOwnIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
+    const cleanPartnerIdentifier = assertValidParticipantIdentifier(partnerIdentifier, "partner identifier");
+    const cleanMessageId = String(messageId || "").trim();
+    if (!/^[a-f0-9]{16}$/i.test(cleanMessageId)) {
+      throw new Error("That message could not be deleted because its identifier is invalid.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "delete_partner_message",
+        own_identifier: cleanOwnIdentifier,
+        partner_identifier: cleanPartnerIdentifier,
+        message_id: cleanMessageId
+      })
+    });
+
+    return parseApiResponse(response, `Message delete failed with status ${response.status}`);
+  }
+
   function uniqueNames(names) {
     const cleaned = names
       .map((name) => String(name || "").trim())
@@ -1161,6 +1387,42 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       throw new Error(`${fieldName} contains invalid characters.`);
     }
     return text;
+  }
+
+  function assertValidDeviceId(value, fieldName = "device identifier") {
+    const text = String(value || "").trim();
+    if (!text) {
+      throw new Error(`${fieldName} is required.`);
+    }
+    if (text.length < 8 || text.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(text)) {
+      throw new Error(`${fieldName} is invalid.`);
+    }
+    return text;
+  }
+
+  function getOrCreateMessagingDeviceId() {
+    const state = readLauncherState();
+    const existing = String(state.messagingDeviceId || "").trim();
+    if (existing && /^[A-Za-z0-9._:-]{8,128}$/.test(existing)) {
+      return existing;
+    }
+    const generated = window.crypto?.randomUUID
+      ? `dev-${window.crypto.randomUUID()}`
+      : `dev-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    state.messagingDeviceId = generated;
+    writeLauncherState(state);
+    return generated;
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = `${base64String}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let index = 0; index < rawData.length; index += 1) {
+      outputArray[index] = rawData.charCodeAt(index);
+    }
+    return outputArray;
   }
 
   function sanitizePairInfoForServer(pairInfo, fieldName = "selected pair") {
@@ -1441,7 +1703,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     if (!isAcceptedUniqueHandleIdentifier(cleanIdentifier, status)) {
       if (allowClaimPrompt) {
-        throw new Error(`${fieldName} is not an accepted unique handle. To use it, first click "See here..." and claim that handle.`);
+        throw new Error(`${fieldName} is not an accepted unique handle. To use it, first choose a unique name and claim that handle.`);
       }
       throw new Error(`${fieldName} is not an accepted unique handle. That person must claim the handle for themselves before you can use it here.`);
     }
@@ -1915,6 +2177,24 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return document.querySelector(`[data-role-handle-wrap="${role}"]`);
   }
 
+  function shouldHideHandleLink(role) {
+    const normalizedRole = String(role || "").trim();
+    if (!normalizedRole) {
+      return false;
+    }
+    let ownValue = "";
+    if (normalizedRole === "remote-viewer") {
+      ownValue = String(remoteViewerOwnInput?.value || "").trim();
+    } else {
+      ownValue = String(readRoleFormValues(normalizedRole).ownName || "").trim();
+    }
+    if (!ownValue) {
+      return false;
+    }
+    const ownStatus = getCachedIdentifierStatus(ownValue);
+    return usesHandlePresentation(ownValue, ownStatus);
+  }
+
   function applyRoleIdentifierPresentation(role, options = {}) {
     const { ownUsesHandle = false, partnerUsesHandle = false } = options;
     const { ownLabel, partnerLabel } = getRoleLabelElements(role);
@@ -1925,9 +2205,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (partnerLabel) {
       partnerLabel.textContent = role === "sender" ? "Receiver" : "Sender";
     }
-    if (handleWrap) {
-      handleWrap.hidden = !!ownUsesHandle;
-    }
+    setRoleMessagePresentation(role, ownUsesHandle ? "blank" : "default");
     setRoleDefaultNoteText(
       role,
       ownUsesHandle
@@ -1936,6 +2214,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         ? "These unique handles are used to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify both Sender and Receiver unique identifiers carefully."
         : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
     );
+    if (handleWrap) {
+      handleWrap.hidden = ownUsesHandle;
+    }
   }
 
   async function syncRoleIdentifierPresentation(role, form, options = {}) {
@@ -1986,6 +2267,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     } else {
       clearRoleIdentifierStatus(role);
     }
+    void refreshRoleMessaging(role);
   }
 
   function openHandleOverlay(role) {
@@ -2041,6 +2323,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     try {
+      const completedRole = activeHandleRole;
       const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
       if (result?.status) {
@@ -2064,11 +2347,1108 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       void refreshMainUserType();
       closeHandleOverlay();
+      if (acceptedHandle && completedRole) {
+        openPushSetupOverlay(completedRole, acceptedHandle);
+      }
     } catch (error) {
       if (handleStatus) {
         handleStatus.textContent = error instanceof Error ? error.message : "Unable to accept that unique handle right now.";
       }
     }
+  }
+
+  function getNotificationPermissionSnapshot() {
+    if (!("Notification" in window)) {
+      return "unsupported";
+    }
+    return String(Notification.permission || "default").trim().toLowerCase() || "default";
+  }
+
+  function syncNotificationPermissionSnapshot() {
+    const state = readLauncherState();
+    state.notificationPermission = getNotificationPermissionSnapshot();
+    writeLauncherState(state);
+    return state.notificationPermission;
+  }
+
+  async function subscribeCurrentDeviceForIdentifier(identifier) {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      throw new Error("This browser does not support app notifications.");
+    }
+
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "your identifier");
+    const permission = syncNotificationPermissionSnapshot();
+    if (permission !== "granted") {
+      throw new Error("Notifications are not currently allowed for this app.");
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const deviceId = getOrCreateMessagingDeviceId();
+    const setupData = await fetchPushSetup(cleanIdentifier, deviceId);
+    if (setupData?.identifier_status) {
+      rememberIdentifierStatus(cleanIdentifier, setupData.identifier_status);
+    }
+    const publicKey = String(setupData?.web_push?.public_key || "").trim();
+    if (!publicKey) {
+      throw new Error(String(setupData?.web_push?.message || "Web Push is not configured right now."));
+    }
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+    }
+
+    return savePushSubscription(cleanIdentifier, deviceId, subscription);
+  }
+
+  function getRoleIdentifiersForMessaging(role) {
+    if (role === "remote-viewer") {
+      return {
+        ownIdentifier: String(remoteViewerOwnInput?.value || "").trim(),
+        partnerIdentifier: String(remoteViewerPartnerInput?.value || "").trim()
+      };
+    }
+
+    const form = document.querySelector(`[data-role-form="${role}"]`);
+    return {
+      ownIdentifier: String(form?.elements?.ownName?.value || "").trim(),
+      partnerIdentifier: String(form?.elements?.partnerName?.value || "").trim()
+    };
+  }
+
+  function getMessagingRecipientRole(role) {
+    return role === "sender"
+      ? "receiver"
+      : role === "receiver"
+        ? "sender"
+        : "remote-viewer";
+  }
+
+  function getRoleMessageLaunchButton(role) {
+    return openRoleMessagesButtons.find((item) => item.dataset.openRoleMessages === role) || null;
+  }
+
+  function getRoleMessageBadge(role) {
+    return roleMessageBadges.find((item) => item.dataset.roleMessageBadge === role) || null;
+  }
+
+  function setRoleMessageBadge(role, unreadCount) {
+    const badge = getRoleMessageBadge(role);
+    if (!badge) {
+      return;
+    }
+    const count = Math.max(0, Number(unreadCount) || 0);
+    badge.hidden = false;
+    if (count <= 0) {
+      badge.textContent = "0";
+      badge.classList.add("is-empty");
+      badge.setAttribute("aria-hidden", "true");
+      return;
+    }
+    badge.classList.remove("is-empty");
+    badge.setAttribute("aria-hidden", "false");
+    badge.textContent = count > 9 ? "9+" : String(count);
+  }
+
+  function setMessagesStatus(message = "", options = {}) {
+    if (!messagesStatus) {
+      return;
+    }
+    const text = String(message || "").trim();
+    messagesStatus.textContent = text;
+    messagesStatus.hidden = !text;
+    messagesStatus.style.color = options.isError ? "rgba(255, 196, 196, 0.96)" : "rgba(255, 230, 176, 0.94)";
+  }
+
+  function formatConversationOptionLabel(partnerIdentifier, unreadCount = 0) {
+    const base = String(partnerIdentifier || "").trim() || "Conversation";
+    const count = Math.max(0, Number(unreadCount) || 0);
+    return count > 0 ? `${base} (${count})` : base;
+  }
+
+  function getLastReadMsForPartner(inbox, partnerIdentifier) {
+    const normalizedPartner = normalizeIdentifierForStorage(partnerIdentifier);
+    if (!normalizedPartner) {
+      return 0;
+    }
+    const conversations = Array.isArray(inbox?.conversations) ? inbox.conversations : [];
+    const matchingConversation = conversations.find((conversation) => {
+      return normalizeIdentifierForStorage(conversation?.partner_identifier) === normalizedPartner;
+    });
+    return Math.max(0, Number(matchingConversation?.last_read_ms || 0));
+  }
+
+  function getReadMessageIdsForPartner(inbox, partnerIdentifier) {
+    const normalizedPartner = normalizeIdentifierForStorage(partnerIdentifier);
+    if (!normalizedPartner) {
+      return [];
+    }
+    const conversations = Array.isArray(inbox?.conversations) ? inbox.conversations : [];
+    const matchingConversation = conversations.find((conversation) => {
+      return normalizeIdentifierForStorage(conversation?.partner_identifier) === normalizedPartner;
+    });
+    return Array.isArray(matchingConversation?.read_message_ids)
+      ? matchingConversation.read_message_ids.map((messageId) => String(messageId || "").trim()).filter(Boolean)
+      : [];
+  }
+
+  function getUnreadConversationCountForPartner(inbox, partnerIdentifier) {
+    const normalizedPartner = normalizeIdentifierForStorage(partnerIdentifier);
+    if (!normalizedPartner) {
+      return 0;
+    }
+    const conversations = Array.isArray(inbox?.conversations) ? inbox.conversations : [];
+    const matchingConversation = conversations.find((conversation) => {
+      return normalizeIdentifierForStorage(conversation?.partner_identifier) === normalizedPartner;
+    });
+    return Math.max(0, Number(matchingConversation?.unread_count || 0));
+  }
+
+  function clearUnreadConversationCountForPartner(inbox, partnerIdentifier) {
+    if (!inbox || typeof inbox !== "object") {
+      return inbox;
+    }
+    const normalizedPartner = normalizeIdentifierForStorage(partnerIdentifier);
+    if (!normalizedPartner) {
+      return inbox;
+    }
+    const conversations = Array.isArray(inbox.conversations) ? inbox.conversations : [];
+    let totalUnread = 0;
+    const nextConversations = conversations.map((conversation) => {
+      const nextConversation = { ...conversation };
+      if (normalizeIdentifierForStorage(conversation?.partner_identifier) === normalizedPartner) {
+        nextConversation.unread_count = 0;
+      }
+      totalUnread += Math.max(0, Number(nextConversation?.unread_count || 0));
+      return nextConversation;
+    });
+    return {
+      ...inbox,
+      conversations: nextConversations,
+      total_unread: totalUnread
+    };
+  }
+
+  function buildMessagingConversationList(inbox, preferredPartnerIdentifier = "") {
+    const list = [];
+    const seen = new Set();
+    const conversations = Array.isArray(inbox?.conversations) ? inbox.conversations : [];
+
+    conversations.forEach((conversation) => {
+      const partnerIdentifier = String(conversation?.partner_identifier || "").trim();
+      if (!partnerIdentifier) {
+        return;
+      }
+      const key = normalizeIdentifierForStorage(partnerIdentifier);
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      list.push({
+        partner_identifier: partnerIdentifier,
+        unread_count: Number(conversation?.unread_count || 0),
+        updated_ms: Number(conversation?.updated_ms || 0)
+      });
+    });
+
+    const preferred = String(preferredPartnerIdentifier || "").trim();
+    if (preferred && !seen.has(normalizeIdentifierForStorage(preferred))) {
+      list.unshift({
+        partner_identifier: preferred,
+        unread_count: 0,
+        updated_ms: 0
+      });
+    }
+
+    return list;
+  }
+
+  function renderMessagesThread(thread, ownIdentifier, partnerIdentifier = "") {
+    if (!messagesThread) {
+      return;
+    }
+    const previousLastMessageId = String(messagesThread.dataset.lastMessageId || "").trim();
+    const previousMessageCount = Number(messagesThread.dataset.messageCount || 0);
+    const shouldFollowNewMessages = isRoleMessageThreadNearBottom(messagesThread);
+    const ownKey = normalizeIdentifierForStorage(ownIdentifier);
+    const lastReadMs = getLastReadMsForPartner(activeMessagesThreadInbox, partnerIdentifier);
+    const readMessageIds = new Set(Array.isArray(activeMessagesReadMessageIds) ? activeMessagesReadMessageIds : []);
+    const messages = Array.isArray(thread?.messages) ? thread.messages : [];
+    if (!messages.length) {
+      const emptyText = partnerIdentifier
+        ? "Messaging is ready. Short notes between you and your partner will appear here."
+        : "Choose a conversation to view messages.";
+      messagesThread.innerHTML = `<div class="role-message-empty">${escapeHtml(emptyText)}</div>`;
+      messagesThread.dataset.lastMessageId = "";
+      messagesThread.dataset.messageCount = "0";
+      return;
+    }
+
+    const nextLastMessageId = String(messages[messages.length - 1]?.id || "").trim();
+    const hasNewMessage = nextLastMessageId !== "" && (nextLastMessageId !== previousLastMessageId || messages.length > previousMessageCount);
+    messagesThread.innerHTML = messages.map((message) => {
+      const messageId = String(message?.id || "").trim();
+      const senderIdentifier = String(message?.sender_identifier || "").trim();
+      const isOwn = normalizeIdentifierForStorage(senderIdentifier) === ownKey;
+      const createdMs = Number(message?.created_ms || 0);
+      const createdLabel = createdMs > 0 ? new Date(createdMs).toLocaleString() : "";
+      const isUnread = !isOwn && createdMs > lastReadMs && !readMessageIds.has(messageId);
+      const recipientSeen = !!message?.recipient_seen;
+      return `
+        <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"} ${isUnread ? "is-unread" : ""}" data-message-id="${escapeHtml(messageId)}">
+          <div class="role-message-meta-row">
+            <span class="role-message-meta">${isUnread ? `<span class="role-message-unread-dot" aria-hidden="true"></span>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` · ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">🗑</button>
+          </div>
+          <div>${escapeHtml(String(message?.text || ""))}</div>
+        </div>
+      `;
+    }).join("");
+    messagesThread.dataset.lastMessageId = nextLastMessageId;
+    messagesThread.dataset.messageCount = String(messages.length);
+    if (hasNewMessage && shouldFollowNewMessages) {
+      messagesThread.scrollTop = messagesThread.scrollHeight;
+    }
+  }
+
+  async function refreshRoleMessageButton(role) {
+    const inboxState = await fetchRoleMessageInboxState(role);
+    if (!inboxState) {
+      return;
+    }
+    setRoleMessageBadge(inboxState.role, inboxState.totalUnread);
+  }
+
+  async function fetchRoleMessageInboxState(role) {
+    const normalizedRole = String(role || "").trim();
+    if (!["sender", "receiver"].includes(normalizedRole)) {
+      return null;
+    }
+
+    const button = getRoleMessageLaunchButton(normalizedRole);
+    if (!button) {
+      return null;
+    }
+    const { ownIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
+    const ownIdentifierRaw = String(ownIdentifier || "").trim();
+    if (!ownIdentifierRaw) {
+      setRoleMessageBadge(normalizedRole, 0);
+      return {
+        role: normalizedRole,
+        ownIdentifier: "",
+        inbox: null,
+        totalUnread: 0
+      };
+    }
+
+    let ownStatus = getCachedIdentifierStatus(ownIdentifierRaw);
+    if (!ownStatus) {
+      try {
+        ownStatus = await fetchIdentifierStatus(ownIdentifierRaw);
+        rememberIdentifierStatus(ownIdentifierRaw, ownStatus);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    const ownPreferredIdentifier = String(ownStatus?.preferred_identifier || ownIdentifierRaw).trim() || ownIdentifierRaw;
+    const ownAcceptedHandle = isAcceptedUniqueHandleIdentifier(ownPreferredIdentifier, ownStatus) || !!ownStatus?.uses_handle;
+    if (!ownAcceptedHandle) {
+      setRoleMessageBadge(normalizedRole, 0);
+      return {
+        role: normalizedRole,
+        ownIdentifier: ownPreferredIdentifier,
+        inbox: null,
+        totalUnread: 0
+      };
+    }
+
+    try {
+      const inboxData = await fetchPartnerMessageInbox(ownPreferredIdentifier, getOrCreateMessagingDeviceId());
+      if (inboxData?.identifier_status) {
+        rememberIdentifierStatus(ownPreferredIdentifier, inboxData.identifier_status);
+      }
+      return {
+        role: normalizedRole,
+        ownIdentifier: ownPreferredIdentifier,
+        inbox: inboxData?.inbox || null,
+        totalUnread: Math.max(0, Number(inboxData?.inbox?.total_unread || 0))
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function openPushSetupOverlay(role, ownIdentifier) {
+    pushSetupReturnRole = role === "sender" || role === "receiver" || role === "remote-viewer" ? role : "";
+    pushSetupOwnIdentifier = String(ownIdentifier || "").trim();
+    if (!pushSetupReturnRole || !pushSetupOwnIdentifier) {
+      return;
+    }
+    if (pushSetupStatus) {
+      pushSetupStatus.textContent = "Checking this device…";
+    }
+    pushSetupOverlay?.classList.remove("beginner-view-hidden");
+    void refreshPushSetupOverlay();
+  }
+
+  async function openMessagingSetupFromHelp() {
+    const candidates = [
+      {
+        role: "sender",
+        ownIdentifier: readRoleFormValues("sender").ownName
+      },
+      {
+        role: "receiver",
+        ownIdentifier: readRoleFormValues("receiver").ownName
+      },
+      {
+        role: "remote-viewer",
+        ownIdentifier: String(remoteViewerOwnInput?.value || "").trim()
+      }
+    ];
+
+    for (const candidate of candidates) {
+      const rawIdentifier = String(candidate.ownIdentifier || "").trim();
+      if (!rawIdentifier) {
+        continue;
+      }
+      try {
+        const status = await fetchIdentifierStatus(rawIdentifier);
+        rememberIdentifierStatus(rawIdentifier, status);
+        const preferredIdentifier = String(status?.preferred_identifier || rawIdentifier).trim() || rawIdentifier;
+        if (!isAcceptedUniqueHandleIdentifier(preferredIdentifier, status)) {
+          continue;
+        }
+
+        showLauncherView();
+        if (candidate.role === "remote-viewer") {
+          showClairvoyanceViewingView();
+          const matchingCard = findRoleCard("remote-viewer");
+          if (matchingCard) {
+            ensureCardExpanded(matchingCard, { scrollIntoView: false });
+          }
+        } else {
+          const matchingCard = findRoleCard(candidate.role);
+          if (matchingCard) {
+            ensureCardExpanded(matchingCard, { scrollIntoView: false });
+          }
+        }
+        openPushSetupOverlay(candidate.role, preferredIdentifier);
+        return;
+      } catch (_) {
+        // Try the next candidate.
+      }
+    }
+
+    window.alert("First claim a unique handle on one of the role cards, then return here to enable partner messaging.");
+  }
+
+  function closePushSetupOverlay() {
+    const returnRole = pushSetupReturnRole;
+    pushSetupReturnRole = "";
+    pushSetupOwnIdentifier = "";
+    pushSetupInFlight = false;
+    pushSetupOverlay?.classList.add("beginner-view-hidden");
+    if (pushSetupStatus) {
+      pushSetupStatus.textContent = "";
+    }
+    if (returnRole) {
+      const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
+      if (matchingCard) {
+        ensureCardExpanded(matchingCard);
+      }
+      void refreshRoleMessaging(returnRole);
+    }
+  }
+
+  async function refreshPushSetupOverlay(options = {}) {
+    if (!pushSetupReturnRole || !pushSetupOwnIdentifier) {
+      return;
+    }
+    const preserveStatus = !!options.preserveStatus;
+
+    const installed = isRunningAsInstalledApp();
+    const permission = syncNotificationPermissionSnapshot();
+    const deviceId = getOrCreateMessagingDeviceId();
+
+    if (pushSetupInstallState) {
+      pushSetupInstallState.textContent = installed
+        ? "App install: ready"
+        : "App install: this feature works after the app is installed on this device";
+    }
+    if (pushSetupNotificationState) {
+      pushSetupNotificationState.textContent = permission === "granted"
+        ? "Notifications: allowed"
+        : permission === "denied"
+          ? "Notifications: blocked in the browser for this app"
+          : permission === "unsupported"
+            ? "Notifications: unsupported on this browser"
+            : "Notifications: not allowed yet";
+    }
+    if (pushSetupInstallButton) {
+      pushSetupInstallButton.hidden = installed;
+    }
+    if (pushSetupEnableButton) {
+      pushSetupEnableButton.disabled = permission === "unsupported";
+      pushSetupEnableButton.textContent =
+        permission === "granted"
+          ? "REGISTER MESSAGING"
+          : permission === "denied"
+            ? "UNBLOCK NOTIFICATIONS"
+            : "ALLOW NOTIFICATIONS";
+    }
+    if (pushSetupTestButton) {
+      pushSetupTestButton.disabled = !(installed && permission === "granted");
+    }
+
+    try {
+      const setupData = await fetchPushSetup(pushSetupOwnIdentifier, deviceId);
+      if (setupData?.identifier_status) {
+        rememberIdentifierStatus(pushSetupOwnIdentifier, setupData.identifier_status);
+      }
+      const ready = !!setupData?.push_status?.notification_ready && installed && permission === "granted";
+      if (pushSetupStatus && !preserveStatus) {
+        pushSetupStatus.textContent = ready
+          ? "Partner messaging is ready on this device."
+          : installed
+            ? "This installed app can now be registered for partner messaging."
+            : "Install this app on this device, then allow notifications to turn on partner messaging.";
+      }
+    } catch (error) {
+      if (pushSetupStatus && !preserveStatus) {
+        pushSetupStatus.textContent = error instanceof Error ? error.message : "Unable to check notification setup right now.";
+      }
+    }
+  }
+
+  async function enablePushMessagingFromOverlay() {
+    if (pushSetupInFlight || !pushSetupOwnIdentifier) {
+      return;
+    }
+    pushSetupInFlight = true;
+    if (pushSetupStatus) {
+      pushSetupStatus.textContent = "Enabling partner messaging…";
+    }
+    try {
+      if (!isRunningAsInstalledApp()) {
+        throw new Error("Install this app on this device before enabling partner messaging.");
+      }
+      if (!("Notification" in window)) {
+        throw new Error("This browser does not support app notifications.");
+      }
+      let permission = getNotificationPermissionSnapshot();
+      if (permission === "denied") {
+        throw new Error("Notifications are currently blocked in the browser for this app. Use the browser or PWA site-permission controls to allow notifications, then return here and press this button again.");
+      }
+      if (permission === "default") {
+        permission = String(await Notification.requestPermission()).trim().toLowerCase() || "default";
+      }
+      syncNotificationPermissionSnapshot();
+      if (permission !== "granted") {
+        throw new Error("Notifications were not allowed, so partner messaging is still unavailable.");
+      }
+      await subscribeCurrentDeviceForIdentifier(pushSetupOwnIdentifier);
+      if (pushSetupStatus) {
+        pushSetupStatus.textContent = "Partner messaging is now ready on this device.";
+      }
+      await refreshRoleMessaging(pushSetupReturnRole);
+      window.setTimeout(() => {
+        closePushSetupOverlay();
+      }, 320);
+    } catch (error) {
+      if (pushSetupStatus) {
+        pushSetupStatus.textContent = error instanceof Error ? error.message : "Unable to enable partner messaging right now.";
+      }
+    } finally {
+      pushSetupInFlight = false;
+      void refreshPushSetupOverlay({ preserveStatus: true });
+    }
+  }
+
+  async function triggerPartnerMessagingTestNotification() {
+    if (!pushSetupOwnIdentifier) {
+      throw new Error("First choose a valid unique handle before testing notifications.");
+    }
+    if (!isRunningAsInstalledApp()) {
+      throw new Error("Install this app on this device before testing partner notifications.");
+    }
+    if (!("Notification" in window)) {
+      throw new Error("This browser does not support app notifications.");
+    }
+    const permission = syncNotificationPermissionSnapshot();
+    if (permission === "denied") {
+      throw new Error("Notifications are currently blocked in the browser for this app.");
+    }
+    if (permission !== "granted") {
+      throw new Error("Allow notifications first, then press TEST NOTIFICATION again.");
+    }
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("This browser does not support service workers for app notifications.");
+    }
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification("ESP GYM test notification", {
+      body: "If you saw this popup and heard a sound, partner messaging alerts should be working on this device.",
+      tag: `esp-gym-test-${Date.now()}`,
+      renotify: false,
+      requireInteraction: false,
+      data: {
+        url: `./telepathybeginner.html?v=${launcherBuildVersion}`
+      }
+    });
+  }
+
+  async function refreshRoleMessaging(role) {
+    const normalizedRole = String(role || "").trim();
+    if (normalizedRole === "remote-viewer") {
+      return;
+    }
+    if (!["sender", "receiver"].includes(normalizedRole)) {
+      return;
+    }
+    await refreshRoleMessageButton(normalizedRole);
+  }
+
+  function scheduleRoleMessagingRefresh(role, delayMs = 1600) {
+    const normalizedRole = String(role || "").trim();
+    if (!normalizedRole || normalizedRole === "remote-viewer") {
+      return;
+    }
+    const existingTimer = Number(roleMessagingRefreshTimers.get(normalizedRole) || 0);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+    const timerId = window.setTimeout(() => {
+      roleMessagingRefreshTimers.delete(normalizedRole);
+      void refreshRoleMessaging(normalizedRole);
+    }, Math.max(250, Number(delayMs) || 1600));
+    roleMessagingRefreshTimers.set(normalizedRole, timerId);
+  }
+
+  function renderMessagesConversationOptions(conversations, selectedPartnerIdentifier = "") {
+    if (!messagesThreadSelect) {
+      return;
+    }
+    const selectedKey = normalizeIdentifierForStorage(selectedPartnerIdentifier);
+    const options = Array.isArray(conversations) ? conversations : [];
+    messagesThreadSelect.innerHTML = "";
+
+    if (!options.length) {
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "No conversations yet";
+      messagesThreadSelect.append(emptyOption);
+      messagesThreadSelect.value = "";
+      messagesThreadSelect.disabled = true;
+      return;
+    }
+
+    options.forEach((conversation) => {
+      const partnerIdentifier = String(conversation?.partner_identifier || "").trim();
+      if (!partnerIdentifier) {
+        return;
+      }
+      const option = document.createElement("option");
+      option.value = partnerIdentifier;
+      option.textContent = formatConversationOptionLabel(partnerIdentifier, Number(conversation?.unread_count || 0));
+      messagesThreadSelect.append(option);
+    });
+
+    messagesThreadSelect.disabled = false;
+    const unreadOption = options.find((conversation) => Math.max(0, Number(conversation?.unread_count || 0)) > 0);
+    const preferredOption = options.find((conversation) => normalizeIdentifierForStorage(conversation.partner_identifier) === selectedKey);
+    messagesThreadSelect.value = String((unreadOption || preferredOption || options[0])?.partner_identifier || "");
+  }
+
+  function renderMessagesInboxSummary(inbox) {
+    if (!messagesSummary) {
+      return;
+    }
+    const totalUnread = Number(inbox?.total_unread || 0);
+    messagesSummary.textContent = totalUnread > 0
+      ? `${totalUnread} unread message${totalUnread === 1 ? "" : "s"} across your conversations.`
+      : "No unread messages right now.";
+  }
+
+  function showMessagesView() {
+    clearReportPanelOffset();
+    window.scrollTo({ top: 0, behavior: "auto" });
+    messagesView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+  }
+
+  async function loadActiveMessagesConversation(options = {}) {
+    const markRead = options.markRead !== false;
+    if (!activeMessagesOwnerIdentifier) {
+      renderMessagesThread(null, "", "");
+      setMessagesStatus("Choose a valid conversation first.", { isError: true });
+      return;
+    }
+
+    const selectedPartner = String(messagesThreadSelect?.value || activeMessagesPartnerIdentifier || "").trim();
+    activeMessagesPartnerIdentifier = selectedPartner;
+    if (!selectedPartner) {
+      activeMessagesThreadData = null;
+      activeMessagesReadMessageIds = [];
+      renderMessagesThread(null, activeMessagesOwnerIdentifier, "");
+      setMessagesStatus("");
+      return;
+    }
+
+    try {
+      const deviceId = getOrCreateMessagingDeviceId();
+      const messagingData = await fetchPartnerMessaging(activeMessagesOwnerIdentifier, selectedPartner, deviceId);
+      if (messagingData?.identifier_status) {
+        rememberIdentifierStatus(activeMessagesOwnerIdentifier, messagingData.identifier_status);
+      }
+      if (messagingData?.partner_status) {
+        rememberIdentifierStatus(selectedPartner, messagingData.partner_status);
+      }
+      const preferredPartnerIdentifier = String(messagingData?.partner_status?.preferred_identifier || selectedPartner).trim() || selectedPartner;
+      activeMessagesPartnerIdentifier = preferredPartnerIdentifier;
+      if (messagingData?.inbox) {
+        activeMessagesThreadInbox = messagingData.inbox;
+      }
+      activeMessagesReadMessageIds = Array.isArray(messagingData?.read_message_ids)
+        ? messagingData.read_message_ids.map((id) => String(id || "").trim()).filter(Boolean)
+        : getReadMessageIdsForPartner(activeMessagesThreadInbox, preferredPartnerIdentifier);
+      activeMessagesThreadData = messagingData?.thread || null;
+      renderMessagesThread(activeMessagesThreadData, activeMessagesOwnerIdentifier, preferredPartnerIdentifier);
+
+      if (markRead) {
+        const readData = await markPartnerMessagesReadRequest(activeMessagesOwnerIdentifier, preferredPartnerIdentifier);
+        activeMessagesReadMessageIds = Array.isArray(readData?.read_message_ids)
+          ? readData.read_message_ids.map((id) => String(id || "").trim()).filter(Boolean)
+          : [];
+        activeMessagesThreadInbox = readData?.inbox || activeMessagesThreadInbox;
+        renderMessagesThread(activeMessagesThreadData, activeMessagesOwnerIdentifier, preferredPartnerIdentifier);
+      }
+      renderMessagesInboxSummary(activeMessagesThreadInbox);
+
+      const partnerPushCount = Number(messagingData?.partner_push_status?.subscription_count || 0);
+      setMessagesStatus(
+        partnerPushCount > 0
+          ? ""
+          : "Your partner has not yet enabled notification messaging on an installed app."
+      );
+      await refreshRoleMessageButton("sender");
+      await refreshRoleMessageButton("receiver");
+    } catch (error) {
+      renderMessagesThread(null, activeMessagesOwnerIdentifier, selectedPartner);
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to load this conversation right now.", { isError: true });
+    }
+  }
+
+  async function markSingleActiveMessageRead(messageId) {
+    const normalizedMessageId = String(messageId || "").trim();
+    if (!normalizedMessageId || !activeMessagesOwnerIdentifier || !activeMessagesPartnerIdentifier) {
+      return;
+    }
+    if (Array.isArray(activeMessagesReadMessageIds) && activeMessagesReadMessageIds.includes(normalizedMessageId)) {
+      return;
+    }
+
+    activeMessagesReadMessageIds = [...new Set([...(activeMessagesReadMessageIds || []), normalizedMessageId])];
+    if (activeMessagesThreadInbox && typeof activeMessagesThreadInbox === "object") {
+      const targetKey = normalizeIdentifierForStorage(activeMessagesPartnerIdentifier);
+      let totalUnread = 0;
+      const nextConversations = (Array.isArray(activeMessagesThreadInbox.conversations) ? activeMessagesThreadInbox.conversations : []).map((conversation) => {
+        if (normalizeIdentifierForStorage(conversation?.partner_identifier) !== targetKey) {
+          totalUnread += Math.max(0, Number(conversation?.unread_count || 0));
+          return conversation;
+        }
+        const nextUnread = Math.max(0, Number(conversation?.unread_count || 0) - 1);
+        const nextReadIds = Array.isArray(conversation?.read_message_ids)
+          ? [...new Set([...conversation.read_message_ids, normalizedMessageId])]
+          : [normalizedMessageId];
+        totalUnread += nextUnread;
+        return {
+          ...conversation,
+          unread_count: nextUnread,
+          read_message_ids: nextReadIds
+        };
+      });
+      activeMessagesThreadInbox = {
+        ...activeMessagesThreadInbox,
+        conversations: nextConversations,
+        total_unread: totalUnread
+      };
+    }
+    renderMessagesThread(activeMessagesThreadData, activeMessagesOwnerIdentifier, activeMessagesPartnerIdentifier);
+    renderMessagesConversationOptions(
+      buildMessagingConversationList(activeMessagesThreadInbox, activeMessagesPartnerIdentifier),
+      activeMessagesPartnerIdentifier
+    );
+    renderMessagesInboxSummary(activeMessagesThreadInbox);
+    await refreshRoleMessageButton("sender");
+    await refreshRoleMessageButton("receiver");
+
+    try {
+      const readData = await markPartnerMessagesReadRequest(activeMessagesOwnerIdentifier, activeMessagesPartnerIdentifier, normalizedMessageId);
+      activeMessagesReadMessageIds = Array.isArray(readData?.read_message_ids)
+        ? readData.read_message_ids.map((id) => String(id || "").trim()).filter(Boolean)
+        : activeMessagesReadMessageIds;
+      if (readData?.inbox) {
+        activeMessagesThreadInbox = readData.inbox;
+      }
+      renderMessagesThread(activeMessagesThreadData, activeMessagesOwnerIdentifier, activeMessagesPartnerIdentifier);
+      renderMessagesConversationOptions(
+        buildMessagingConversationList(activeMessagesThreadInbox, activeMessagesPartnerIdentifier),
+        activeMessagesPartnerIdentifier
+      );
+      renderMessagesInboxSummary(activeMessagesThreadInbox);
+      await refreshRoleMessageButton("sender");
+      await refreshRoleMessageButton("receiver");
+    } catch (error) {
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to mark that message as read right now.", { isError: true });
+    }
+  }
+
+  async function markActiveMessagesConversationReadFromInteraction() {
+    if (!activeMessagesOwnerIdentifier || !activeMessagesPartnerIdentifier) {
+      return;
+    }
+    const existingUnread = getUnreadConversationCountForPartner(activeMessagesThreadInbox, activeMessagesPartnerIdentifier);
+    if (existingUnread <= 0) {
+      return;
+    }
+
+    activeMessagesThreadInbox = clearUnreadConversationCountForPartner(activeMessagesThreadInbox, activeMessagesPartnerIdentifier);
+    renderMessagesConversationOptions(
+      buildMessagingConversationList(activeMessagesThreadInbox, activeMessagesPartnerIdentifier),
+      activeMessagesPartnerIdentifier
+    );
+    renderMessagesInboxSummary(activeMessagesThreadInbox);
+    await refreshRoleMessageButton("sender");
+    await refreshRoleMessageButton("receiver");
+
+    try {
+      const readData = await markPartnerMessagesReadRequest(activeMessagesOwnerIdentifier, activeMessagesPartnerIdentifier);
+      if (readData?.inbox) {
+        activeMessagesThreadInbox = readData.inbox;
+        renderMessagesConversationOptions(
+          buildMessagingConversationList(activeMessagesThreadInbox, activeMessagesPartnerIdentifier),
+          activeMessagesPartnerIdentifier
+        );
+        renderMessagesInboxSummary(activeMessagesThreadInbox);
+      }
+      await refreshRoleMessageButton("sender");
+      await refreshRoleMessageButton("receiver");
+    } catch (error) {
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to mark these messages as read right now.", { isError: true });
+    }
+  }
+
+  async function openMessagesViewForRole(role, options = {}) {
+    const normalizedRole = String(role || "").trim();
+    if (!["sender", "receiver"].includes(normalizedRole)) {
+      return;
+    }
+    const { ownIdentifier, partnerIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
+    const ownRaw = String(options.ownerIdentifier || ownIdentifier || "").trim();
+    const partnerRaw = String(options.partnerIdentifier || partnerIdentifier || "").trim();
+
+    if (!ownRaw) {
+      window.alert("Enter your identifier before opening messages.");
+      return;
+    }
+
+    let ownStatus = null;
+    try {
+      ownStatus = await fetchIdentifierStatus(ownRaw);
+      rememberIdentifierStatus(ownRaw, ownStatus);
+    } catch (error) {
+      window.alert("Your identifier could not be checked right now.");
+      return;
+    }
+
+    const preferredOwnIdentifier = String(ownStatus?.preferred_identifier || ownRaw).trim() || ownRaw;
+    if (!isAcceptedUniqueHandleIdentifier(preferredOwnIdentifier, ownStatus)) {
+      window.alert("First claim an accepted unique handle for You before using partner messaging.");
+      return;
+    }
+
+    const capturedLauncherScrollY = Math.max(
+      0,
+      Number(pendingMessagesOpenScrollY || lastKnownLauncherScrollY || window.scrollY || window.pageYOffset || 0)
+    );
+    pendingMessagesOpenScrollY = 0;
+    activeMessagesRole = normalizedRole;
+    activeMessagesOwnerIdentifier = preferredOwnIdentifier;
+    activeMessagesPartnerIdentifier = partnerRaw;
+    activeMessagesReturnView = options.returnView === "launcher-main" ? "launcher-main" : "launcher";
+    activeMessagesReturnScrollY = Math.max(0, Math.round(capturedLauncherScrollY));
+
+    showMessagesView();
+    if (messagesSubtitle) {
+      messagesSubtitle.textContent = preferredOwnIdentifier
+        ? `Messages for ${preferredOwnIdentifier}.`
+        : "Your partner messages will appear here.";
+    }
+    setMessagesStatus("");
+    if (messagesInput) {
+      messagesInput.value = "";
+    }
+
+    try {
+      const inboxData = await fetchPartnerMessageInbox(preferredOwnIdentifier, getOrCreateMessagingDeviceId());
+      if (inboxData?.identifier_status) {
+        rememberIdentifierStatus(preferredOwnIdentifier, inboxData.identifier_status);
+      }
+      activeMessagesThreadInbox = inboxData?.inbox || null;
+      const conversationList = buildMessagingConversationList(activeMessagesThreadInbox, partnerRaw);
+      renderMessagesConversationOptions(conversationList, partnerRaw);
+      renderMessagesInboxSummary(activeMessagesThreadInbox);
+      activeMessagesPartnerIdentifier = String(messagesThreadSelect?.value || partnerRaw || "").trim();
+      await loadActiveMessagesConversation({ markRead: false });
+    } catch (error) {
+      renderMessagesConversationOptions([], "");
+      renderMessagesThread(null, preferredOwnIdentifier, "");
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to open partner messaging right now.", { isError: true });
+    }
+  }
+
+  async function sendActiveMessagesViewMessage() {
+    const text = String(messagesInput?.value || "").trim();
+    if (!text) {
+      setMessagesStatus("Please enter a message before sending.", { isError: true });
+      return;
+    }
+    if (!activeMessagesOwnerIdentifier || !activeMessagesPartnerIdentifier || !activeMessagesRole) {
+      setMessagesStatus("Choose a valid conversation before sending.", { isError: true });
+      return;
+    }
+
+    try {
+      setMessagesStatus("Sending message...");
+      await sendPartnerMessageRequest(
+        activeMessagesOwnerIdentifier,
+        activeMessagesPartnerIdentifier,
+        activeMessagesRole,
+        getMessagingRecipientRole(activeMessagesRole),
+        text
+      );
+      if (messagesInput) {
+        messagesInput.value = "";
+      }
+      await loadActiveMessagesConversation({ markRead: false });
+      setMessagesStatus("Message sent to your partner.");
+    } catch (error) {
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to send the message right now.", { isError: true });
+    }
+  }
+
+  async function deleteActiveMessagesViewMessage(messageId) {
+    if (!activeMessagesOwnerIdentifier || !activeMessagesPartnerIdentifier) {
+      return;
+    }
+    try {
+      await deletePartnerMessageRequest(activeMessagesOwnerIdentifier, activeMessagesPartnerIdentifier, messageId);
+      await loadActiveMessagesConversation({ markRead: false });
+      setMessagesStatus("");
+    } catch (error) {
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to delete that message right now.", { isError: true });
+    }
+  }
+
+  function closeMessagesView() {
+    const returnRole = activeMessagesRole;
+    const returnView = activeMessagesReturnView;
+    activeMessagesRole = "";
+    activeMessagesOwnerIdentifier = "";
+    activeMessagesPartnerIdentifier = "";
+    activeMessagesThreadInbox = null;
+    activeMessagesThreadData = null;
+    activeMessagesReadMessageIds = [];
+    activeMessagesReturnView = "launcher";
+    const returnScrollY = Math.max(0, Number(activeMessagesReturnScrollY) || 0);
+    activeMessagesReturnScrollY = 0;
+    messagesView?.classList.add("beginner-view-hidden");
+    setMessagesStatus("");
+    if (messagesInput) {
+      messagesInput.value = "";
+    }
+    lastLauncherPointerDownInsideActiveCard = true;
+    showLauncherView();
+    if (returnView === "launcher-main") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      return;
+    }
+    if (returnRole) {
+      const matchingCard = findRoleCard(returnRole);
+      if (matchingCard) {
+        window.setTimeout(() => {
+          ensureCardExpanded(matchingCard, { scrollIntoView: false });
+          if (activeMessagesScrollRestoreTimer) {
+            window.clearInterval(activeMessagesScrollRestoreTimer);
+            activeMessagesScrollRestoreTimer = 0;
+          }
+          const restoreScroll = () => {
+            window.scrollTo({ top: returnScrollY, left: 0, behavior: "auto" });
+          };
+          restoreScroll();
+          window.requestAnimationFrame(restoreScroll);
+          const restoreStartedAt = Date.now();
+          activeMessagesScrollRestoreTimer = window.setInterval(() => {
+            restoreScroll();
+            if (Date.now() - restoreStartedAt >= 600) {
+              window.clearInterval(activeMessagesScrollRestoreTimer);
+              activeMessagesScrollRestoreTimer = 0;
+            }
+          }, 30);
+          window.setTimeout(restoreScroll, 750);
+          window.setTimeout(restoreScroll, 1400);
+          window.setTimeout(restoreScroll, 2200);
+        }, 0);
+      }
+    }
+  }
+
+  function schedulePartnerMessagePolling(delayMs = partnerMessagePollIntervalMs) {
+    window.clearTimeout(partnerMessagePollTimer);
+    partnerMessagePollTimer = window.setTimeout(() => {
+      if (messagesView && !messagesView.classList.contains("beginner-view-hidden") && activeMessagesOwnerIdentifier) {
+        void loadActiveMessagesConversation({ markRead: false });
+      } else {
+        void refreshRoleMessaging("sender");
+        void refreshRoleMessaging("receiver");
+      }
+      schedulePartnerMessagePolling(partnerMessagePollIntervalMs);
+    }, Math.max(1000, Number(delayMs) || partnerMessagePollIntervalMs));
+  }
+
+  async function maybeAutoOpenUnreadMessagesOnStartup() {
+    if (hasAttemptedUnreadMessagesAutoOpen) {
+      return;
+    }
+    hasAttemptedUnreadMessagesAutoOpen = true;
+    if (!launcherView || launcherView.classList.contains("beginner-view-hidden")) {
+      return;
+    }
+    if (messagesView && !messagesView.classList.contains("beginner-view-hidden")) {
+      return;
+    }
+
+    for (const role of ["sender", "receiver"]) {
+      const inboxState = await fetchRoleMessageInboxState(role);
+      if (!inboxState || inboxState.totalUnread <= 0 || !inboxState.inbox) {
+        continue;
+      }
+      const unreadConversation = (Array.isArray(inboxState.inbox.conversations) ? inboxState.inbox.conversations : [])
+        .find((conversation) => Math.max(0, Number(conversation?.unread_count || 0)) > 0);
+      const partnerIdentifier = String(unreadConversation?.partner_identifier || "").trim();
+      await openMessagesViewForRole(role, {
+        ownerIdentifier: inboxState.ownIdentifier,
+        partnerIdentifier,
+        returnView: "launcher-main"
+      });
+      return;
+    }
+  }
+
+  async function sendRoleMessage(role) {
+    const input = getRoleMessageInput(role);
+    if (!input) {
+      return;
+    }
+    const text = String(input.value || "").trim();
+    if (!text) {
+      setRoleMessageStatus(role, "Please enter a message before sending.", { isError: true });
+      return;
+    }
+
+    const { ownIdentifier, partnerIdentifier } = getRoleIdentifiersForMessaging(role);
+    if (!ownIdentifier || !partnerIdentifier) {
+      setRoleMessageStatus(role, "Enter both identifiers before sending a message.", { isError: true });
+      return;
+    }
+
+    try {
+      const ownStatus = await fetchIdentifierStatus(ownIdentifier);
+      const partnerStatus = await fetchIdentifierStatus(partnerIdentifier);
+      rememberIdentifierStatus(ownIdentifier, ownStatus);
+      rememberIdentifierStatus(partnerIdentifier, partnerStatus);
+      if (!isAcceptedUniqueHandleIdentifier(String(ownStatus?.preferred_identifier || ownIdentifier), ownStatus)) {
+        throw new Error("You need an accepted unique handle before messaging can be used.");
+      }
+      if (!isAcceptedUniqueHandleIdentifier(String(partnerStatus?.preferred_identifier || partnerIdentifier), partnerStatus)) {
+        throw new Error("Your partner needs an accepted unique handle before messaging can be used.");
+      }
+
+      setRoleMessageStatus(role, "Sending message...");
+      const result = await sendPartnerMessageRequest(
+        String(ownStatus?.preferred_identifier || ownIdentifier).trim() || ownIdentifier,
+        String(partnerStatus?.preferred_identifier || partnerIdentifier).trim() || partnerIdentifier,
+        role,
+        getMessagingRecipientRole(role),
+        text
+      );
+      input.value = "";
+      renderRoleMessageThread(
+        role,
+        result?.thread || null,
+        String(ownStatus?.preferred_identifier || ownIdentifier).trim() || ownIdentifier,
+        String(partnerStatus?.preferred_identifier || partnerIdentifier).trim() || partnerIdentifier
+      );
+      const sentCount = Number(result?.delivery?.sent_count || 0);
+      setRoleMessageStatus(
+        role,
+        sentCount > 0
+          ? "Message sent to your partner."
+          : "Message saved, but your partner has not yet enabled notifications on an installed app."
+      );
+      schedulePartnerMessagePolling();
+    } catch (error) {
+      setRoleMessageStatus(role, error instanceof Error ? error.message : "Unable to send the message right now.", { isError: true });
+    }
+  }
+
+  function insertTextIntoRoleMessage(role, textToInsert) {
+    const input = getRoleMessageInput(role);
+    if (!input) {
+      return;
+    }
+    const insertText = String(textToInsert || "");
+    const currentValue = String(input.value || "");
+    const selectionStart = Number.isFinite(input.selectionStart) ? input.selectionStart : currentValue.length;
+    const selectionEnd = Number.isFinite(input.selectionEnd) ? input.selectionEnd : currentValue.length;
+    input.value = `${currentValue.slice(0, selectionStart)}${insertText}${currentValue.slice(selectionEnd)}`;
+    const nextCaret = selectionStart + insertText.length;
+    input.focus();
+    input.setSelectionRange(nextCaret, nextCaret);
+    setRoleMessageStatus(role, "");
   }
 
   function setRoleDifficultyLabel(role, level) {
@@ -2168,6 +3548,161 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return document.querySelector(`[data-role-note-contact-wrap="${role}"]`);
   }
 
+  function getRoleMessageArea(role) {
+    return roleMessageAreas.find((item) => item.dataset.roleMessageArea === role) || null;
+  }
+
+  function getRoleMessageThread(role) {
+    return roleMessageThreads.find((item) => item.dataset.roleMessageThread === role) || null;
+  }
+
+  function getRoleMessageInput(role) {
+    return roleMessageInputs.find((item) => item.dataset.roleMessageInput === role) || null;
+  }
+
+  function getRoleMessageStatusElement(role) {
+    return roleMessageStatuses.find((item) => item.dataset.roleMessageStatus === role) || null;
+  }
+
+  function isRoleMessageThreadNearBottom(element) {
+    if (!element) {
+      return true;
+    }
+    const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;
+    return remaining <= 36;
+  }
+
+  function isRoleMessageAreaVisible(role) {
+    const area = getRoleMessageArea(role);
+    return !!area && !area.hidden;
+  }
+
+  function setRoleMessageStatus(role, message = "", options = {}) {
+    const element = getRoleMessageStatusElement(role);
+    if (!element) {
+      return;
+    }
+    const text = String(message || "").trim();
+    element.textContent = text;
+    element.hidden = !text;
+    element.style.color = options.isError ? "rgba(255, 196, 196, 0.96)" : "rgba(255, 230, 176, 0.94)";
+  }
+
+  function renderRoleMessageThread(role, thread, ownIdentifier, partnerIdentifier = "") {
+    const element = getRoleMessageThread(role);
+    if (!element) {
+      return;
+    }
+    const previousLastMessageId = String(element.dataset.lastMessageId || "").trim();
+    const previousMessageCount = Number(element.dataset.messageCount || 0);
+    const shouldFollowNewMessages = isRoleMessageThreadNearBottom(element);
+    const ownKey = normalizeIdentifierForStorage(ownIdentifier);
+    const messages = Array.isArray(thread?.messages) ? thread.messages : [];
+    if (!messages.length) {
+      const emptyText = partnerIdentifier
+        ? "Messaging is ready. Short notes between you and your partner will appear here."
+        : "Enter your partner identifier to begin messaging.";
+      element.innerHTML = `<div class="role-message-empty">${escapeHtml(emptyText)}</div>`;
+      element.dataset.lastMessageId = "";
+      element.dataset.messageCount = "0";
+      return;
+    }
+
+    const nextLastMessageId = String(messages[messages.length - 1]?.id || "").trim();
+    const hasNewMessage = nextLastMessageId !== "" && (nextLastMessageId !== previousLastMessageId || messages.length > previousMessageCount);
+    element.innerHTML = messages.map((message) => {
+      const messageId = String(message?.id || "").trim();
+      const senderIdentifier = String(message?.sender_identifier || "").trim();
+      const isOwn = normalizeIdentifierForStorage(senderIdentifier) === ownKey;
+      const createdMs = Number(message?.created_ms || 0);
+      const createdLabel = createdMs > 0 ? new Date(createdMs).toLocaleString() : "";
+      const recipientSeen = !!message?.recipient_seen;
+      return `
+        <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"}" data-message-id="${escapeHtml(messageId)}">
+          <div class="role-message-meta-row">
+            <span class="role-message-meta">${isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` · ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-role-message-delete="${escapeHtml(role)}" data-message-id="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">🗑</button>
+          </div>
+          <div>${escapeHtml(String(message?.text || ""))}</div>
+        </div>
+      `;
+    }).join("");
+    element.dataset.lastMessageId = nextLastMessageId;
+    element.dataset.messageCount = String(messages.length);
+    if (hasNewMessage && shouldFollowNewMessages) {
+      element.scrollTop = element.scrollHeight;
+    }
+  }
+
+  async function deleteRoleMessage(role, messageId) {
+    const threadElement = getRoleMessageThread(role);
+    if (!threadElement) {
+      return;
+    }
+    const messageElement = threadElement.querySelector(`[data-message-id="${CSS.escape(String(messageId || "").trim())}"]`);
+    const previousMarkup = threadElement.innerHTML;
+    const previousLastMessageId = String(threadElement.dataset.lastMessageId || "");
+    const previousMessageCount = String(threadElement.dataset.messageCount || "");
+    if (messageElement) {
+      messageElement.remove();
+    }
+    if (!threadElement.querySelector("[data-message-id]")) {
+      threadElement.innerHTML = `<div class="role-message-empty">Messaging is ready. Short notes between you and your partner will appear here.</div>`;
+      threadElement.dataset.lastMessageId = "";
+      threadElement.dataset.messageCount = "0";
+    } else {
+      const remainingMessages = Array.from(threadElement.querySelectorAll("[data-message-id]"));
+      threadElement.dataset.lastMessageId = String(remainingMessages[remainingMessages.length - 1]?.getAttribute("data-message-id") || "").trim();
+      threadElement.dataset.messageCount = String(remainingMessages.length);
+    }
+
+    const { ownIdentifier, partnerIdentifier } = getRoleIdentifiersForMessaging(role);
+    if (!ownIdentifier || !partnerIdentifier) {
+      setRoleMessageStatus(role, "Enter both identifiers before deleting a message.", { isError: true });
+      return;
+    }
+
+    try {
+      const result = await deletePartnerMessageRequest(ownIdentifier, partnerIdentifier, messageId);
+      const ownStatus = result?.identifier_status || await fetchIdentifierStatus(ownIdentifier);
+      const partnerStatus = result?.partner_status || await fetchIdentifierStatus(partnerIdentifier);
+      rememberIdentifierStatus(ownIdentifier, ownStatus);
+      rememberIdentifierStatus(partnerIdentifier, partnerStatus);
+      renderRoleMessageThread(
+        role,
+        result?.thread || null,
+        String(ownStatus?.preferred_identifier || ownIdentifier).trim() || ownIdentifier,
+        String(partnerStatus?.preferred_identifier || partnerIdentifier).trim() || partnerIdentifier
+      );
+      setRoleMessageStatus(role, "");
+    } catch (error) {
+      threadElement.innerHTML = previousMarkup;
+      threadElement.dataset.lastMessageId = previousLastMessageId;
+      threadElement.dataset.messageCount = previousMessageCount;
+      setRoleMessageStatus(role, error instanceof Error ? error.message : "Unable to delete that message right now.", { isError: true });
+    }
+  }
+
+  function setRoleMessagePresentation(role, mode = "default") {
+    const note = getRoleNoteElement(role);
+    const handleWrap = getRoleHandleWrap(role);
+    const contactWrap = getRoleNoteContactWrap(role);
+    const messageArea = getRoleMessageArea(role);
+
+    if (note) {
+      note.hidden = mode === "message";
+    }
+    if (messageArea) {
+      messageArea.hidden = mode !== "message";
+    }
+    if (handleWrap) {
+      handleWrap.hidden = mode !== "default" || shouldHideHandleLink(role);
+    }
+    if (contactWrap) {
+      contactWrap.hidden = true;
+    }
+  }
+
   function getDifficultyLabelElement(role) {
     return difficultyLabels.find((item) => item.dataset.pairDifficultyLabel === role) || null;
   }
@@ -2185,6 +3720,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function showRoleSkillExplanation(role) {
+    if (isRoleMessageAreaVisible(role)) {
+      return;
+    }
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const explanation = getSkillExplanation(role);
@@ -2197,6 +3735,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function showRoleHandleExplanation(role) {
+    if (isRoleMessageAreaVisible(role)) {
+      return;
+    }
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const explanation = getHandleExplanation(role);
@@ -2225,6 +3766,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function showRoleLevelExplanation(role, level) {
+    if (isRoleMessageAreaVisible(role)) {
+      return;
+    }
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const explanation = getDifficultyExplanation(level);
@@ -2237,6 +3781,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function clearRoleLevelExplanation(role) {
+    if (isRoleMessageAreaVisible(role)) {
+      return;
+    }
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const contactWrap = getRoleNoteContactWrap(role);
@@ -2257,6 +3804,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function showRoleToolsExplanation(role) {
+    if (isRoleMessageAreaVisible(role)) {
+      return;
+    }
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     if (!note || !panel) {
@@ -2524,9 +4074,21 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       return [];
     }
 
-    const visibleOwnIdentifiers = uniqueNames([
+    const visibleRoleOwnIdentifiers = uniqueNames([
       readRoleFormValues("sender").ownName,
-      readRoleFormValues("receiver").ownName,
+      readRoleFormValues("receiver").ownName
+    ]);
+
+    if (visibleRoleOwnIdentifiers.length === 1) {
+      return visibleRoleOwnIdentifiers;
+    }
+
+    if (visibleRoleOwnIdentifiers.length > 1) {
+      return [];
+    }
+
+    const visibleOwnIdentifiers = uniqueNames([
+      ...visibleRoleOwnIdentifiers,
       String(remoteViewerOwnInput?.value || "").trim()
     ]);
 
@@ -2541,13 +4103,25 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const rememberedOwnIdentifiers = uniqueNames([
       readRoleSettings("sender").ownName,
       readRoleSettings("receiver").ownName,
-      readRoleSettings("remote-viewer").ownName,
       String(readLauncherState().ownNames?.sender || "").trim(),
-      String(readLauncherState().ownNames?.receiver || "").trim(),
+      String(readLauncherState().ownNames?.receiver || "").trim()
+    ]);
+
+    if (rememberedOwnIdentifiers.length === 1) {
+      return rememberedOwnIdentifiers;
+    }
+
+    if (rememberedOwnIdentifiers.length > 1) {
+      return [];
+    }
+
+    const fallbackRememberedOwnIdentifiers = uniqueNames([
+      ...rememberedOwnIdentifiers,
+      readRoleSettings("remote-viewer").ownName,
       String(readLauncherState().ownNames?.["remote-viewer"] || "").trim()
     ]);
 
-    return rememberedOwnIdentifiers.length === 1 ? rememberedOwnIdentifiers : [];
+    return fallbackRememberedOwnIdentifiers.length === 1 ? fallbackRememberedOwnIdentifiers : [];
   }
 
   function getCurrentTelepathyProIdentifier() {
@@ -2764,6 +4338,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       return;
     }
     resolvedMainUserType = userType === "pro" ? "pro" : "standard";
+    const latest = readLauncherState();
+    if (latest.resolvedMainUserType !== resolvedMainUserType) {
+      latest.resolvedMainUserType = resolvedMainUserType;
+      writeLauncherState(latest);
+    }
     beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
     document.title = resolvedMainUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
     renderLauncherIntroCopy();
@@ -2934,15 +4513,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const ownIdentifier = String(remoteViewerOwnInput?.value || "").trim();
     const ownStatus = getCachedIdentifierStatus(ownIdentifier);
     const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
-    const handleWrap = getRoleHandleWrap("remote-viewer");
     if (remoteViewerOwnLabel) {
       remoteViewerOwnLabel.textContent = isDisplayDevice ? "This Device" : "You";
     }
     if (remoteViewerPartnerLabel) {
       remoteViewerPartnerLabel.textContent = isDisplayDevice ? "Remote Viewer" : "Remote Device";
     }
+    setRoleMessagePresentation("remote-viewer", "default");
+    const handleWrap = getRoleHandleWrap("remote-viewer");
     if (handleWrap) {
-      handleWrap.hidden = !!ownUsesHandle;
+      handleWrap.hidden = ownUsesHandle;
     }
     setRoleDefaultNoteText(
       "remote-viewer",
@@ -2955,7 +4535,6 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const candidates = getCurrentUserTypeCandidates();
 
     if (!candidates.length) {
-      renderMainTitle("standard");
       return;
     }
 
@@ -2977,7 +4556,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     }
 
-    if (lookupToken === pendingUserTypeLookupToken) {
+    if (lookupToken === pendingUserTypeLookupToken && resolvedMainUserType !== "standard") {
       renderMainTitle("standard");
     }
   }
@@ -3541,31 +5120,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     reportSummary.replaceChildren();
-
-    const firstLine = document.createElement("p");
-    firstLine.className = "report-summary-line";
-    firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
-
-    reportSummary.append(firstLine);
-    const completedTrials = getScoredRecords(records).length;
-    const summaryStats = getReportSummaryStats(records);
-    const interpretation = buildInterpretationBundle(summaryStats, buildLevelBreakdown(records));
-    const interpretationLines = [
-      interpretation.overall_interpretation,
-      interpretation.dataset_makeup,
-      ...interpretation.level_interpretations,
-      ...interpretation.pattern_interpretations
-    ];
-    interpretationLines.forEach((text) => {
-      if (!text) {
-        return;
-      }
-      const line = document.createElement("p");
-      line.className = "report-summary-line";
-      line.textContent = text;
-      reportSummary.append(line);
-    });
-    reportStatus.textContent = `${completedTrials} completed trial record${completedTrials === 1 ? "" : "s"} found for this pair.`;
+    reportStatus.textContent = "";
   }
 
   function createReportLayoutThumbnailCell(value) {
@@ -4267,7 +5822,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     return [
       `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
-      `The probability that you would get this high a score by chance alone is ${formatProbabilityPercent(telepathicSignificance)}. ${methodText}`
+      `The probability that you would get this score by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
     ];
   }
 
@@ -5236,7 +6791,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       visualizationSummary.append(line);
     });
 
-    visualizationStatus.textContent = `${series.length} completed trial record${series.length === 1 ? "" : "s"} found.`;
+    visualizationStatus.textContent = `${series.length} completed trial${series.length === 1 ? "" : "s"}.`;
   }
 
   function renderVisualizationChart(series) {
@@ -5376,7 +6931,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         "stroke-width": 1.5
       });
       const title = createSvgElement("title");
-      title.textContent = `Trial ${point.trialNumber} | Level ${point.level} | Score ${point.scoreLabel} | Excess ${point.excess.toFixed(2)} | Cumulative ${point.cumulativeExcess.toFixed(2)}`;
+      title.textContent = `Trial ${point.trialNumber} | Level ${point.level} | Score ${point.scoreLabel} | Cumulative ${point.cumulativeExcess.toFixed(2)}`;
       circle.appendChild(title);
       visualizationChart.appendChild(circle);
     });
@@ -7110,6 +8665,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         partnerUsesHandle: isValidUniqueHandle(partnerInput.value.trim()) && !isValidEmailAddress(partnerInput.value.trim())
       });
       scheduleMainUserTypeRefresh();
+      setRoleMessageStatus(role, "");
     });
     ownInput.addEventListener("change", () => {
       void hydrateLauncherProfileForForm(role, form);
@@ -7128,6 +8684,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         ownUsesHandle: isValidUniqueHandle(ownInput.value.trim()) && !isValidEmailAddress(ownInput.value.trim()),
         partnerUsesHandle: isValidUniqueHandle(partnerInput.value.trim()) && !isValidEmailAddress(partnerInput.value.trim())
       });
+      setRoleMessageStatus(role, "");
     });
     partnerInput.addEventListener("change", () => {
       void persistLauncherProfileForForm(role, form);
@@ -7136,6 +8693,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     partnerInput.addEventListener("blur", () => {
       void syncRoleIdentifierPresentation(role, form);
     });
+
+    void refreshRoleMessaging(role);
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -7288,6 +8847,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       if (activeForm) {
         void refreshPartnerAliasHistory(String(card.dataset.roleCard || ""), activeForm);
       }
+      void refreshRoleMessaging(role);
       return;
     }
 
@@ -7326,6 +8886,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (activeForm) {
       void refreshPartnerAliasHistory(role, activeForm);
     }
+    void refreshRoleMessaging(role);
     if (shouldScrollIntoView) {
       window.setTimeout(() => {
         card.scrollIntoView({
@@ -7356,6 +8917,20 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
+  function eventPathIncludesNode(event, node) {
+    if (!event || !node) {
+      return false;
+    }
+    if (typeof event.composedPath === "function") {
+      const path = event.composedPath();
+      if (Array.isArray(path) && path.includes(node)) {
+        return true;
+      }
+    }
+    const target = event.target;
+    return target instanceof Node && node.contains(target);
+  }
+
   function isLauncherInteractiveTarget(target) {
     return target instanceof Element &&
       !!target.closest("button, input, select, textarea, a, label, [data-open-tools], [data-open-handle-control], [name='managePartnerNames']");
@@ -7381,6 +8956,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
+    messagesView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
@@ -7415,6 +8991,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
+    messagesView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
@@ -7716,6 +9293,28 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showTemporaryInlineLearnMoreStatus(element, message) {
+    if (!element) {
+      return;
+    }
+    const text = String(message || "").trim();
+    const existingTimer = Number(element.dataset.clearTimer || 0);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+    element.textContent = text;
+    element.hidden = !text;
+    if (!text) {
+      element.dataset.clearTimer = "0";
+      return;
+    }
+    element.dataset.clearTimer = String(window.setTimeout(() => {
+      element.textContent = "";
+      element.hidden = true;
+      element.dataset.clearTimer = "0";
+    }, 4000));
+  }
+
   function saveLearnMoreContent() {
     if (!learnMoreTextInput) {
       return;
@@ -7731,6 +9330,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (learnMoreStatus) {
       learnMoreStatus.textContent = "Learn More text saved.";
     }
+    showTemporaryInlineLearnMoreStatus(learnMoreInlineStatus, "Learn More text saved.");
   }
 
   function saveClairvoyanceLearnMoreContent() {
@@ -7748,6 +9348,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (clairvoyanceLearnMoreStatus) {
       clairvoyanceLearnMoreStatus.textContent = "Learn More text saved.";
     }
+    showTemporaryInlineLearnMoreStatus(clairvoyanceLearnMoreInlineStatus, "Learn More text saved.");
   }
 
   function showAidsView() {
@@ -8697,9 +10298,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       return;
     }
-    if (!isValidUniqueHandle(newHandle)) {
+    if (!isValidParticipantIdentifier(newHandle)) {
       if (handleUpdateStatus) {
-        handleUpdateStatus.textContent = "New handle is invalid.";
+        handleUpdateStatus.textContent = "New identifier is invalid.";
       }
       return;
     }
@@ -8710,6 +10311,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     try {
       const updateResult = await adminUpdateHandle(previousHandle, newHandle);
+      propagateClaimedHandle(previousHandle, newHandle);
       if (handleUpdateOldInput) {
         handleUpdateOldInput.value = newHandle;
       }
@@ -9104,6 +10706,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const requestedReportReceiver = String(params.get("report_receiver") || "").trim();
       const requestedReportSender = String(params.get("report_sender") || "").trim();
       const requestedReportSessionCode = String(params.get("report_session_code") || "").trim();
+      const messageOwner = String(params.get("message_owner") || "").trim();
+      const messagePartner = String(params.get("message_partner") || "").trim();
+      const messageFocus = params.get("message_focus") === "1";
       if (requestedView === "go-pro") {
         showGoProView();
         return;
@@ -9139,11 +10744,39 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         }
         const matchingCard = findRoleCard(requestedView);
         if (matchingCard) {
+          if (messageOwner || messagePartner) {
+            if (requestedView === "remote-viewer") {
+              if (messageOwner && remoteViewerOwnInput) {
+                remoteViewerOwnInput.value = messageOwner;
+              }
+              if (messagePartner && remoteViewerPartnerInput) {
+                remoteViewerPartnerInput.value = messagePartner;
+              }
+              persistRemoteViewerCardState();
+            } else {
+              const form = matchingCard.querySelector("[data-role-form]");
+              if (form) {
+                if (messageOwner && form.elements?.ownName) {
+                  form.elements.ownName.value = messageOwner;
+                }
+                if (messagePartner && form.elements?.partnerName) {
+                  form.elements.partnerName.value = messagePartner;
+                }
+                void persistLauncherProfileForForm(requestedView, form);
+              }
+            }
+          }
           if (directOpen) {
             window.scrollTo({ top: 0, left: 0, behavior: "auto" });
             ensureCardExpanded(matchingCard, { scrollIntoView: false });
           } else {
             ensureCardExpanded(matchingCard, { scrollIntoView: true });
+          }
+          if (messageFocus) {
+            void openMessagesViewForRole(requestedView, {
+              ownerIdentifier: messageOwner || "",
+              partnerIdentifier: messagePartner || ""
+            });
           }
         }
       }
@@ -9753,6 +11386,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const header = card.querySelector(".role-card-header");
     const toggle = card.querySelector(".role-card-toggle");
     const role = String(card.dataset.roleCard || "").trim();
+    card.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
     toggle?.addEventListener("click", () => {
       activateCard(card);
     });
@@ -9774,14 +11410,6 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     });
   });
 
-  document.querySelectorAll(".role-email-note").forEach((note) => {
-    note.addEventListener("click", (event) => {
-      if (event.target instanceof Element && event.target.closest("[data-open-handle-control], [data-open-contact-inline]")) {
-        return;
-      }
-      collapseActiveLauncherCard();
-    });
-  });
   difficultyStacks.forEach((stack) => {
     const role = String(stack.dataset.roleDifficultyStack || "");
     if (!role) {
@@ -9965,29 +11593,37 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
   remoteViewerOwnInput?.addEventListener("input", persistRemoteViewerCardState);
   remoteViewerOwnInput?.addEventListener("input", () => {
-    scheduleMainUserTypeRefresh();
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
   remoteViewerOwnInput?.addEventListener("change", () => {
     persistRemoteViewerCardState();
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
   remoteViewerOwnInput?.addEventListener("blur", () => {
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
   remoteViewerPartnerInput?.addEventListener("input", persistRemoteViewerCardState);
+  remoteViewerPartnerInput?.addEventListener("input", () => {
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+  });
   remoteViewerPartnerInput?.addEventListener("change", () => {
     persistRemoteViewerCardState();
     void persistRemoteViewerLauncherProfile();
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
   remoteViewerPartnerInput?.addEventListener("blur", () => {
     void persistRemoteViewerLauncherProfile();
+    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
   remoteViewerDisplayDeviceCheckbox?.addEventListener("change", () => {
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox.checked);
     persistRemoteViewerCardState();
   });
+  renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     let ownName = String(remoteViewerOwnInput?.value || "").trim();
@@ -10153,6 +11789,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       openHandleOverlay(String(button.dataset.openHandleControl || ""));
     });
   });
+  openMessagingSetupButton?.addEventListener("click", () => {
+    void openMessagingSetupFromHelp();
+  });
   openToolsButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -10190,6 +11829,150 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   });
   submitHandleButton?.addEventListener("click", () => {
     void submitUniqueHandle();
+  });
+  pushSetupInstallButton?.addEventListener("click", () => {
+    void handleInstallRequest().finally(() => {
+      window.setTimeout(() => {
+        void refreshPushSetupOverlay();
+        if (pushSetupReturnRole) {
+          void refreshRoleMessaging(pushSetupReturnRole);
+        }
+      }, 400);
+    });
+  });
+  pushSetupEnableButton?.addEventListener("click", () => {
+    void enablePushMessagingFromOverlay();
+  });
+  pushSetupTestButton?.addEventListener("click", () => {
+    if (pushSetupInFlight) {
+      return;
+    }
+    pushSetupInFlight = true;
+    if (pushSetupStatus) {
+      pushSetupStatus.textContent = "Sending a test notification to this device…";
+    }
+    void triggerPartnerMessagingTestNotification()
+      .then(() => {
+        if (pushSetupStatus) {
+          pushSetupStatus.textContent = "Test notification sent. Confirm that you saw the popup and heard the sound you expect.";
+        }
+      })
+      .catch((error) => {
+        if (pushSetupStatus) {
+          pushSetupStatus.textContent = error instanceof Error ? error.message : "Unable to send a test notification right now.";
+        }
+      })
+      .finally(() => {
+        pushSetupInFlight = false;
+        void refreshPushSetupOverlay({ preserveStatus: true });
+      });
+  });
+  pushSetupCloseButton?.addEventListener("click", closePushSetupOverlay);
+  pushSetupDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  pushSetupOverlay?.addEventListener("click", (event) => {
+    if (event.target === pushSetupOverlay) {
+      closePushSetupOverlay();
+    }
+  });
+  openRoleMessagesButtons.forEach((button) => {
+    button.addEventListener("pointerdown", () => {
+      pendingMessagesOpenScrollY = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+    });
+    button.addEventListener("click", () => {
+      void openMessagesViewForRole(String(button.dataset.openRoleMessages || "").trim());
+    });
+  });
+  closeMessagesButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeMessagesView();
+  });
+  messagesThreadSelect?.addEventListener("change", () => {
+    activeMessagesPartnerIdentifier = String(messagesThreadSelect.value || "").trim();
+    void loadActiveMessagesConversation({ markRead: false });
+  });
+  messagesSendButton?.addEventListener("click", () => {
+    void sendActiveMessagesViewMessage();
+  });
+  messagesCancelButton?.addEventListener("click", () => {
+    if (messagesInput) {
+      messagesInput.value = "";
+    }
+    setMessagesStatus("");
+  });
+  messagesEmojiButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const insertText = String(button.dataset.messagesEmoji || button.textContent || "").trim();
+      const currentValue = String(messagesInput?.value || "");
+      const selectionStart = Number.isFinite(messagesInput?.selectionStart) ? messagesInput.selectionStart : currentValue.length;
+      const selectionEnd = Number.isFinite(messagesInput?.selectionEnd) ? messagesInput.selectionEnd : currentValue.length;
+      if (messagesInput) {
+        messagesInput.value = `${currentValue.slice(0, selectionStart)}${insertText}${currentValue.slice(selectionEnd)}`;
+        const nextCaret = selectionStart + insertText.length;
+        messagesInput.focus();
+        messagesInput.setSelectionRange(nextCaret, nextCaret);
+      }
+      setMessagesStatus("");
+    });
+  });
+  messagesThread?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("[data-messages-delete]") : null;
+    if (target) {
+      const messageId = String(target.getAttribute("data-messages-delete") || "").trim();
+      if (!messageId) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      void deleteActiveMessagesViewMessage(messageId);
+      return;
+    }
+    const partnerBubble = event.target instanceof Element ? event.target.closest(".role-message-bubble.is-partner") : null;
+    if (partnerBubble) {
+      const messageId = String(partnerBubble.getAttribute("data-message-id") || "").trim();
+      void markSingleActiveMessageRead(messageId);
+    }
+  });
+  roleMessageSendButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      void sendRoleMessage(String(button.dataset.roleMessageSend || ""));
+    });
+  });
+  roleMessageCancelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const role = String(button.dataset.roleMessageCancel || "");
+      const input = getRoleMessageInput(role);
+      if (input) {
+        input.value = "";
+      }
+      setRoleMessageStatus(role, "");
+    });
+  });
+  roleMessageEmojiButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      insertTextIntoRoleMessage(
+        String(button.dataset.roleMessageEmoji || ""),
+        String(button.dataset.emojiValue || button.textContent || "").trim() || "👍"
+      );
+    });
+  });
+  roleMessageThreads.forEach((thread) => {
+    thread.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target.closest("[data-role-message-delete]") : null;
+      if (!target) {
+        return;
+      }
+      const role = String(target.getAttribute("data-role-message-delete") || "").trim();
+      const messageId = String(target.getAttribute("data-message-id") || "").trim();
+      if (!role || !messageId) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      void deleteRoleMessage(role, messageId);
+    });
   });
   closeToolsButton?.addEventListener("click", () => {
     showLauncherView();
@@ -10628,7 +12411,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   adminRunRemindersTestButton?.addEventListener("click", async () => {
     await runSubscriptionReminderScan(true);
   });
-  renderMainTitle("standard");
+  renderMainTitle(readLauncherState().resolvedMainUserType || "standard");
   void refreshMainUserType();
   reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
   reportResizeHandles.forEach((handle) => {
@@ -10675,6 +12458,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   void recordLauncherVisit();
   void refreshDifficultyLabels();
   applyLauncherOpenRequest();
+  schedulePartnerMessagePolling();
+  window.setTimeout(() => {
+    void maybeAutoOpenUnreadMessagesOnStartup();
+  }, 700);
   window.setTimeout(() => {
     void warmupLocationIndicatorOnLoad();
   }, 250);
@@ -10688,6 +12475,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     updateInstallButtonLabel();
+    if (pushSetupReturnRole) {
+      void refreshPushSetupOverlay();
+      void refreshRoleMessaging(pushSetupReturnRole);
+    }
   });
 
   window.addEventListener("pageshow", () => {
@@ -10696,6 +12487,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderLocationStatus();
       maybePromptForLocationFineTune(state);
     });
+    const activeCard = roleCards.find((card) => card.classList.contains("active"));
+    const activeRole = String(activeCard?.dataset.roleCard || "").trim();
+    if (activeRole === "sender" || activeRole === "receiver" || activeRole === "remote-viewer") {
+      void refreshRoleMessaging(activeRole);
+    }
   });
 
   document.addEventListener("visibilitychange", () => {
@@ -10704,8 +12500,31 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         renderLocationStatus();
         maybePromptForLocationFineTune(state);
       });
+      const activeCard = roleCards.find((card) => card.classList.contains("active"));
+      const activeRole = String(activeCard?.dataset.roleCard || "").trim();
+      if (activeRole === "sender" || activeRole === "receiver" || activeRole === "remote-viewer") {
+        void refreshRoleMessaging(activeRole);
+      }
     }
   });
+
+  window.addEventListener("scroll", () => {
+    const launcherVisible = launcherView && !launcherView.classList.contains("beginner-view-hidden");
+    if (!launcherVisible) {
+      return;
+    }
+    lastKnownLauncherScrollY = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+  }, { passive: true });
+
+  document.addEventListener("pointerdown", (event) => {
+    const launcherVisible = launcherView && !launcherView.classList.contains("beginner-view-hidden");
+    const activeCard = roleCards.find((card) => card.classList.contains("active"));
+    if (!launcherVisible || !activeCard) {
+      lastLauncherPointerDownInsideActiveCard = false;
+      return;
+    }
+    lastLauncherPointerDownInsideActiveCard = eventPathIncludesNode(event, activeCard);
+  }, true);
 
   document.addEventListener("click", (event) => {
     if (!reportPairPicker?.contains(event.target)) {
@@ -10717,8 +12536,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (
       launcherVisible &&
       activeCard &&
-      !activeCard.contains(event.target) &&
-      !openOptionsButton?.contains(event.target)
+      !lastLauncherPointerDownInsideActiveCard &&
+      !eventPathIncludesNode(event, activeCard) &&
+      !eventPathIncludesNode(event, openOptionsButton)
     ) {
       collapseActiveLauncherCard();
     }

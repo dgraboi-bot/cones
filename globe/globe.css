@@ -156,6 +156,11 @@ body {
 .globe-viewer {
   position: absolute;
   inset: 0;
+  cursor: grab;
+}
+
+.globe-viewer:active {
+  cursor: grabbing;
 }
 
 .globe-overlay-status {
