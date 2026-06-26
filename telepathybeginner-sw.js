@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260623au";
-const APP_VERSION = "20260623au";
+const CACHE_NAME = "telepathybeginner-v20260626j";
+const APP_VERSION = "20260626j";
 const APP_ASSETS = [
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
@@ -179,6 +179,8 @@ self.addEventListener("notificationclick", (event) => {
     await self.clients.openWindow(targetUrl);
   })());
 });
+
+
 
 
 

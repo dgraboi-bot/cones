@@ -277,6 +277,208 @@ function ensure_subscription_email_state(array &$state): void
     }
 }
 
+function ensure_invitee_state(array &$state): void
+{
+    if (!is_array($state['invitees'] ?? null)) {
+        $state['invitees'] = [];
+    }
+}
+
+function validate_invitee_full_name_value($value, string $field = 'full_name'): string
+{
+    $text = trim(preg_replace('/\s+/', ' ', (string) $value) ?? '');
+    if (mb_strlen($text) > 160) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+    return $text;
+}
+
+function validate_invitee_email_value($value, string $field = 'email'): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        return '';
+    }
+    if (!filter_var($text, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException($field . ' is invalid.');
+    }
+    return $text;
+}
+
+function validate_invitee_note_value($value, string $field = 'private_note'): string
+{
+    $text = trim((string) $value);
+    if (mb_strlen($text) > 1000) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+    return $text;
+}
+
+function normalize_invitee_record($identifier, array $record): array
+{
+    $preferredIdentifier = trim(preg_replace('/\s+/', ' ', (string) ($record['identifier'] ?? $identifier)) ?? '');
+    $cleanIdentifier = $preferredIdentifier !== '' ? $preferredIdentifier : trim(preg_replace('/\s+/', ' ', (string) $identifier) ?? '');
+    return [
+        'identifier' => $cleanIdentifier,
+        'full_name' => validate_invitee_full_name_value($record['full_name'] ?? ''),
+        'email' => validate_invitee_email_value($record['email'] ?? ''),
+        'private_note' => validate_invitee_note_value($record['private_note'] ?? ''),
+        'created_ms' => isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0,
+        'updated_ms' => isset($record['updated_ms']) && is_numeric($record['updated_ms']) ? (int) $record['updated_ms'] : 0
+    ];
+}
+
+function list_invitees(array $state): array
+{
+    ensure_invitee_state($state);
+    $records = [];
+    foreach ($state['invitees'] as $key => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $normalized = normalize_invitee_record((string) $key, $record);
+        if ($normalized['identifier'] === '') {
+            continue;
+        }
+        $records[] = $normalized;
+    }
+
+    usort($records, static function (array $a, array $b): int {
+        return ((int) ($b['updated_ms'] ?? 0)) <=> ((int) ($a['updated_ms'] ?? 0));
+    });
+
+    return $records;
+}
+
+function save_invitee_record(array &$state, string $identifier, string $fullName, string $email, string $privateNote, int $nowMs): array
+{
+    ensure_invitee_state($state);
+    $cleanIdentifier = trim(preg_replace('/\s+/', ' ', $identifier) ?? '');
+    if (!is_valid_handle_identifier($cleanIdentifier)) {
+        throw new RuntimeException('Invitee unique name is invalid.');
+    }
+
+    try {
+        claim_unique_handle($state, '', $cleanIdentifier, $nowMs);
+    } catch (RuntimeException $exception) {
+        $message = trim((string) $exception->getMessage());
+        if ($message === 'That unique handle is already in use.' || $message === 'That unique handle was used previously and is no longer available.') {
+            throw new RuntimeException('That unique name has already been claimed and cannot be saved as an invitee.');
+        }
+        throw $exception;
+    }
+    assign_user_type_for_identifier($state, $cleanIdentifier, get_user_type_for_identifier($state, $cleanIdentifier), $nowMs);
+
+    $key = canonicalize_handle($cleanIdentifier);
+    $existing = is_array($state['invitees'][$key] ?? null) ? $state['invitees'][$key] : [];
+    $record = [
+        'identifier' => $cleanIdentifier,
+        'full_name' => validate_invitee_full_name_value($fullName),
+        'email' => validate_invitee_email_value($email),
+        'private_note' => validate_invitee_note_value($privateNote),
+        'created_ms' => isset($existing['created_ms']) && is_numeric($existing['created_ms']) ? (int) $existing['created_ms'] : $nowMs,
+        'updated_ms' => $nowMs
+    ];
+    $state['invitees'][$key] = $record;
+
+    return $record;
+}
+
+function delete_invitee_record(array &$state, string $pairsDir, string $identifier): array
+{
+    ensure_invitee_state($state);
+    $cleanIdentifier = trim(preg_replace('/\s+/', ' ', $identifier) ?? '');
+    if (!is_valid_handle_identifier($cleanIdentifier)) {
+        throw new RuntimeException('Invitee unique name is invalid.');
+    }
+
+    $key = canonicalize_handle($cleanIdentifier);
+    $existing = is_array($state['invitees'][$key] ?? null) ? $state['invitees'][$key] : null;
+    if (!$existing) {
+        throw new RuntimeException('That invitee was not found.');
+    }
+
+    if (participant_identifier_exists($state, $pairsDir, $cleanIdentifier)) {
+        $onlyInviteeArtifacts = true;
+        if (isset($state['unique_handles'][$key]) && is_array($state['unique_handles'][$key])) {
+            $handleEntry = $state['unique_handles'][$key];
+            $ownerIdentifier = trim((string) ($handleEntry['owner_identifier'] ?? ''));
+            if ($ownerIdentifier !== '' && canonicalize_handle($ownerIdentifier) !== $key) {
+                $onlyInviteeArtifacts = false;
+            }
+        }
+        foreach (['user_types', 'launcher_profiles', 'handle_owners', 'identifier_aliases'] as $stateKey) {
+            if (isset($state[$stateKey][$key])) {
+                continue;
+            }
+        }
+        foreach ((array) ($state['sessions'] ?? []) as $sessionEntry) {
+            if (!is_array($sessionEntry)) {
+                continue;
+            }
+            foreach (['sender', 'receiver'] as $roleKey) {
+                $profile = is_array($sessionEntry[$roleKey]['profile'] ?? null) ? $sessionEntry[$roleKey]['profile'] : [];
+                foreach (['own_email', 'partner_email', 'name'] as $fieldKey) {
+                    if (normalize_identifier_for_lookup((string) ($profile[$fieldKey] ?? '')) === $key) {
+                        $onlyInviteeArtifacts = false;
+                    }
+                }
+            }
+        }
+        foreach ((array) ($state['session_registry'] ?? []) as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            foreach (['sender_name', 'receiver_name'] as $fieldKey) {
+                if (normalize_identifier_for_lookup((string) ($entry[$fieldKey] ?? '')) === $key) {
+                    $onlyInviteeArtifacts = false;
+                }
+            }
+        }
+        foreach ((array) ($state['pair_difficulties'] ?? []) as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            foreach (['sender_name', 'receiver_name'] as $fieldKey) {
+                if (normalize_identifier_for_lookup((string) ($entry[$fieldKey] ?? '')) === $key) {
+                    $onlyInviteeArtifacts = false;
+                }
+            }
+        }
+        foreach (read_all_pair_trial_records($pairsDir) as $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+            foreach (['rx name', 'tx name'] as $fieldKey) {
+                if (normalize_identifier_for_lookup((string) ($record[$fieldKey] ?? '')) === $key) {
+                    $onlyInviteeArtifacts = false;
+                }
+            }
+        }
+        if (!$onlyInviteeArtifacts) {
+            throw new RuntimeException('That invitee cannot be deleted because it has already been used in saved app data or trial history.');
+        }
+    }
+
+    unset($state['invitees'][$key]);
+    unset($state['user_types'][$key]);
+    unset($state['launcher_profiles'][$key]);
+    unset($state['identifier_aliases'][$key]);
+    if (isset($state['unique_handles'][$key]) && is_array($state['unique_handles'][$key])) {
+        $ownerIdentifier = trim((string) ($state['unique_handles'][$key]['owner_identifier'] ?? ''));
+        unset($state['unique_handles'][$key]);
+        $ownerKey = get_handle_owner_key($ownerIdentifier);
+        if ($ownerKey !== '') {
+            unset($state['handle_owners'][$ownerKey]);
+            unset($state['identifier_aliases'][$ownerKey]);
+        }
+    }
+
+    return [
+        'identifier' => $cleanIdentifier
+    ];
+}
+
 function render_subscription_email_template(string $templateBody, array $variables): string
 {
     $replacements = [];
@@ -2088,6 +2290,206 @@ function default_launcher_profile_state(): array
     ];
 }
 
+function ensure_esp_lesson_state(array &$state): void
+{
+    if (!is_array($state['esp_lessons'] ?? null)) {
+        $state['esp_lessons'] = [];
+    }
+}
+
+function normalize_esp_lesson_id($value): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        return '';
+    }
+    return preg_match('/^[A-Za-z0-9._:-]{1,160}$/', $text) ? $text : '';
+}
+
+function validate_esp_lesson_ids($value, string $field = 'lesson_ids'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an array.');
+    }
+    $normalized = [];
+    foreach ($value as $item) {
+        $lessonId = normalize_esp_lesson_id($item);
+        if ($lessonId === '') {
+            throw new RuntimeException($field . ' contains an invalid lesson identifier.');
+        }
+        $normalized[$lessonId] = $lessonId;
+    }
+    return array_values($normalized);
+}
+
+function normalize_esp_lesson_progress_record(array $record): array
+{
+    $queue = [];
+    foreach ((array) ($record['current_cycle_queue'] ?? []) as $lessonId) {
+        $normalized = normalize_esp_lesson_id($lessonId);
+        if ($normalized !== '') {
+            $queue[$normalized] = $normalized;
+        }
+    }
+
+    $dismissed = [];
+    foreach ((array) ($record['dismissed_ids'] ?? []) as $lessonId) {
+        $normalized = normalize_esp_lesson_id($lessonId);
+        if ($normalized !== '') {
+            $dismissed[$normalized] = $normalized;
+        }
+    }
+
+    $seen = [];
+    foreach ((array) ($record['seen_in_cycle_ids'] ?? []) as $lessonId) {
+        $normalized = normalize_esp_lesson_id($lessonId);
+        if ($normalized !== '') {
+            $seen[$normalized] = $normalized;
+        }
+    }
+
+    return [
+        'identifier' => trim((string) ($record['identifier'] ?? '')),
+        'current_cycle_queue' => array_values($queue),
+        'dismissed_ids' => array_values($dismissed),
+        'seen_in_cycle_ids' => array_values($seen),
+        'updated_ms' => isset($record['updated_ms']) && is_numeric($record['updated_ms']) ? (int) $record['updated_ms'] : 0
+    ];
+}
+
+function reconcile_esp_lesson_progress_record(array $record, array $availableLessonIds, int $nowMs): array
+{
+    $normalizedRecord = normalize_esp_lesson_progress_record($record);
+    $available = [];
+    foreach ($availableLessonIds as $lessonId) {
+        $normalized = normalize_esp_lesson_id($lessonId);
+        if ($normalized !== '') {
+            $available[$normalized] = $normalized;
+        }
+    }
+    $availableOrdered = array_values($available);
+    $availableSet = array_fill_keys($availableOrdered, true);
+
+    $dismissed = array_values(array_filter(
+        $normalizedRecord['dismissed_ids'],
+        static fn(string $lessonId): bool => isset($availableSet[$lessonId])
+    ));
+    $dismissedSet = array_fill_keys($dismissed, true);
+
+    $seen = array_values(array_filter(
+        $normalizedRecord['seen_in_cycle_ids'],
+        static fn(string $lessonId): bool => isset($availableSet[$lessonId]) && !isset($dismissedSet[$lessonId])
+    ));
+    $seenSet = array_fill_keys($seen, true);
+
+    $queue = [];
+    foreach ($normalizedRecord['current_cycle_queue'] as $lessonId) {
+        if (isset($availableSet[$lessonId]) && !isset($dismissedSet[$lessonId]) && !isset($queue[$lessonId])) {
+            $queue[$lessonId] = $lessonId;
+        }
+    }
+
+    foreach ($availableOrdered as $lessonId) {
+        if (!isset($queue[$lessonId]) && !isset($dismissedSet[$lessonId]) && !isset($seenSet[$lessonId])) {
+            $queue[$lessonId] = $lessonId;
+        }
+    }
+
+    $queueValues = array_values($queue);
+    if (!$queueValues) {
+        $activeIds = array_values(array_filter(
+            $availableOrdered,
+            static fn(string $lessonId): bool => !isset($dismissedSet[$lessonId])
+        ));
+        if ($activeIds) {
+            $unseen = array_values(array_filter(
+                $activeIds,
+                static fn(string $lessonId): bool => !isset($seenSet[$lessonId])
+            ));
+            if ($unseen) {
+                $queueValues = $unseen;
+            } else {
+                $seen = [];
+                $seenSet = [];
+                $queueValues = $activeIds;
+            }
+        }
+    }
+
+    $normalizedRecord['current_cycle_queue'] = $queueValues;
+    $normalizedRecord['dismissed_ids'] = $dismissed;
+    $normalizedRecord['seen_in_cycle_ids'] = $seen;
+    $normalizedRecord['updated_ms'] = $nowMs;
+    return $normalizedRecord;
+}
+
+function get_esp_lesson_progress_record(array &$state, string $identifier, array $availableLessonIds, int $nowMs): array
+{
+    ensure_esp_lesson_state($state);
+    $storageKey = get_user_storage_key_for_identifier($state, $identifier);
+    if ($storageKey === '') {
+        return [
+            'identifier' => trim($identifier),
+            'current_cycle_queue' => [],
+            'dismissed_ids' => [],
+            'seen_in_cycle_ids' => [],
+            'updated_ms' => $nowMs
+        ];
+    }
+    $existing = is_array($state['esp_lessons'][$storageKey] ?? null) ? $state['esp_lessons'][$storageKey] : [
+        'identifier' => trim($identifier)
+    ];
+    $normalized = reconcile_esp_lesson_progress_record($existing, $availableLessonIds, $nowMs);
+    $normalized['identifier'] = trim($identifier);
+    $state['esp_lessons'][$storageKey] = $normalized;
+    return $normalized;
+}
+
+function advance_esp_lesson_progress_record(array &$state, string $identifier, array $availableLessonIds, string $command, string $currentLessonId, int $nowMs): array
+{
+    $record = get_esp_lesson_progress_record($state, $identifier, $availableLessonIds, $nowMs);
+    $normalizedCommand = strtolower(trim($command));
+    if (!in_array($normalizedCommand, ['next', 'dismiss'], true)) {
+        throw new RuntimeException('ESP lesson command is invalid.');
+    }
+
+    $queue = array_values($record['current_cycle_queue']);
+    $queueCurrent = isset($queue[0]) ? (string) $queue[0] : '';
+    $requestedCurrent = normalize_esp_lesson_id($currentLessonId);
+    $effectiveCurrent = $requestedCurrent !== '' ? $requestedCurrent : $queueCurrent;
+
+    if ($queueCurrent !== '' && $effectiveCurrent !== '' && $effectiveCurrent !== $queueCurrent) {
+        $matchingIndex = array_search($effectiveCurrent, $queue, true);
+        if ($matchingIndex !== false) {
+            array_splice($queue, $matchingIndex, 1);
+            array_unshift($queue, $effectiveCurrent);
+            $queueCurrent = (string) ($queue[0] ?? '');
+        }
+    }
+
+    if ($queueCurrent !== '') {
+        $seenSet = array_fill_keys($record['seen_in_cycle_ids'], true);
+        $dismissedSet = array_fill_keys($record['dismissed_ids'], true);
+        array_shift($queue);
+        if ($normalizedCommand === 'dismiss') {
+            $dismissedSet[$queueCurrent] = $queueCurrent;
+            unset($seenSet[$queueCurrent]);
+        } else {
+            $seenSet[$queueCurrent] = $queueCurrent;
+        }
+        $record['current_cycle_queue'] = array_values($queue);
+        $record['dismissed_ids'] = array_values($dismissedSet);
+        $record['seen_in_cycle_ids'] = array_values($seenSet);
+    }
+
+    $record = reconcile_esp_lesson_progress_record($record, $availableLessonIds, $nowMs);
+    $storageKey = get_user_storage_key_for_identifier($state, $identifier);
+    if ($storageKey !== '') {
+        $state['esp_lessons'][$storageKey] = $record;
+    }
+    return $record;
+}
+
 function load_webpush_config(string $path): array
 {
     if (!is_file($path)) {
@@ -3462,6 +3864,44 @@ function assign_user_type_for_identifier(array &$state, string $identifier, stri
     ];
 }
 
+function generate_temporary_handle_candidate(int $length = 5): string
+{
+    $alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    $targetLength = max(4, min(12, $length));
+    $result = '';
+    for ($index = 0; $index < $targetLength; $index += 1) {
+        $result .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+    return $result;
+}
+
+function create_temporary_identifier(array &$state, string $pairsDir, string $userType, int $nowMs): array
+{
+    $normalizedType = normalize_user_type($userType);
+    $identifier = '';
+
+    for ($attempt = 0; $attempt < 64; $attempt += 1) {
+        $candidate = generate_temporary_handle_candidate(5);
+        if (!participant_identifier_exists($state, $pairsDir, $candidate)) {
+            $identifier = $candidate;
+            break;
+        }
+    }
+
+    if ($identifier === '') {
+        throw new RuntimeException('Unable to create a temporary identity right now.');
+    }
+
+    claim_unique_handle($state, '', $identifier, $nowMs);
+    assign_user_type_for_identifier($state, $identifier, $normalizedType, $nowMs);
+
+    return [
+        'identifier' => $identifier,
+        'user_type' => $normalizedType,
+        'created_ms' => $nowMs
+    ];
+}
+
 function claim_unique_handle(array &$state, string $ownerIdentifier, string $proposedHandle, int $nowMs): array
 {
     $handle = trim(preg_replace('/\s+/', ' ', $proposedHandle) ?? '');
@@ -3793,6 +4233,16 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
         }
     }
     $state['launcher_profiles'] = $updatedLauncherProfiles;
+
+    if (is_array($state['invitees'] ?? null) && isset($state['invitees'][$oldKey]) && is_array($state['invitees'][$oldKey])) {
+        $inviteeRecord = $state['invitees'][$oldKey];
+        unset($state['invitees'][$oldKey]);
+        if ($newIsHandle) {
+            $inviteeRecord['identifier'] = $newIdentifier;
+            $inviteeRecord['updated_ms'] = $nowMs;
+            $state['invitees'][$newKey] = $inviteeRecord;
+        }
+    }
 
     foreach ($state['sessions'] as &$sessionEntry) {
         if (!is_array($sessionEntry)) {
@@ -6234,6 +6684,7 @@ if (!is_array($state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'invitees' => [],
         'retired_handles' => [],
         'handle_owners' => [],
         'stripe_users' => [],
@@ -6265,6 +6716,7 @@ if (!array_key_exists('sessions', $state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'invitees' => [],
         'retired_handles' => [],
         'handle_owners' => [],
         'stripe_users' => [],
@@ -6301,6 +6753,9 @@ if (!is_array($state['partner_message_threads'] ?? null)) {
 if (!is_array($state['partner_message_reads'] ?? null)) {
     $state['partner_message_reads'] = [];
 }
+if (!is_array($state['invitees'] ?? null)) {
+    $state['invitees'] = [];
+}
 if (!is_array($state['unique_handles'] ?? null)) {
     $state['unique_handles'] = [];
 }
@@ -6331,6 +6786,7 @@ if (!array_key_exists('easy_admin_enabled', $state)) {
     $state['easy_admin_enabled'] = false;
 }
 ensure_subscription_email_state($state);
+ensure_invitee_state($state);
 
 $normalizedPushSubscriptions = [];
 foreach ((array) ($state['push_subscriptions'] ?? []) as $entry) {
@@ -6372,6 +6828,19 @@ foreach ((array) ($state['partner_message_reads'] ?? []) as $entry) {
     $normalizedPartnerReads[build_partner_message_read_key($normalizedRead['owner_identifier'], $normalizedRead['partner_identifier'])] = $normalizedRead;
 }
 $state['partner_message_reads'] = $normalizedPartnerReads;
+
+$normalizedInvitees = [];
+foreach ((array) ($state['invitees'] ?? []) as $inviteeKey => $entry) {
+    if (!is_array($entry)) {
+        continue;
+    }
+    $normalized = normalize_invitee_record((string) $inviteeKey, $entry);
+    if ($normalized['identifier'] === '' || !is_valid_handle_identifier($normalized['identifier'])) {
+        continue;
+    }
+    $normalizedInvitees[canonicalize_handle($normalized['identifier'])] = $normalized;
+}
+$state['invitees'] = $normalizedInvitees;
 
 foreach ($state['unique_handles'] as $existingHandleKey => $entry) {
     if (!is_array($entry)) {
@@ -6967,6 +7436,33 @@ if ($action === 'get_identifier_status') {
     exit;
 }
 
+if ($action === 'create_temporary_identity') {
+    try {
+        require_allowed_keys($input, ['action', 'user_type'], 'request');
+        $temporaryIdentity = create_temporary_identifier($state, $pairsDir, (string) ($input['user_type'] ?? 'standard'), $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $identifier = (string) ($temporaryIdentity['identifier'] ?? '');
+    $response = [
+        'ok' => true,
+        'temporary_identity' => $temporaryIdentity,
+        'identifier_status' => $identifier !== '' ? get_identifier_status($state, $identifier) : null,
+        'user_type' => $identifier !== '' ? get_user_type_for_identifier($state, $identifier) : 'standard',
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'claim_unique_handle') {
     try {
         require_allowed_keys($input, ['action', 'current_identifier', 'proposed_handle'], 'request');
@@ -7012,6 +7508,74 @@ if ($action === 'get_user_type') {
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_esp_lesson_state') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'lesson_ids'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $lessonIds = validate_esp_lesson_ids($input['lesson_ids'] ?? [], 'lesson_ids');
+        $lessonRecord = get_esp_lesson_progress_record($state, $identifier, $lessonIds, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier_status' => get_identifier_status($state, $identifier),
+        'esp_lesson_state' => [
+            'current_lesson_id' => (string) ($lessonRecord['current_cycle_queue'][0] ?? ''),
+            'current_cycle_queue' => array_values($lessonRecord['current_cycle_queue'] ?? []),
+            'dismissed_ids' => array_values($lessonRecord['dismissed_ids'] ?? []),
+            'seen_in_cycle_ids' => array_values($lessonRecord['seen_in_cycle_ids'] ?? []),
+            'updated_ms' => (int) ($lessonRecord['updated_ms'] ?? $nowMs)
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'advance_esp_lesson_state') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'lesson_ids', 'command', 'current_lesson_id'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $lessonIds = validate_esp_lesson_ids($input['lesson_ids'] ?? [], 'lesson_ids');
+        $command = strtolower(trim((string) ($input['command'] ?? '')));
+        $currentLessonId = normalize_esp_lesson_id($input['current_lesson_id'] ?? '');
+        $lessonRecord = advance_esp_lesson_progress_record($state, $identifier, $lessonIds, $command, $currentLessonId, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier_status' => get_identifier_status($state, $identifier),
+        'esp_lesson_state' => [
+            'current_lesson_id' => (string) ($lessonRecord['current_cycle_queue'][0] ?? ''),
+            'current_cycle_queue' => array_values($lessonRecord['current_cycle_queue'] ?? []),
+            'dismissed_ids' => array_values($lessonRecord['dismissed_ids'] ?? []),
+            'seen_in_cycle_ids' => array_values($lessonRecord['seen_in_cycle_ids'] ?? []),
+            'updated_ms' => (int) ($lessonRecord['updated_ms'] ?? $nowMs)
+        ],
         'server_now_ms' => $nowMs
     ];
 
@@ -7588,6 +8152,80 @@ if ($action === 'set_user_type' && $hasAdminAccess) {
     exit;
 }
 
+if ($action === 'list_invitees' && $hasAdminAccess) {
+    $response = [
+        'ok' => true,
+        'invitees' => list_invitees($state),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'save_invitee' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'full_name', 'email', 'private_note', 'secret_candidate'], 'request');
+        $identifier = trim((string) ($input['identifier'] ?? ''));
+        $fullName = trim((string) ($input['full_name'] ?? ''));
+        $email = trim((string) ($input['email'] ?? ''));
+        $privateNote = trim((string) ($input['private_note'] ?? ''));
+        $invitee = save_invitee_record($state, $identifier, $fullName, $email, $privateNote, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'invitee' => $invitee,
+        'invitees' => list_invitees($state),
+        'message' => 'Invitee saved successfully.',
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'delete_invitee' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'secret_candidate'], 'request');
+        $identifier = trim((string) ($input['identifier'] ?? ''));
+        $deletedInvitee = delete_invitee_record($state, $pairsDir, $identifier);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'deleted_invitee' => $deletedInvitee,
+        'invitees' => list_invitees($state),
+        'message' => 'Invitee deleted successfully.',
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'get_handle_admin_summary' && $hasAdminAccess) {
     try {
         require_allowed_keys($input, ['action', 'handle', 'secret_candidate'], 'request');
@@ -7830,6 +8468,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['identifier_aliases'] = [];
     $state['user_types'] = [];
     $state['level_four_receiver_pools'] = [];
+    $state['invitees'] = [];
     $state['retired_handles'] = [];
     $state['handle_owners'] = [];
     $state['stripe_users'] = [];
@@ -7839,6 +8478,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['push_subscriptions'] = [];
     $state['partner_message_threads'] = [];
     $state['partner_message_reads'] = [];
+    $state['esp_lessons'] = [];
     $state['launcher_visit_count'] = 0;
     $state['subscription_emails_enabled'] = false;
     $state['subscription_reminders_enabled'] = false;

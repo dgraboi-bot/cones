@@ -1,7 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260623au";
+  const launcherBuildVersion = "20260626j";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -10,11 +10,24 @@
   const launcherSubtitle = document.querySelector("[data-launcher-subtitle]");
   const launcherCopy = document.querySelector("[data-launcher-copy]");
   const optionsView = document.querySelector('[data-view="options"]');
+  const temporaryHomePageView = document.querySelector('[data-view="temporary-home-page"]');
   const helpView = document.querySelector('[data-view="help"]');
+  const beginnerUserManualView = document.querySelector('[data-view="beginner-user-manual"]');
+  const proUserManualView = document.querySelector('[data-view="pro-user-manual"]');
+  const featureSetupView = document.querySelector('[data-view="feature-setup"]');
+  const installGuideView = document.querySelector('[data-view="install-guide"]');
   const learnMoreView = document.querySelector('[data-view="learn-more"]');
+  const espLessonDetailView = document.querySelector('[data-view="esp-lesson-detail"]');
   const clairvoyanceLearnMoreView = document.querySelector('[data-view="clairvoyance-learn-more"]');
   const aidsView = document.querySelector('[data-view="aids"]');
   const rewireView = document.querySelector('[data-view="rewire"]');
+  const generalInformationView = document.querySelector('[data-view="general-information"]');
+  const readingListView = document.querySelector('[data-view="reading-list"]');
+  const videoListView = document.querySelector('[data-view="video-list"]');
+  const websitesEventsListView = document.querySelector('[data-view="websites-events-list"]');
+  const caseStudiesListView = document.querySelector('[data-view="case-studies-list"]');
+  const peerReviewedListView = document.querySelector('[data-view="peer-reviewed-list"]');
+  const userCommentsListView = document.querySelector('[data-view="user-comments-list"]');
   const toolsView = document.querySelector('[data-view="tools"]');
   const goProView = document.querySelector('[data-view="go-pro"]');
   const otherSettingsView = document.querySelector('[data-view="other-settings"]');
@@ -25,6 +38,7 @@
   const blinkBehaviorView = document.querySelector('[data-view="blink-behavior"]');
   const confidenceBehaviorView = document.querySelector('[data-view="confidence-behavior"]');
   const userTypeAdminView = document.querySelector('[data-view="user-type-admin"]');
+  const inviteeAdminView = document.querySelector('[data-view="invitee-admin"]');
   const handleUpdateAdminView = document.querySelector('[data-view="handle-update-admin"]');
   const imagePairAdminView = document.querySelector('[data-view="image-pair-admin"]');
   const subscriptionEmailAdminView = document.querySelector('[data-view="subscription-email-admin"]');
@@ -45,14 +59,31 @@
   const appVersionLabel = document.querySelector("[data-app-version-label]");
   const closeOptionsButton = document.querySelector("[data-close-options]");
   const closeLearnMoreButton = document.querySelector("[data-close-learn-more]");
+  const closeEspLessonDetailButton = document.querySelector("[data-close-esp-lesson-detail]");
   const saveLearnMoreButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
+  const openUserGuideButton = document.querySelector("[data-open-user-guide]");
   const openMessagingSetupButton = document.querySelector("[data-open-messaging-setup]");
+  const openFeatureSetupButtons = Array.from(document.querySelectorAll("[data-open-feature-setup]"));
+  const roleLessonWraps = Array.from(document.querySelectorAll("[data-role-lesson-wrap]"));
+  const roleLessonTitles = Array.from(document.querySelectorAll("[data-role-lesson-title]"));
+  const roleLessonPreviews = Array.from(document.querySelectorAll("[data-role-lesson-preview]"));
+  const roleLessonMoreButtons = Array.from(document.querySelectorAll("[data-role-lesson-more]"));
+  const roleLessonNextButtons = Array.from(document.querySelectorAll("[data-role-lesson-next]"));
+  const roleLessonBackButtons = Array.from(document.querySelectorAll("[data-role-lesson-back]"));
+  const roleLessonDismissButtons = Array.from(document.querySelectorAll("[data-role-lesson-dismiss]"));
   const openAidsButton = document.querySelector("[data-open-aids]");
+  const openGeneralInformationButton = document.querySelector("[data-open-general-information]");
   const openRewireButton = document.querySelector("[data-open-rewire]");
-  const openToolsButtons = Array.from(document.querySelectorAll("[data-open-tools]"));
+  const openReadingListButton = document.querySelector("[data-open-reading-list]");
+  const openVideoListButton = document.querySelector("[data-open-video-list]");
+  const openWebsitesEventsListButton = document.querySelector("[data-open-websites-events-list]");
+  const openCaseStudiesListButton = document.querySelector("[data-open-case-studies-list]");
+  const openPeerReviewedListButton = document.querySelector("[data-open-peer-reviewed-list]");
+  const openUserCommentsListButton = document.querySelector("[data-open-user-comments-list]");
   const openGoProButton = document.querySelector("[data-open-go-pro]");
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
+  const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
   const openBehaviorsButton = document.querySelector("[data-open-behaviors]");
@@ -63,14 +94,30 @@
   const openConfidenceBehaviorButton = document.querySelector("[data-open-confidence-behavior]");
   const cancelProButton = document.querySelector("[data-cancel-pro]");
   const openUserTypeAdminButton = document.querySelector("[data-open-user-type-admin]");
+  const openInviteeAdminButton = document.querySelector("[data-open-invitee-admin]");
+  const openInviteeAdminDirectButton = document.querySelector("[data-open-invitee-admin-direct]");
   const openHandleUpdateAdminButton = document.querySelector("[data-open-handle-update-admin]");
   const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
   const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
+  const adminOpenAnalyzerButton = document.querySelector("[data-admin-open-analyzer]");
+  const adminClearLocalStorageButton = document.querySelector("[data-admin-clear-localstorage]");
   const closeHelpButton = document.querySelector("[data-close-help]");
+  const closeBeginnerUserManualButton = document.querySelector("[data-close-beginner-user-manual]");
+  const closeProUserManualButton = document.querySelector("[data-close-pro-user-manual]");
+  const closeFeatureSetupButton = document.querySelector("[data-close-feature-setup]");
+  const closeInstallGuideButton = document.querySelector("[data-close-install-guide]");
+  const closeTemporaryHomePageButton = document.querySelector("[data-close-temporary-home-page]");
   const closeAidsButton = document.querySelector("[data-close-aids]");
+  const closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
   const closeRewireButton = document.querySelector("[data-close-rewire]");
+  const closeReadingListButton = document.querySelector("[data-close-reading-list]");
+  const closeVideoListButton = document.querySelector("[data-close-video-list]");
+  const closeWebsitesEventsListButton = document.querySelector("[data-close-websites-events-list]");
+  const closeCaseStudiesListButton = document.querySelector("[data-close-case-studies-list]");
+  const closePeerReviewedListButton = document.querySelector("[data-close-peer-reviewed-list]");
+  const closeUserCommentsListButton = document.querySelector("[data-close-user-comments-list]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
   const closeGoProButton = document.querySelector("[data-close-go-pro]");
   const goProMonthlyButton = document.querySelector("[data-go-pro-monthly]");
@@ -88,11 +135,20 @@
   const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
   const closeConfidenceBehaviorButton = document.querySelector("[data-close-confidence-behavior]");
   const closeUserTypeAdminButton = document.querySelector("[data-close-user-type-admin]");
+  const closeInviteeAdminButton = document.querySelector("[data-close-invitee-admin]");
   const closeHandleUpdateAdminButton = document.querySelector("[data-close-handle-update-admin]");
   const closeImagePairAdminButton = document.querySelector("[data-close-image-pair-admin]");
   const closeSubscriptionEmailAdminButton = document.querySelector("[data-close-subscription-email-admin]");
   const closeAdminUserListButton = document.querySelector("[data-close-admin-user-list]");
   const openContactButton = document.querySelector("[data-open-contact]");
+  const temporaryHomePageContinueButton = document.querySelector("[data-temporary-home-continue]");
+  const temporaryHomePageInvitationCodeInput = document.querySelector("[data-temporary-home-invitation-code]");
+  const temporaryHomePageInvitationStatus = document.querySelector("[data-temporary-home-invitation-status]");
+  const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
+  const temporaryHomePageExploreButton = document.querySelector("[data-temporary-home-explore]");
+  const temporaryHomePageClairvoyanceButton = document.querySelector("[data-temporary-home-clairvoyance]");
+  const temporaryHomePageContactButton = document.querySelector("[data-open-temporary-home-contact]");
+  const temporaryHomePageHelpButton = document.querySelector("[data-open-temporary-home-help]");
   const closeContactButton = document.querySelector("[data-close-contact]");
   const openAboutButton = document.querySelector("[data-open-about]");
   const closeAboutButton = document.querySelector("[data-close-about]");
@@ -110,7 +166,6 @@
   const reportGoButton = document.querySelector("[data-report-go]");
   const reportGlobeButton = document.querySelector("[data-report-globe]");
   const reportVisualizeButton = document.querySelector("[data-report-visualize]");
-  const reportAnalyzeButton = document.querySelector("[data-report-analyze]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
   let lastLauncherPointerDownInsideActiveCard = false;
   const openAdvancedButton = document.querySelector("[data-open-advanced]");
@@ -124,6 +179,7 @@
   let levelFourImagePairsCachePromise = null;
   let contactReturnView = "help";
   let goProReturnView = "subscription-management";
+  let launcherGuestEntryActive = false;
   const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
   const reportTableWrap = document.querySelector("[data-report-table-wrap]");
   const reportTable = document.querySelector("[data-report-table]");
@@ -154,6 +210,30 @@
   const pushSetupEnableButton = document.querySelector("[data-push-setup-enable]");
   const pushSetupTestButton = document.querySelector("[data-push-setup-test]");
   const pushSetupCloseButton = document.querySelector("[data-push-setup-close]");
+  const featureSetupIdentifier = document.querySelector("[data-feature-setup-identifier]");
+  const featureSetupSummary = document.querySelector("[data-feature-setup-summary]");
+  const featureSetupInstallStatus = document.querySelector("[data-feature-setup-install-status]");
+  const featureSetupLocationStatus = document.querySelector("[data-feature-setup-location-status]");
+  const featureSetupMessagingStatus = document.querySelector("[data-feature-setup-messaging-status]");
+  const featureSetupProtectionStatus = document.querySelector("[data-feature-setup-protection-status]");
+  const featureSetupInstallActionButton = document.querySelector("[data-feature-setup-install-action]");
+  const featureSetupLocationActionButton = document.querySelector("[data-feature-setup-location-action]");
+  const featureSetupMessagingActionButton = document.querySelector("[data-feature-setup-messaging-action]");
+  const featureSetupProtectionActionButton = document.querySelector("[data-feature-setup-protection-action]");
+  const featureSetupMessagingItem = document.querySelector('[data-feature-setup-item="messaging"]');
+  const featureSetupProtectionItem = document.querySelector('[data-feature-setup-item="protection"]');
+  const espLessonDetailTitle = document.querySelector("[data-esp-lesson-detail-title]");
+  const espLessonDetailPreview = document.querySelector("[data-esp-lesson-detail-preview]");
+  const espLessonDetailBody = document.querySelector("[data-esp-lesson-detail-body]");
+  const espLessonDetailStatus = document.querySelector("[data-esp-lesson-detail-status]");
+  const installGuideEnvironment = document.querySelector("[data-install-guide-environment]");
+  const installGuideStatus = document.querySelector("[data-install-guide-status]");
+  const installGuideSummary = document.querySelector("[data-install-guide-summary]");
+  const installGuideSteps = document.querySelector("[data-install-guide-steps]");
+  const installGuideAfterSection = document.querySelector("[data-install-guide-after-section]");
+  const installGuideAfterCopy = document.querySelector("[data-install-guide-after-copy]");
+  const installGuidePrimaryButton = document.querySelector("[data-install-guide-primary]");
+  const installGuideRefreshButton = document.querySelector("[data-install-guide-refresh]");
   const openHandleButtons = Array.from(document.querySelectorAll("[data-open-handle-control]"));
   const openRoleMessagesButtons = Array.from(document.querySelectorAll("[data-open-role-messages]"));
   const roleMessageBadges = Array.from(document.querySelectorAll("[data-role-message-badge]"));
@@ -223,6 +303,17 @@
   const userTypeChoiceButtons = Array.from(document.querySelectorAll("[data-user-type-choice-button]"));
   const userTypeSaveButton = document.querySelector("[data-user-type-save]");
   const userTypeClearButton = document.querySelector("[data-user-type-clear]");
+  const inviteeIdentifierInput = document.querySelector("[data-invitee-identifier]");
+  const inviteeFullNameInput = document.querySelector("[data-invitee-full-name]");
+  const inviteeEmailInput = document.querySelector("[data-invitee-email]");
+  const inviteeNoteInput = document.querySelector("[data-invitee-note]");
+  const inviteeStatus = document.querySelector("[data-invitee-status]");
+  const inviteeLoadButton = document.querySelector("[data-invitee-load]");
+  const inviteeSaveButton = document.querySelector("[data-invitee-save]");
+  const inviteeDeleteButton = document.querySelector("[data-invitee-delete]");
+  const inviteeClearButton = document.querySelector("[data-invitee-clear]");
+  const inviteeClearDeviceButton = document.querySelector("[data-invitee-clear-device]");
+  const inviteeListBody = document.querySelector("[data-invitee-list-body]");
   const handleUpdateOldInput = document.querySelector("[data-handle-update-old]");
   const handleUpdateNewInput = document.querySelector("[data-handle-update-new]");
   const handleUpdateSummary = document.querySelector("[data-handle-update-summary]");
@@ -257,7 +348,6 @@
   const locationPickerDialog = locationPickerOverlay?.querySelector(".location-picker-dialog") || null;
   const locationPickerStatus = document.querySelector("[data-location-picker-status]");
   const locationPickerMapNode = document.querySelector("[data-location-picker-map]");
-  const locationPickerCoordinates = document.querySelector("[data-location-picker-coordinates]");
   const locationPickerSaveButton = document.querySelector("[data-location-picker-save]");
   const locationPickerCancelButton = document.querySelector("[data-location-picker-cancel]");
   locationPickerOverlay?.classList.add("beginner-view-hidden");
@@ -279,6 +369,7 @@
   let locationPickerMarker = null;
   let locationPickerSelection = null;
   let locationPickerOpening = false;
+  let locationPickerClosing = false;
   let locationPickerReturnRole = "";
   let locationPickerPromptSourceTimestamp = 0;
   let locationPickerPendingContinuation = null;
@@ -290,8 +381,14 @@
   let activeLauncherRole = "";
   let handleOverlayReturnRole = "";
   let pushSetupReturnRole = "";
+  let pushSetupReturnView = "card";
   let pushSetupOwnIdentifier = "";
   let pushSetupInFlight = false;
+  let featureSetupReturnView = "card";
+  let featureSetupReturnRole = "";
+  let featureSetupReturnScrollY = 0;
+  let featureSetupOwnIdentifier = "";
+  let installGuideReturnView = "feature-setup";
   let messagingRefreshToken = 0;
   let activeMessagesRole = "";
   let activeMessagesOwnerIdentifier = "";
@@ -304,6 +401,16 @@
   let activeMessagesScrollRestoreTimer = 0;
   let pendingMessagesOpenScrollY = 0;
   let lastKnownLauncherScrollY = 0;
+  let activeEspLessonRole = "";
+  let activeEspLessonReturnScrollY = 0;
+  const roleLessonFadeTimers = new Map();
+  const roleLessonFadeTokens = new Map();
+  const roleLessonFadeDurationMs = 3150;
+  const roleLessonRuntimeState = {
+    sender: null,
+    receiver: null,
+    "remote-viewer": null
+  };
   let hasAttemptedUnreadMessagesAutoOpen = false;
   let activeDifficultyContext = null;
   let difficultyLabelToken = 0;
@@ -327,13 +434,37 @@
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
-  const defaultLearnMoreText = `INFORMATION ABOUT TELEPATHY
+  const legacyDefaultLearnMoreText = `INFORMATION ABOUT TELEPATHY
 
 The more you know about this ESP skill, the more effective you can be. This section explains what is known about telepathy and how best to become able to tune into it.
 
 DISTANCE DOES NOT MATTER
 Because telepathy is insensitive to distance, you can work with a partner anywhere in the world. Your telepathic experience is the same if the Sender is next to you in the same room, or thousands of miles away, or deep in a submarine. You can experiment with partners, even the friends of partners whom you have never met, anywhere on earth.
 If you have an old friend that lives across the world, your friend can be the Sender, and you can be the Receiver. All that each partner needs is a device that connects to the Internet. The fact that distance does not matter has been substantiated in a multitude of documented cases.`;
+  const defaultLearnMoreText = `INFORMATION ABOUT TELEPATHY
+-----------------------------
+The more you know about this ESP skill, the more effective you can be. This section explains what is known about telepathy and how best to become able to tune into it.
+
+[*] DISTANCE DOES NOT MATTER
+---------------------------
+Because telepathy is insensitive to distance, you can work with a partner anywhere in the world. Your telepathic experience is the same if the Sender is next to you in the same room, or thousands of miles away, or deep in a submarine. You can experiment with partners, even the friends of partners whom you have never met, anywhere on earth.
+If you have an old friend that lives across the world, your friend can be the Sender, and you can be the Receiver. All that each partner needs is a device that connects to the Internet. The fact that distance does not matter has been substantiated in a multitude of documented cases.
+
+[sr] TRUST THE FIRST IMPRESSION
+------------------------------
+When an impression first arrives, it is often faint and easy to dismiss. The receiver improves by noticing the first clear difference that appears and recording it before analysis washes it away. The sender helps most by staying with the target steadily instead of mentally checking many possibilities.
+
+[s] SEND WHAT YOU ACTUALLY SEE
+-----------------------------
+The sender strengthens the session by holding the real target in mind, not by trying to invent a dramatic signal. Quiet, sustained attention is often better than strain. Let the image become stable in your own awareness first, then keep returning to it.
+
+[r] NOTICE THE SHAPE BEFORE THE STORY
+------------------------------------
+Receivers often do better when they first catch structure instead of meaning. Is it one thing or many? Vertical or horizontal? Sparse or crowded? Let the scene assemble in layers instead of demanding a full explanation immediately.
+
+[v] LET THE SCENE FORM NATURALLY
+-------------------------------
+Remote viewing impressions may arrive in fragments rather than as a complete picture. A color, a line, a direction, or a texture may come first. Stay with what actually appears instead of forcing the mind to manufacture a full scene too quickly.`;
   const defaultClairvoyanceLearnMoreText = `Croiset Finds Girl in Dike
 For the purposes of parapsychological research, Croiset recorded telephone calls of clients that
 were later turned into verbatim typewritten reports by his assistants. …
@@ -352,6 +483,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   let stripePublicConfigCache = null;
   let stripeCheckoutInFlight = false;
   let currentUserTypeAdminHandle = "";
+  let currentInviteeIdentifier = "";
+  let inviteeAdminReturnView = "admin";
+  let inviteeRecordsCache = [];
+  let inviteeLookupTimer = null;
+  let pendingInviteeLookupToken = 0;
   let handleUpdateLookupTimer = null;
   let pendingHandleUpdateLookupToken = 0;
   let userTypeLookupTimer = null;
@@ -382,6 +518,15 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   });
   const defaultConfidenceSettings = Object.freeze({
     include: true
+  });
+  const defaultInstallState = Object.freeze({
+    confirmed: false,
+    confirmedAt: 0,
+    confirmationSource: "",
+    lastShellMode: "browser-tab",
+    lastSeenAt: 0,
+    installGuidanceShownAt: 0,
+    installGuidancePlatform: ""
   });
   const difficultyExplanationCopy = {
     1: "In Level 1 the receiver simply decides whether the sender is sending one cone or three cones.",
@@ -456,7 +601,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         messagingDeviceId: typeof parsed?.messagingDeviceId === "string" ? parsed.messagingDeviceId : "",
         notificationPermission: typeof parsed?.notificationPermission === "string" ? parsed.notificationPermission : "",
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
-        learnMoreText: typeof parsed?.learnMoreText === "string" && parsed.learnMoreText.trim() ? parsed.learnMoreText : defaultLearnMoreText,
+        learnMoreText: normalizeStoredLearnMoreText(parsed?.learnMoreText),
         clairvoyanceLearnMoreText: typeof parsed?.clairvoyanceLearnMoreText === "string" && parsed.clairvoyanceLearnMoreText.trim() ? parsed.clairvoyanceLearnMoreText : defaultClairvoyanceLearnMoreText,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
         remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
@@ -464,7 +609,21 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         blinkImageOnSeconds: typeof parsed?.blinkImageOnSeconds === "string" ? parsed.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
         blinkImageOffSeconds: typeof parsed?.blinkImageOffSeconds === "string" ? parsed.blinkImageOffSeconds : defaultBlinkSettings.offSeconds,
         includeConfidence: typeof parsed?.includeConfidence === "boolean" ? parsed.includeConfidence : defaultConfidenceSettings.include,
-        resolvedMainUserType: String(parsed?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
+        installState: normalizeInstallState(parsed?.installState),
+        resolvedMainUserType: String(parsed?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+        loadedInviteeIdentity: parsed?.loadedInviteeIdentity && typeof parsed.loadedInviteeIdentity === "object"
+          ? parsed.loadedInviteeIdentity
+          : null,
+        pendingInviteeOnboarding: parsed?.pendingInviteeOnboarding && typeof parsed.pendingInviteeOnboarding === "object"
+          ? parsed.pendingInviteeOnboarding
+          : null,
+        temporaryIdentity: parsed?.temporaryIdentity && typeof parsed.temporaryIdentity === "object"
+          ? {
+              identifier: typeof parsed.temporaryIdentity.identifier === "string" ? parsed.temporaryIdentity.identifier.trim() : "",
+              source: typeof parsed.temporaryIdentity.source === "string" ? parsed.temporaryIdentity.source.trim() : "",
+              userType: String(parsed?.temporaryIdentity?.userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
+            }
+          : null
       };
     } catch (error) {
       return {
@@ -488,7 +647,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         blinkImageOnSeconds: defaultBlinkSettings.onSeconds,
         blinkImageOffSeconds: defaultBlinkSettings.offSeconds,
         includeConfidence: defaultConfidenceSettings.include,
-        resolvedMainUserType: "standard"
+        installState: { ...defaultInstallState },
+        resolvedMainUserType: "standard",
+        loadedInviteeIdentity: null,
+        pendingInviteeOnboarding: null,
+        temporaryIdentity: null
       };
     }
   }
@@ -497,14 +660,632 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     localStorage.setItem(launcherKey, JSON.stringify(state));
   }
 
+  function normalizeStoredLearnMoreText(value) {
+    const text = typeof value === "string" ? value : "";
+    if (!text.trim()) {
+      return defaultLearnMoreText;
+    }
+    return text.trim() === legacyDefaultLearnMoreText.trim()
+      ? defaultLearnMoreText
+      : text;
+  }
+
+  function normalizeInstallState(input) {
+    const source = input && typeof input === "object" ? input : {};
+    return {
+      confirmed: !!source.confirmed,
+      confirmedAt: Number.isFinite(Number(source.confirmedAt)) ? Number(source.confirmedAt) : 0,
+      confirmationSource: typeof source.confirmationSource === "string" ? source.confirmationSource : "",
+      lastShellMode: source.lastShellMode === "standalone-shell" ? "standalone-shell" : "browser-tab",
+      lastSeenAt: Number.isFinite(Number(source.lastSeenAt)) ? Number(source.lastSeenAt) : 0,
+      installGuidanceShownAt: Number.isFinite(Number(source.installGuidanceShownAt)) ? Number(source.installGuidanceShownAt) : 0,
+      installGuidancePlatform: typeof source.installGuidancePlatform === "string" ? source.installGuidancePlatform : ""
+    };
+  }
+
+  function getInstallState(state = readLauncherState()) {
+    return normalizeInstallState(state?.installState);
+  }
+
+  function getTemporaryIdentityState(state = readLauncherState()) {
+    const temporaryIdentity = state?.temporaryIdentity && typeof state.temporaryIdentity === "object"
+      ? state.temporaryIdentity
+      : null;
+    const identifier = String(temporaryIdentity?.identifier || "").trim();
+    const source = String(temporaryIdentity?.source || "").trim();
+    if (!identifier || !source) {
+      return null;
+    }
+    return {
+      identifier,
+      source,
+      userType: String(temporaryIdentity?.userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
+    };
+  }
+
+  function isLandingExploreTemporaryIdentity(identifier, state = readLauncherState()) {
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    if (!temporaryIdentity || temporaryIdentity.source !== "landing-explore-pro") {
+      return false;
+    }
+    return normalizeIdentifierForStorage(identifier) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
+  }
+
+  function buildTemporaryIdentityNote(identifier) {
+    const cleanIdentifier = String(identifier || "").trim();
+    return `Your unique identity which you should give to any partner you work with will be ${cleanIdentifier}. You can change it to a unique identity that you choose (as long as it is not already claimed) by clicking on the link below:`;
+  }
+
+  function hasKnownLauncherIdentity(state = readLauncherState()) {
+    const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    return !!(
+      String(ownNames.sender || "").trim() ||
+      String(ownNames.receiver || "").trim() ||
+      String(ownNames["remote-viewer"] || "").trim() ||
+      loadedInvitee?.identifier ||
+      temporaryIdentity?.identifier
+    );
+  }
+
+  function buildLauncherIdentityState(baseState, ownIdentifier, userType = "standard", options = {}) {
+    const cleanIdentifier = String(ownIdentifier || "").trim();
+    const normalizedUserType = userType === "pro" ? "pro" : "standard";
+    return {
+      ownNames: cleanIdentifier ? {
+        sender: cleanIdentifier,
+        receiver: cleanIdentifier,
+        "remote-viewer": cleanIdentifier
+      } : {},
+      currentPartners: {},
+      deletedPartners: {},
+      deviceLocation: baseState?.deviceLocation || null,
+      locationPermission: typeof baseState?.locationPermission === "string" ? baseState.locationPermission : "",
+      locationFineTuneDismissedForTimestamp: Number.isFinite(Number(baseState?.locationFineTuneDismissedForTimestamp))
+        ? Number(baseState.locationFineTuneDismissedForTimestamp)
+        : 0,
+      partnerHistory: {},
+      launcherProfiles: {},
+      identifierStatusMap: {},
+      messagingDeviceId: typeof baseState?.messagingDeviceId === "string" ? baseState.messagingDeviceId : "",
+      notificationPermission: typeof baseState?.notificationPermission === "string" ? baseState.notificationPermission : "",
+      themeColor: typeof baseState?.themeColor === "string" ? baseState.themeColor : defaultThemeColor,
+      learnMoreText: normalizeStoredLearnMoreText(baseState?.learnMoreText),
+      clairvoyanceLearnMoreText: typeof baseState?.clairvoyanceLearnMoreText === "string" && baseState.clairvoyanceLearnMoreText.trim()
+        ? baseState.clairvoyanceLearnMoreText
+        : defaultClairvoyanceLearnMoreText,
+      difficultyLevel: "1",
+      remoteViewerDisplayDevice: false,
+      blinkSenderImage: typeof baseState?.blinkSenderImage === "boolean" ? baseState.blinkSenderImage : defaultBlinkSettings.enabled,
+      blinkImageOnSeconds: typeof baseState?.blinkImageOnSeconds === "string" ? baseState.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
+      blinkImageOffSeconds: typeof baseState?.blinkImageOffSeconds === "string" ? baseState.blinkImageOffSeconds : defaultBlinkSettings.offSeconds,
+      includeConfidence: typeof baseState?.includeConfidence === "boolean" ? baseState.includeConfidence : defaultConfidenceSettings.include,
+      installState: normalizeInstallState(baseState?.installState),
+      resolvedMainUserType: normalizedUserType,
+      loadedInviteeIdentity: baseState?.loadedInviteeIdentity && typeof baseState.loadedInviteeIdentity === "object" ? baseState.loadedInviteeIdentity : null,
+      pendingInviteeOnboarding: baseState?.pendingInviteeOnboarding && typeof baseState.pendingInviteeOnboarding === "object" ? baseState.pendingInviteeOnboarding : null,
+      temporaryIdentity: options.temporaryIdentity && cleanIdentifier
+        ? {
+            identifier: cleanIdentifier,
+            source: String(options.temporaryIdentity.source || "").trim() || "landing-explore-pro",
+            userType: normalizedUserType
+          }
+        : null
+    };
+  }
+
   function getLearnMoreText(state = readLauncherState()) {
-    const value = typeof state?.learnMoreText === "string" ? state.learnMoreText : "";
-    return value.trim() ? value : defaultLearnMoreText;
+    return normalizeStoredLearnMoreText(state?.learnMoreText);
   }
 
   function getClairvoyanceLearnMoreText(state = readLauncherState()) {
     const value = typeof state?.clairvoyanceLearnMoreText === "string" ? state.clairvoyanceLearnMoreText : "";
     return value.trim() ? value : defaultClairvoyanceLearnMoreText;
+  }
+
+  function slugifyEspLessonTitle(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
+  }
+
+  function uniqueEspLessonIds(ids) {
+    const seen = new Set();
+    const ordered = [];
+    (Array.isArray(ids) ? ids : []).forEach((value) => {
+      const clean = String(value || "").trim();
+      if (!clean || seen.has(clean)) {
+        return;
+      }
+      seen.add(clean);
+      ordered.push(clean);
+    });
+    return ordered;
+  }
+
+  function parseEspLessonRoles(prefix) {
+    const normalized = String(prefix || "").trim().toLowerCase();
+    if (!normalized) {
+      return [];
+    }
+    if (normalized === "*") {
+      return ["sender", "receiver", "remote-viewer"];
+    }
+    const roles = [];
+    if (normalized.includes("s")) {
+      roles.push("sender");
+    }
+    if (normalized.includes("r")) {
+      roles.push("receiver");
+    }
+    if (normalized.includes("v")) {
+      roles.push("remote-viewer");
+    }
+    return uniqueNames(roles);
+  }
+
+  function isDashedUnderlineLine(value) {
+    return /^[-]{3,}\s*$/.test(String(value || "").trim());
+  }
+
+  function parseEspLessonsFromLearnMoreText(value) {
+    const normalized = String(value || "").replace(/\r\n?/g, "\n").trim();
+    if (!normalized) {
+      return [];
+    }
+
+    const lines = normalized.split("\n");
+    const rawLessons = [];
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const headingLine = String(lines[index] || "").trim();
+      const underlineLine = String(lines[index + 1] || "").trim();
+      if (!headingLine || !isDashedUnderlineLine(underlineLine)) {
+        continue;
+      }
+
+      const prefixMatch = headingLine.match(/^\[([A-Za-z*]+)\]\s*(.+)$/);
+      const rolePrefix = prefixMatch ? prefixMatch[1] : "";
+      const headingText = prefixMatch ? prefixMatch[2] : headingLine;
+      const title = String(headingText || "").trim();
+      const roles = parseEspLessonRoles(rolePrefix);
+
+      let nextHeadingIndex = lines.length;
+      for (let scan = index + 2; scan < lines.length - 1; scan += 1) {
+        if (String(lines[scan] || "").trim() && isDashedUnderlineLine(lines[scan + 1] || "")) {
+          nextHeadingIndex = scan;
+          break;
+        }
+      }
+
+      const body = lines.slice(index + 2, nextHeadingIndex).join("\n").trim();
+      rawLessons.push({
+        title,
+        body,
+        roles,
+        headingIndex: index
+      });
+      index = nextHeadingIndex - 1;
+    }
+
+    return rawLessons
+      .filter((lesson) => lesson.title && lesson.body && Array.isArray(lesson.roles) && lesson.roles.length > 0)
+      .map((lesson, index) => ({
+        id: `esp-lesson-${String(index + 1).padStart(3, "0")}-${slugifyEspLessonTitle(lesson.title) || "lesson"}`,
+        title: lesson.title,
+        body: lesson.body,
+        roles: lesson.roles
+      }));
+  }
+
+  function getEspLessonsForRole(role, state = readLauncherState()) {
+    const sourceText = getLearnMoreText(state);
+    return parseEspLessonsFromLearnMoreText(sourceText).filter((lesson) => Array.isArray(lesson.roles) && lesson.roles.includes(role));
+  }
+
+  function buildEspLessonPreview(body) {
+    const text = String(body || "").trim().replace(/\r\n?/g, "\n");
+    if (!text) {
+      return { preview: "", remainder: "", hasMore: false };
+    }
+    const limit = 220;
+    if (text.length <= limit) {
+      return { preview: text, remainder: "", hasMore: false };
+    }
+    let slicePoint = text.lastIndexOf(" ", limit);
+    if (slicePoint < Math.floor(limit * 0.65)) {
+      slicePoint = limit;
+    }
+    const preview = text.slice(0, slicePoint).trim();
+    const remainder = text.slice(slicePoint).trim();
+    return {
+      preview: `${preview}...`,
+      remainder,
+      hasMore: !!remainder
+    };
+  }
+
+  function getRoleLessonWrap(role) {
+    return roleLessonWraps.find((item) => item.dataset.roleLessonWrap === role) || null;
+  }
+
+  function getRoleLessonTitleElement(role) {
+    return roleLessonTitles.find((item) => item.dataset.roleLessonTitle === role) || null;
+  }
+
+  function getRoleLessonPreviewElement(role) {
+    return roleLessonPreviews.find((item) => item.dataset.roleLessonPreview === role) || null;
+  }
+
+  function setRoleLessonContent(role, title = "", preview = "") {
+    const titleElement = getRoleLessonTitleElement(role);
+    const previewElement = getRoleLessonPreviewElement(role);
+    if (titleElement) {
+      titleElement.textContent = title;
+    }
+    if (previewElement) {
+      previewElement.textContent = preview;
+    }
+  }
+
+  function clearRoleLessonFadeTimer(role) {
+    const existingTimer = Number(roleLessonFadeTimers.get(role) || 0);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+      roleLessonFadeTimers.delete(role);
+    }
+  }
+
+  function waitForRoleLessonFade(role, delayMs = roleLessonFadeDurationMs) {
+    clearRoleLessonFadeTimer(role);
+    return new Promise((resolve) => {
+      const timerId = window.setTimeout(() => {
+        roleLessonFadeTimers.delete(role);
+        resolve();
+      }, Math.max(60, Number(delayMs) || roleLessonFadeDurationMs));
+      roleLessonFadeTimers.set(role, timerId);
+    });
+  }
+
+  function markRoleLessonVisible(role, visible) {
+    const wrap = getRoleLessonWrap(role);
+    if (!wrap) {
+      return;
+    }
+    wrap.hidden = !visible;
+    wrap.dataset.lessonVisible = visible ? "true" : "false";
+    wrap.classList.toggle("is-visible", visible);
+  }
+
+  async function transitionRoleLessonContent(role, title = "", preview = "") {
+    const wrap = getRoleLessonWrap(role);
+    if (!wrap) {
+      setRoleLessonContent(role, title, preview);
+      return;
+    }
+
+    clearRoleLessonFadeTimer(role);
+    const currentTitle = String(getRoleLessonTitleElement(role)?.textContent || "");
+    const currentPreview = String(getRoleLessonPreviewElement(role)?.textContent || "");
+    const isVisible = !wrap.hidden && wrap.classList.contains("is-visible");
+    const needsTransition = isVisible && (currentTitle !== title || currentPreview !== preview);
+    const token = Symbol(role);
+    roleLessonFadeTokens.set(role, token);
+
+    if (needsTransition) {
+      wrap.classList.remove("is-visible");
+      wrap.dataset.lessonVisible = "false";
+      await waitForRoleLessonFade(role);
+      if (roleLessonFadeTokens.get(role) !== token) {
+        return;
+      }
+    }
+
+    setRoleLessonContent(role, title, preview);
+    wrap.hidden = false;
+    wrap.dataset.lessonVisible = "false";
+    wrap.classList.remove("is-visible");
+    void wrap.offsetWidth;
+    window.requestAnimationFrame(() => {
+      if (roleLessonFadeTokens.get(role) !== token) {
+        return;
+      }
+      wrap.classList.add("is-visible");
+      wrap.dataset.lessonVisible = "true";
+    });
+  }
+
+  function setRoleLessonVisibility(role, visible) {
+    if (visible) {
+      markRoleLessonVisible(role, true);
+      return;
+    }
+    clearRoleLessonFadeTimer(role);
+    const wrap = getRoleLessonWrap(role);
+    if (!wrap) {
+      return;
+    }
+    roleLessonFadeTokens.set(role, Symbol(role));
+    if (wrap.hidden || !wrap.classList.contains("is-visible")) {
+      markRoleLessonVisible(role, false);
+      return;
+    }
+    wrap.classList.remove("is-visible");
+    wrap.dataset.lessonVisible = "false";
+    void waitForRoleLessonFade(role).then(() => {
+      if (!wrap.classList.contains("is-visible")) {
+        wrap.hidden = true;
+      }
+    });
+  }
+
+  function clearRoleLessonDisplay(role) {
+    roleLessonRuntimeState[role] = null;
+    setRoleLessonContent(role, "", "");
+    setRoleLessonVisibility(role, false);
+    updateRoleLessonBackButton(role);
+  }
+
+  function getCurrentRoleLesson(role) {
+    return roleLessonRuntimeState[role] && typeof roleLessonRuntimeState[role] === "object"
+      ? roleLessonRuntimeState[role]
+      : null;
+  }
+
+  function updateRoleLessonBackButton(role) {
+    const button = roleLessonBackButtons.find((item) => item.dataset.roleLessonBack === role) || null;
+    if (!button) {
+      return;
+    }
+    const lessonRuntime = getCurrentRoleLesson(role);
+    const hasHistory = Array.isArray(lessonRuntime?.history) && lessonRuntime.history.length > 0;
+    button.disabled = !hasHistory;
+    button.setAttribute("aria-disabled", hasHistory ? "false" : "true");
+  }
+
+  async function goBackRoleEspLesson(role) {
+    const lessonRuntime = getCurrentRoleLesson(role);
+    const history = Array.isArray(lessonRuntime?.history) ? lessonRuntime.history : [];
+    if (!lessonRuntime || !history.length) {
+      updateRoleLessonBackButton(role);
+      return;
+    }
+    const previousLesson = history[history.length - 1];
+    if (!previousLesson || typeof previousLesson !== "object") {
+      updateRoleLessonBackButton(role);
+      return;
+    }
+    const nextHistory = history.slice(0, -1);
+    const preview = buildEspLessonPreview(previousLesson.body || "");
+    roleLessonRuntimeState[role] = {
+      ...lessonRuntime,
+      lesson: {
+        id: String(previousLesson.id || "").trim(),
+        title: String(previousLesson.title || "").trim(),
+        body: String(previousLesson.body || "")
+      },
+      preview,
+      history: nextHistory
+    };
+    await transitionRoleLessonContent(role, previousLesson.title || "", preview.preview || previousLesson.body || "");
+    if (activeEspLessonRole === role && !espLessonDetailView?.classList.contains("beginner-view-hidden")) {
+      renderEspLessonDetail(role);
+    }
+    updateRoleLessonBackButton(role);
+  }
+
+  function shouldShowEspLessonForRole(role) {
+    const note = getRoleNoteElement(role);
+    if (!note) {
+      return false;
+    }
+    const defaultText = String(note.dataset.defaultText || "").trim();
+    return !defaultText;
+  }
+
+  function setEspLessonDetailStatus(message = "", options = {}) {
+    if (!espLessonDetailStatus) {
+      return;
+    }
+    const text = String(message || "").trim();
+    espLessonDetailStatus.textContent = text;
+    espLessonDetailStatus.hidden = !text;
+    espLessonDetailStatus.style.color = options.isError ? "rgba(255, 196, 196, 0.96)" : "rgba(255, 230, 176, 0.94)";
+  }
+
+  function renderEspLessonDetail(role) {
+    const lessonState = getCurrentRoleLesson(role);
+    if (!lessonState || !espLessonDetailTitle || !espLessonDetailPreview || !espLessonDetailBody) {
+      return;
+    }
+    const lesson = lessonState.lesson || null;
+    const preview = lessonState.preview || buildEspLessonPreview(lesson?.body || "");
+    if (!lesson) {
+      espLessonDetailTitle.textContent = "";
+      espLessonDetailPreview.textContent = "";
+      espLessonDetailBody.textContent = "";
+      espLessonDetailBody.hidden = true;
+      return;
+    }
+
+    espLessonDetailTitle.textContent = lesson.title || "";
+    espLessonDetailPreview.textContent = preview.preview || "";
+    espLessonDetailBody.textContent = preview.hasMore ? `... ${preview.remainder}` : "";
+    espLessonDetailBody.hidden = !preview.hasMore;
+  }
+
+  function showEspLessonDetail(role) {
+    activeEspLessonRole = String(role || "").trim();
+    activeEspLessonReturnScrollY = Math.max(window.scrollY || 0, 0);
+    renderEspLessonDetail(activeEspLessonRole);
+    setEspLessonDetailStatus("");
+    espLessonDetailView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeEspLessonDetail() {
+    const returnRole = activeEspLessonRole;
+    const returnScrollY = activeEspLessonReturnScrollY;
+    activeEspLessonRole = "";
+    activeEspLessonReturnScrollY = 0;
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    if (returnRole === "remote-viewer") {
+      showClairvoyanceViewingView();
+    } else {
+      showLauncherView();
+    }
+    if (!returnRole) {
+      return;
+    }
+    window.setTimeout(() => {
+      const matchingCard = roleCards.find((card) => String(card.dataset.roleCard || "") === returnRole);
+      if (!matchingCard) {
+        return;
+      }
+      ensureCardExpanded(matchingCard, { scrollIntoView: false });
+      window.scrollTo({ top: returnScrollY, behavior: "auto" });
+    }, 80);
+  }
+
+  async function refreshRoleEspLesson(role) {
+    const normalizedRole = String(role || "").trim();
+    if (!normalizedRole) {
+      return;
+    }
+    if (isRoleMessageAreaVisible(normalizedRole)) {
+      clearRoleLessonDisplay(normalizedRole);
+      return;
+    }
+    if (!shouldShowEspLessonForRole(normalizedRole)) {
+      clearRoleLessonDisplay(normalizedRole);
+      return;
+    }
+
+    const lessons = getEspLessonsForRole(normalizedRole, readLauncherState());
+    if (!lessons.length) {
+      clearRoleLessonDisplay(normalizedRole);
+      return;
+    }
+
+    const ownIdentifier = getRoleIdentifiersForMessaging(normalizedRole).ownIdentifier;
+    if (!ownIdentifier) {
+      clearRoleLessonDisplay(normalizedRole);
+      return;
+    }
+
+    try {
+      const lessonState = await fetchEspLessonState(ownIdentifier, lessons.map((lesson) => lesson.id));
+      const lessonId = String(lessonState?.current_lesson_id || "").trim();
+      const lesson = lessons.find((item) => item.id === lessonId) || null;
+      if (!lesson) {
+        clearRoleLessonDisplay(normalizedRole);
+        return;
+      }
+      const preview = buildEspLessonPreview(lesson.body);
+      roleLessonRuntimeState[normalizedRole] = {
+        identifier: ownIdentifier,
+        lessonIds: lessons.map((item) => item.id),
+        lessonState,
+        lesson,
+        preview,
+        history: Array.isArray(roleLessonRuntimeState[normalizedRole]?.history)
+          ? roleLessonRuntimeState[normalizedRole].history
+          : []
+      };
+      await transitionRoleLessonContent(normalizedRole, lesson.title || "", preview.preview || lesson.body || "");
+      updateRoleLessonBackButton(normalizedRole);
+    } catch (error) {
+      clearRoleLessonDisplay(normalizedRole);
+    }
+  }
+
+  async function advanceRoleEspLesson(role, command, options = {}) {
+    const lessonRuntime = getCurrentRoleLesson(role);
+    if (!lessonRuntime?.identifier || !Array.isArray(lessonRuntime.lessonIds) || !lessonRuntime.lesson?.id) {
+      return;
+    }
+
+    try {
+      const priorLesson = lessonRuntime.lesson
+        ? {
+            id: String(lessonRuntime.lesson.id || "").trim(),
+            title: String(lessonRuntime.lesson.title || "").trim(),
+            body: String(lessonRuntime.lesson.body || "")
+          }
+        : null;
+      const nextState = await advanceEspLessonState(
+        lessonRuntime.identifier,
+        lessonRuntime.lessonIds,
+        command,
+        lessonRuntime.lesson.id
+      );
+      roleLessonRuntimeState[role] = {
+        ...lessonRuntime,
+        lessonState: nextState,
+        history: priorLesson?.id
+          ? [...(Array.isArray(lessonRuntime.history) ? lessonRuntime.history : []), priorLesson]
+          : (Array.isArray(lessonRuntime.history) ? lessonRuntime.history : [])
+      };
+      await refreshRoleEspLesson(role);
+      if (options.keepDetailOpen) {
+        if (getCurrentRoleLesson(role)) {
+          renderEspLessonDetail(role);
+        } else {
+          closeEspLessonDetail();
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update this ESP lesson right now.";
+      if (options.keepDetailOpen) {
+        setEspLessonDetailStatus(message, { isError: true });
+      }
+    }
   }
 
   function clearLauncherStoredLocation(state, permissionValue = state?.locationPermission || "") {
@@ -655,6 +1436,71 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     const clamped = clamp(numeric, 0.05, 30);
     return clamped.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
+  function cloneJsonValue(value, fallback) {
+    try {
+      return JSON.parse(JSON.stringify(value ?? fallback));
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function snapshotDeviceIdentityState(state = readLauncherState()) {
+    return {
+      ownNames: cloneJsonValue(state?.ownNames || {}, {}),
+      currentPartners: cloneJsonValue(state?.currentPartners || {}, {}),
+      partnerHistory: cloneJsonValue(state?.partnerHistory || {}, {}),
+      deletedPartners: cloneJsonValue(state?.deletedPartners || {}, {}),
+      launcherProfiles: cloneJsonValue(state?.launcherProfiles || {}, {}),
+      identifierStatusMap: cloneJsonValue(state?.identifierStatusMap || {}, {}),
+      resolvedMainUserType: String(state?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+      temporaryIdentity: cloneJsonValue(state?.temporaryIdentity || null, null),
+      remoteViewerDisplayDevice: !!state?.remoteViewerDisplayDevice,
+      difficultyLevel: normalizeDifficultyLevel(state?.difficultyLevel || "1"),
+      runtimeSettings: {
+        sender: cloneJsonValue(readRuntimeSettings("sender"), {}),
+        receiver: cloneJsonValue(readRuntimeSettings("receiver"), {}),
+        "remote-viewer": cloneJsonValue(readRuntimeSettings("remote-viewer"), {})
+      }
+    };
+  }
+
+  function restoreDeviceIdentitySnapshot(snapshot, baseState = readLauncherState()) {
+    const source = snapshot && typeof snapshot === "object" ? snapshot : {};
+    return {
+      ...baseState,
+      ownNames: cloneJsonValue(source.ownNames || {}, {}),
+      currentPartners: cloneJsonValue(source.currentPartners || {}, {}),
+      partnerHistory: cloneJsonValue(source.partnerHistory || {}, {}),
+      deletedPartners: cloneJsonValue(source.deletedPartners || {}, {}),
+      launcherProfiles: cloneJsonValue(source.launcherProfiles || {}, {}),
+      identifierStatusMap: cloneJsonValue(source.identifierStatusMap || {}, {}),
+      resolvedMainUserType: String(source.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+      temporaryIdentity: cloneJsonValue(source.temporaryIdentity || null, null),
+      remoteViewerDisplayDevice: !!source.remoteViewerDisplayDevice,
+      difficultyLevel: normalizeDifficultyLevel(source.difficultyLevel || "1"),
+      loadedInviteeIdentity: null,
+      pendingInviteeOnboarding: null
+    };
+  }
+
+  function getLoadedInviteeIdentity(state = readLauncherState()) {
+    const loaded = state?.loadedInviteeIdentity && typeof state.loadedInviteeIdentity === "object"
+      ? state.loadedInviteeIdentity
+      : null;
+    const identifier = String(loaded?.identifier || "").trim();
+    if (!identifier) {
+      return null;
+    }
+    return {
+      identifier,
+      userType: String(loaded?.userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+      source: String(loaded?.source || "").trim(),
+      previousIdentitySnapshot: loaded?.previousIdentitySnapshot && typeof loaded.previousIdentitySnapshot === "object"
+        ? loaded.previousIdentitySnapshot
+        : null
+    };
   }
 
   function getBlinkBehaviorSettings(state = readLauncherState()) {
@@ -860,6 +1706,18 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     });
   }
 
+  function readRequestedLauncherView() {
+    try {
+      return String(new URLSearchParams(window.location.search).get("open") || "").trim().toLowerCase();
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function shouldStartInFreshLauncherMode() {
+    return readRequestedLauncherView() === "fresh-launcher";
+  }
+
   function buildGlobeVisualizationUrl(pairState, options = {}) {
     const returnUrl = buildAbsoluteModuleUrl("telepathybeginner.html", {
       v: launcherBuildVersion,
@@ -888,6 +1746,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   async function handleGlobeLaunchClick() {
+    if (isProLockedButton(reportGlobeButton)) {
+      return;
+    }
     const pairState = getCurrentReportPairForGlobe();
     if (!pairState) {
       if (reportDefinitionStatus) {
@@ -955,6 +1816,54 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       rememberIdentifierStatus(cleanIdentifier, data.identifier_status);
     }
     return String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
+  }
+
+  async function fetchEspLessonState(identifier, lessonIds) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_esp_lesson_state",
+        identifier: cleanIdentifier,
+        lesson_ids: uniqueEspLessonIds(lessonIds)
+      })
+    });
+
+    const data = await parseApiResponse(response, `ESP lesson request failed with status ${response.status}`);
+    if (data?.identifier_status) {
+      rememberIdentifierStatus(cleanIdentifier, data.identifier_status);
+    }
+    return data?.esp_lesson_state || null;
+  }
+
+  async function advanceEspLessonState(identifier, lessonIds, command, currentLessonId) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
+    const normalizedCommand = String(command || "").trim().toLowerCase();
+    if (!["next", "dismiss"].includes(normalizedCommand)) {
+      throw new Error("ESP lesson command is invalid.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "advance_esp_lesson_state",
+        identifier: cleanIdentifier,
+        lesson_ids: uniqueEspLessonIds(lessonIds),
+        command: normalizedCommand,
+        current_lesson_id: String(currentLessonId || "").trim()
+      })
+    });
+
+    const data = await parseApiResponse(response, `ESP lesson update failed with status ${response.status}`);
+    if (data?.identifier_status) {
+      rememberIdentifierStatus(cleanIdentifier, data.identifier_status);
+    }
+    return data?.esp_lesson_state || null;
   }
 
   async function fetchStripePublicConfig() {
@@ -1127,6 +2036,43 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     };
   }
 
+  async function createTemporaryLauncherIdentity(userType = "pro") {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "create_temporary_identity",
+        user_type: userType === "pro" ? "pro" : "standard"
+      })
+    });
+
+    return parseApiResponse(response, `Temporary identity request failed with status ${response.status}`);
+  }
+
+  async function fetchLandingInvitationIdentity(identifier) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "Invitation code");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_user_type",
+        identifier: cleanIdentifier
+      })
+    });
+
+    const data = await parseApiResponse(response, `Invitation lookup failed with status ${response.status}`);
+    return {
+      identifier: cleanIdentifier,
+      identifierExists: !!data?.identifier_exists,
+      identifierStatus: data?.identifier_status || null,
+      userType: String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard"
+    };
+  }
+
   async function saveLauncherProfile(role, ownEmail, profileState) {
     const payload = sanitizeLauncherProfileForServer(role, ownEmail, profileState);
     const response = await fetch("api.php", {
@@ -1181,7 +2127,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         device_id: cleanDeviceId,
         push_subscription: pushSubscription.toJSON(),
         app_version: launcherBuildVersion,
-        is_installed_app: isRunningAsInstalledApp()
+        is_installed_app: isDurablyInstalled(),
+        app_shell_mode: getBrowserShellMode(),
+        install_confirmation_state: getInstallConfirmationState()
       })
     });
 
@@ -1559,18 +2507,48 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return rendered;
   }
 
+  function getLearnMoreHeadingDisplayText(value) {
+    const headingLine = String(value || "").trim();
+    const prefixMatch = headingLine.match(/^\[([A-Za-z*]+)\]\s*(.+)$/);
+    return String(prefixMatch ? prefixMatch[2] : headingLine).trim();
+  }
+
   function renderLearnMorePreviewMarkup(value) {
     const normalized = String(value || "").replace(/\r\n?/g, "\n").trim();
     if (!normalized) {
       return "<p></p>";
     }
-    const paragraphs = normalized.split(/\n{2,}/);
-    return paragraphs
-      .map((paragraph) => {
-        const withMarkup = renderLearnMoreInlineMarkup(paragraph);
-        return `<p>${withMarkup}</p>`;
-      })
-      .join("");
+    const lines = normalized.split("\n");
+    const blocks = [];
+    let paragraphLines = [];
+    const flushParagraph = () => {
+      const paragraph = paragraphLines.join("\n").trim();
+      paragraphLines = [];
+      if (!paragraph) {
+        return;
+      }
+      blocks.push(`<p>${renderLearnMoreInlineMarkup(paragraph)}</p>`);
+    };
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const currentLine = String(lines[index] || "");
+      const trimmedLine = currentLine.trim();
+      const nextLine = String(lines[index + 1] || "");
+      if (trimmedLine && isDashedUnderlineLine(nextLine)) {
+        flushParagraph();
+        blocks.push(`<h3 class="learn-more-preview-heading">${renderLearnMoreInlineMarkup(getLearnMoreHeadingDisplayText(trimmedLine))}</h3>`);
+        index += 1;
+        continue;
+      }
+      if (!trimmedLine) {
+        flushParagraph();
+        continue;
+      }
+      paragraphLines.push(currentLine);
+    }
+
+    flushParagraph();
+    return blocks.join("") || "<p></p>";
   }
 
   function updateLearnMorePreview(previewElement, value) {
@@ -1805,6 +2783,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         prior
       ]);
     });
+
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    if (temporaryIdentity && normalizeIdentifierForStorage(temporaryIdentity.identifier) === normalizeIdentifierForStorage(prior)) {
+      state.temporaryIdentity = null;
+    }
 
     writeLauncherState(state);
 
@@ -2191,31 +3174,92 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (!ownValue) {
       return false;
     }
+    if (isLandingExploreTemporaryIdentity(ownValue)) {
+      return false;
+    }
     const ownStatus = getCachedIdentifierStatus(ownValue);
     return usesHandlePresentation(ownValue, ownStatus);
+  }
+
+  function isLocationFeatureReady(state = readLauncherState()) {
+    const permission = String(state?.locationPermission || "").trim().toLowerCase();
+    const savedLocation = getSavedDeviceLocation(state);
+    return !!savedLocation && (permission === "granted" || permission === "manual");
+  }
+
+  function shouldShowFeatureSetupPromptForIdentifier(identifier, identifierStatus = null) {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier || isLandingExploreTemporaryIdentity(cleanIdentifier)) {
+      return false;
+    }
+    const status = identifierStatus || getCachedIdentifierStatus(cleanIdentifier);
+    const acceptedHandle = (status && isAcceptedUniqueHandleIdentifier(cleanIdentifier, status))
+      || (isValidUniqueHandle(cleanIdentifier) && !isValidEmailAddress(cleanIdentifier));
+    if (!acceptedHandle) {
+      return false;
+    }
+    if (!isRunningAsInstalledApp()) {
+      return true;
+    }
+    if (!isLocationFeatureReady()) {
+      return true;
+    }
+    const notificationPermission = syncNotificationPermissionSnapshot();
+    if (notificationPermission !== "granted") {
+      return true;
+    }
+    return false;
+  }
+
+  function setRoleFeatureSetupPrompt(role, visible) {
+    const setupWrap = getRoleSetupWrap(role);
+    if (!setupWrap) {
+      return;
+    }
+    const setupButton = setupWrap.querySelector("[data-open-feature-setup]");
+    if (setupButton) {
+      setupButton.textContent = getDisplayedLauncherUserType() === "pro"
+        ? "Click here to set up optional features for ESP PRO"
+        : "Click here to set up optional features for Telepathy Beginner";
+    }
+    setupWrap.dataset.available = visible ? "true" : "false";
+    setupWrap.hidden = !visible;
   }
 
   function applyRoleIdentifierPresentation(role, options = {}) {
     const { ownUsesHandle = false, partnerUsesHandle = false } = options;
     const { ownLabel, partnerLabel } = getRoleLabelElements(role);
     const handleWrap = getRoleHandleWrap(role);
+    const temporaryIdentity = getTemporaryIdentityState();
+    const formValues = readRoleFormValues(role);
+    const ownIdentifier = String(formValues?.ownName || "").trim();
+    const usesTemporaryIdentity = !!temporaryIdentity
+      && temporaryIdentity.source === "landing-explore-pro"
+      && normalizeIdentifierForStorage(ownIdentifier) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
+    const setupPromptVisible = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
     if (ownLabel) {
       ownLabel.textContent = "You";
     }
     if (partnerLabel) {
       partnerLabel.textContent = role === "sender" ? "Receiver" : "Sender";
     }
-    setRoleMessagePresentation(role, ownUsesHandle ? "blank" : "default");
+    setRoleMessagePresentation(role, "default");
     setRoleDefaultNoteText(
       role,
-      ownUsesHandle
+      usesTemporaryIdentity
+        ? buildTemporaryIdentityNote(temporaryIdentity.identifier)
+        : ownUsesHandle
         ? ""
-        : ownUsesHandle || partnerUsesHandle
-        ? "These unique handles are used to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify both Sender and Receiver unique identifiers carefully."
         : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
     );
     if (handleWrap) {
-      handleWrap.hidden = ownUsesHandle;
+      handleWrap.hidden = usesTemporaryIdentity ? false : ownUsesHandle;
+    }
+    setRoleFeatureSetupPrompt(role, !usesTemporaryIdentity && ownUsesHandle && setupPromptVisible);
+    if (shouldShowEspLessonForRole(role)) {
+      void refreshRoleEspLesson(role);
+    } else {
+      clearRoleLessonDisplay(role);
     }
   }
 
@@ -2231,6 +3275,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       try {
         const ownStatus = await fetchIdentifierStatus(ownValue);
         rememberIdentifierStatus(ownValue, ownStatus);
+        const preferredOwn = String(ownStatus?.preferred_identifier || "").trim();
+        if (preferredOwn && preferredOwn !== ownValue && normalizeIdentifierForStorage(preferredOwn) === normalizeIdentifierForStorage(ownValue)) {
+          ownInput.value = preferredOwn;
+        }
         ownUsesHandle = usesHandlePresentation(ownValue, ownStatus);
       } catch (error) {
         ownUsesHandle = isValidUniqueHandle(ownValue) && !isValidEmailAddress(ownValue);
@@ -2252,6 +3300,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
             partnerInput.value = preferredPartner;
           }
           propagatePartnerIdentifierMigration(partnerValue, preferredPartner);
+        } else if (preferredPartner && preferredPartner !== partnerValue) {
+          if (partnerInput) {
+            partnerInput.value = preferredPartner;
+          }
         }
         partnerUsesHandle = usesHandlePresentation(preferredPartner || partnerValue, partnerStatus);
       } catch (error) {
@@ -2682,8 +3734,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
-  function openPushSetupOverlay(role, ownIdentifier) {
+  function openPushSetupOverlay(role, ownIdentifier, options = {}) {
     pushSetupReturnRole = role === "sender" || role === "receiver" || role === "remote-viewer" ? role : "";
+    pushSetupReturnView = options.returnView === "feature-setup"
+      ? "feature-setup"
+      : options.returnView === "help"
+        ? "help"
+        : "card";
     pushSetupOwnIdentifier = String(ownIdentifier || "").trim();
     if (!pushSetupReturnRole || !pushSetupOwnIdentifier) {
       return;
@@ -2695,7 +3752,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     void refreshPushSetupOverlay();
   }
 
-  async function openMessagingSetupFromHelp() {
+  async function openMessagingSetupFromHelp(options = {}) {
+    const requestedReturnView = String(options.returnView || "").trim().toLowerCase();
+    const returnView = requestedReturnView === "feature-setup"
+      ? "feature-setup"
+      : requestedReturnView === "help"
+        ? "help"
+        : "card";
     const candidates = [
       {
         role: "sender",
@@ -2724,20 +3787,22 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           continue;
         }
 
-        showLauncherView();
-        if (candidate.role === "remote-viewer") {
-          showClairvoyanceViewingView();
-          const matchingCard = findRoleCard("remote-viewer");
-          if (matchingCard) {
-            ensureCardExpanded(matchingCard, { scrollIntoView: false });
-          }
-        } else {
-          const matchingCard = findRoleCard(candidate.role);
-          if (matchingCard) {
-            ensureCardExpanded(matchingCard, { scrollIntoView: false });
+        if (returnView === "card") {
+          showLauncherView();
+          if (candidate.role === "remote-viewer") {
+            showClairvoyanceViewingView();
+            const matchingCard = findRoleCard("remote-viewer");
+            if (matchingCard) {
+              ensureCardExpanded(matchingCard, { scrollIntoView: false });
+            }
+          } else {
+            const matchingCard = findRoleCard(candidate.role);
+            if (matchingCard) {
+              ensureCardExpanded(matchingCard, { scrollIntoView: false });
+            }
           }
         }
-        openPushSetupOverlay(candidate.role, preferredIdentifier);
+        openPushSetupOverlay(candidate.role, preferredIdentifier, { returnView });
         return;
       } catch (_) {
         // Try the next candidate.
@@ -2747,9 +3812,544 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     window.alert("First claim a unique handle on one of the role cards, then return here to enable partner messaging.");
   }
 
+  async function resolveFeatureSetupContext(preferredRole = "") {
+    const roles = [];
+    const normalizedPreferredRole = String(preferredRole || "").trim();
+    if (normalizedPreferredRole) {
+      roles.push(normalizedPreferredRole);
+    }
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      if (!roles.includes(role)) {
+        roles.push(role);
+      }
+    });
+
+    for (const role of roles) {
+      const identifiers = readVisibleRoleIdentifiers(role);
+      const ownIdentifier = String(identifiers?.ownName || "").trim();
+      if (!ownIdentifier) {
+        continue;
+      }
+      try {
+        const status = await fetchIdentifierStatus(ownIdentifier);
+        rememberIdentifierStatus(ownIdentifier, status);
+        const preferredIdentifier = String(status?.preferred_identifier || ownIdentifier).trim() || ownIdentifier;
+        if (isAcceptedUniqueHandleIdentifier(preferredIdentifier, status)) {
+          return {
+            role,
+            identifier: preferredIdentifier,
+            status
+          };
+        }
+      } catch (_) {
+        if (isValidUniqueHandle(ownIdentifier) && !isValidEmailAddress(ownIdentifier)) {
+          return {
+            role,
+            identifier: ownIdentifier,
+            status: getCachedIdentifierStatus(ownIdentifier)
+          };
+        }
+      }
+    }
+
+    return {
+      role: normalizedPreferredRole || activeLauncherRole || "sender",
+      identifier: "",
+      status: null
+    };
+  }
+
+  function getLocationFeatureSummary(state = readLauncherState()) {
+    const permission = String(state?.locationPermission || "").trim().toLowerCase();
+    const savedLocation = getSavedDeviceLocation(state);
+    if (permission === "denied") {
+      return {
+        ready: false,
+        statusText: "Blocked in the browser or PWA settings.",
+        actionLabel: "REVIEW LOCATION"
+      };
+    }
+    if (savedLocation && (permission === "granted" || permission === "manual")) {
+      return {
+        ready: true,
+        statusText: "Exact location is set up on this device.",
+        actionLabel: "REVIEW LOCATION"
+      };
+    }
+    if (permission === "granted" || permission === "manual" || savedLocation) {
+      return {
+        ready: false,
+        statusText: "Location is partly available, but exact location has not been saved yet.",
+        actionLabel: "SET LOCATION"
+      };
+    }
+    if (permission === "error") {
+      return {
+        ready: false,
+        statusText: "Browser location was not available yet. You can still set the exact location manually.",
+        actionLabel: "SET LOCATION"
+      };
+    }
+    return {
+      ready: false,
+      statusText: "Location is not set up yet.",
+      actionLabel: "SET LOCATION"
+    };
+  }
+
+  async function refreshFeatureSetupView() {
+    if (!featureSetupView || featureSetupView.classList.contains("beginner-view-hidden")) {
+      return;
+    }
+
+    const context = await resolveFeatureSetupContext(featureSetupReturnRole || activeLauncherRole || "sender");
+    featureSetupReturnRole = String(context.role || featureSetupReturnRole || "sender").trim();
+    featureSetupOwnIdentifier = String(context.identifier || "").trim();
+
+    if (featureSetupIdentifier) {
+      featureSetupIdentifier.textContent = featureSetupOwnIdentifier
+        ? `Current identifier: ${featureSetupOwnIdentifier}`
+        : "Current identifier: no accepted unique name is currently loaded on this screen.";
+    }
+
+    const installConfirmationState = getInstallConfirmationState();
+    const installed = installConfirmationState === "confirmed-installed";
+    if (featureSetupInstallStatus) {
+      featureSetupInstallStatus.textContent = installed
+        ? "Installed as an app on this device."
+        : installConfirmationState === "temporary-shell"
+          ? "ESP GYM is open in app mode temporarily, but it is not yet confirmed as permanently installed on this device."
+          : "Not installed as an app on this device yet.";
+    }
+    if (featureSetupInstallActionButton) {
+      featureSetupInstallActionButton.textContent = installed ? "INSTALL HELP" : "INSTALL APP";
+      featureSetupInstallActionButton.disabled = false;
+    }
+
+    const locationSummary = getLocationFeatureSummary();
+    if (featureSetupLocationStatus) {
+      featureSetupLocationStatus.textContent = locationSummary.statusText;
+    }
+    if (featureSetupLocationActionButton) {
+      featureSetupLocationActionButton.textContent = locationSummary.actionLabel;
+      featureSetupLocationActionButton.disabled = false;
+    }
+
+    let messagingReady = false;
+    let messagingStatusText = "First choose or load an accepted unique name before setting up partner messaging.";
+    let messagingActionLabel = "SET UP MESSAGING";
+    let messagingActionDisabled = !featureSetupOwnIdentifier;
+    if (!isEffectiveLauncherUserPro()) {
+      messagingStatusText = "Instant messaging with notifications is a PRO feature";
+      messagingActionLabel = "PRO FEATURE";
+      messagingActionDisabled = true;
+    } else if (featureSetupOwnIdentifier) {
+      const installedForMessaging = installed;
+      const permission = syncNotificationPermissionSnapshot();
+      if (!installedForMessaging) {
+        messagingStatusText = installConfirmationState === "temporary-shell"
+          ? "Install ESP GYM permanently on this device before enabling partner messaging."
+          : "Install ESP GYM as an app on this device before enabling partner messaging.";
+        messagingActionLabel = "INSTALL MESSAGING";
+      } else if (permission === "denied") {
+        messagingStatusText = "Notifications are blocked in the browser for this app on this device.";
+        messagingActionLabel = "UNBLOCK NOTIFICATIONS";
+      } else if (permission === "unsupported") {
+        messagingStatusText = "This browser does not support app notifications.";
+        messagingActionDisabled = true;
+      } else {
+        try {
+          const setupData = await fetchPushSetup(featureSetupOwnIdentifier, getOrCreateMessagingDeviceId());
+          if (setupData?.identifier_status) {
+            rememberIdentifierStatus(featureSetupOwnIdentifier, setupData.identifier_status);
+          }
+          messagingReady = !!setupData?.push_status?.notification_ready && permission === "granted" && installedForMessaging;
+          messagingStatusText = messagingReady
+            ? "Partner messaging is ready on this device."
+            : permission === "granted"
+              ? "Notifications are allowed. Register partner messaging for this device."
+              : "Notifications are not allowed yet for this app on this device.";
+          messagingActionLabel = permission === "granted" ? "SET UP MESSAGING" : "ALLOW NOTIFICATIONS";
+        } catch (error) {
+          messagingStatusText = error instanceof Error ? error.message : "Unable to check partner messaging right now.";
+        }
+      }
+    }
+    if (featureSetupMessagingStatus) {
+      featureSetupMessagingStatus.textContent = messagingStatusText;
+    }
+    if (featureSetupMessagingActionButton) {
+      featureSetupMessagingActionButton.textContent = messagingReady ? "MESSAGING READY" : messagingActionLabel;
+      featureSetupMessagingActionButton.disabled = messagingReady || messagingActionDisabled;
+    }
+
+    if (featureSetupProtectionStatus) {
+      featureSetupProtectionStatus.textContent = isEffectiveLauncherUserPro()
+        ? "Not yet available on this build."
+        : "Protection from impersonators is a PRO Feature.";
+    }
+    if (featureSetupProtectionActionButton) {
+      featureSetupProtectionActionButton.textContent = isEffectiveLauncherUserPro() ? "INFO" : "PRO FEATURE";
+      featureSetupProtectionActionButton.disabled = false;
+    }
+
+    const missingCount = [
+      !installed,
+      !locationSummary.ready,
+      isEffectiveLauncherUserPro() ? !messagingReady : false
+    ].filter(Boolean).length;
+    if (featureSetupSummary) {
+      featureSetupSummary.textContent = missingCount > 0
+        ? `${missingCount} optional feature${missingCount === 1 ? "" : "s"} remain to be set up on this device.`
+        : "All currently available optional features are set up on this device.";
+    }
+
+    renderProOnlyLockedControls();
+    refreshAllRoleFeatureSetupPrompts();
+  }
+
+  function showFeatureSetupView(options = {}) {
+    const role = String(options.role || activeLauncherRole || "sender").trim() || "sender";
+    const originView = String(options.returnView || "").trim().toLowerCase();
+    featureSetupReturnRole = role;
+    featureSetupReturnView = originView === "help"
+      ? "help"
+      : originView === "options"
+        ? "options"
+        : originView === "remote-viewer"
+          ? "remote-viewer"
+          : "card";
+    featureSetupReturnScrollY = Math.max(0, Number(options.scrollY ?? window.scrollY ?? window.pageYOffset ?? 0) || 0);
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.remove("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    void refreshFeatureSetupView();
+  }
+
+  function closeFeatureSetupView() {
+    const returnRole = featureSetupReturnRole || activeLauncherRole || "sender";
+    const returnView = featureSetupReturnView || "card";
+    const returnScrollY = Math.max(0, Number(featureSetupReturnScrollY || 0) || 0);
+    if (returnView === "help") {
+      showHelpView();
+      return;
+    }
+    if (returnView === "options") {
+      showOptionsView();
+      return;
+    }
+    if (returnView === "remote-viewer" || returnRole === "remote-viewer") {
+      showClairvoyanceViewingView();
+      const matchingCard = findRoleCard("remote-viewer");
+      if (matchingCard) {
+        ensureCardExpanded(matchingCard, { scrollIntoView: false });
+      }
+      window.setTimeout(() => {
+        window.scrollTo({ top: returnScrollY, left: 0, behavior: "auto" });
+      }, 0);
+      return;
+    }
+    showLauncherView();
+    const matchingCard = findRoleCard(returnRole);
+    if (matchingCard) {
+      ensureCardExpanded(matchingCard, { scrollIntoView: false });
+    }
+    window.setTimeout(() => {
+      window.scrollTo({ top: returnScrollY, left: 0, behavior: "auto" });
+    }, 0);
+  }
+
+  function detectInstallEnvironment() {
+    const ua = navigator.userAgent || "";
+    const vendor = navigator.vendor || "";
+    const platform = String(navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
+    const brands = Array.isArray(navigator.userAgentData?.brands)
+      ? navigator.userAgentData.brands.map((entry) => String(entry?.brand || "").toLowerCase())
+      : [];
+    const isWindows = platform.includes("win") || /windows/i.test(ua);
+    const isAndroid = /android/i.test(ua);
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    const isMac = !isIOS && (platform.includes("mac") || /macintosh|mac os x/i.test(ua));
+    const isEdge = /edg\//i.test(ua) || brands.some((brand) => brand.includes("edge"));
+    const isChrome = (/chrome|crios/i.test(ua) || brands.some((brand) => brand.includes("chrome"))) && !isEdge;
+    const isSafari = /safari/i.test(ua) && /apple/i.test(vendor) && !isChrome && !isEdge;
+    const osLabel = isWindows
+      ? "Windows"
+      : isAndroid
+        ? "Android"
+        : isIOS
+          ? "iPhone / iPad"
+          : isMac
+            ? "Mac"
+            : "This device";
+    const browserLabel = isEdge
+      ? "Microsoft Edge"
+      : isChrome
+        ? "Chrome"
+        : isSafari
+          ? "Safari"
+          : "this browser";
+    return {
+      isWindows,
+      isAndroid,
+      isIOS,
+      isMac,
+      isEdge,
+      isChrome,
+      isSafari,
+      osLabel,
+      browserLabel
+    };
+  }
+
+  function buildInstallGuideModel() {
+    const environment = detectInstallEnvironment();
+    const confirmationState = getInstallConfirmationState();
+    const installed = confirmationState === "confirmed-installed";
+    const temporaryShell = confirmationState === "temporary-shell";
+    const canPrompt = !!deferredInstallPrompt;
+    const environmentText = `Detected platform: ${environment.osLabel} using ${environment.browserLabel}.`;
+    const statusText = installed
+      ? "ESP GYM appears to be installed on this device."
+      : temporaryShell
+        ? "ESP GYM is open in app mode temporarily, but it is not yet confirmed as permanently installed on this device."
+        : "ESP GYM is not yet installed as an app on this device.";
+
+    let summary = "Use the steps below to install ESP GYM as an app on this device.";
+    let steps = [];
+    let afterInstall = "";
+
+    if (environment.isWindows && (environment.isChrome || environment.isEdge)) {
+      if (installed) {
+        summary = "ESP GYM is already installed. To make it easier to launch, pin it to the Windows taskbar.";
+        steps = [
+          "Close the ESP GYM app window if it is open.",
+          "Press the Windows key and type ESP GYM.",
+          "When ESP GYM appears in the search results, right-click it.",
+          "Choose Pin to taskbar."
+        ];
+      } else {
+        summary = "On Windows with Chrome or Edge, first install ESP GYM as an app, then pin it to the taskbar.";
+        steps = canPrompt
+          ? [
+              "Press OPEN INSTALL PROMPT below.",
+              "Accept the browser prompt to install ESP GYM.",
+              "After the app opens in its own window, close it.",
+              "Press the Windows key and type ESP GYM.",
+              "When ESP GYM appears in the search results, right-click it.",
+              "Choose Pin to taskbar."
+            ]
+          : [
+              "Open the browser menu in Chrome or Edge.",
+              "Choose Install app or Apps > Install this site as an app if that option is shown.",
+              "After the app opens in its own window, close it.",
+              "Press the Windows key and type ESP GYM.",
+              "When ESP GYM appears in the search results, right-click it.",
+              "Choose Pin to taskbar."
+            ];
+      }
+      afterInstall = "Once ESP GYM is pinned to the taskbar, that taskbar icon should take you directly back to your working home on this device.";
+    } else if (environment.isAndroid && environment.isChrome) {
+      summary = installed
+        ? "ESP GYM is already installed on this Android device."
+        : "On Android Chrome, install ESP GYM from the browser menu or from the install prompt if it appears.";
+      steps = installed
+        ? [
+            "Look for the ESP GYM icon in your app list or on your home screen.",
+            "If you want easier access, drag that icon to a preferred home-screen position."
+          ]
+        : canPrompt
+          ? [
+              "Press OPEN INSTALL PROMPT below.",
+              "Accept the browser prompt to install ESP GYM.",
+              "After installation, place the ESP GYM icon where you want it on your home screen."
+            ]
+          : [
+              "Open the Chrome menu.",
+              "Choose Install app or Add to Home screen.",
+              "Accept the prompt and place ESP GYM on your home screen."
+            ];
+      afterInstall = "After installation, ESP GYM should behave more like a regular app and can better support messaging.";
+    } else if (environment.isIOS && environment.isSafari) {
+      summary = installed
+        ? "ESP GYM is already installed on this iPhone or iPad."
+        : "On iPhone or iPad Safari, install ESP GYM using Share and Add to Home Screen.";
+      steps = installed
+        ? [
+            "Look for the ESP GYM icon on your home screen.",
+            "If you want, move the icon to a more convenient screen position."
+          ]
+        : [
+            "Tap the Share button in Safari.",
+            "Scroll down and tap Add to Home Screen.",
+            "Confirm the name ESP GYM and tap Add."
+          ];
+      afterInstall = "After installation, open ESP GYM from its home-screen icon instead of from a browser tab.";
+    } else if (environment.isIOS && environment.isChrome) {
+      summary = "Chrome on iPhone may not offer reliable app installation. Safari is the preferred path.";
+      steps = [
+        "Open this same page in Safari.",
+        "In Safari, tap the Share button.",
+        "Choose Add to Home Screen.",
+        "Then open ESP GYM from the new home-screen icon."
+      ];
+      afterInstall = "After Safari installs ESP GYM, use that icon for the best app-like behavior on this device.";
+    } else {
+      summary = installed
+        ? "ESP GYM is already installed on this device."
+        : "Use this browser's install option, or Add to Home Screen if that is the wording shown here.";
+      steps = canPrompt
+        ? [
+            "Press OPEN INSTALL PROMPT below.",
+            "Accept the browser prompt to install ESP GYM.",
+            "Then launch ESP GYM from the installed app icon."
+          ]
+        : [
+            "Open the browser menu.",
+            "Look for Install app, Install this site as an app, or Add to Home Screen.",
+            "Use that browser option to install ESP GYM.",
+            "Then launch ESP GYM from the installed app icon."
+          ];
+      afterInstall = "After installation, use the installed app icon rather than a normal browser tab whenever possible.";
+    }
+
+    return {
+      environmentText,
+      statusText,
+      summary,
+      steps,
+      afterInstall,
+      installed,
+      canPrompt
+    };
+  }
+
+  function renderInstallGuideView() {
+    const model = buildInstallGuideModel();
+    if (installGuideEnvironment) {
+      installGuideEnvironment.textContent = model.environmentText;
+    }
+    if (installGuideStatus) {
+      installGuideStatus.textContent = model.statusText;
+    }
+    if (installGuideSummary) {
+      installGuideSummary.textContent = model.summary;
+    }
+    if (installGuideSteps) {
+      installGuideSteps.innerHTML = "";
+      model.steps.forEach((step) => {
+        const item = document.createElement("li");
+        item.textContent = step;
+        installGuideSteps.appendChild(item);
+      });
+    }
+    if (installGuideAfterSection) {
+      installGuideAfterSection.hidden = !model.afterInstall;
+    }
+    if (installGuideAfterCopy) {
+      installGuideAfterCopy.textContent = model.afterInstall;
+    }
+    if (installGuidePrimaryButton) {
+      installGuidePrimaryButton.hidden = !(model.canPrompt && !model.installed);
+      installGuidePrimaryButton.disabled = !(model.canPrompt && !model.installed);
+      installGuidePrimaryButton.textContent = "OPEN INSTALL PROMPT";
+    }
+  }
+
+  function showInstallGuideView(options = {}) {
+    installGuideReturnView = String(options.returnView || "feature-setup").trim().toLowerCase() === "push-setup"
+      ? "push-setup"
+      : "feature-setup";
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.remove("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    renderInstallGuideView();
+  }
+
+  function closeInstallGuideView() {
+    if (installGuideReturnView === "push-setup" && pushSetupReturnRole && pushSetupOwnIdentifier) {
+      openPushSetupOverlay(pushSetupReturnRole, pushSetupOwnIdentifier, {
+        returnView: pushSetupReturnView
+      });
+      return;
+    }
+    showFeatureSetupView({
+      role: featureSetupReturnRole || activeLauncherRole || "sender",
+      returnView: featureSetupReturnView || "card",
+      scrollY: featureSetupReturnScrollY
+    });
+  }
+
+  function refreshAllRoleFeatureSetupPrompts() {
+    ["sender", "receiver"].forEach((role) => {
+      const ownIdentifier = String(readRoleFormValues(role).ownName || "").trim();
+      const ownStatus = getCachedIdentifierStatus(ownIdentifier);
+      const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
+      applyRoleIdentifierPresentation(role, { ownUsesHandle });
+    });
+    renderRemoteViewerCard();
+  }
+
   function closePushSetupOverlay() {
     const returnRole = pushSetupReturnRole;
+    const returnView = pushSetupReturnView;
     pushSetupReturnRole = "";
+    pushSetupReturnView = "card";
     pushSetupOwnIdentifier = "";
     pushSetupInFlight = false;
     pushSetupOverlay?.classList.add("beginner-view-hidden");
@@ -2757,6 +4357,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       pushSetupStatus.textContent = "";
     }
     if (returnRole) {
+      if (returnView === "feature-setup") {
+        void refreshFeatureSetupView();
+        return;
+      }
+      if (returnView === "help") {
+        showHelpView();
+        return;
+      }
       const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
       if (matchingCard) {
         ensureCardExpanded(matchingCard);
@@ -2771,14 +4379,17 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     const preserveStatus = !!options.preserveStatus;
 
-    const installed = isRunningAsInstalledApp();
+    const installConfirmationState = getInstallConfirmationState();
+    const installed = installConfirmationState === "confirmed-installed";
     const permission = syncNotificationPermissionSnapshot();
     const deviceId = getOrCreateMessagingDeviceId();
 
     if (pushSetupInstallState) {
       pushSetupInstallState.textContent = installed
         ? "App install: ready"
-        : "App install: this feature works after the app is installed on this device";
+        : installConfirmationState === "temporary-shell"
+          ? "App install: this copy is open in app mode temporarily and still needs permanent installation on this device"
+          : "App install: this feature works after the app is installed on this device";
     }
     if (pushSetupNotificationState) {
       pushSetupNotificationState.textContent = permission === "granted"
@@ -2816,7 +4427,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           ? "Partner messaging is ready on this device."
           : installed
             ? "This installed app can now be registered for partner messaging."
-            : "Install this app on this device, then allow notifications to turn on partner messaging.";
+            : installConfirmationState === "temporary-shell"
+              ? "This copy is only open in app mode temporarily. Install it permanently on this device, then allow notifications to turn on partner messaging."
+              : "Install this app on this device, then allow notifications to turn on partner messaging.";
       }
     } catch (error) {
       if (pushSetupStatus && !preserveStatus) {
@@ -2978,6 +4591,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     window.scrollTo({ top: 0, behavior: "auto" });
     messagesView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -3477,7 +5091,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     const text = String(message || "").trim();
     const shouldPromote = !!text && options.prominent !== false;
-    const prominentDurationMs = Number.isFinite(Number(options.prominentDurationMs)) ? Number(options.prominentDurationMs) : 12000;
+    const prominentDurationMs = Number.isFinite(Number(options.prominentDurationMs)) ? Number(options.prominentDurationMs) : 5000;
 
     if (block) {
       const settleTimerId = Number(block.dataset.prominentSettleTimer || 0);
@@ -3546,6 +5160,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   function getRoleNoteContactWrap(role) {
     return document.querySelector(`[data-role-note-contact-wrap="${role}"]`);
+  }
+
+  function getRoleSetupWrap(role) {
+    return document.querySelector(`[data-role-setup-wrap="${role}"]`);
   }
 
   function getRoleMessageArea(role) {
@@ -3686,17 +5304,25 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   function setRoleMessagePresentation(role, mode = "default") {
     const note = getRoleNoteElement(role);
     const handleWrap = getRoleHandleWrap(role);
+    const setupWrap = getRoleSetupWrap(role);
     const contactWrap = getRoleNoteContactWrap(role);
     const messageArea = getRoleMessageArea(role);
+    const lessonWrap = getRoleLessonWrap(role);
 
     if (note) {
       note.hidden = mode === "message";
+    }
+    if (lessonWrap) {
+      lessonWrap.hidden = mode === "message" || lessonWrap.hidden;
     }
     if (messageArea) {
       messageArea.hidden = mode !== "message";
     }
     if (handleWrap) {
       handleWrap.hidden = mode !== "default" || shouldHideHandleLink(role);
+    }
+    if (setupWrap) {
+      setupWrap.hidden = mode !== "default" || setupWrap.dataset.available !== "true";
     }
     if (contactWrap) {
       contactWrap.hidden = true;
@@ -3720,24 +5346,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function showRoleSkillExplanation(role) {
-    if (isRoleMessageAreaVisible(role)) {
-      return;
-    }
-    const note = getRoleNoteElement(role);
-    const panel = getRoleNotePanel(role);
-    const explanation = getSkillExplanation(role);
-    if (!note || !panel || !explanation) {
-      return;
-    }
-    note.dataset.previewActive = "true";
-    note.textContent = explanation;
-    panel.classList.add("is-level-preview");
+    return;
   }
 
   function showRoleHandleExplanation(role) {
     if (isRoleMessageAreaVisible(role)) {
       return;
     }
+    clearRoleLessonDisplay(role);
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const explanation = getHandleExplanation(role);
@@ -3765,10 +5381,35 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
+  function ensureRoleDefaultNoteInitialized(role) {
+    const note = getRoleNoteElement(role);
+    if (!note) {
+      return "";
+    }
+    if (note.hasAttribute("data-default-text")) {
+      const existingValue = String(note.dataset.defaultText || "");
+      if (!note.dataset.previewActive) {
+        note.dataset.previewActive = "false";
+      }
+      return existingValue.trim();
+    }
+    const existing = String(note.dataset.defaultText || "").trim();
+    if (existing) {
+      return existing;
+    }
+    const fallback = String(note.textContent || "").trim();
+    note.dataset.defaultText = fallback;
+    if (!note.dataset.previewActive) {
+      note.dataset.previewActive = "false";
+    }
+    return fallback;
+  }
+
   function showRoleLevelExplanation(role, level) {
     if (isRoleMessageAreaVisible(role)) {
       return;
     }
+    clearRoleLessonDisplay(role);
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const explanation = getDifficultyExplanation(level);
@@ -3793,7 +5434,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (isDifficultyExplanationLocked(role)) {
       return;
     }
-    const defaultText = String(note.dataset.defaultText || "").trim();
+    const defaultText = ensureRoleDefaultNoteInitialized(role);
     note.dataset.previewActive = "false";
     note.textContent = defaultText;
     panel.classList.remove("is-level-preview");
@@ -3801,12 +5442,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       contactWrap.hidden = true;
       contactWrap.dataset.previewActive = "";
     }
+    if (!defaultText) {
+      void refreshRoleEspLesson(role);
+    }
   }
 
   function showRoleToolsExplanation(role) {
     if (isRoleMessageAreaVisible(role)) {
       return;
     }
+    clearRoleLessonDisplay(role);
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     if (!note || !panel) {
@@ -3921,7 +5566,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function getMaxDifficultyLevel() {
-    return resolvedMainUserType === "pro" ? 5 : 3;
+    return getEffectiveLauncherUserType() === "pro" ? 5 : 3;
   }
 
   function getPairMaxDifficultyLevel(difficultyData) {
@@ -3991,12 +5636,106 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return `This pair cannot go above Level ${maxLevel}.`;
   }
 
-  function getEffectiveLauncherUserType() {
+  function getDisplayedLauncherUserType() {
+    if (launcherGuestEntryActive) {
+      return "standard";
+    }
     return resolvedMainUserType === "pro" ? "pro" : "standard";
+  }
+
+  function getUserGuideTargetType() {
+    if (launcherGuestEntryActive) {
+      return "standard";
+    }
+    const stateType = String(readLauncherState().resolvedMainUserType || "").trim().toLowerCase();
+    if (stateType === "pro") {
+      return "pro";
+    }
+    const visibleTitle = String(beginnerMainTitle?.textContent || "").trim().toLowerCase();
+    if (visibleTitle === "esp pro") {
+      return "pro";
+    }
+    return resolvedMainUserType === "pro" ? "pro" : "standard";
+  }
+
+  function setLauncherGuestEntryActive(active) {
+    launcherGuestEntryActive = !!active;
+  }
+
+  function getEffectiveLauncherUserType() {
+    return getDisplayedLauncherUserType() === "pro" ? "pro" : "standard";
   }
 
   function isEffectiveLauncherUserPro() {
     return getEffectiveLauncherUserType() === "pro";
+  }
+
+  function applyProLockPresentation(element, locked, message) {
+    if (!element) {
+      return;
+    }
+    const cleanMessage = String(message || "").trim();
+    element.classList.toggle("is-pro-locked", !!locked);
+    if (locked && cleanMessage) {
+      element.setAttribute("data-pro-lock-message", cleanMessage);
+      element.setAttribute("title", cleanMessage);
+    } else {
+      element.removeAttribute("data-pro-lock-message");
+      element.removeAttribute("title");
+    }
+  }
+
+  function applyProLockToButton(button, locked, message) {
+    if (!button) {
+      return;
+    }
+    const cleanMessage = String(message || "").trim();
+    button.classList.toggle("is-pro-locked-button", !!locked);
+    if (locked && cleanMessage) {
+      button.setAttribute("aria-disabled", "true");
+      button.setAttribute("title", cleanMessage);
+      button.dataset.proLocked = "true";
+    } else {
+      button.removeAttribute("aria-disabled");
+      button.removeAttribute("title");
+      delete button.dataset.proLocked;
+    }
+  }
+
+  function isProLockedButton(button) {
+    return !!button && button.dataset.proLocked === "true";
+  }
+
+  function renderProOnlyLockedControls() {
+    const beginnerMessagingMessage = "Instant messaging with notifications is a PRO feature";
+    const beginnerRemoteViewingMessage = "Clairvoyance / Remote Viewing is an ESP PRO feature.";
+    const beginnerProtectionMessage = "Protection from impersonators is a PRO feature.";
+    const beginnerGlobeMessage = "GLOBE is a PRO feature.";
+    const isPro = isEffectiveLauncherUserPro();
+
+    ["sender", "receiver"].forEach((role) => {
+      const launchWrap = document.querySelector(`[data-role-messaging-launch="${role}"]`);
+      const launchButton = document.querySelector(`[data-open-role-messages="${role}"]`);
+      applyProLockPresentation(launchWrap, !isPro, beginnerMessagingMessage);
+      applyProLockToButton(launchButton, !isPro, beginnerMessagingMessage);
+    });
+
+    applyProLockPresentation(openClairvoyanceViewingButton, !isPro, beginnerRemoteViewingMessage);
+    applyProLockToButton(openClairvoyanceViewingButton, !isPro, beginnerRemoteViewingMessage);
+    if (openClairvoyanceViewingButton) {
+      openClairvoyanceViewingButton.hidden = false;
+    }
+
+    applyProLockPresentation(reportGlobeButton, !isPro, beginnerGlobeMessage);
+    applyProLockToButton(reportGlobeButton, !isPro, beginnerGlobeMessage);
+
+    featureSetupMessagingItem?.classList.toggle("is-pro-locked-zone", !isPro);
+    applyProLockPresentation(featureSetupMessagingItem, !isPro, beginnerMessagingMessage);
+    applyProLockToButton(featureSetupMessagingActionButton, !isPro, beginnerMessagingMessage);
+
+    featureSetupProtectionItem?.classList.toggle("is-pro-locked-zone", !isPro);
+    applyProLockPresentation(featureSetupProtectionItem, !isPro, beginnerProtectionMessage);
+    applyProLockToButton(featureSetupProtectionActionButton, !isPro, beginnerProtectionMessage);
   }
 
   function readVisibleRoleIdentifiers(role) {
@@ -4065,6 +5804,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function getCurrentUserTypeCandidates() {
+    if (launcherGuestEntryActive) {
+      return [];
+    }
+
     const activeOwnIdentifier = getActiveOwnIdentifierForUserType();
     if (activeOwnIdentifier) {
       return [activeOwnIdentifier];
@@ -4333,26 +6076,30 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return latest.difficultyLevel;
   }
 
-  function renderMainTitle(userType = resolvedMainUserType) {
+  function renderMainTitle(userType = getDisplayedLauncherUserType(), options = {}) {
     if (!beginnerMainTitle) {
       return;
     }
-    resolvedMainUserType = userType === "pro" ? "pro" : "standard";
-    const latest = readLauncherState();
-    if (latest.resolvedMainUserType !== resolvedMainUserType) {
-      latest.resolvedMainUserType = resolvedMainUserType;
-      writeLauncherState(latest);
+    const normalizedUserType = userType === "pro" ? "pro" : "standard";
+    if (options.persist !== false) {
+      resolvedMainUserType = normalizedUserType;
+      const latest = readLauncherState();
+      if (latest.resolvedMainUserType !== resolvedMainUserType) {
+        latest.resolvedMainUserType = resolvedMainUserType;
+        writeLauncherState(latest);
+      }
     }
-    beginnerMainTitle.textContent = resolvedMainUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
-    document.title = resolvedMainUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
+    beginnerMainTitle.textContent = normalizedUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
+    document.title = normalizedUserType === "pro" ? "ESP PRO" : "Telepathy Beginner";
     renderLauncherIntroCopy();
     renderProOnlyLauncherCards();
     renderProOnlyOtherSettings();
+    renderProOnlyLockedControls();
   }
 
   function renderLauncherIntroCopy() {
     if (launcherSubtitle) {
-      launcherSubtitle.textContent = resolvedMainUserType === "pro"
+      launcherSubtitle.textContent = getEffectiveLauncherUserType() === "pro"
         ? "A training app for ESP development."
         : "A sender-receiver training app for telepathic development.";
     }
@@ -4384,7 +6131,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       cancelProButton.hidden = !showProControls;
     }
     proOnlyOtherSettingsButtons.forEach((button) => {
-      button.hidden = !showProControls;
+      button.hidden = false;
     });
   }
 
@@ -4496,6 +6243,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         uses_handle: !!fetchedProfile?.preferred_handle,
         is_handle: normalizeIdentifierForStorage(requestedIdentifier) === normalizeIdentifierForStorage(String(fetchedProfile?.preferred_handle || ""))
       });
+      const preferredOwnIdentifier = String(fetchedProfile.own_email || "").trim();
+      if (
+        preferredOwnIdentifier &&
+        preferredOwnIdentifier !== requestedIdentifier &&
+        normalizeIdentifierForStorage(preferredOwnIdentifier) === normalizeIdentifierForStorage(requestedIdentifier)
+      ) {
+        remoteViewerOwnInput.value = preferredOwnIdentifier;
+      }
     }
 
     const latest = writeLauncherProfileState("remote-viewer", getPreferredIdentifier(requestedIdentifier), {
@@ -4504,7 +6259,17 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       deletedPartners: Array.isArray(fetchedProfile?.deleted_partners) ? fetchedProfile.deleted_partners : []
     });
     const profileState = getRemoteViewerProfileState(latest, getPreferredIdentifier(requestedIdentifier, latest));
-    if (!String(remoteViewerPartnerInput.value || "").trim() && profileState.currentPartner) {
+    const currentPartnerValue = String(remoteViewerPartnerInput.value || "").trim();
+    if (
+      profileState.currentPartner &&
+      (
+        !currentPartnerValue ||
+        (
+          profileState.currentPartner !== currentPartnerValue &&
+          normalizeIdentifierForStorage(profileState.currentPartner) === normalizeIdentifierForStorage(currentPartnerValue)
+        )
+      )
+    ) {
       remoteViewerPartnerInput.value = profileState.currentPartner;
     }
   }
@@ -4513,6 +6278,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const ownIdentifier = String(remoteViewerOwnInput?.value || "").trim();
     const ownStatus = getCachedIdentifierStatus(ownIdentifier);
     const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
+    const setupPromptVisible = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
+    const temporaryIdentity = getTemporaryIdentityState();
+    const usesTemporaryIdentity = !!temporaryIdentity
+      && temporaryIdentity.source === "landing-explore-pro"
+      && normalizeIdentifierForStorage(ownIdentifier) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
     if (remoteViewerOwnLabel) {
       remoteViewerOwnLabel.textContent = isDisplayDevice ? "This Device" : "You";
     }
@@ -4522,15 +6292,30 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     setRoleMessagePresentation("remote-viewer", "default");
     const handleWrap = getRoleHandleWrap("remote-viewer");
     if (handleWrap) {
-      handleWrap.hidden = ownUsesHandle;
+      handleWrap.hidden = usesTemporaryIdentity ? false : ownUsesHandle;
     }
     setRoleDefaultNoteText(
       "remote-viewer",
-      "This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being."
+      usesTemporaryIdentity
+        ? buildTemporaryIdentityNote(temporaryIdentity.identifier)
+        : ownUsesHandle
+          ? ""
+          : "This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being."
     );
+    setRoleFeatureSetupPrompt("remote-viewer", !usesTemporaryIdentity && ownUsesHandle && setupPromptVisible);
+    if (shouldShowEspLessonForRole("remote-viewer")) {
+      void refreshRoleEspLesson("remote-viewer");
+    } else {
+      clearRoleLessonDisplay("remote-viewer");
+    }
   }
 
   async function refreshMainUserType() {
+    if (launcherGuestEntryActive) {
+      renderMainTitle("standard", { persist: false });
+      return;
+    }
+
     const lookupToken = ++pendingUserTypeLookupToken;
     const candidates = getCurrentUserTypeCandidates();
 
@@ -4544,7 +6329,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       try {
         const userType = await fetchUserType(identifier);
-        if (lookupToken !== pendingUserTypeLookupToken) {
+        if (lookupToken !== pendingUserTypeLookupToken || launcherGuestEntryActive) {
           return;
         }
         if (userType === "pro") {
@@ -4556,7 +6341,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     }
 
-    if (lookupToken === pendingUserTypeLookupToken && resolvedMainUserType !== "standard") {
+    if (lookupToken === pendingUserTypeLookupToken && !launcherGuestEntryActive && resolvedMainUserType !== "standard") {
       renderMainTitle("standard");
     }
   }
@@ -4855,9 +6640,6 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     if (reportVisualizeButton) {
       reportVisualizeButton.hidden = !selectedReportPair;
-    }
-    if (reportAnalyzeButton) {
-      reportAnalyzeButton.hidden = !selectedReportPair;
     }
     renderReportPairOptions();
   }
@@ -7198,7 +8980,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     analyzerText.value = "";
 
     if (!pairInfo?.receiverName || !pairInfo?.senderName) {
-      analyzerStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open Analyze Results again.";
+      analyzerStatus.textContent = "Choose a receiver-sender pair on the Performance Reports page first, then open Analyze Results again.";
       return;
     }
 
@@ -7260,6 +9042,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   async function refreshDifficultyLabels() {
     const token = ++difficultyLabelToken;
     const fallbackLevel = "1";
+    if (launcherGuestEntryActive) {
+      ["sender", "receiver", "remote-viewer"].forEach((role) => {
+        setRoleDifficultyLabel(role, fallbackLevel);
+      });
+      return;
+    }
     const contexts = ["sender", "receiver", "remote-viewer"].map((role) => ({
       role,
       context: getPairContextForRole(role)
@@ -7825,23 +9613,39 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return locationPickerLeafletPromise;
   }
 
-  function setLocationPickerStatus(text) {
-    if (locationPickerStatus) {
-      locationPickerStatus.textContent = text;
+  function setLocationPickerButtonsDisabled(disabled) {
+    if (locationPickerSaveButton) {
+      locationPickerSaveButton.disabled = disabled || !locationPickerSelection;
+    }
+    if (locationPickerCancelButton) {
+      locationPickerCancelButton.disabled = !!disabled;
     }
   }
 
-  function setLocationPickerCoordinates(selection = null) {
-    if (!locationPickerCoordinates) {
+  function setLocationPickerStatus(text) {
+    if (locationPickerStatus) {
+      const baseText = "If this device does not appear to have a precise GPS fix, you can drag the dot to your true location on this map and save it.";
+      const detailText = String(text || "").trim();
+      locationPickerStatus.textContent = detailText ? `${baseText} ${detailText}` : baseText;
+    }
+  }
+
+  function closeLocationPickerWithMessage(message, callback = null) {
+    if (locationPickerClosing) {
       return;
     }
-    if (!selection || !Number.isFinite(Number(selection.latitude)) || !Number.isFinite(Number(selection.longitude))) {
-      locationPickerCoordinates.textContent = "No location selected yet.";
-      return;
-    }
-    const latitude = Number(selection.latitude);
-    const longitude = Number(selection.longitude);
-    locationPickerCoordinates.textContent = `Selected location: lat ${latitude.toFixed(6)}, long ${longitude.toFixed(6)}.`;
+    locationPickerClosing = true;
+    setLocationPickerButtonsDisabled(true);
+    setLocationPickerStatus(message);
+    window.setTimeout(() => {
+      try {
+        if (typeof callback === "function") {
+          callback();
+        }
+      } finally {
+        locationPickerClosing = false;
+      }
+    }, 5000);
   }
 
   function updateLocationPickerMarker(selection, options = {}) {
@@ -7868,10 +9672,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           timestamp: Date.now(),
           source: "manual-map"
         };
-        setLocationPickerCoordinates(locationPickerSelection);
-        if (locationPickerSaveButton) {
-          locationPickerSaveButton.disabled = false;
-        }
+        setLocationPickerButtonsDisabled(false);
       });
     } else {
       locationPickerMarker.setLatLng(latlng);
@@ -7881,10 +9682,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       locationPickerMap.setView(latlng, options.zoom || 15);
     }
 
-    if (locationPickerSaveButton) {
-      locationPickerSaveButton.disabled = false;
-    }
-    setLocationPickerCoordinates(selection);
+    setLocationPickerButtonsDisabled(false);
   }
 
   function initializeLocationPickerMap() {
@@ -7950,6 +9748,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     locationPickerReturnRole = "";
     locationPickerPromptSourceTimestamp = 0;
     locationPickerOpening = false;
+    locationPickerClosing = false;
+    if (featureSetupView && !featureSetupView.classList.contains("beginner-view-hidden")) {
+      void refreshFeatureSetupView();
+    }
   }
 
   function resumePendingLocationPickerContinuation() {
@@ -8057,11 +9859,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     locationPickerReturnRole = role;
     locationPickerPromptSourceTimestamp = Number(options.sourceTimestamp || 0);
     locationPickerSelection = null;
-    if (locationPickerSaveButton) {
-      locationPickerSaveButton.disabled = true;
-    }
+    locationPickerClosing = false;
+    setLocationPickerButtonsDisabled(true);
     setLocationPickerStatus("Loading map...");
-    setLocationPickerCoordinates(null);
     if (!hiddenWarmup) {
       locationPickerOverlay.classList.remove("beginner-view-hidden");
     }
@@ -8161,13 +9961,15 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     latest.locationFineTuneDismissedForTimestamp = 0;
     writeLauncherState(latest);
     renderLocationStatus();
-    hideLocationPicker();
-    if (resumePendingLocationPickerContinuation()) {
-      return;
-    }
-    if (otherSettingsView && !otherSettingsView.classList.contains("beginner-view-hidden")) {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    }
+    closeLocationPickerWithMessage("Location saved.", () => {
+      hideLocationPicker();
+      if (resumePendingLocationPickerContinuation()) {
+        return;
+      }
+      if (otherSettingsView && !otherSettingsView.classList.contains("beginner-view-hidden")) {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
+    });
   }
 
   function getPartnerHistory(role, state = readLauncherState(), ownIdentifier = "") {
@@ -8621,9 +10423,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const select = form.querySelector('select[name="partnerHistory"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const roleSettings = readRoleSettings(role);
-    const savedOwn = String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
-    const profileState = readLauncherProfileState(role, savedOwn, state);
-    const savedPartner = profileState.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
+    const guestEntryActive = launcherGuestEntryActive;
+    const savedOwn = guestEntryActive
+      ? ""
+      : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
+    const profileState = guestEntryActive ? null : readLauncherProfileState(role, savedOwn, state);
+    const savedPartner = guestEntryActive
+      ? ""
+      : profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
 
     ownInput.value = savedOwn;
     partnerInput.value = savedPartner;
@@ -8648,6 +10455,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const refreshPartnerChoices = () => {
       void refreshPartnerAliasHistory(role, form);
     };
+    const suppressIdentifierEnter = (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
     select?.addEventListener("focus", refreshPartnerChoices);
     select?.addEventListener("pointerdown", refreshPartnerChoices);
 
@@ -8667,6 +10480,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       scheduleMainUserTypeRefresh();
       setRoleMessageStatus(role, "");
     });
+    ownInput.addEventListener("keydown", suppressIdentifierEnter);
     ownInput.addEventListener("change", () => {
       void hydrateLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
@@ -8686,6 +10500,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       });
       setRoleMessageStatus(role, "");
     });
+    partnerInput.addEventListener("keydown", suppressIdentifierEnter);
     partnerInput.addEventListener("change", () => {
       void persistLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
@@ -8695,6 +10510,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     });
 
     void refreshRoleMessaging(role);
+    if (savedOwn || savedPartner) {
+      void syncRoleIdentifierPresentation(role, form);
+    }
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -8823,6 +10641,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (shouldActivate) {
       card.classList.add("active");
       activeLauncherRole = role;
+      if (launcherGuestEntryActive && (role === "sender" || role === "receiver")) {
+        applyFreshEntryRoleNotes(role);
+      }
       void refreshDifficultyLabels();
       const toggle = card.querySelector(".role-card-toggle");
       if (toggle) {
@@ -8848,6 +10669,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         void refreshPartnerAliasHistory(String(card.dataset.roleCard || ""), activeForm);
       }
       void refreshRoleMessaging(role);
+      void refreshRoleEspLesson(role);
       return;
     }
 
@@ -8887,6 +10709,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       void refreshPartnerAliasHistory(role, activeForm);
     }
     void refreshRoleMessaging(role);
+    void refreshRoleEspLesson(role);
     if (shouldScrollIntoView) {
       window.setTimeout(() => {
         card.scrollIntoView({
@@ -8901,14 +10724,19 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   function collapseActiveLauncherCard() {
     let changed = false;
     roleCards.forEach((item) => {
+      const role = String(item.dataset.roleCard || "");
       if (item.classList.contains("active") || item.classList.contains("role-card-hidden")) {
         changed = true;
       }
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
+      item.classList.remove("role-card-level-adjusting");
       const toggle = item.querySelector(".role-card-toggle");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
+      }
+      if (role) {
+        setRoleDifficultyStatus(role, "");
       }
     });
     if (changed) {
@@ -8933,14 +10761,114 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   function isLauncherInteractiveTarget(target) {
     return target instanceof Element &&
-      !!target.closest("button, input, select, textarea, a, label, [data-open-tools], [data-open-handle-control], [name='managePartnerNames']");
+      !!target.closest("button, input, select, textarea, a, label, [data-open-handle-control], [name='managePartnerNames']");
+  }
+
+  function hidePartnerHistoryControls(role, form) {
+    const select = form.querySelector('select[name="partnerHistory"]');
+    const manageButton = form.querySelector('button[name="managePartnerNames"]');
+    if (select) {
+      select.value = "";
+      select.hidden = true;
+    }
+    if (manageButton) {
+      manageButton.hidden = true;
+    }
+  }
+
+  function resetLauncherWorkingHomeForFreshEntry() {
+    setLauncherGuestEntryActive(true);
+    activeLauncherRole = "";
+    roleCards.forEach((card) => {
+      card.classList.remove("active");
+      const toggle = card.querySelector(".role-card-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "false");
+      }
+      const role = String(card.dataset.roleCard || "").trim();
+      if (!role || role === "remote-viewer") {
+        return;
+      }
+      const form = card.querySelector("[data-role-form]");
+      if (!form) {
+        return;
+      }
+      const ownInput = form.querySelector('input[name="ownName"]');
+      const partnerInput = form.querySelector('input[name="partnerName"]');
+      if (ownInput) {
+        ownInput.value = "";
+      }
+      if (partnerInput) {
+        partnerInput.value = "";
+      }
+      hidePartnerHistoryControls(role, form);
+      applyRoleIdentifierPresentation(role, {
+        ownUsesHandle: false,
+        partnerUsesHandle: false
+      });
+      setRoleDifficultyLabel(role, "1");
+      setRoleMessageStatus(role, "");
+      void refreshRoleMessaging(role);
+    });
+    if (remoteViewerOwnInput) {
+      remoteViewerOwnInput.value = "";
+    }
+    if (remoteViewerPartnerInput) {
+      remoteViewerPartnerInput.value = "";
+    }
+    if (remoteViewerDisplayDeviceCheckbox) {
+      remoteViewerDisplayDeviceCheckbox.checked = false;
+    }
+    renderRemoteViewerLabels(false);
+    setRoleDifficultyLabel("remote-viewer", "1");
+    renderMainTitle("standard", { persist: false });
+  }
+
+  function applyFreshEntryRoleNotes(targetRole = "") {
+    const roles = targetRole ? [String(targetRole).trim()] : ["sender", "receiver"];
+    roles.forEach((role) => {
+      if (role !== "sender" && role !== "receiver") {
+        return;
+      }
+      setRoleDefaultNoteText(
+        role,
+        "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
+      );
+      const note = getRoleNoteElement(role);
+      if (note) {
+        note.dataset.previewActive = "false";
+      }
+      const handleWrap = getRoleHandleWrap(role);
+      if (handleWrap) {
+        handleWrap.hidden = false;
+      }
+      setRoleFeatureSetupPrompt(role, false);
+    });
+  }
+
+  function enterWorkingHomeFromLanding(mode = "resume") {
+    const normalizedMode = mode === "fresh" ? "fresh" : "resume";
+    setLauncherGuestEntryActive(normalizedMode === "fresh");
+    if (normalizedMode === "fresh") {
+      resetLauncherWorkingHomeForFreshEntry();
+    } else {
+      renderMainTitle(readLauncherState().resolvedMainUserType || "standard", { persist: false });
+    }
+    showLauncherView();
+    if (normalizedMode === "fresh") {
+      applyFreshEntryRoleNotes();
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }
 
   function showLauncherView() {
     activeDifficultyContext = null;
     clearReportPanelOffset();
     launcherView?.classList.remove("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -8975,7 +10903,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     clairvoyanceViewingView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -9024,6 +10955,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -9054,6 +10987,50 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showTemporaryHomePageView() {
+    activeDifficultyContext = null;
+    clearReportPanelOffset();
+    temporaryHomePageView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    messagesView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    setTemporaryHomeInvitationStatus("");
+    resetTemporaryHomeExploreButton();
+    const loadedInvitee = getLoadedInviteeIdentity();
+    if (temporaryHomePageInvitationCodeInput) {
+      temporaryHomePageInvitationCodeInput.value = loadedInvitee?.identifier || "";
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showClairvoyanceLearnMoreView() {
     clearReportPanelOffset();
     if (clairvoyanceLearnMoreTextInput) {
@@ -9066,6 +11043,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clairvoyanceLearnMoreView?.classList.remove("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -9101,6 +11079,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     reportDefinitionView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -9134,6 +11114,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     reportDefinitionView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -9167,6 +11148,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     reportView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -9200,6 +11182,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     visualizationView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -9227,6 +11210,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     helpView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -9252,6 +11239,82 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showBeginnerUserManualView() {
+    clearReportPanelOffset();
+    beginnerUserManualView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showProUserManualView() {
+    clearReportPanelOffset();
+    proUserManualView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showLearnMoreView() {
     clearReportPanelOffset();
     if (learnMoreTextInput) {
@@ -9263,6 +11326,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     learnMoreView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -9354,8 +11418,55 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   function showAidsView() {
     clearReportPanelOffset();
     aidsView?.classList.remove("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showGeneralInformationView() {
+    clearReportPanelOffset();
+    generalInformationView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -9390,7 +11501,265 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     rewireView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showReadingListView() {
+    clearReportPanelOffset();
+    readingListView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showVideoListView() {
+    clearReportPanelOffset();
+    videoListView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showWebsitesEventsListView() {
+    clearReportPanelOffset();
+    websitesEventsListView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showUserCommentsListView() {
+    clearReportPanelOffset();
+    userCommentsListView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showCaseStudiesListView() {
+    clearReportPanelOffset();
+    caseStudiesListView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showPeerReviewedListView() {
+    clearReportPanelOffset();
+    peerReviewedListView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingListView?.classList.add("beginner-view-hidden");
+    videoListView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -9459,6 +11828,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     contactView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -9485,6 +11855,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function closeContactViewToOrigin() {
+    if (contactReturnView === "temporary-home-page") {
+      showTemporaryHomePageView();
+      return;
+    }
     if (contactReturnView === "other-settings") {
       showOtherSettingsView();
       return;
@@ -9505,6 +11879,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     aboutView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -9876,11 +12251,22 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
+  function clearAppLocalStorageArtifacts() {
+    clearLocalFreshStartState();
+    try {
+      sessionStorage.removeItem(launcherKey);
+    } catch (error) {
+      // Ignore session cleanup failures.
+    }
+  }
+
   function showAdminView() {
     clearReportPanelOffset();
     adminView?.classList.remove("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
@@ -9910,6 +12296,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     adminUserListView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
@@ -9936,6 +12323,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   function renderUserTypeAdminState(options = {}) {
     const statusText = String(options.statusText || "").trim();
     const showChoices = !!options.showChoices;
+    const showInviteeButton = !!options.showInviteeButton;
     const currentType = String(options.currentType || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
     pendingUserTypeSelection = currentType;
 
@@ -9950,6 +12338,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       userTypeSaveButton.classList.toggle("beginner-view-hidden", !showChoices);
       userTypeSaveButton.hidden = !showChoices;
     }
+    if (openInviteeAdminButton) {
+      openInviteeAdminButton.classList.toggle("beginner-view-hidden", !showInviteeButton);
+      openInviteeAdminButton.hidden = !showInviteeButton;
+    }
     userTypeChoiceButtons.forEach((button) => {
       const isSelected = String(button.dataset.userTypeChoiceButton || "").trim().toLowerCase() === currentType;
       button.classList.toggle("is-selected", isSelected);
@@ -9957,6 +12349,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     });
     logUserTypeAdminDebug("render_state", [{
       requested_show_choices: showChoices,
+      requested_show_invitee_button: showInviteeButton,
       requested_current_type: currentType,
       requested_status_text: statusText
     }]);
@@ -9986,9 +12379,564 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     renderUserTypeAdminState({
       statusText: "",
       showChoices: false,
+      showInviteeButton: false,
       currentType: "standard"
     });
     logUserTypeAdminDebug("reset_view");
+  }
+
+  function normalizeInviteeIdentifierValue(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function resetInviteeAdminView(options = {}) {
+    if (inviteeLookupTimer) {
+      clearTimeout(inviteeLookupTimer);
+      inviteeLookupTimer = null;
+    }
+    pendingInviteeLookupToken += 1;
+    const identifier = normalizeInviteeIdentifierValue(options.identifier || "");
+    currentInviteeIdentifier = identifier;
+    if (inviteeIdentifierInput) {
+      inviteeIdentifierInput.value = identifier;
+    }
+    if (inviteeFullNameInput) {
+      inviteeFullNameInput.value = "";
+    }
+    if (inviteeEmailInput) {
+      inviteeEmailInput.value = "";
+    }
+    if (inviteeNoteInput) {
+      inviteeNoteInput.value = "";
+    }
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "";
+    }
+    setInviteeAdminActionState({
+      canLoad: false,
+      canSave: !!identifier && isValidUniqueHandle(identifier),
+      canDelete: false
+    });
+  }
+
+  function getCurrentLoadedInviteeIdentifier() {
+    return normalizeInviteeIdentifierValue(getLoadedInviteeIdentity()?.identifier || "");
+  }
+
+  function getInviteeRecordByIdentifier(identifier) {
+    const cleanIdentifier = normalizeInviteeIdentifierValue(identifier);
+    if (!cleanIdentifier) {
+      return null;
+    }
+    return inviteeRecordsCache.find((entry) => normalizeInviteeIdentifierValue(entry?.identifier || "") === cleanIdentifier) || null;
+  }
+
+  function setInviteeAdminActionState(options = {}) {
+    if (inviteeLoadButton) {
+      inviteeLoadButton.disabled = !options.canLoad;
+    }
+    if (inviteeSaveButton) {
+      inviteeSaveButton.disabled = !options.canSave;
+    }
+    if (inviteeDeleteButton) {
+      inviteeDeleteButton.disabled = !options.canDelete;
+    }
+  }
+
+  function renderInviteeAdminList(invitees = []) {
+    inviteeRecordsCache = Array.isArray(invitees) ? invitees.slice(0) : [];
+    if (!inviteeListBody) {
+      return;
+    }
+    inviteeListBody.innerHTML = "";
+
+    if (!inviteeRecordsCache.length) {
+      const emptyRow = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = 4;
+      cell.textContent = "No invitees saved yet.";
+      emptyRow.appendChild(cell);
+      inviteeListBody.appendChild(emptyRow);
+      return;
+    }
+
+    inviteeRecordsCache.forEach((invitee) => {
+      const row = document.createElement("tr");
+      row.dataset.inviteeIdentifier = String(invitee?.identifier || "");
+      const values = [
+        String(invitee?.identifier || ""),
+        String(invitee?.full_name || ""),
+        String(invitee?.email || ""),
+        String(invitee?.private_note || "")
+      ];
+      values.forEach((value, index) => {
+        const cell = document.createElement("td");
+        if (index === 0) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "invitee-admin-row-button";
+          button.textContent = value || "Unnamed";
+          button.addEventListener("click", () => {
+            loadInviteeIntoForm(String(invitee?.identifier || ""));
+          });
+          cell.appendChild(button);
+        } else {
+          cell.textContent = value || "\u2014";
+        }
+        row.appendChild(cell);
+      });
+      inviteeListBody.appendChild(row);
+    });
+  }
+
+  function loadInviteeIntoForm(identifier) {
+    const cleanIdentifier = normalizeInviteeIdentifierValue(identifier);
+    const match = getInviteeRecordByIdentifier(cleanIdentifier);
+    currentInviteeIdentifier = cleanIdentifier;
+    if (inviteeIdentifierInput) {
+      inviteeIdentifierInput.value = String(match?.identifier || cleanIdentifier);
+    }
+    if (inviteeFullNameInput) {
+      inviteeFullNameInput.value = String(match?.full_name || "");
+    }
+    if (inviteeEmailInput) {
+      inviteeEmailInput.value = String(match?.email || "");
+    }
+    if (inviteeNoteInput) {
+      inviteeNoteInput.value = String(match?.private_note || "");
+    }
+    if (inviteeStatus) {
+      const loadedIdentifier = getCurrentLoadedInviteeIdentifier();
+      inviteeStatus.textContent = cleanIdentifier
+        ? normalizeInviteeIdentifierValue(loadedIdentifier) === normalizeInviteeIdentifierValue(cleanIdentifier)
+          ? `Invitee ${String(match?.identifier || cleanIdentifier)} is loaded on this device.`
+          : `Invitee ${String(match?.identifier || cleanIdentifier)} is loaded into the form. Press Load Invitee to use it on this device.`
+        : "";
+    }
+    setInviteeAdminActionState({
+      canLoad: !!match,
+      canSave: !!match,
+      canDelete: !!match
+    });
+  }
+
+  async function evaluateInviteeIdentifier() {
+    const typedIdentifier = normalizeInviteeIdentifierValue(inviteeIdentifierInput?.value || currentInviteeIdentifier);
+    currentInviteeIdentifier = typedIdentifier;
+    const lookupToken = ++pendingInviteeLookupToken;
+
+    if (!typedIdentifier) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = "";
+      }
+      setInviteeAdminActionState({
+        canLoad: false,
+        canSave: false,
+        canDelete: false
+      });
+      return;
+    }
+
+    if (!isValidUniqueHandle(typedIdentifier)) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = "Invitee unique name is invalid.";
+      }
+      setInviteeAdminActionState({
+        canLoad: false,
+        canSave: false,
+        canDelete: false
+      });
+      return;
+    }
+
+    const savedInvitee = getInviteeRecordByIdentifier(typedIdentifier);
+    if (savedInvitee) {
+      loadInviteeIntoForm(String(savedInvitee.identifier || typedIdentifier));
+      return;
+    }
+
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "Checking unique name...";
+    }
+    setInviteeAdminActionState({
+      canLoad: false,
+      canSave: false,
+      canDelete: false
+    });
+
+    try {
+      const lookup = await fetchLandingInvitationIdentity(typedIdentifier);
+      if (lookupToken !== pendingInviteeLookupToken) {
+        return;
+      }
+
+      if (lookup.identifierExists) {
+        if (inviteeStatus) {
+          inviteeStatus.textContent = "That unique name already exists and cannot be saved as an invitee.";
+        }
+        setInviteeAdminActionState({
+          canLoad: false,
+          canSave: false,
+          canDelete: false
+        });
+        return;
+      }
+
+      if (inviteeStatus) {
+        inviteeStatus.textContent = `Unique name ${typedIdentifier} is available to save as an invitee.`;
+      }
+      setInviteeAdminActionState({
+        canLoad: false,
+        canSave: true,
+        canDelete: false
+      });
+    } catch (error) {
+      if (lookupToken !== pendingInviteeLookupToken) {
+        return;
+      }
+      if (inviteeStatus) {
+        inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to validate that unique name right now.";
+      }
+      setInviteeAdminActionState({
+        canLoad: false,
+        canSave: false,
+        canDelete: false
+      });
+    }
+  }
+
+  function setTemporaryHomeInvitationStatus(message = "", options = {}) {
+    if (!temporaryHomePageInvitationStatus) {
+      return;
+    }
+    const text = String(message || "").trim();
+    temporaryHomePageInvitationStatus.textContent = text;
+    temporaryHomePageInvitationStatus.style.color = options.isError
+      ? "rgba(255, 201, 201, 0.96)"
+      : "rgba(255, 234, 190, 0.92)";
+  }
+
+  function resetTemporaryHomeExploreButton() {
+    if (!temporaryHomePageExploreButton) {
+      return;
+    }
+    temporaryHomePageExploreButton.disabled = false;
+    temporaryHomePageExploreButton.textContent = "Explore";
+  }
+
+  function applyIdentityStateToLauncherInputs() {
+    const state = readLauncherState();
+    ["sender", "receiver"].forEach((role) => {
+      const form = document.querySelector(`[data-role-form="${role}"]`);
+      if (!form) {
+        return;
+      }
+      const ownInput = form.querySelector('input[name="ownName"]');
+      const partnerInput = form.querySelector('input[name="partnerName"]');
+      if (!ownInput || !partnerInput) {
+        return;
+      }
+      const roleSettings = readRoleSettings(role);
+      const savedOwn = String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
+      const profileState = savedOwn ? readLauncherProfileState(role, savedOwn, state) : null;
+      const savedPartner = profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
+      ownInput.value = savedOwn;
+      partnerInput.value = savedPartner;
+      applyPartnerHistory(role, form, state, savedOwn);
+      applyRoleIdentifierPresentation(role, {
+        ownUsesHandle: isValidUniqueHandle(savedOwn) && !isValidEmailAddress(savedOwn),
+        partnerUsesHandle: isValidUniqueHandle(savedPartner) && !isValidEmailAddress(savedPartner)
+      });
+    });
+    renderRemoteViewerCard();
+    renderMainTitle(String(state.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard");
+    void refreshDifficultyLabels();
+  }
+
+  async function maybePromptInviteeLocationPermission() {
+    const state = await syncBrowserLocationPermission();
+    if (!navigator.geolocation) {
+      return;
+    }
+    if (state.locationPermission === "granted" || state.locationPermission === "manual" || state.locationPermission === "denied") {
+      renderLocationStatus();
+      return;
+    }
+    await requestDeviceLocationIfNeeded(true);
+  }
+
+  async function maybePromptInviteeNotificationPermission(identifier) {
+    if (!("Notification" in window)) {
+      return;
+    }
+    let permission = getNotificationPermissionSnapshot();
+    if (permission === "default") {
+      permission = String(await Notification.requestPermission()).trim().toLowerCase() || "default";
+      syncNotificationPermissionSnapshot();
+    }
+    if (permission === "granted") {
+      try {
+        await subscribeCurrentDeviceForIdentifier(identifier);
+      } catch (_) {
+        // Keep launcher entry flowing even if notification registration is not ready yet.
+      }
+    }
+  }
+
+  function loadInvitationIdentityOntoDevice(identifier, userType, identifierStatus, options = {}) {
+    const cleanIdentifier = String(identifier || "").trim();
+    const normalizedUserType = userType === "pro" ? "pro" : "standard";
+    const baseState = readLauncherState();
+    const existingLoaded = getLoadedInviteeIdentity(baseState);
+    const previousIdentitySnapshot = existingLoaded?.previousIdentitySnapshot || snapshotDeviceIdentityState(baseState);
+    const nextState = buildLauncherIdentityState(baseState, cleanIdentifier, normalizedUserType);
+    nextState.loadedInviteeIdentity = {
+      identifier: cleanIdentifier,
+      userType: normalizedUserType,
+      source: String(options.source || "landing-invitation").trim() || "landing-invitation",
+      previousIdentitySnapshot
+    };
+    nextState.pendingInviteeOnboarding = normalizedUserType === "pro"
+      ? {
+          identifier: cleanIdentifier,
+          userType: normalizedUserType,
+          requestLocation: true,
+          requestNotifications: true
+        }
+      : null;
+    writeLauncherState(nextState);
+    if (identifierStatus) {
+      rememberIdentifierStatus(cleanIdentifier, identifierStatus);
+    }
+    persistLauncherRuntimeIdentity("sender", cleanIdentifier, "");
+    persistLauncherRuntimeIdentity("receiver", cleanIdentifier, "");
+    persistLauncherRuntimeIdentity("remote-viewer", cleanIdentifier, "");
+    setLauncherGuestEntryActive(false);
+  }
+
+  function clearLoadedInviteeIdentityFromDevice() {
+    const latest = readLauncherState();
+    const loaded = getLoadedInviteeIdentity(latest);
+    if (!loaded) {
+      return null;
+    }
+    const restored = restoreDeviceIdentitySnapshot(loaded.previousIdentitySnapshot || {}, latest);
+    writeLauncherState(restored);
+    const runtimeSettings = loaded.previousIdentitySnapshot?.runtimeSettings && typeof loaded.previousIdentitySnapshot.runtimeSettings === "object"
+      ? loaded.previousIdentitySnapshot.runtimeSettings
+      : {};
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      const nextRuntime = runtimeSettings[role] && typeof runtimeSettings[role] === "object" ? runtimeSettings[role] : {};
+      writeRuntimeSettings(role, nextRuntime);
+    });
+    setLauncherGuestEntryActive(false);
+    applyIdentityStateToLauncherInputs();
+    return loaded;
+  }
+
+  async function continueFromLandingPage() {
+    const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
+    if (!invitationCode) {
+      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+      return;
+    }
+
+    setTemporaryHomeInvitationStatus("Checking invitation code...");
+
+    try {
+      const lookup = await fetchLandingInvitationIdentity(invitationCode);
+      const identifierStatus = lookup.identifierStatus || null;
+      const preferredIdentifier = String(identifierStatus?.preferred_identifier || lookup.identifier || "").trim() || lookup.identifier;
+      const recognizedHandle = isValidUniqueHandle(preferredIdentifier) && isAcceptedUniqueHandleIdentifier(preferredIdentifier, identifierStatus);
+      const recognizedEmail = isValidEmailAddress(preferredIdentifier) && !!lookup.identifierExists;
+      if (!lookup.identifierExists || (!recognizedHandle && !recognizedEmail)) {
+        throw new Error("That invitation code is not recognized.");
+      }
+
+      setTemporaryHomeInvitationStatus(lookup.userType === "pro" ? "Preparing ESP PRO..." : "Preparing Telepathy Beginner...");
+      loadInvitationIdentityOntoDevice(preferredIdentifier, lookup.userType, identifierStatus, {
+        source: "landing-invitation"
+      });
+      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+    } catch (error) {
+      setTemporaryHomeInvitationStatus(error instanceof Error ? error.message : "Unable to continue from that invitation code right now.", { isError: true });
+    }
+  }
+
+  function clearInviteeAdminDeviceIdentity() {
+    const cleared = clearLoadedInviteeIdentityFromDevice();
+    currentInviteeIdentifier = "";
+    if (inviteeIdentifierInput) {
+      inviteeIdentifierInput.value = "";
+    }
+    if (inviteeFullNameInput) {
+      inviteeFullNameInput.value = "";
+    }
+    if (inviteeEmailInput) {
+      inviteeEmailInput.value = "";
+    }
+    if (inviteeNoteInput) {
+      inviteeNoteInput.value = "";
+    }
+    if (inviteeStatus) {
+      inviteeStatus.textContent = cleared
+        ? `Loaded invitee ${cleared.identifier} cleared on this device.`
+        : "No invitee identity is currently loaded on this device.";
+    }
+    void refreshInviteeAdminList({ preserveSelection: true });
+  }
+
+  async function loadInviteeIdentityOnDevice() {
+    const identifier = normalizeInviteeIdentifierValue(inviteeIdentifierInput?.value || currentInviteeIdentifier);
+    const inviteeRecord = getInviteeRecordByIdentifier(identifier);
+    if (!inviteeRecord) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = "Load an existing saved invitee before using Load Invitee.";
+      }
+      setInviteeAdminActionState({
+        canLoad: false,
+        canSave: !!identifier && isValidUniqueHandle(identifier),
+        canDelete: false
+      });
+      return;
+    }
+
+    if (inviteeStatus) {
+      inviteeStatus.textContent = `Loading invitee ${inviteeRecord.identifier} on this device...`;
+    }
+
+    try {
+      const lookup = await fetchLandingInvitationIdentity(String(inviteeRecord.identifier || identifier));
+      const identifierStatus = lookup.identifierStatus || null;
+      const preferredIdentifier = String(identifierStatus?.preferred_identifier || inviteeRecord.identifier || identifier).trim();
+      loadInvitationIdentityOntoDevice(preferredIdentifier, lookup.userType, identifierStatus, {
+        source: "invitee-admin"
+      });
+      applyIdentityStateToLauncherInputs();
+      if (inviteeStatus) {
+        inviteeStatus.textContent = `Invitee ${preferredIdentifier} loaded on this device.`;
+      }
+      setInviteeAdminActionState({
+        canLoad: true,
+        canSave: true,
+        canDelete: true
+      });
+      void refreshAdminView();
+    } catch (error) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to load that invitee on this device right now.";
+      }
+    }
+  }
+
+  async function deleteInviteeRecord() {
+    const identifier = normalizeInviteeIdentifierValue(inviteeIdentifierInput?.value || currentInviteeIdentifier);
+    if (!identifier) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = "Enter or load an invitee before deleting.";
+      }
+      return;
+    }
+
+    if (!window.confirm(`Delete invitee ${identifier}?`)) {
+      return;
+    }
+
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "Deleting invitee...";
+    }
+
+    try {
+      const data = await launcherAdminApi("delete_invitee", {
+        identifier
+      });
+      const loadedIdentifier = getCurrentLoadedInviteeIdentifier();
+      if (loadedIdentifier && normalizeInviteeIdentifierValue(loadedIdentifier) === identifier) {
+        clearLoadedInviteeIdentityFromDevice();
+      }
+      currentInviteeIdentifier = "";
+      resetInviteeAdminView();
+      renderInviteeAdminList(Array.isArray(data?.invitees) ? data.invitees : []);
+      if (inviteeStatus) {
+        inviteeStatus.textContent = String(data?.message || `Invitee ${identifier} deleted.`);
+      }
+      void refreshAdminView();
+    } catch (error) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to delete that invitee right now.";
+      }
+    }
+  }
+
+  async function refreshInviteeAdminList(options = {}) {
+    try {
+      const data = await launcherAdminApi("list_invitees");
+      const invitees = Array.isArray(data?.invitees) ? data.invitees : [];
+      renderInviteeAdminList(invitees);
+      if (currentInviteeIdentifier) {
+        const stillExists = invitees.some((entry) => normalizeInviteeIdentifierValue(entry?.identifier || "") === currentInviteeIdentifier);
+        if (stillExists) {
+          loadInviteeIntoForm(currentInviteeIdentifier);
+        } else if (options.preserveSelection) {
+          void evaluateInviteeIdentifier();
+        }
+      } else {
+        setInviteeAdminActionState({
+          canLoad: false,
+          canSave: false,
+          canDelete: false
+        });
+      }
+      return invitees;
+    } catch (error) {
+      renderInviteeAdminList([]);
+      if (inviteeStatus) {
+        inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to load invitees right now.";
+      }
+      return [];
+    }
+  }
+
+  async function saveInviteeRecord() {
+    const identifier = normalizeInviteeIdentifierValue(inviteeIdentifierInput?.value || currentInviteeIdentifier);
+    const fullName = String(inviteeFullNameInput?.value || "").replace(/\s+/g, " ").trim();
+    const email = String(inviteeEmailInput?.value || "").trim();
+    const privateNote = String(inviteeNoteInput?.value || "").trim();
+
+    if (!isValidUniqueHandle(identifier)) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = "Invitee unique name is invalid.";
+      }
+      return;
+    }
+
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "Saving invitee...";
+    }
+
+    try {
+      const data = await launcherAdminApi("save_invitee", {
+        identifier,
+        full_name: fullName,
+        email,
+        private_note: privateNote
+      });
+      currentInviteeIdentifier = String(data?.invitee?.identifier || identifier);
+      await refreshInviteeAdminList({ preserveSelection: true });
+      if (inviteeStatus) {
+        inviteeStatus.textContent = String(data?.message || `Invitee ${currentInviteeIdentifier} saved.`);
+      }
+      setInviteeAdminActionState({
+        canLoad: true,
+        canSave: true,
+        canDelete: true
+      });
+      void refreshAdminView();
+    } catch (error) {
+      if (inviteeStatus) {
+        inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to save that invitee right now.";
+      }
+    }
   }
 
   function resetHandleUpdateAdminView() {
@@ -10115,6 +13063,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: "",
         showChoices: false,
+        showInviteeButton: false,
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_empty");
@@ -10125,6 +13074,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: "That identifier is invalid.",
         showChoices: false,
+        showInviteeButton: false,
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_invalid_identifier", [{ attempted_identifier: handle }]);
@@ -10135,6 +13085,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     renderUserTypeAdminState({
       statusText: "Checking user identifier...",
       showChoices: false,
+      showInviteeButton: false,
       currentType: "standard"
     });
 
@@ -10157,9 +13108,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       const identifierStatus = data?.identifier_status || null;
       if (!data?.identifier_exists) {
+        const canInvite = isValidUniqueHandle(handle);
         renderUserTypeAdminState({
           statusText: "That user identifier does not exist.",
           showChoices: false,
+          showInviteeButton: canInvite,
           currentType: "standard"
         });
         logUserTypeAdminDebug("lookup_missing_identifier", [{ attempted_identifier: handle }]);
@@ -10170,6 +13123,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: `Current status for ${handle}: ${String(data?.user_type || "standard").toUpperCase()}`,
         showChoices: true,
+        showInviteeButton: false,
         currentType: String(data?.user_type || "standard")
       });
       logUserTypeAdminDebug("lookup_success", [{
@@ -10192,6 +13146,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: error instanceof Error ? error.message : "Unable to look up that user right now.",
         showChoices: false,
+        showInviteeButton: false,
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_error", [{
@@ -10214,6 +13169,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: "",
         showChoices: false,
+        showInviteeButton: false,
         currentType: "standard"
       });
       logUserTypeAdminDebug("schedule_empty");
@@ -10224,6 +13180,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: "That identifier is invalid.",
         showChoices: false,
+        showInviteeButton: false,
         currentType: "standard"
       });
       logUserTypeAdminDebug("schedule_invalid_identifier", [{ attempted_identifier: handle }]);
@@ -10233,6 +13190,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     renderUserTypeAdminState({
       statusText: "",
       showChoices: false,
+      showInviteeButton: false,
       currentType: "standard"
     });
     logUserTypeAdminDebug("schedule_lookup", [{ attempted_identifier: handle, delay_ms: delayMs }]);
@@ -10270,6 +13228,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: `Current status for ${handle}: ${savedType.toUpperCase()}.`,
         showChoices: true,
+        showInviteeButton: false,
         currentType: savedType
       });
       logUserTypeAdminDebug("save_success", [{ attempted_identifier: handle, saved_type: savedType }]);
@@ -10278,6 +13237,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renderUserTypeAdminState({
         statusText: error instanceof Error ? error.message : "Unable to save that user status right now.",
         showChoices: true,
+        showInviteeButton: false,
         currentType: selectedType
       });
       logUserTypeAdminDebug("save_error", [{
@@ -10381,9 +13341,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
-  function showUserTypeAdminView() {
+  function showUserTypeAdminView(options = {}) {
     clearReportPanelOffset();
     userTypeAdminView?.classList.remove("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -10401,16 +13362,69 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     difficultyView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    const preserveIdentifier = normalizeInviteeIdentifierValue(options.identifier || "");
+    inviteeAdminReturnView = "admin";
     resetUserTypeAdminView();
+    if (preserveIdentifier && userTypeHandleInput) {
+      userTypeHandleInput.value = preserveIdentifier;
+      renderUserTypeAdminState({
+        statusText: "Checking user identifier...",
+        showChoices: false,
+        showInviteeButton: false,
+        currentType: "standard"
+      });
+      pendingUserTypeLookupToken += 1;
+      void lookupUserTypeForAdminHandle();
+    }
     resetHandleUpdateAdminView();
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => {
+      userTypeHandleInput?.focus();
+      userTypeHandleInput?.select?.();
+    }, 80);
+  }
+
+  function showInviteeAdminView(options = {}) {
+    clearReportPanelOffset();
+    inviteeAdminView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    inviteeAdminReturnView = options.returnView === "user-type-admin" ? "user-type-admin" : "admin";
+    resetInviteeAdminView({ identifier: options.identifier || currentInviteeIdentifier || getCurrentLoadedInviteeIdentifier() || currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "") });
+    void refreshInviteeAdminList({ preserveSelection: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => {
+      inviteeIdentifierInput?.focus();
+      inviteeIdentifierInput?.select?.();
+    }, 80);
   }
 
   function showHandleUpdateAdminView() {
     clearReportPanelOffset();
     handleUpdateAdminView?.classList.remove("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
@@ -10508,6 +13522,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -10607,6 +13622,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     imagePairAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -10709,6 +13725,15 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const messageOwner = String(params.get("message_owner") || "").trim();
       const messagePartner = String(params.get("message_partner") || "").trim();
       const messageFocus = params.get("message_focus") === "1";
+      const launcherState = readLauncherState();
+      if (requestedView === "launcher") {
+        enterWorkingHomeFromLanding("resume");
+        return;
+      }
+      if (requestedView === "fresh-launcher") {
+        enterWorkingHomeFromLanding("fresh");
+        return;
+      }
       if (requestedView === "go-pro") {
         showGoProView();
         return;
@@ -10718,6 +13743,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         return;
       }
       if (stripeReturnState === "cancel") {
+        return;
+      }
+      if (!requestedView && isStandaloneShell() && hasKnownLauncherIdentity(launcherState)) {
+        enterWorkingHomeFromLanding("resume");
         return;
       }
       if (requestedView === "settings") {
@@ -10875,6 +13904,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     otherSettingsView?.classList.remove("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -11314,11 +14344,125 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     );
   }
 
-  function isRunningAsInstalledApp() {
-    return !!(
+  function getBrowserShellMode() {
+    return (
       window.matchMedia?.("(display-mode: standalone)").matches ||
       window.navigator.standalone === true
-    );
+    ) ? "standalone-shell" : "browser-tab";
+  }
+
+  function isStandaloneShell() {
+    return getBrowserShellMode() === "standalone-shell";
+  }
+
+  function getInstallConfirmationState(state = readLauncherState()) {
+    const installState = getInstallState(state);
+    if (installState.confirmed) {
+      return "confirmed-installed";
+    }
+    if (isStandaloneShell()) {
+      return "temporary-shell";
+    }
+    return "unknown";
+  }
+
+  function isDurablyInstalled(state = readLauncherState()) {
+    return getInstallConfirmationState(state) === "confirmed-installed";
+  }
+
+  function recordInstalledConfirmation(source = "appinstalled-event") {
+    const latest = readLauncherState();
+    const installState = getInstallState(latest);
+    installState.confirmed = true;
+    installState.confirmedAt = Date.now();
+    installState.confirmationSource = String(source || "appinstalled-event").trim() || "appinstalled-event";
+    installState.lastShellMode = getBrowserShellMode();
+    installState.lastSeenAt = Date.now();
+    latest.installState = installState;
+    writeLauncherState(latest);
+    return latest;
+  }
+
+  function recordInstallGuidanceShown(platform = "") {
+    const latest = readLauncherState();
+    const installState = getInstallState(latest);
+    installState.installGuidanceShownAt = Date.now();
+    installState.installGuidancePlatform = String(platform || "").trim();
+    installState.lastShellMode = getBrowserShellMode();
+    installState.lastSeenAt = Date.now();
+    latest.installState = installState;
+    writeLauncherState(latest);
+    return latest;
+  }
+
+  function clearInstalledConfirmation(source = "install-check") {
+    const latest = readLauncherState();
+    const installState = getInstallState(latest);
+    let changed = false;
+    if (installState.confirmed) {
+      installState.confirmed = false;
+      changed = true;
+    }
+    if (installState.confirmedAt !== 0) {
+      installState.confirmedAt = 0;
+      changed = true;
+    }
+    const nextSource = String(source || "install-check").trim() || "install-check";
+    if (installState.confirmationSource !== nextSource) {
+      installState.confirmationSource = nextSource;
+      changed = true;
+    }
+    installState.lastShellMode = getBrowserShellMode();
+    installState.lastSeenAt = Date.now();
+    latest.installState = installState;
+    if (changed) {
+      writeLauncherState(latest);
+    }
+    return latest;
+  }
+
+  function refreshObservedInstallContext(state = readLauncherState()) {
+    const latest = state && typeof state === "object" ? state : readLauncherState();
+    const installState = getInstallState(latest);
+    const browser = detectMobileBrowser();
+    const shellMode = getBrowserShellMode();
+    let changed = installState.lastShellMode !== shellMode;
+    installState.lastShellMode = shellMode;
+    const now = Date.now();
+    if (installState.lastSeenAt !== now) {
+      installState.lastSeenAt = now;
+      changed = true;
+    }
+    if (
+      !installState.confirmed &&
+      browser.isSafariIOS &&
+      shellMode === "standalone-shell" &&
+      installState.installGuidanceShownAt > 0
+    ) {
+      installState.confirmed = true;
+      installState.confirmedAt = now;
+      installState.confirmationSource = "ios-standalone-return";
+      changed = true;
+    }
+    if (
+      !installState.confirmed &&
+      shellMode === "standalone-shell" &&
+      hasKnownLauncherIdentity(latest)
+    ) {
+      installState.confirmed = true;
+      installState.confirmedAt = now;
+      installState.confirmationSource = "standalone-recovery";
+      changed = true;
+    }
+    latest.installState = installState;
+    if (changed) {
+      writeLauncherState(latest);
+    }
+    return latest;
+  }
+
+  function isRunningAsInstalledApp() {
+    return isDurablyInstalled();
   }
 
   function updateInstallButtonLabel() {
@@ -11326,9 +14470,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       return;
     }
 
-    if (isRunningAsInstalledApp()) {
+    const confirmationState = getInstallConfirmationState();
+    if (confirmationState === "confirmed-installed") {
       installAppButton.textContent = "Uninstall Telepathy Beginner as an app on this device";
       installAppButton.title = "Telepathy Beginner appears to be installed on this device.";
+      return;
+    }
+
+    if (confirmationState === "temporary-shell") {
+      installAppButton.textContent = "Install Telepathy Beginner permanently on this device";
+      installAppButton.title = "ESP GYM is open in app mode temporarily, but it has not yet been confirmed as permanently installed on this device.";
       return;
     }
 
@@ -11354,6 +14505,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const browser = detectMobileBrowser();
 
     if (browser.isSafariIOS) {
+      recordInstallGuidanceShown("ios-safari");
       window.alert(
         "On iPhone Safari, use Share and then Add to Home Screen to install Telepathy Beginner."
       );
@@ -11361,6 +14513,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     if (browser.isChromeIOS) {
+      recordInstallGuidanceShown("ios-chrome");
       window.alert(
         "Chrome on iPhone may not show Add to Home Screen reliably. If it is missing, open this page in Safari and use Share -> Add to Home Screen."
       );
@@ -11368,10 +14521,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     if (!deferredInstallPrompt) {
+      recordInstallGuidanceShown(browser.isIOS ? "ios" : "generic");
       showInstallFallback();
       return;
     }
 
+    recordInstallGuidanceShown("beforeinstallprompt");
     deferredInstallPrompt.prompt();
     try {
       await deferredInstallPrompt.userChoice;
@@ -11385,6 +14540,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     populateCard(card);
     const header = card.querySelector(".role-card-header");
     const toggle = card.querySelector(".role-card-toggle");
+    const inlineBack = card.querySelector("[data-collapse-role-card]");
     const role = String(card.dataset.roleCard || "").trim();
     card.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -11407,6 +14563,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         return;
       }
       activateCard(card);
+    });
+    inlineBack?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      collapseActiveLauncherCard();
     });
   });
 
@@ -11483,24 +14644,6 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       clearRoleLevelExplanation(role);
     });
   });
-  openToolsButtons.forEach((button) => {
-    const role = String(button.dataset.openTools || "");
-    if (!role) {
-      return;
-    }
-    button.addEventListener("mouseenter", () => {
-      showRoleToolsExplanation(role);
-    });
-    button.addEventListener("mouseleave", () => {
-      clearRoleLevelExplanation(role);
-    });
-    button.addEventListener("focusin", () => {
-      showRoleToolsExplanation(role);
-    });
-    button.addEventListener("focusout", () => {
-      clearRoleLevelExplanation(role);
-    });
-  });
   openHandleButtons.forEach((button) => {
     const role = String(button.dataset.openHandleControl || "");
     if (!role) {
@@ -11519,6 +14662,46 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       clearRoleLevelExplanation(role);
     });
   });
+  roleLessonMoreButtons.forEach((button) => {
+    const role = String(button.dataset.roleLessonMore || "").trim();
+    if (!role) {
+      return;
+    }
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showEspLessonDetail(role);
+    });
+  });
+  roleLessonNextButtons.forEach((button) => {
+    const role = String(button.dataset.roleLessonNext || "").trim();
+    if (!role) {
+      return;
+    }
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void advanceRoleEspLesson(role, "next");
+    });
+  });
+  roleLessonBackButtons.forEach((button) => {
+    const role = String(button.dataset.roleLessonBack || "").trim();
+    if (!role) {
+      return;
+    }
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void goBackRoleEspLesson(role);
+    });
+  });
+  roleLessonDismissButtons.forEach((button) => {
+    const role = String(button.dataset.roleLessonDismiss || "").trim();
+    if (!role) {
+      return;
+    }
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void advanceRoleEspLesson(role, "dismiss");
+    });
+  });
   inlineContactButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -11526,7 +14709,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       showContactView(role === "remote-viewer" ? "clairvoyance-viewing" : "launcher");
     });
   });
-
+  closeEspLessonDetailButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    window.setTimeout(() => {
+      closeEspLessonDetail();
+    }, 0);
+  });
   retryLocationButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -11542,21 +14731,27 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   });
   locationPickerOverlay?.addEventListener("click", (event) => {
     if (event.target === locationPickerOverlay) {
-      dismissLocationPicker();
+      closeLocationPickerWithMessage("Location not changed.", () => {
+        dismissLocationPicker();
+      });
     }
   });
   locationPickerDialog?.addEventListener("click", (event) => {
     event.stopPropagation();
   });
   locationPickerCancelButton?.addEventListener("click", () => {
-    dismissLocationPicker();
+    closeLocationPickerWithMessage("Location not changed.", () => {
+      dismissLocationPicker();
+    });
   });
   locationPickerSaveButton?.addEventListener("click", () => {
     saveExactLocationSelection();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && locationPickerOverlay && !locationPickerOverlay.classList.contains("beginner-view-hidden")) {
-      dismissLocationPicker();
+      closeLocationPickerWithMessage("Location not changed.", () => {
+        dismissLocationPicker();
+      });
       return;
     }
     if (event.key === "Escape" && reportImageLightbox && !reportImageLightbox.classList.contains("beginner-view-hidden")) {
@@ -11591,10 +14786,17 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   if (String(remoteViewerOwnInput?.value || "").trim()) {
     void hydrateRemoteViewerLauncherProfile();
   }
+  const suppressIdentifierEnter = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
   remoteViewerOwnInput?.addEventListener("input", persistRemoteViewerCardState);
   remoteViewerOwnInput?.addEventListener("input", () => {
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
+  remoteViewerOwnInput?.addEventListener("keydown", suppressIdentifierEnter);
   remoteViewerOwnInput?.addEventListener("change", () => {
     persistRemoteViewerCardState();
     void hydrateRemoteViewerLauncherProfile();
@@ -11610,6 +14812,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   remoteViewerPartnerInput?.addEventListener("input", () => {
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
+  remoteViewerPartnerInput?.addEventListener("keydown", suppressIdentifierEnter);
   remoteViewerPartnerInput?.addEventListener("change", () => {
     persistRemoteViewerCardState();
     void persistRemoteViewerLauncherProfile();
@@ -11745,7 +14948,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   openOptionsButton?.addEventListener("click", showOptionsView);
   openLearnMoreButton?.addEventListener("click", showLearnMoreView);
   openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
+  openGeneralInformationButton?.addEventListener("click", showGeneralInformationView);
   openRewireButton?.addEventListener("click", showRewireView);
+  openReadingListButton?.addEventListener("click", showReadingListView);
+  openVideoListButton?.addEventListener("click", showVideoListView);
+  openWebsitesEventsListButton?.addEventListener("click", showWebsitesEventsListView);
+  openUserCommentsListButton?.addEventListener("click", showUserCommentsListView);
+  openCaseStudiesListButton?.addEventListener("click", showCaseStudiesListView);
+  openPeerReviewedListButton?.addEventListener("click", showPeerReviewedListView);
   closeOptionsButton?.addEventListener("click", showLauncherView);
   closeLearnMoreButton?.addEventListener("click", showLauncherView);
   saveLearnMoreButton?.addEventListener("click", saveLearnMoreContent);
@@ -11758,7 +14968,15 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     updateLearnMorePreview(clairvoyanceLearnMorePreview, clairvoyanceLearnMoreTextInput.value);
   });
   openHelpButton?.addEventListener("click", showHelpView);
+  openUserGuideButton?.addEventListener("click", () => {
+    if (getUserGuideTargetType() === "pro") {
+      showProUserManualView();
+      return;
+    }
+    showBeginnerUserManualView();
+  });
   openAidsButton?.addEventListener("click", showAidsView);
+  openTemporaryHomePageButton?.addEventListener("click", showTemporaryHomePageView);
   openGoProButton?.addEventListener("click", () => {
     showGoProView("subscription-management");
   });
@@ -11769,7 +14987,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     void startTelepathyProCheckout("annual");
   });
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
-  openClairvoyanceViewingButton?.addEventListener("click", showClairvoyanceViewingView);
+  openClairvoyanceViewingButton?.addEventListener("click", () => {
+    if (isProLockedButton(openClairvoyanceViewingButton)) {
+      return;
+    }
+    showClairvoyanceViewingView();
+  });
   openSubscriptionManagementButton?.addEventListener("click", showSubscriptionManagementView);
   openBehaviorsButton?.addEventListener("click", showBehaviorsView);
   openLocationPickerSettingsButton?.addEventListener("click", () => {
@@ -11780,6 +15003,18 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   openBlinkBehaviorButton?.addEventListener("click", showBlinkBehaviorView);
   openConfidenceBehaviorButton?.addEventListener("click", showConfidenceBehaviorView);
   openUserTypeAdminButton?.addEventListener("click", showUserTypeAdminView);
+  openInviteeAdminDirectButton?.addEventListener("click", () => {
+    showInviteeAdminView({
+      returnView: "admin",
+      identifier: currentInviteeIdentifier || getCurrentLoadedInviteeIdentifier() || ""
+    });
+  });
+  openInviteeAdminButton?.addEventListener("click", () => {
+    showInviteeAdminView({
+      returnView: "user-type-admin",
+      identifier: currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "").trim()
+    });
+  });
   openHandleUpdateAdminButton?.addEventListener("click", showHandleUpdateAdminView);
   openImagePairAdminButton?.addEventListener("click", showImagePairAdminView);
   openSubscriptionEmailAdminButton?.addEventListener("click", showSubscriptionEmailAdminView);
@@ -11790,28 +15025,90 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     });
   });
   openMessagingSetupButton?.addEventListener("click", () => {
-    void openMessagingSetupFromHelp();
-  });
-  openToolsButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      showToolsView(String(button.dataset.openTools || ""));
+    showFeatureSetupView({
+      role: activeLauncherRole || "sender",
+      returnView: "options",
+      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
     });
   });
   openColorSchemeButton?.addEventListener("click", showColorSchemeView);
   closeHelpButton?.addEventListener("click", showOptionsView);
+  closeBeginnerUserManualButton?.addEventListener("click", showHelpView);
+  closeProUserManualButton?.addEventListener("click", showHelpView);
+  closeTemporaryHomePageButton?.addEventListener("click", showOptionsView);
   closeAidsButton?.addEventListener("click", showOptionsView);
+  closeGeneralInformationButton?.addEventListener("click", showAidsView);
   closeRewireButton?.addEventListener("click", showAidsView);
+  closeReadingListButton?.addEventListener("click", showAidsView);
+  closeVideoListButton?.addEventListener("click", showAidsView);
+  closeWebsitesEventsListButton?.addEventListener("click", showAidsView);
+  closeUserCommentsListButton?.addEventListener("click", showAidsView);
+  closeCaseStudiesListButton?.addEventListener("click", showAidsView);
+  closePeerReviewedListButton?.addEventListener("click", showAidsView);
   closeGoProButton?.addEventListener("click", closeGoProViewToOrigin);
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
   closeClairvoyanceViewingButton?.addEventListener("click", showOtherSettingsView);
   closeSubscriptionManagementButton?.addEventListener("click", showOtherSettingsView);
   otherSettingsHomeButton?.addEventListener("click", showLauncherView);
   closeUserTypeAdminButton?.addEventListener("click", showAdminView);
+  closeInviteeAdminButton?.addEventListener("click", () => {
+    if (inviteeAdminReturnView === "user-type-admin") {
+      showUserTypeAdminView({ identifier: currentInviteeIdentifier || String(inviteeIdentifierInput?.value || "") });
+      return;
+    }
+    showAdminView();
+  });
   closeHandleUpdateAdminButton?.addEventListener("click", showAdminView);
   closeImagePairAdminButton?.addEventListener("click", showAdminView);
   closeSubscriptionEmailAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
+  temporaryHomePageContinueButton?.addEventListener("click", () => {
+    void continueFromLandingPage();
+  });
+  temporaryHomePageInvitationCodeInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void continueFromLandingPage();
+    }
+  });
+  temporaryHomePageFreshOpenButton?.addEventListener("click", () => {
+    window.location.href = buildCanonicalLauncherUrl({ open: "fresh-launcher" });
+  });
+  temporaryHomePageExploreButton?.addEventListener("click", () => {
+    const originalText = String(temporaryHomePageExploreButton.textContent || "Explore").trim() || "Explore";
+    temporaryHomePageExploreButton.disabled = true;
+    temporaryHomePageExploreButton.textContent = "Preparing...";
+    void createTemporaryLauncherIdentity("pro")
+      .then((data) => {
+        const temporaryIdentity = String(data?.temporary_identity?.identifier || "").trim();
+        const userType = String(data?.temporary_identity?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+        const baseState = readLauncherState();
+        const nextState = buildLauncherIdentityState(baseState, temporaryIdentity, userType, {
+          temporaryIdentity: {
+            source: "landing-explore-pro"
+          }
+        });
+        if (data?.identifier_status && temporaryIdentity) {
+          nextState.identifierStatusMap = nextState.identifierStatusMap || {};
+          nextState.identifierStatusMap[normalizeIdentifierForStorage(temporaryIdentity)] = data.identifier_status;
+        }
+        clearLocalFreshStartState();
+        writeLauncherState(nextState);
+        window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+      })
+      .catch((error) => {
+        temporaryHomePageExploreButton.disabled = false;
+        temporaryHomePageExploreButton.textContent = originalText;
+        window.alert(error instanceof Error ? error.message : "Unable to prepare ESP PRO right now.");
+      });
+  });
+  temporaryHomePageClairvoyanceButton?.addEventListener("click", showClairvoyanceViewingView);
+  temporaryHomePageContactButton?.addEventListener("click", () => {
+    showContactView("temporary-home-page");
+  });
+  temporaryHomePageHelpButton?.addEventListener("click", () => {
+    // Placeholder for a future update-signup flow.
+  });
   closeHandleButton?.addEventListener("click", closeHandleOverlay);
   handleDialog?.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -11831,14 +15128,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     void submitUniqueHandle();
   });
   pushSetupInstallButton?.addEventListener("click", () => {
-    void handleInstallRequest().finally(() => {
-      window.setTimeout(() => {
-        void refreshPushSetupOverlay();
-        if (pushSetupReturnRole) {
-          void refreshRoleMessaging(pushSetupReturnRole);
-        }
-      }, 400);
-    });
+    showInstallGuideView({ returnView: "push-setup" });
   });
   pushSetupEnableButton?.addEventListener("click", () => {
     void enablePushMessagingFromOverlay();
@@ -11876,11 +15166,85 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       closePushSetupOverlay();
     }
   });
+  openFeatureSetupButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const role = String(button.dataset.openFeatureSetup || "").trim() || activeLauncherRole || "sender";
+      showFeatureSetupView({
+        role,
+        returnView: role === "remote-viewer" ? "remote-viewer" : "card",
+        scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+      });
+    });
+  });
+  closeFeatureSetupButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeFeatureSetupView();
+  });
+  closeInstallGuideButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeInstallGuideView();
+  });
+  featureSetupInstallActionButton?.addEventListener("click", () => {
+    showInstallGuideView({ returnView: "feature-setup" });
+  });
+  installGuidePrimaryButton?.addEventListener("click", () => {
+    void handleInstallRequest().finally(() => {
+      window.setTimeout(() => {
+        renderInstallGuideView();
+        void refreshFeatureSetupView();
+        void refreshPushSetupOverlay({ preserveStatus: false });
+        refreshAllRoleFeatureSetupPrompts();
+        if (pushSetupReturnRole) {
+          void refreshRoleMessaging(pushSetupReturnRole);
+        }
+      }, 400);
+    });
+  });
+  installGuideRefreshButton?.addEventListener("click", () => {
+    refreshObservedInstallContext();
+    renderInstallGuideView();
+    void refreshFeatureSetupView();
+    void refreshPushSetupOverlay({ preserveStatus: false });
+    refreshAllRoleFeatureSetupPrompts();
+  });
+  featureSetupLocationActionButton?.addEventListener("click", () => {
+    const role = featureSetupReturnRole || activeLauncherRole || "sender";
+    void showLocationPicker(role);
+  });
+  featureSetupMessagingActionButton?.addEventListener("click", () => {
+    if (isProLockedButton(featureSetupMessagingActionButton)) {
+      return;
+    }
+    if (!featureSetupOwnIdentifier) {
+      window.alert("First load or claim an accepted unique name on one of the role cards, then return here to set up partner messaging.");
+      return;
+    }
+    if (!isRunningAsInstalledApp()) {
+      void openMessagingSetupFromHelp({ returnView: "feature-setup" });
+      return;
+    }
+    openPushSetupOverlay(featureSetupReturnRole || activeLauncherRole || "sender", featureSetupOwnIdentifier, {
+      returnView: "feature-setup"
+    });
+  });
+  featureSetupProtectionActionButton?.addEventListener("click", () => {
+    if (isProLockedButton(featureSetupProtectionActionButton)) {
+      return;
+    }
+    window.alert("Protection from impersonators is planned for a later build. It is not available yet on this version of ESP GYM.");
+  });
   openRoleMessagesButtons.forEach((button) => {
     button.addEventListener("pointerdown", () => {
       pendingMessagesOpenScrollY = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
     });
     button.addEventListener("click", () => {
+      if (isProLockedButton(button)) {
+        return;
+      }
       void openMessagesViewForRole(String(button.dataset.openRoleMessages || "").trim());
     });
   });
@@ -12043,6 +15407,43 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     resetUserTypeAdminView();
     userTypeHandleInput?.focus();
   });
+  inviteeIdentifierInput?.addEventListener("input", () => {
+    currentInviteeIdentifier = normalizeInviteeIdentifierValue(inviteeIdentifierInput.value);
+    if (inviteeLookupTimer) {
+      clearTimeout(inviteeLookupTimer);
+    }
+    inviteeLookupTimer = window.setTimeout(() => {
+      inviteeLookupTimer = null;
+      void evaluateInviteeIdentifier();
+    }, 220);
+  });
+  inviteeIdentifierInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (inviteeLookupTimer) {
+        clearTimeout(inviteeLookupTimer);
+        inviteeLookupTimer = null;
+      }
+      void evaluateInviteeIdentifier();
+    }
+  });
+  inviteeClearButton?.addEventListener("click", () => {
+    resetInviteeAdminView();
+    inviteeIdentifierInput?.focus();
+  });
+  inviteeClearDeviceButton?.addEventListener("click", () => {
+    clearInviteeAdminDeviceIdentity();
+    inviteeIdentifierInput?.focus();
+  });
+  inviteeSaveButton?.addEventListener("click", () => {
+    void saveInviteeRecord();
+  });
+  inviteeLoadButton?.addEventListener("click", () => {
+    void loadInviteeIdentityOnDevice();
+  });
+  inviteeDeleteButton?.addEventListener("click", () => {
+    void deleteInviteeRecord();
+  });
   handleUpdateOldInput?.addEventListener("input", () => {
     pendingHandleUpdateLookupToken += 1;
     scheduleHandleUpdateSummaryLookup(300);
@@ -12094,10 +15495,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       showVisualizationView(selectedReportPair);
     }
   });
-  reportAnalyzeButton?.addEventListener("click", () => {
-    if (selectedReportPair) {
-      showAnalyzerView(selectedReportPair);
-    }
+  adminOpenAnalyzerButton?.addEventListener("click", () => {
+    showAnalyzerView(selectedReportPair);
   });
   analyzerRefreshButton?.addEventListener("click", () => {
     if (selectedReportPair) {
@@ -12405,14 +15804,28 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     }
   });
+  adminClearLocalStorageButton?.addEventListener("click", () => {
+    if (!window.confirm("Clear localStorage for this device and reload the app?")) {
+      return;
+    }
+    clearAppLocalStorageArtifacts();
+    window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+  });
   adminRunRemindersButton?.addEventListener("click", async () => {
     await runSubscriptionReminderScan(false);
   });
   adminRunRemindersTestButton?.addEventListener("click", async () => {
     await runSubscriptionReminderScan(true);
   });
-  renderMainTitle(readLauncherState().resolvedMainUserType || "standard");
-  void refreshMainUserType();
+  setLauncherGuestEntryActive(shouldStartInFreshLauncherMode());
+  if (launcherGuestEntryActive) {
+    resetLauncherWorkingHomeForFreshEntry();
+    applyFreshEntryRoleNotes();
+  }
+  renderMainTitle(getDisplayedLauncherUserType(), { persist: false });
+  if (!launcherGuestEntryActive) {
+    void refreshMainUserType();
+  }
   reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
   reportResizeHandles.forEach((handle) => {
     handle.addEventListener("pointerdown", beginReportResize);
@@ -12447,7 +15860,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   if (appVersionLabel) {
     appVersionLabel.textContent = `ver. ${launcherBuildVersion}`;
   }
+  if (temporaryHomePageInvitationCodeInput) {
+    temporaryHomePageInvitationCodeInput.value = getLoadedInviteeIdentity()?.identifier || "";
+  }
+  setTemporaryHomeInvitationStatus("");
   hideLocationPicker();
+  refreshObservedInstallContext();
   renderLocationStatus();
   void syncBrowserLocationPermission().then((state) => {
     renderLocationStatus();
@@ -12458,6 +15876,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   void recordLauncherVisit();
   void refreshDifficultyLabels();
   applyLauncherOpenRequest();
+  if (launcherGuestEntryActive) {
+    window.setTimeout(() => {
+      resetLauncherWorkingHomeForFreshEntry();
+      applyFreshEntryRoleNotes();
+    }, 0);
+  }
   schedulePartnerMessagePolling();
   window.setTimeout(() => {
     void maybeAutoOpenUnreadMessagesOnStartup();
@@ -12469,12 +15893,19 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
+    if (!isStandaloneShell()) {
+      clearInstalledConfirmation("beforeinstallprompt-available");
+      void refreshFeatureSetupView();
+      refreshAllRoleFeatureSetupPrompts();
+    }
     updateInstallButtonLabel();
   });
 
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
+    recordInstalledConfirmation("appinstalled-event");
     updateInstallButtonLabel();
+    void refreshFeatureSetupView();
     if (pushSetupReturnRole) {
       void refreshPushSetupOverlay();
       void refreshRoleMessaging(pushSetupReturnRole);
@@ -12483,6 +15914,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   window.addEventListener("pageshow", () => {
     hideLocationPicker();
+    resetTemporaryHomeExploreButton();
+    refreshObservedInstallContext();
+    updateInstallButtonLabel();
+    void refreshFeatureSetupView();
     void syncBrowserLocationPermission().then((state) => {
       renderLocationStatus();
       maybePromptForLocationFineTune(state);
@@ -12496,6 +15931,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
+      resetTemporaryHomeExploreButton();
+      refreshObservedInstallContext();
+      updateInstallButtonLabel();
+      void refreshFeatureSetupView();
       void syncBrowserLocationPermission().then((state) => {
         renderLocationStatus();
         maybePromptForLocationFineTune(state);
@@ -12574,6 +16013,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 })();
+
+
 
 
 

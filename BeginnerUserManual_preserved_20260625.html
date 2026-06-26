@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telepathy Beginner User Manual</title>
+  <style>
+    :root {
+      --bg: #070707;
+      --panel: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.16);
+      --text: #f6f3ef;
+      --muted: rgba(246, 243, 239, 0.84);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% 12%, rgba(177, 107, 43, 0.11), transparent 24%),
+        #050505;
+      color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(92vw, 920px);
+      margin: 32px auto;
+      padding: 28px 26px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
+        rgba(8, 8, 8, 0.94);
+    }
+
+    .top-link {
+      display: inline-block;
+      margin-bottom: 18px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: 0.12em;
+      font-size: 0.95rem;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3rem);
+    }
+
+    h2 {
+      margin: 28px 0 14px;
+      font-size: clamp(1.3rem, 2.5vw, 1.9rem);
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    ul {
+      margin: 10px 0 0 0;
+      padding-left: 24px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="top-link" href="telepathybeginner.html">BACK TO TELEPATHY BEGINNER</a>
+    <h1>Telepathy Beginner User Manual</h1>
+
+    <h2>Overview</h2>
+    <p>Telepathy Beginner is a two-person practice and experiment app. One participant acts as the sender and the other acts as the receiver. The app supports three difficulty levels, shared pair identity, server-side history, performance reporting, and optional administrative tools.</p>
+
+    <h2>Home Screen</h2>
+    <p>The main launcher shows two expandable brown panels:</p>
+    <ul>
+      <li><strong>I Will Be the Sender</strong></li>
+      <li><strong>I Will Be the Receiver</strong></li>
+    </ul>
+    <p>Each panel can show the current level for the active receiver-sender pair. A newly formed pair defaults to <strong>Level 1</strong>.</p>
+
+    <h2>Entering Names</h2>
+    <p>Each participant should enter:</p>
+    <ul>
+      <li><strong>Your name</strong></li>
+      <li><strong>The exact name of the other participant</strong></li>
+    </ul>
+    <p>The pair identity is role-sensitive. A receiver-sender arrangement is different from the same two people with the roles reversed.</p>
+
+    <h2>Starting a Session</h2>
+    <ul>
+      <li>The receiver may press <strong>GO</strong> first.</li>
+      <li>The sender may press <strong>GO</strong> first.</li>
+      <li>Once both are online with a matching receiver-sender pair, the shared session becomes active.</li>
+    </ul>
+    <p>If two people accidentally choose the same role for the same pair, the app warns that the role is already occupied and returns that participant to the home screen.</p>
+
+    <h2>Difficulty Levels</h2>
+    <p><strong>Level 1</strong></p>
+    <ul>
+      <li>Targets are limited to the 1-cone center target and the four 3-cone corner targets.</li>
+      <li>After the countdown, the receiver chooses between <strong>One cone</strong> and <strong>Many cones</strong>.</li>
+      <li>After confidence is entered, the app shows a 5-target feedback grid.</li>
+    </ul>
+
+    <p><strong>Level 2</strong></p>
+    <ul>
+      <li>Targets are limited to the same 5-target subset used in Level 1.</li>
+      <li>The receiver chooses directly from the 5-target grid.</li>
+      <li>The sender sees the mirrored grid with the correct target highlighted.</li>
+    </ul>
+
+    <p><strong>Level 3</strong></p>
+    <ul>
+      <li>The full 9-target task is used.</li>
+      <li>This is the only level where the optional second receiver choice can apply.</li>
+    </ul>
+
+    <h2>Receiver-Side Settings</h2>
+    <p>Open <strong>Options &gt; Settings</strong> to manage receiver-side options for the current device.</p>
+    <ul>
+      <li><strong>Allow a second choice as well as a first choice</strong> applies only to Level 3.</li>
+      <li><strong>Download CSV data filename</strong> can be used when downloading CSV data.</li>
+    </ul>
+    <p>The old in-trial settings screen is no longer the normal control path. The gear icon now returns to launcher Settings.</p>
+
+    <h2>Changing Difficulty</h2>
+    <p>Open <strong>Options &gt; Change difficulty level of the task</strong>.</p>
+    <ul>
+      <li>Only the receiver of the pair can change the active difficulty.</li>
+      <li>The level is stored as a shared setting for that receiver-sender pair.</li>
+    </ul>
+
+    <h2>Options Screen</h2>
+    <p>The Options screen currently provides:</p>
+    <ul>
+      <li><strong>View performance report</strong></li>
+      <li><strong>Change difficulty level of the task</strong></li>
+      <li><strong>Settings</strong></li>
+      <li><strong>User manual</strong></li>
+    </ul>
+
+    <h2>Performance Reports</h2>
+    <p>Performance history is now read from server-side per-pair records.</p>
+    <ul>
+      <li>Choose <strong>View performance report</strong>.</li>
+      <li>The app opens a <strong>Report Definition</strong> screen first.</li>
+      <li>Select the desired receiver-sender pair.</li>
+      <li>Press <strong>GO</strong> to open the report.</li>
+    </ul>
+    <p>The report shows the history stored on the server for that selected pair.</p>
+
+    <h2>Interruptions, Aborts, and Timeouts</h2>
+    <ul>
+      <li>The <strong>Home</strong> icon can be used during a trial if a participant needs to stop.</li>
+      <li>If one participant exits, the partner is told that the trial was ended and is returned to the home flow.</li>
+      <li>If a timeout occurs, both sides are informed and the interrupted status is recorded in trial history when appropriate.</li>
+    </ul>
+
+    <h2>Administrative Tools</h2>
+    <p>Authorized administrative tools are available only after the hidden admin code is entered through the Settings flow.</p>
+    <p>Current administrative functions include:</p>
+    <ul>
+      <li>Enable or disable debugging</li>
+      <li>Clear the debug log</li>
+      <li>List all users, roles, partners, and trial counts</li>
+      <li>Analyze disk usage</li>
+    </ul>
+
+    <h2>Data Storage</h2>
+    <p>Completed receiver-side trials are written to the server-side pair history. The system uses a public/private split:</p>
+    <ul>
+      <li>public browser-facing app files stay in the web directory</li>
+      <li>private runtime and history files stay outside the public web root</li>
+    </ul>
+    <p>This allows reports and administrative review to be performed from other devices while keeping operational data out of the public website directory.</p>
+
+    <h2>Installing to a Phone Home Screen</h2>
+    <p><strong>iPhone / Safari</strong></p>
+    <ul>
+      <li>Open the website in Safari.</li>
+      <li>Tap the Share button.</li>
+      <li>Choose <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong>.</li>
+    </ul>
+
+    <p><strong>Android</strong></p>
+    <ul>
+      <li>Open the site in your phone browser.</li>
+      <li>Use the browser install or add-to-home-screen option if available.</li>
+      <li>If needed, locate the installed app in the app drawer and drag it onto the home screen.</li>
+    </ul>
+
+    <h2>Notes</h2>
+    <ul>
+      <li>Use exact consistent names for the same receiver-sender pair over time.</li>
+      <li>For serious experiment review, rely on the server-side history and reports rather than browser-local history.</li>
+      <li>If you are unsure which level or settings are active, check the launcher panels and the receiver-side Settings screen.</li>
+    </ul>
+  </main>
+</body>
+</html>

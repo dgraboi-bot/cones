@@ -4,6 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ESP GYM Telepathy Beginner</title>
+  <meta name="description" content="A free training app for improving ESP sensitivity.">
+  <link rel="canonical" href="https://telepathyexperiment.com/cones/telepathybeginner.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ESP GYM">
+  <meta property="og:title" content="ESP GYM Telepathy Beginner">
+  <meta property="og:description" content="A free training app for improving ESP sensitivity.">
+  <meta property="og:url" content="https://telepathyexperiment.com/cones/telepathybeginner.html">
+  <meta property="og:image" content="https://telepathyexperiment.com/cones/telepathybeginner-og-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="ESP GYM Telepathy Beginner with the two telepathers image and a description of the app.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
+  <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
+  <meta name="twitter:image" content="https://telepathyexperiment.com/cones/telepathybeginner-og-preview.png">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -19,7 +35,16 @@
         var params = new URLSearchParams(window.location.search);
         var requestedOpen = String(params.get("open") || "").trim().toLowerCase();
         var directOpen = params.get("direct_open") === "1";
-        if (directOpen && (requestedOpen === "sender" || requestedOpen === "receiver" || requestedOpen === "remote-viewer")) {
+        var installedAppLaunch = !!(
+          (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+          window.navigator.standalone === true
+        );
+        if (
+          (installedAppLaunch && !requestedOpen) ||
+          requestedOpen === "launcher" ||
+          requestedOpen === "fresh-launcher" ||
+          (directOpen && (requestedOpen === "sender" || requestedOpen === "receiver" || requestedOpen === "remote-viewer"))
+        ) {
           document.documentElement.classList.add("launcher-direct-open-pending");
         }
       } catch (error) {}
@@ -30,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260623au">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260626j">
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260623au">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260623au">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260623au">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260626j">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260626j">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260626j">
 </head>
 <body>
   <main class="beginner-shell">
     <section class="beginner-panel" aria-labelledby="beginnerTitle">
-      <section class="beginner-view" data-view="launcher">
-        <div class="beginner-top-row">
+      <section class="beginner-view beginner-view-hidden" data-view="launcher">
+        <div class="beginner-top-row launcher-top-row">
           <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-learn-more>LEARN MORE</button>
           <p class="beginner-kicker">ESP GYM</p>
           <button class="beginner-top-button beginner-top-pill beginner-top-menu-button" type="button" data-open-options aria-label="Open menu">
@@ -91,20 +116,33 @@
               <button class="role-card-toggle" type="button" aria-expanded="false">
                 <span class="role-card-title">I Will Be the Sender</span>
               </button>
-              <button class="role-tools-button" type="button" data-open-tools="sender">TOOLS</button>
               <div class="role-card-level-stack" data-role-difficulty-stack="sender">
                 <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="sender" data-direction="up" aria-label="Increase sender pair difficulty">▲</button>
                 <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
                 <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="sender" data-direction="down" aria-label="Decrease sender pair difficulty">▼</button>
               </div>
               <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Visual attention focus</span>
+              <button class="role-card-inline-back" type="button" data-collapse-role-card="sender">Back</button>
             </div>
             <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="sender" hidden></div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="sender" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
                   <p data-role-identifier-note="sender">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
+                  <div class="role-lesson-wrap" data-role-lesson-wrap="sender" hidden>
+                    <div class="role-lesson-header">
+                      <span class="role-lesson-title" data-role-lesson-title="sender"></span>
+                    </div>
+                    <p class="role-lesson-preview" data-role-lesson-preview="sender"></p>
+                    <div class="role-lesson-actions">
+                      <button class="role-note-link" type="button" data-role-lesson-more="sender">MORE</button>
+                      <button class="role-note-link" type="button" data-role-lesson-next="sender">NEXT</button>
+                      <button class="role-note-link" type="button" data-role-lesson-back="sender">BACK</button>
+                      <button class="role-note-link" type="button" data-role-lesson-dismiss="sender">NOT AGAIN</button>
+                    </div>
+                  </div>
                   <p data-role-handle-wrap="sender"><button class="role-note-link" type="button" data-open-handle-control="sender">Choose unique name instead of email address</button></p>
+                  <p class="role-note-setup-wrap" data-role-setup-wrap="sender" hidden><button class="role-note-link" type="button" data-open-feature-setup="sender">Click here to set up optional features for Telepathy Beginner</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
@@ -167,20 +205,33 @@
               <button class="role-card-toggle" type="button" aria-expanded="false">
                 <span class="role-card-title">I Will Be the Receiver</span>
               </button>
-              <button class="role-tools-button" type="button" data-open-tools="receiver">TOOLS</button>
               <div class="role-card-level-stack" data-role-difficulty-stack="receiver">
                 <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="receiver" data-direction="up" aria-label="Increase receiver pair difficulty">▲</button>
                 <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
                 <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="receiver" data-direction="down" aria-label="Decrease receiver pair difficulty">▼</button>
               </div>
               <span class="role-card-tagline" data-role-skill-tagline="receiver">Skill: Mind's eye perception</span>
+              <button class="role-card-inline-back" type="button" data-collapse-role-card="receiver">Back</button>
             </div>
             <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="receiver" hidden></div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
                   <p data-role-identifier-note="receiver">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
+                  <div class="role-lesson-wrap" data-role-lesson-wrap="receiver" hidden>
+                    <div class="role-lesson-header">
+                      <span class="role-lesson-title" data-role-lesson-title="receiver"></span>
+                    </div>
+                    <p class="role-lesson-preview" data-role-lesson-preview="receiver"></p>
+                    <div class="role-lesson-actions">
+                      <button class="role-note-link" type="button" data-role-lesson-more="receiver">MORE</button>
+                      <button class="role-note-link" type="button" data-role-lesson-next="receiver">NEXT</button>
+                      <button class="role-note-link" type="button" data-role-lesson-back="receiver">BACK</button>
+                      <button class="role-note-link" type="button" data-role-lesson-dismiss="receiver">NOT AGAIN</button>
+                    </div>
+                  </div>
                   <p data-role-handle-wrap="receiver"><button class="role-note-link" type="button" data-open-handle-control="receiver">Choose unique name instead of email address</button></p>
+                  <p class="role-note-setup-wrap" data-role-setup-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-feature-setup="receiver">Click here to set up optional features for Telepathy Beginner</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-contact-inline="receiver">ESP GYM</button></p>
                 </div>
                 <label class="role-field">
@@ -289,7 +340,7 @@
         </section>
       </section>
 
-      <section class="beginner-view beginner-view-hidden" data-view="learn-more" aria-labelledby="learnMoreTitle">
+        <section class="beginner-view beginner-view-hidden" data-view="learn-more" aria-labelledby="learnMoreTitle">
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-learn-more>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
@@ -315,6 +366,22 @@
             <div class="learn-more-preview" data-learn-more-preview></div>
           </div>
           <div class="settings-view-status" data-learn-more-status></div>
+        </section>
+      </section>
+
+      <section class="beginner-view beginner-view-hidden" data-view="esp-lesson-detail" aria-labelledby="espLessonDetailTitle">
+        <h1 class="beginner-title" id="espLessonDetailTitle">ESP Lesson</h1>
+
+        <section class="settings-view-panel about-view-panel esp-lesson-detail-panel">
+          <div class="about-section">
+            <div class="esp-lesson-detail-header">
+              <h2 class="about-section-title esp-lesson-detail-heading" data-esp-lesson-detail-title></h2>
+              <button class="beginner-top-button beginner-top-button-back beginner-top-pill esp-lesson-detail-back" type="button" data-close-esp-lesson-detail>BACK</button>
+            </div>
+            <div class="about-section-copy esp-lesson-detail-preview" data-esp-lesson-detail-preview></div>
+            <div class="about-section-copy esp-lesson-detail-body" data-esp-lesson-detail-body></div>
+          </div>
+          <div class="settings-view-status" data-esp-lesson-detail-status hidden></div>
         </section>
       </section>
 
@@ -354,15 +421,15 @@
 
       <div class="location-picker-overlay beginner-view-hidden" data-location-picker-overlay>
         <div class="location-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="locationPickerTitle">
-          <h2 class="about-section-title" id="locationPickerTitle">Fine-Tune Device Location</h2>
-          <p class="about-section-copy">If this device does not appear to have a precise GPS fix, you can drag the dot to your true location on this map and save it.</p>
+          <div class="location-picker-top-row">
+            <h2 class="about-section-title location-picker-title" id="locationPickerTitle">Fine-Tune Device Location</h2>
+            <div class="contact-actions location-picker-top-actions">
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-save disabled>SAVE LOCATION</button>
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-cancel>BACK</button>
+            </div>
+          </div>
           <div class="location-picker-status" data-location-picker-status>Loading map…</div>
           <div class="location-picker-map" data-location-picker-map aria-label="Exact location map"></div>
-          <div class="location-picker-coordinates" data-location-picker-coordinates>No location selected yet.</div>
-          <div class="contact-actions">
-            <button class="options-button contact-action-button" type="button" data-location-picker-save disabled>SAVE LOCATION</button>
-            <button class="options-button contact-action-button" type="button" data-location-picker-cancel>NOT NOW</button>
-          </div>
         </div>
       </div>
 
@@ -375,7 +442,7 @@
             </svg>
           </button>
           <p class="beginner-kicker">ESP GYM</p>
-              <span class="beginner-top-version" data-app-version-label>ver. 20260623au</span>
+              <span class="beginner-top-version" data-app-version-label>ver. 20260626j</span>
         </div>
 
         <h1 class="beginner-title beginner-title-icon-only" id="optionsTitle" aria-label="Menu">
@@ -385,24 +452,179 @@
         <div class="options-actions">
           <button class="options-button" type="button" data-open-help>Help</button>
           <button class="options-button" type="button" data-open-report>Performance Reports</button>
-          <button class="options-button" type="button" data-open-aids>Aids</button>
+          <button class="options-button" type="button" data-open-aids>Learning Center</button>
+          <button class="options-button" type="button" data-open-messaging-setup>Setup Website Features</button>
           <button class="options-button" type="button" data-open-other-settings>Other Settings and ESP Tasks</button>
         </div>
+        </section>
+
+        <section class="beginner-view" data-view="temporary-home-page" aria-labelledby="temporaryHomePageTitle">
+          <div class="beginner-top-row">
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <section class="temporary-home-hero">
+            <h1 class="beginner-title temporary-home-title" id="temporaryHomePageTitle">ESP GYM</h1>
+            <p class="temporary-home-tagline">Welcome to the world's first telepathy training gym!</p>
+            <div class="telepathy-hero-frame temporary-home-hero-frame" aria-hidden="true">
+              <img class="telepathy-hero-image temporary-home-hero-image" src="minds-connected-uncropped.png" alt="">
+            </div>
+            <p class="beginner-subtitle temporary-home-subtitle">ESP GYM offers a structured way to explore telepathy and psi sensitivity through interactive training, immediate feedback, and thoughtful self-observation. Whether you are curious, skeptical, or experienced, these tools let you test, refine, and track your own extrasensory perception.</p>
+            <p class="temporary-home-install-note">ESP GYM can be installed as an app on many modern devices, including Windows PCs, iPhone and iPad, Android phones and tablets, and other devices with current browsers that support app installation.</p>
+          </section>
+
+          <section class="temporary-home-band" aria-label="Invitation access">
+            <label class="temporary-home-inline-field">
+              <span class="temporary-home-inline-label">Invitation Code (if you have one):</span>
+              <input class="temporary-home-inline-input temporary-home-inline-input-plain" type="text" autocomplete="off" maxlength="24" placeholder="" data-temporary-home-invitation-code>
+            </label>
+            <div class="temporary-home-inline-status" data-temporary-home-invitation-status></div>
+            <div class="temporary-home-continue-row">
+              <button class="beginner-top-button beginner-top-pill temporary-home-continue-pill" type="button" data-temporary-home-continue>CONTINUE into the ESP GYM training environment</button>
+            </div>
+          </section>
+
+          <section class="temporary-home-copy-section" id="temporary-home-what-is">
+            <h2 class="temporary-home-section-heading">What Is ESP GYM?</h2>
+            <p class="temporary-home-section-copy">ESP GYM is a growing environment for training and exploring human extrasensory perception. It combines structured exercises, immediate feedback, performance reporting, and tools designed to support disciplined personal experimentation.</p>
+            <p class="temporary-home-section-copy">The goal is not merely to inspire belief, but to make careful practice possible, whether you work with a partner or, in some cases, alone.</p>
+          </section>
+
+          <section class="temporary-home-grid-section" id="temporary-home-featured">
+            <h2 class="temporary-home-section-heading">Experiences</h2>
+            <div class="temporary-home-grid" aria-label="ESP GYM featured experiences">
+              <article class="temporary-home-card" id="temporary-home-telepathy-beginner">
+                <h3 class="temporary-home-section-title">Telepathy Beginner</h3>
+                <p class="temporary-home-section-copy">A structured sender-receiver app for practicing visual telepathy and tracking performance over time.</p>
+                <button class="options-button temporary-home-card-button" type="button" data-temporary-home-open-fresh>Open</button>
+              </article>
+              <article class="temporary-home-card" id="temporary-home-esp-pro">
+                <h3 class="temporary-home-section-title">ESP PRO</h3>
+                <p class="temporary-home-section-copy">Advanced features for deeper experimentation, richer reporting, and broader tools for serious practice.</p>
+                <button class="options-button temporary-home-card-button" type="button" data-temporary-home-explore>Explore</button>
+              </article>
+              <article class="temporary-home-card" id="temporary-home-ongoing-research">
+                <h3 class="temporary-home-section-title">Ongoing Research</h3>
+                <p class="temporary-home-section-copy">Individuals who demonstrate talent in Telepathy Beginner are encouraged to participate in the ongoing research program.</p>
+                <button class="options-button temporary-home-card-button" type="button" data-temporary-home-help>Learn More</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="temporary-home-grid-section" id="temporary-home-learning-center">
+            <h2 class="temporary-home-section-heading">Learning Center</h2>
+            <article class="temporary-home-card">
+              <h3 class="temporary-home-section-title">What Is Telepathy?</h3>
+              <p class="temporary-home-section-copy">A concise introduction to the telepathic transfer of visual information and why structured practice may help subtle impressions become easier to notice.</p>
+            </article>
+            <article class="temporary-home-card">
+              <h3 class="temporary-home-section-title">Telepathy Training</h3>
+              <p class="temporary-home-section-copy">Graded telepathy exercises with multiple levels of difficulty. You and a partner can take turns developing both receiving and transmitting skills.</p>
+            </article>
+            <article class="temporary-home-card">
+              <h3 class="temporary-home-section-title">Performance Reports and Visualization</h3>
+              <p class="temporary-home-section-copy">Reporting, graphing, and interpretation tools help users see whether practice is producing improvement or merely reflecting chance performance.</p>
+            </article>
+            <article class="temporary-home-card">
+              <h3 class="temporary-home-section-title">Guided ESP Development</h3>
+              <p class="temporary-home-section-copy">ESP GYM also includes educational material, explanatory frameworks, and techniques that can help users understand and strengthen psi sensitivity.</p>
+            </article>
+            <article class="temporary-home-card">
+              <h3 class="temporary-home-section-title">Experimental and Research-Oriented Tools</h3>
+              <p class="temporary-home-section-copy">ESP GYM is built to support careful personal experimentation. It also supports formal data collection programs.</p>
+            </article>
+          </section>
+
+          <section class="temporary-home-copy-section" id="temporary-home-practice">
+            <h2 class="temporary-home-section-heading">Why Practice Matters</h2>
+            <p class="temporary-home-section-copy">Like many human abilities, ESP may be influenced by attention, trust, consistency, and experience. Repeated, structured practice may help some people become more sensitive to subtle impressions that otherwise go unnoticed. Whether the effect is large, small, stable, or elusive, disciplined practice creates the opportunity to observe it more clearly and evaluate it more honestly.</p>
+          </section>
+
+          <section class="temporary-home-copy-section" id="temporary-home-special">
+            <h2 class="temporary-home-section-heading">Special Participation</h2>
+            <p class="temporary-home-section-copy">From time to time, ESP GYM may invite selected individuals into early-access programs, founder groups, special experiments, or guided experiences. If you have received an invitation code, you can use it above to gain user access to ESP PRO.</p>
+          </section>
+
+          <section class="temporary-home-copy-section" id="temporary-home-stay-connected">
+            <h2 class="temporary-home-section-heading">Stay Connected</h2>
+            <p class="temporary-home-section-copy">To learn more, participate in future programs, or contact ESP GYM directly, connect here.</p>
+            <div class="temporary-home-link-actions">
+              <button class="options-button temporary-home-card-button" type="button" data-open-temporary-home-contact>Contact ESP Gym</button>
+              <button class="options-button temporary-home-card-button" type="button" data-open-temporary-home-help>Get Updates</button>
+            </div>
+          </section>
+
+          <footer class="temporary-home-footer" aria-label="ESP GYM footer links">
+            <nav class="temporary-home-footer-links">
+              <a class="temporary-home-footer-link" href="#temporary-home-telepathy-beginner">Telepathy Beginner</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-esp-pro">ESP PRO</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-remote-viewing">Remote Viewing</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-learning-center">Learn</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-stay-connected">Help</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-stay-connected">Contact</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-what-is">Privacy</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-what-is">About ESP GYM</a>
+            </nav>
+            <p class="temporary-home-footer-brand">ESP GYM</p>
+            <p class="temporary-home-footer-copy">Training tools for telepathy, remote viewing, and ESP development.</p>
+          </footer>
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="aids" aria-labelledby="aidsTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-aids>BACK</button>
-            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="aidsTitle">Aids</h1>
+          <h1 class="beginner-title" id="aidsTitle">Learning Center</h1>
           <p class="beginner-subtitle">This page is a placeholder for future aids and support tools.</p>
 
           <div class="options-actions">
+            <button class="options-button" type="button" data-open-general-information>General Information</button>
             <button class="options-button" type="button" data-open-rewire>Rewire</button>
+            <button class="options-button" type="button" data-open-reading-list>Reading List</button>
+            <button class="options-button" type="button" data-open-video-list>Video List</button>
+            <button class="options-button" type="button" data-open-websites-events-list>Websites and Events</button>
+            <button class="options-button" type="button" data-open-case-studies-list>Case Studies</button>
+            <button class="options-button" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
+            <button class="options-button" type="button" data-open-user-comments-list>Comments, Suggestions & Testimonials from Users</button>
           </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="general-information" aria-labelledby="generalInformationTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-general-information>BACK</button>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="generalInformationTitle">General Information</h1>
+
+          <section class="temporary-home-grid-section learning-center-info-section" aria-label="General ESP information topics">
+              <button class="temporary-home-card learning-center-topic-card learning-center-topic-card-stacked" type="button">
+                <h3 class="temporary-home-section-title">What Is Telepathy?</h3>
+                <p class="temporary-home-section-copy">A concise introduction to the telepathic transfer of visual information and why structured practice may help subtle impressions become easier to notice.</p>
+              </button>
+              <button class="temporary-home-card learning-center-topic-card learning-center-topic-card-stacked" type="button">
+                <h3 class="temporary-home-section-title">Telepathy Training</h3>
+                <p class="temporary-home-section-copy">Graded telepathy exercises with multiple levels of difficulty. You and a partner can take turns developing both receiving and transmitting skills.</p>
+              </button>
+              <button class="temporary-home-card learning-center-topic-card learning-center-topic-card-stacked" type="button">
+                <h3 class="temporary-home-section-title">Performance Reports and Visualization</h3>
+                <p class="temporary-home-section-copy">Reporting, graphing, and interpretation tools help users see whether practice is producing improvement or merely reflecting chance performance.</p>
+              </button>
+              <button class="temporary-home-card learning-center-topic-card learning-center-topic-card-stacked" type="button">
+                <h3 class="temporary-home-section-title">Guided ESP Development</h3>
+                <p class="temporary-home-section-copy">ESP GYM also includes educational material, explanatory frameworks, and techniques that can help users understand and strengthen psi sensitivity.</p>
+              </button>
+              <button class="temporary-home-card learning-center-topic-card learning-center-topic-card-stacked" type="button">
+                <h3 class="temporary-home-section-title">Experimental and Research-Oriented Tools</h3>
+                <p class="temporary-home-section-copy">ESP GYM is built to support careful personal experimentation. It also supports formal data collection programs.</p>
+              </button>
+          </section>
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="rewire" aria-labelledby="rewireTitle">
@@ -417,6 +639,108 @@
           <section class="settings-view-panel rewire-panel">
             <div class="rewire-image-frame">
               <img class="rewire-image" src="rewire.png" alt="Rewire visual aid">
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="reading-list" aria-labelledby="readingListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-reading-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="readingListTitle">Reading List</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/1949214834" target="_blank" rel="noopener noreferrer">Swann, I. Everybody’s Guide to Natural ESP Unlocking the Extrasensory Power of Your Mind.</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/0835608840" target="_blank" rel="noopener noreferrer">Targ, R. The Reality of ESP: a physicist’s proof of psychic abilities.</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/0553382233" target="_blank" rel="noopener noreferrer">Mayer, E. L. Extraordinary Knowing: Science, Skepticism, and the Inexplicable Powers of the Human Mind.</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/0786421126" target="_blank" rel="noopener noreferrer">Barrington, M.R., Stevenson, I. & Weaver, Z. A World in a Grain of Sand The Clairvoyance of Stefan Ossowiecki.</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.gutenberg.org/ebooks/63693" target="_blank" rel="noopener noreferrer">Sinclair, U. Mental Radio.</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/B0007E1U62" target="_blank" rel="noopener noreferrer">Pollack, J.H. Croiset the Clairvoyant.</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/1571743111" target="_blank" rel="noopener noreferrer">Warcollier, R. Mind to Mind.</a></p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="video-list" aria-labelledby="videoListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-video-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="videoListTitle">Video List</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy">This page is a placeholder for future video recommendations.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="websites-events-list" aria-labelledby="websitesEventsListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-websites-events-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="websitesEventsListTitle">Websites and Events</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy">This page is a placeholder for future websites and events.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="case-studies-list" aria-labelledby="caseStudiesListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-case-studies-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="caseStudiesListTitle">Case Studies</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy">This page is a placeholder for future case studies.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="peer-reviewed-list" aria-labelledby="peerReviewedListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-peer-reviewed-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="peerReviewedListTitle">Peer Reviewed Journal Articles</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy">This page is a placeholder for future peer reviewed journal articles.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="user-comments-list" aria-labelledby="userCommentsListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-user-comments-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="userCommentsListTitle">Comments, Suggestions & Testimonials from Users</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy">Use the "Contact ESP Gym" form to submit information for potential addition to this section.</p>
             </div>
           </section>
         </section>
@@ -455,13 +779,13 @@
 
         <section class="beginner-view beginner-view-hidden" data-view="other-settings" aria-labelledby="otherSettingsTitle">
           <div class="beginner-top-row other-settings-top-row">
-            <button class="beginner-top-button beginner-top-pill beginner-top-home-button" type="button" data-other-settings-home aria-label="Go to main screen">
+            <button class="beginner-top-button beginner-top-pill beginner-top-home-button beginner-top-button-left" type="button" data-other-settings-home aria-label="Go to main screen">
               <svg class="beginner-top-home-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
                 <path d="M5 14.5 16 5l11 9.5"></path>
                 <path d="M9 13.5V27h14V13.5"></path>
               </svg>
             </button>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-other-settings>BACK</button>
           </div>
 
@@ -469,7 +793,6 @@
 
           <div class="options-actions">
             <button class="options-button" type="button" data-open-behaviors>Behaviors</button>
-            <button class="options-button" type="button" data-open-location-picker-settings>Set Exact Location</button>
             <button class="options-button" type="button" data-open-contact>Contact ESP Gym</button>
             <button class="options-button" type="button" data-open-clairvoyance-viewing data-pro-only-other-settings hidden>Clairvoyance / Remote Viewing</button>
             <button class="options-button" type="button" data-open-subscription-management>PRO Subscription</button>
@@ -505,13 +828,27 @@
                   <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="remote-viewer" data-direction="down" aria-label="Decrease remote viewer pair difficulty">▼</button>
                 </div>
                 <span class="role-card-tagline" data-role-skill-tagline="remote-viewer">Skill: Guided mind's eye perception</span>
+                <button class="role-card-inline-back" type="button" data-collapse-role-card="remote-viewer">Back</button>
               </div>
               <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="remote-viewer" hidden></div>
               <div class="role-card-body">
                 <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
                   <div class="role-email-note" aria-label="Remote viewing guidance">
                     <p data-role-identifier-note="remote-viewer">This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being.</p>
+                    <div class="role-lesson-wrap" data-role-lesson-wrap="remote-viewer" hidden>
+                      <div class="role-lesson-header">
+                        <span class="role-lesson-title" data-role-lesson-title="remote-viewer"></span>
+                      </div>
+                      <p class="role-lesson-preview" data-role-lesson-preview="remote-viewer"></p>
+                      <div class="role-lesson-actions">
+                        <button class="role-note-link" type="button" data-role-lesson-more="remote-viewer">MORE</button>
+                        <button class="role-note-link" type="button" data-role-lesson-next="remote-viewer">NEXT</button>
+                        <button class="role-note-link" type="button" data-role-lesson-back="remote-viewer">BACK</button>
+                        <button class="role-note-link" type="button" data-role-lesson-dismiss="remote-viewer">NOT AGAIN</button>
+                      </div>
+                    </div>
                     <p data-role-handle-wrap="remote-viewer"><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">Choose unique name instead of email address</button></p>
+                    <p class="role-note-setup-wrap" data-role-setup-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-feature-setup="remote-viewer">Click here to set up optional features for Telepathy Beginner</button></p>
                     <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
                   </div>
                   <label class="role-field">
@@ -748,10 +1085,129 @@
           <h1 class="beginner-title" id="helpTitle">Help</h1>
 
           <div class="options-actions">
-            <button class="options-button" type="button" onclick="window.location.href='BeginnerUserManual.html?v=20260503a'">User Guide</button>
-            <button class="options-button" type="button" data-open-messaging-setup>Enable Messaging With Partners</button>
+            <button class="options-button" type="button" data-open-user-guide>User Guide</button>
             <button class="options-button" type="button" data-open-about>About</button>
           </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="beginner-user-manual" aria-labelledby="beginnerUserManualTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-beginner-user-manual>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="beginnerUserManualTitle">Telepathy Beginner User Manual</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <h2 class="about-section-title">Overview</h2>
+              <p class="about-section-copy">Telepathy Beginner is a two-person practice and experiment app. One participant acts as the sender and the other acts as the receiver. The app supports three difficulty levels. The remainder of this manual is currently under development.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="pro-user-manual" aria-labelledby="proUserManualTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-pro-user-manual>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="proUserManualTitle">ESP PRO User Manual</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <h2 class="about-section-title">Overview</h2>
+              <p class="about-section-copy">ESP PRO is an advanced tool for practicing, understanding, experimenting, and developing aptitude in extra sensory perception. The remainder of this manual is currently under development.</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="feature-setup" aria-labelledby="featureSetupTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-feature-setup>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="featureSetupTitle">Setup Website Features</h1>
+          <p class="beginner-subtitle">Optional device features can improve reporting, notifications, and convenience for this copy of ESP GYM.</p>
+
+          <section class="settings-view-panel feature-setup-panel">
+            <div class="settings-view-note feature-setup-identifier" data-feature-setup-identifier>Current identifier: none selected.</div>
+            <div class="settings-view-status" data-feature-setup-summary></div>
+
+            <div class="feature-setup-grid">
+              <section class="feature-setup-item" data-feature-setup-item="install">
+                <div class="feature-setup-copy">
+                  <h2 class="feature-setup-title">Install As App</h2>
+                  <p class="feature-setup-text">Installing ESP GYM as an app gives it its own icon and provides the best support for notifications and app-like behavior on this device.</p>
+                  <div class="feature-setup-status" data-feature-setup-install-status>Checking app install status…</div>
+                </div>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-install-action>INSTALL APP</button>
+              </section>
+
+              <section class="feature-setup-item" data-feature-setup-item="location">
+                <div class="feature-setup-copy">
+                  <h2 class="feature-setup-title">Allow Location</h2>
+                  <p class="feature-setup-text">Location allows distance to be computed between you and any partner and supports telepathic paths on the GLOBE page.</p>
+                  <div class="feature-setup-status" data-feature-setup-location-status>Checking location status…</div>
+                </div>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-location-action>SET LOCATION</button>
+              </section>
+
+              <section class="feature-setup-item" data-feature-setup-item="messaging">
+                <div class="feature-setup-copy">
+                  <h2 class="feature-setup-title">Partner Messaging</h2>
+                  <p class="feature-setup-text">Partner messaging allows instant notification messages to and from partners when messaging is enabled for this device.</p>
+                  <div class="feature-setup-status" data-feature-setup-messaging-status>Checking messaging status…</div>
+                </div>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-messaging-action>SET UP MESSAGING</button>
+              </section>
+
+              <section class="feature-setup-item" data-feature-setup-item="protection">
+                <div class="feature-setup-copy">
+                  <h2 class="feature-setup-title">Protection From Impersonators</h2>
+                  <p class="feature-setup-text">This planned feature will allow a password to be added to your unique identity so impersonators can be effectively blocked.</p>
+                  <div class="feature-setup-status" data-feature-setup-protection-status>Not yet available on this build.</div>
+                </div>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-protection-action>INFO</button>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="install-guide" aria-labelledby="installGuideTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-install-guide>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="installGuideTitle">Install ESP GYM</h1>
+          <p class="beginner-subtitle">Install guidance is tailored to the browser and device you are using right now.</p>
+
+          <section class="settings-view-panel install-guide-panel">
+            <div class="settings-view-note" data-install-guide-environment>Detected platform: checking…</div>
+            <div class="settings-view-status" data-install-guide-status>Checking install status…</div>
+
+            <div class="about-section">
+              <h2 class="about-section-title">What To Do</h2>
+              <p class="about-section-copy" data-install-guide-summary>Loading the best installation path for this device…</p>
+              <ol class="install-guide-steps" data-install-guide-steps></ol>
+            </div>
+
+            <div class="about-section" data-install-guide-after-section hidden>
+              <h2 class="about-section-title">After Installation</h2>
+              <p class="about-section-copy" data-install-guide-after-copy></p>
+            </div>
+
+            <div class="contact-actions install-guide-actions">
+              <button class="options-button contact-action-button" type="button" data-install-guide-primary hidden>OPEN INSTALL PROMPT</button>
+              <button class="options-button contact-action-button" type="button" data-install-guide-refresh>REFRESH STATUS</button>
+            </div>
+          </section>
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="contact" aria-labelledby="contactTitle">
@@ -886,13 +1342,17 @@
               <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
               <button class="options-button settings-view-save" type="button" data-open-user-type-admin>Assign user type</button>
+              <button class="options-button settings-view-save" type="button" data-open-invitee-admin-direct>Manage Invitees</button>
               <button class="options-button settings-view-save" type="button" data-open-handle-update-admin>Update a user handle</button>
               <button class="options-button settings-view-save" type="button" data-open-image-pair-admin>Add image pairs</button>
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
+              <button class="options-button settings-view-save" type="button" data-admin-open-analyzer>Analyze Results</button>
+              <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260623au'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='BeginnerUserManual_preserved_20260625.html?v=20260626j'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260626j'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -950,7 +1410,95 @@
 
             <div class="user-type-admin-actions">
               <button class="options-button settings-view-save beginner-view-hidden" type="button" data-user-type-save hidden>Set New Status</button>
+              <button class="options-button settings-view-save beginner-view-hidden" type="button" data-open-invitee-admin hidden>Add as Invitee</button>
               <button class="options-button user-type-admin-clear" type="button" data-user-type-clear>Clear</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="invitee-admin" aria-labelledby="inviteeAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-invitee-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="inviteeAdminTitle">Manage Invitees</h1>
+          <p class="beginner-subtitle">Reserve a unique invitation name and attach private admin notes to it.</p>
+
+          <section class="settings-view-panel">
+            <label class="settings-view-field">
+              <span class="settings-view-label">Unique name:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-invitee-identifier
+                placeholder="enter invitee unique name"
+              >
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">First &amp; last name:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                data-invitee-full-name
+                placeholder="optional full name"
+              >
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Email:</span>
+              <input
+                class="settings-view-input"
+                type="email"
+                autocomplete="off"
+                spellcheck="false"
+                data-invitee-email
+                placeholder="optional email"
+              >
+            </label>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Private note:</span>
+              <textarea
+                class="analyzer-textarea"
+                rows="4"
+                spellcheck="false"
+                data-invitee-note
+                placeholder="optional private note"
+              ></textarea>
+            </label>
+
+            <div class="settings-view-status" data-invitee-status></div>
+
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-invitee-load>Load Invitee</button>
+              <button class="options-button settings-view-save" type="button" data-invitee-save>Save Invitee</button>
+              <button class="options-button user-type-admin-clear" type="button" data-invitee-delete>Delete Invitee</button>
+              <button class="options-button user-type-admin-clear" type="button" data-invitee-clear>Clear</button>
+            </div>
+            <button class="options-button invitee-admin-device-button" type="button" data-invitee-clear-device>Clear current loaded invitee</button>
+
+            <div class="invitee-admin-list-wrap">
+              <div class="settings-view-note">Saved invitees</div>
+              <div class="invitee-admin-table-wrap">
+                <table class="invitee-admin-table">
+                  <thead>
+                    <tr>
+                      <th>Unique name</th>
+                      <th>First &amp; last name</th>
+                      <th>Email</th>
+                      <th>Private note</th>
+                    </tr>
+                  </thead>
+                  <tbody data-invitee-list-body></tbody>
+                </table>
+              </div>
             </div>
           </section>
         </section>
@@ -1086,10 +1634,10 @@
         </section>
  
         <section class="beginner-view beginner-view-hidden" data-view="report-definition" aria-labelledby="reportDefinitionTitle">
-        <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-report-definition>BACK</button>
+        <div class="beginner-top-row report-definition-top-row">
+          <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-advanced>ADVANCED</button>
           <p class="beginner-kicker">ESP GYM</p>
-          <button class="beginner-top-button beginner-top-pill" type="button" data-open-advanced>ADVANCED</button>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-report-definition>BACK</button>
         </div>
 
         <h1 class="beginner-title" id="reportDefinitionTitle">Performance Reports</h1>
@@ -1118,7 +1666,6 @@
             <button class="options-button report-definition-go" type="button" data-report-go hidden>RAW DATA</button>
             <button class="options-button report-definition-visualize" type="button" data-report-visualize hidden>VISUALIZE</button>
             <button class="options-button report-definition-globe" type="button" data-report-globe hidden>GLOBE</button>
-            <button class="options-button report-definition-analyze" type="button" data-report-analyze hidden>ANALYZE</button>
           </div>
         </section>
       </section>
@@ -1126,7 +1673,7 @@
       <section class="beginner-view beginner-view-hidden" data-view="report" aria-labelledby="reportTitle">
         <div class="beginner-top-row report-view-pan-handle" data-report-view-pan-handle>
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-report>BACK</button>
-          <p class="beginner-kicker">ESP GYM</p>
+          <span class="beginner-top-spacer" aria-hidden="true"></span>
           <span class="beginner-top-spacer" aria-hidden="true"></span>
         </div>
 
@@ -1211,10 +1758,11 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="vendor/leaflet/leaflet.js?v=20260623au"></script>
-  <script src="telepathybeginner.js?v=20260623au"></script>
+  <script src="vendor/leaflet/leaflet.js?v=20260626j"></script>
+  <script src="telepathybeginner.js?v=20260626j"></script>
 </body>
 </html>
+
 
 
 
