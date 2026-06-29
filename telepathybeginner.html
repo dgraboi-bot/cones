@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ESP GYM Telepathy Beginner</title>
   <meta name="description" content="A free training app for improving ESP sensitivity.">
-  <link rel="canonical" href="https://telepathyexperiment.com/cones/telepathybeginner.html">
+  <link rel="canonical" href="https://espgym.com/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="ESP GYM">
   <meta property="og:title" content="ESP GYM Telepathy Beginner">
   <meta property="og:description" content="A free training app for improving ESP sensitivity.">
-  <meta property="og:url" content="https://telepathyexperiment.com/cones/telepathybeginner.html">
-  <meta property="og:image" content="https://telepathyexperiment.com/cones/telepathybeginner-og-preview.png">
+  <meta property="og:url" content="https://espgym.com/">
+  <meta property="og:image" content="https://espgym.com/telepathybeginner-og-preview.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -19,7 +19,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
-  <meta name="twitter:image" content="https://telepathyexperiment.com/cones/telepathybeginner-og-preview.png">
+  <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -55,13 +55,16 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260626j">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260629l">
   <meta name="theme-color" content="#050505">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260629l">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260629l">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260629l">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260626j">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260626j">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260626j">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260629l">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260629l">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260629l">
 </head>
 <body>
   <main class="beginner-shell">
@@ -114,28 +117,29 @@
           <article class="role-card" data-role-card="sender">
             <div class="role-card-header">
               <button class="role-card-toggle" type="button" aria-expanded="false">
-                <span class="role-card-title">I Will Be the Sender</span>
+                <span class="role-card-title" data-collapsed-title="I Will Be the Sender" data-expanded-title="Sender">I Will Be the Sender</span>
               </button>
               <div class="role-card-level-stack" data-role-difficulty-stack="sender">
                 <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="sender" data-direction="up" aria-label="Increase sender pair difficulty">▲</button>
                 <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
                 <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="sender" data-direction="down" aria-label="Decrease sender pair difficulty">▼</button>
               </div>
-              <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Visual attention focus</span>
+              <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Visual attention focus and sustained intention</span>
               <button class="role-card-inline-back" type="button" data-collapse-role-card="sender">Back</button>
             </div>
             <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="sender" hidden></div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="sender" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
-                  <p data-role-identifier-note="sender">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
+                  <p data-role-identifier-note="sender">These email addresses are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use the same spellings for each other. Please verify the spellings carefully.
+
+You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.</p>
                   <div class="role-lesson-wrap" data-role-lesson-wrap="sender" hidden>
                     <div class="role-lesson-header">
                       <span class="role-lesson-title" data-role-lesson-title="sender"></span>
                     </div>
                     <p class="role-lesson-preview" data-role-lesson-preview="sender"></p>
                     <div class="role-lesson-actions">
-                      <button class="role-note-link" type="button" data-role-lesson-more="sender">MORE</button>
                       <button class="role-note-link" type="button" data-role-lesson-next="sender">NEXT</button>
                       <button class="role-note-link" type="button" data-role-lesson-back="sender">BACK</button>
                       <button class="role-note-link" type="button" data-role-lesson-dismiss="sender">NOT AGAIN</button>
@@ -162,10 +166,13 @@
                         <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
                       </button>
                     </div>
+                    <div class="role-course-launch">
+                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="sender">Online Course</button>
+                    </div>
                   </div>
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver</span>
+                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver - Enter "Robot" to experience a simulation of telepathy practice at this level.</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
@@ -203,28 +210,29 @@
           <article class="role-card" data-role-card="receiver">
             <div class="role-card-header">
               <button class="role-card-toggle" type="button" aria-expanded="false">
-                <span class="role-card-title">I Will Be the Receiver</span>
+                <span class="role-card-title" data-collapsed-title="I Will Be the Receiver" data-expanded-title="Receiver">I Will Be the Receiver</span>
               </button>
               <div class="role-card-level-stack" data-role-difficulty-stack="receiver">
                 <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="receiver" data-direction="up" aria-label="Increase receiver pair difficulty">▲</button>
                 <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
                 <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="receiver" data-direction="down" aria-label="Decrease receiver pair difficulty">▼</button>
               </div>
-              <span class="role-card-tagline" data-role-skill-tagline="receiver">Skill: Mind's eye perception</span>
+              <span class="role-card-tagline" data-role-skill-tagline="receiver">Skill: Mind's eye perception and memory</span>
               <button class="role-card-inline-back" type="button" data-collapse-role-card="receiver">Back</button>
             </div>
             <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="receiver" hidden></div>
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
-                  <p data-role-identifier-note="receiver">No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully.</p>
+                  <p data-role-identifier-note="receiver">These email addresses are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use the same spellings for each other. Please verify the spellings carefully.
+
+You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.</p>
                   <div class="role-lesson-wrap" data-role-lesson-wrap="receiver" hidden>
                     <div class="role-lesson-header">
                       <span class="role-lesson-title" data-role-lesson-title="receiver"></span>
                     </div>
                     <p class="role-lesson-preview" data-role-lesson-preview="receiver"></p>
                     <div class="role-lesson-actions">
-                      <button class="role-note-link" type="button" data-role-lesson-more="receiver">MORE</button>
                       <button class="role-note-link" type="button" data-role-lesson-next="receiver">NEXT</button>
                       <button class="role-note-link" type="button" data-role-lesson-back="receiver">BACK</button>
                       <button class="role-note-link" type="button" data-role-lesson-dismiss="receiver">NOT AGAIN</button>
@@ -251,10 +259,13 @@
                         <span class="role-message-badge" data-role-message-badge="receiver" hidden>0</span>
                       </button>
                     </div>
+                    <div class="role-course-launch">
+                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="receiver">Online Course</button>
+                    </div>
                   </div>
                 </label>
                 <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-partner-identifier-label="receiver">Sender</span>
+                  <span class="role-field-label" data-partner-identifier-label="receiver">Sender - Enter "Robot" to experience a simulation of telepathy practice at this level.</span>
                   <div class="role-partner-row">
                     <input
                       class="role-input"
@@ -341,11 +352,11 @@
       </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="learn-more" aria-labelledby="learnMoreTitle">
-        <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-learn-more>BACK</button>
-          <p class="beginner-kicker">ESP GYM</p>
-          <button class="beginner-top-button beginner-top-pill beginner-top-button-right" type="button" data-save-learn-more>SAVE</button>
-        </div>
+          <div class="beginner-top-row learn-more-top-row">
+          <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-save-learn-more>SAVE</button>
+            <p class="beginner-kicker">ESP GYM</p>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-learn-more>BACK</button>
+          </div>
 
         <h1 class="beginner-title" id="learnMoreTitle">Learn More</h1>
 
@@ -387,10 +398,10 @@
 
       <div class="handle-overlay beginner-view-hidden" data-handle-overlay>
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="handleDialogTitle">
-          <h2 class="about-section-title" id="handleDialogTitle">Choose Unique Handle</h2>
-          <p class="about-section-copy">Choose a unique handle between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen.</p>
+          <h2 class="about-section-title" id="handleDialogTitle">Choose Unique Name</h2>
+          <p class="about-section-copy">Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen.</p>
           <label class="settings-view-field">
-            <span class="settings-view-label">Proposed unique handle</span>
+            <span class="settings-view-label">Proposed unique name:</span>
             <input class="settings-view-input" type="text" autocomplete="off" spellcheck="false" data-handle-input placeholder="your-handle">
           </label>
           <div class="settings-view-status" data-handle-status></div>
@@ -404,7 +415,7 @@
       <div class="handle-overlay beginner-view-hidden" data-push-setup-overlay>
         <div class="handle-dialog push-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="pushSetupDialogTitle">
           <h2 class="about-section-title" id="pushSetupDialogTitle">Enable Partner Messaging</h2>
-          <p class="about-section-copy">Partner messaging works when this app is installed on this device and notifications are allowed for this installed app.</p>
+          <p class="about-section-copy">Partner messaging in this build works only when ESP GYM is installed as an app on this device and notifications are allowed for that installed app.</p>
           <div class="settings-view-status push-setup-status" data-push-setup-status>Checking this device…</div>
           <div class="push-setup-checklist">
             <div class="push-setup-step" data-push-setup-install-state>App install: pending</div>
@@ -415,6 +426,59 @@
             <button class="options-button contact-action-button" type="button" data-push-setup-enable>ALLOW NOTIFICATIONS</button>
             <button class="options-button contact-action-button" type="button" data-push-setup-test>TEST NOTIFICATION</button>
             <button class="options-button contact-action-button" type="button" data-push-setup-close>NOT NOW</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="handle-overlay beginner-view-hidden" data-updates-overlay>
+        <div class="handle-dialog push-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="updatesDialogTitle">
+          <h2 class="about-section-title" id="updatesDialogTitle">Get Updates</h2>
+          <p class="about-section-copy">Please send me information when updates regarding ESP GYM are created.</p>
+          <label class="settings-view-field">
+            <span class="settings-view-label">Email address:</span>
+            <input class="settings-view-input" type="email" autocomplete="email" spellcheck="false" data-updates-email placeholder="name@example.com">
+          </label>
+          <div class="settings-view-status push-setup-status" data-updates-status></div>
+          <div class="contact-actions push-setup-actions">
+            <button class="options-button contact-action-button" type="button" data-updates-yes>YES</button>
+            <button class="options-button contact-action-button" type="button" data-updates-close>NOT NOW</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="handle-overlay beginner-view-hidden" data-explore-pro-overlay>
+        <div class="handle-dialog push-setup-dialog explore-pro-dialog" role="dialog" aria-modal="true" aria-labelledby="exploreProDialogTitle">
+          <h2 class="about-section-title" id="exploreProDialogTitle">Explore ESP PRO</h2>
+          <p class="about-section-copy">Start your free 14-day ESP PRO exploration.</p>
+          <p class="about-section-copy">Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code.</p>
+          <label class="settings-view-field">
+            <span class="settings-view-label">Email address:</span>
+            <input class="settings-view-input" type="email" autocomplete="email" spellcheck="false" data-explore-pro-email placeholder="name@example.com">
+          </label>
+          <div class="contact-actions push-setup-actions explore-pro-actions-row">
+            <button class="options-button contact-action-button" type="button" data-explore-pro-send-code>SEND CODE</button>
+            <button class="options-button contact-action-button" type="button" data-explore-pro-resend-code hidden>RESEND CODE</button>
+            <button class="options-button contact-action-button" type="button" data-explore-pro-close>CANCEL</button>
+          </div>
+          <label class="settings-view-field">
+            <span class="settings-view-label">Verification code:</span>
+            <input class="settings-view-input explore-pro-code-input" type="text" autocomplete="one-time-code" spellcheck="false" maxlength="5" data-explore-pro-code placeholder="5-character code">
+          </label>
+          <div class="settings-view-status push-setup-status explore-pro-status" data-explore-pro-status></div>
+          <div class="contact-actions push-setup-actions explore-pro-actions-row">
+            <button class="options-button contact-action-button" type="button" data-explore-pro-start>START FREE 14-DAY EXPLORATION</button>
+            <button class="options-button contact-action-button" type="button" data-explore-pro-subscribe hidden>SUBSCRIBE TO ESP PRO</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="handle-overlay beginner-view-hidden" data-explore-pro-ended-overlay>
+        <div class="handle-dialog push-setup-dialog explore-pro-dialog" role="dialog" aria-modal="true" aria-labelledby="exploreProEndedDialogTitle">
+          <h2 class="about-section-title" id="exploreProEndedDialogTitle">ESP PRO Exploration Ended</h2>
+          <p class="about-section-copy" data-explore-pro-ended-message>Your ESP PRO exploration period has ended, and you are now using the free Telepathy Beginner. Your progress has been saved. If you found ESP PRO useful, click here to subscribe to ESP PRO and continue where you left off for $2.99/month or $25/year.</p>
+          <div class="contact-actions push-setup-actions explore-pro-actions-row">
+            <button class="options-button contact-action-button" type="button" data-explore-pro-ended-subscribe>SUBSCRIBE TO ESP PRO</button>
+            <button class="options-button contact-action-button" type="button" data-explore-pro-ended-continue>CONTINUE WITH TELEPATHY BEGINNER</button>
           </div>
         </div>
       </div>
@@ -430,6 +494,10 @@
           </div>
           <div class="location-picker-status" data-location-picker-status>Loading map…</div>
           <div class="location-picker-map" data-location-picker-map aria-label="Exact location map"></div>
+          <div class="contact-actions location-picker-zoom-actions">
+            <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-zoom-in>ZOOM IN</button>
+            <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-zoom-out>ZOOM OUT</button>
+          </div>
         </div>
       </div>
 
@@ -442,7 +510,12 @@
             </svg>
           </button>
           <p class="beginner-kicker">ESP GYM</p>
-              <span class="beginner-top-version" data-app-version-label>ver. 20260626j</span>
+          <div class="options-top-right-stack">
+            <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
+              Back
+            </button>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260629l</span>
+          </div>
         </div>
 
         <h1 class="beginner-title beginner-title-icon-only" id="optionsTitle" aria-label="Menu">
@@ -472,6 +545,7 @@
               <img class="telepathy-hero-image temporary-home-hero-image" src="minds-connected-uncropped.png" alt="">
             </div>
             <p class="beginner-subtitle temporary-home-subtitle">ESP GYM offers a structured way to explore telepathy and psi sensitivity through interactive training, immediate feedback, and thoughtful self-observation. Whether you are curious, skeptical, or experienced, these tools let you test, refine, and track your own extrasensory perception.</p>
+            <p class="temporary-home-section-copy temporary-home-hero-copy">These exercises promote increased awareness of subtle impressions, strengthened ability to perceive delicate mental signals, improve memory for fleeting inner events, and potentially strengthen intuitive abilities. They promote greater open-mindedness by encouraging users to explore experiences they may once have thought impossible.</p>
             <p class="temporary-home-install-note">ESP GYM can be installed as an app on many modern devices, including Windows PCs, iPhone and iPad, Android phones and tablets, and other devices with current browsers that support app installation.</p>
           </section>
 
@@ -565,6 +639,7 @@
               <a class="temporary-home-footer-link" href="#temporary-home-stay-connected">Help</a>
               <a class="temporary-home-footer-link" href="#temporary-home-stay-connected">Contact</a>
               <a class="temporary-home-footer-link" href="#temporary-home-what-is">Privacy</a>
+              <a class="temporary-home-footer-link" href="#temporary-home-ongoing-research">Research</a>
               <a class="temporary-home-footer-link" href="#temporary-home-what-is">About ESP GYM</a>
             </nav>
             <p class="temporary-home-footer-brand">ESP GYM</p>
@@ -575,7 +650,7 @@
         <section class="beginner-view beginner-view-hidden" data-view="aids" aria-labelledby="aidsTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-aids>BACK</button>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
@@ -583,10 +658,10 @@
           <p class="beginner-subtitle">This page is a placeholder for future aids and support tools.</p>
 
           <div class="options-actions">
+            <button class="options-button" type="button" data-open-online-course>Online Course</button>
             <button class="options-button" type="button" data-open-general-information>General Information</button>
             <button class="options-button" type="button" data-open-rewire>Rewire</button>
-            <button class="options-button" type="button" data-open-reading-list>Reading List</button>
-            <button class="options-button" type="button" data-open-video-list>Video List</button>
+            <button class="options-button" type="button" data-open-readings-videos>Readings and Videos</button>
             <button class="options-button" type="button" data-open-websites-events-list>Websites and Events</button>
             <button class="options-button" type="button" data-open-case-studies-list>Case Studies</button>
             <button class="options-button" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
@@ -594,10 +669,90 @@
           </div>
         </section>
 
+        <section class="beginner-view beginner-view-hidden" data-view="online-course" aria-labelledby="onlineCourseTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-online-course>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="onlineCourseTitle">Online Course</h1>
+          <div class="online-course-jump-links" aria-label="Online course quick links">
+            <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="sender">Sender</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="receiver">Receiver</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="performance">Performance</button>
+          </div>
+
+          <section class="settings-view-panel about-view-panel online-course-panel">
+            <div class="about-section">
+              <p class="about-section-copy">In this course we will go over what telepathy is and look at some case studies. Then we will look at our biology and get an understanding of how the mind's eye works. After that, we will be introduced to the simple Level 1 operation of the telepathy task, the need to find a partner or partners to work with, setting up for the practice trials, and how to schedule them spontaneously or not. Then we will start to do actual telepathy practice trials and look at performance reports, and examine introspectively what our minds were doing.</p>
+              <p class="about-section-copy">But first, to establish a beginning reference point, please answer the following questions:</p>
+            </div>
+
+            <div class="online-course-reference">
+              <p class="online-course-reference-title">REFERENCE POINT</p>
+              <p class="online-course-reference-meta">DATE: <span data-online-course-date></span> &nbsp;&nbsp;&nbsp; UNIQUE NAME: <span data-online-course-name></span></p>
+            </div>
+
+            <div class="about-section">
+              <ol class="online-course-questions">
+                <li>How strong is your current belief in the reality of telepathy?</li>
+                <li>How strong is your current belief in the reality of telepathy for you?</li>
+                <li>Have you ever, or one or a few times, or frequently experienced ESP phenomena?
+                  <div class="online-course-inline-note">If so, which phenomena: Telepathy &nbsp; Clairvoyance &nbsp; Precognition &nbsp; Other</div>
+                </li>
+                <li>Have you ever practiced telepathic communication before now?</li>
+                <li>If you do exceptionally well, would you be available to participate in further research?</li>
+              </ol>
+            </div>
+
+            <div class="about-section">
+              <p class="about-section-copy">Below is a set of checkpoints for each individual course objective in the suggested order. To take the course, simply come here, and click on each link and participate as called for in that lesson.</p>
+            </div>
+
+            <div class="online-course-checklist">
+              <div class="online-course-checklist-header">Lesson Checkpoint Summary <span class="online-course-checklist-header-right">Telepathy Beginner &nbsp;&nbsp;&nbsp; ESP PRO</span></div>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Reference Point</span> <span class="online-course-checklist-date" data-online-course-checkpoint-date></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>What is telepathy?</span> <span class="online-course-checklist-date">xxxx/x/x/x</span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Telepathy case studies</span> <span class="online-course-checklist-date">xxxx/x/x/x</span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Especially gifted telepathists</span> <span class="online-course-checklist-date">xxxx/x/x/x</span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Explanation of the Level 1 task</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Completed 1st session with 3 Level 1 trials</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 1 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Advance to Level 2</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 2 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Advance to Level 3</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 3 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Advance to Level 4</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 4 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Read 1 Journal article</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Ongoing Research</span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Questionnaire for Potential Research Participation <strong>&lt;--- PRO FEATURE</strong></span> <span class="online-course-checklist-date"></span></label>
+              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Participate in Ongoing Research <strong>&lt;--- PRO FEATURE</strong></span> <span class="online-course-checklist-date"></span></label>
+            </div>
+
+            <section class="about-section">
+              <h2 class="about-section-title">After Doing the First Trial</h2>
+              <ol class="online-course-questions">
+                <li>Were you able to look at the contents of your mind's eye?</li>
+                <li>Did you trust that the right information would be in your mind's eye?</li>
+                <li>Did you close your eyes and focus on the contents of your mind's eye at the end of the countdown?</li>
+                <li>Did anything, probably quite unclear and dim, but with some clear-enough features, show up in your mind's eye?</li>
+                <li>Did you catch any color anywhere? If so, where? (left, right, ...)</li>
+                <li>Did you catch whether there was one "attention magnet" or "more than one attention magnet" in the visual shape(s) in your mind's eye?</li>
+                <li>If there was more than one shape, were the shapes arranged horizontally, left to right? Vertically bottom to top? Diagonally up from bottom left? Diagonally down from top left?</li>
+                <li>Was the shape(s) constantly present, or did shapes fade in and out of perception?</li>
+                <li>Did you make an effort to remember the exact visual shape of what you saw fleetingly?</li>
+                <li>Were the visual features clear enough to give a name to? (It's usually better not to name)</li>
+              </ol>
+            </section>
+          </section>
+        </section>
+
         <section class="beginner-view beginner-view-hidden" data-view="general-information" aria-labelledby="generalInformationTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-general-information>BACK</button>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
@@ -643,14 +798,14 @@
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="reading-list" aria-labelledby="readingListTitle">
+        <section class="beginner-view beginner-view-hidden" data-view="readings-videos" aria-labelledby="readingsVideosTitle">
           <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-reading-list>BACK</button>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-readings-videos>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="readingListTitle">Reading List</h1>
+          <h1 class="beginner-title" id="readingsVideosTitle">Readings and Videos</h1>
 
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
@@ -661,22 +816,6 @@
               <p class="about-section-copy"><a class="reading-list-link" href="https://www.gutenberg.org/ebooks/63693" target="_blank" rel="noopener noreferrer">Sinclair, U. Mental Radio.</a></p>
               <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/B0007E1U62" target="_blank" rel="noopener noreferrer">Pollack, J.H. Croiset the Clairvoyant.</a></p>
               <p class="about-section-copy"><a class="reading-list-link" href="https://www.amazon.com/dp/1571743111" target="_blank" rel="noopener noreferrer">Warcollier, R. Mind to Mind.</a></p>
-            </div>
-          </section>
-        </section>
-
-        <section class="beginner-view beginner-view-hidden" data-view="video-list" aria-labelledby="videoListTitle">
-          <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-video-list>BACK</button>
-            <p class="beginner-kicker">ESP GYM</p>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
-          </div>
-
-          <h1 class="beginner-title" id="videoListTitle">Video List</h1>
-
-          <section class="settings-view-panel about-view-panel">
-            <div class="about-section">
-              <p class="about-section-copy">This page is a placeholder for future video recommendations.</p>
             </div>
           </section>
         </section>
@@ -708,7 +847,19 @@
 
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
-              <p class="about-section-copy">This page is a placeholder for future case studies.</p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Lost%20and%20Found%20Harp.pdf" target="_blank" rel="noopener noreferrer">Lost and Found Harp</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/A%20Fork%20at%20Forty%20Miles.pdf" target="_blank" rel="noopener noreferrer">Telepathy at Forty Miles</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/House%20in%20London.pdf" target="_blank" rel="noopener noreferrer">House in London</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Twin%20Brother%20Dies%20in%20Australia.pdf" target="_blank" rel="noopener noreferrer">Twin Brother's Death</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Croiset%20Finds%20Girl%20in%20Dike.pdf" target="_blank" rel="noopener noreferrer">Croiset Locates Girl</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Twin%20Sisters%20Share%20Bloody%20Nose.pdf" target="_blank" rel="noopener noreferrer">Twin Sisters' Bloody Nose</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Polygraph%20Needle%20Runs%20Off%20Paper.pdf" target="_blank" rel="noopener noreferrer">Physiological Response At a Distance</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Involuntary%20Hitchhiker.pdf" target="_blank" rel="noopener noreferrer">Involuntary Hitchhiker</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/The%20Dog%20Will%20Be%20Cured%20by%20Some%20Sort%20of%20Shock.pdf" target="_blank" rel="noopener noreferrer">The Dog Will Be Cured by Some Sort of Shock</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Pottery%20Jar%20From%20Ruins%20of%20Pompeii.pdf" target="_blank" rel="noopener noreferrer">Pottery Jar Fragment from Pompeii</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/Hurkos%20Puts%20Image%20on%20Film.pdf" target="_blank" rel="noopener noreferrer">An Image Put on Film</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/The%20Dream%20Happened%20Two%20Hours%20Earlier%20Than%20the%20Event.pdf" target="_blank" rel="noopener noreferrer">The Dream Happened Two Hours Earlier</a></p>
+              <p class="about-section-copy"><a class="reading-list-link" href="https://telepathyexperiment.com/doccases/The%20Magnetometer%20in%20the%20Basement.pdf" target="_blank" rel="noopener noreferrer">Magnetometer in the Basement</a></p>
             </div>
           </section>
         </section>
@@ -820,7 +971,7 @@
             <article class="role-card role-card-pro-only" data-role-card="remote-viewer" data-pro-only-card="remote-viewer" hidden>
               <div class="role-card-header">
                 <button class="role-card-toggle" type="button" aria-expanded="false">
-                  <span class="role-card-title">I Will Remote View</span>
+                  <span class="role-card-title" data-collapsed-title="I Will Remote View" data-expanded-title="Remote View">I Will Remote View</span>
                 </button>
                 <div class="role-card-level-stack" data-role-difficulty-stack="remote-viewer">
                   <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="remote-viewer" data-direction="up" aria-label="Increase remote viewer pair difficulty">▲</button>
@@ -841,7 +992,6 @@
                       </div>
                       <p class="role-lesson-preview" data-role-lesson-preview="remote-viewer"></p>
                       <div class="role-lesson-actions">
-                        <button class="role-note-link" type="button" data-role-lesson-more="remote-viewer">MORE</button>
                         <button class="role-note-link" type="button" data-role-lesson-next="remote-viewer">NEXT</button>
                         <button class="role-note-link" type="button" data-role-lesson-back="remote-viewer">BACK</button>
                         <button class="role-note-link" type="button" data-role-lesson-dismiss="remote-viewer">NOT AGAIN</button>
@@ -859,15 +1009,20 @@
                         <span>check here if this is a remote viewing display device</span>
                       </label>
                     </div>
-                    <input
-                      class="role-input"
-                      type="text"
-                      name="ownName"
-                      autocomplete="off"
-                      placeholder="your unique handle"
-                      spellcheck="false"
-                      data-remote-viewer-own
-                    >
+                    <div class="remote-viewer-own-row">
+                      <input
+                        class="role-input"
+                        type="text"
+                        name="ownName"
+                        autocomplete="off"
+                        placeholder="your unique handle"
+                        spellcheck="false"
+                        data-remote-viewer-own
+                      >
+                      <div class="role-course-launch">
+                        <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="remote-viewer">Online Course</button>
+                      </div>
+                    </div>
                   </label>
                   <label class="role-field role-field-partner">
                     <span class="role-field-label" data-remote-viewer-partner-label>Remote Device</span>
@@ -898,9 +1053,9 @@
 
         <section class="beginner-view beginner-view-hidden" data-view="clairvoyance-learn-more" aria-labelledby="clairvoyanceLearnMoreTitle">
           <div class="beginner-top-row clairvoyance-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-left" type="button" data-close-clairvoyance-learn-more>BACK</button>
+            <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-save-clairvoyance-learn-more>SAVE</button>
             <p class="beginner-kicker">ESP GYM</p>
-            <button class="beginner-top-button beginner-top-pill beginner-top-button-right" type="button" data-save-clairvoyance-learn-more>SAVE</button>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-clairvoyance-learn-more>BACK</button>
           </div>
 
           <h1 class="beginner-title" id="clairvoyanceLearnMoreTitle">Learn More</h1>
@@ -1132,10 +1287,9 @@
           </div>
 
           <h1 class="beginner-title" id="featureSetupTitle">Setup Website Features</h1>
-          <p class="beginner-subtitle">Optional device features can improve reporting, notifications, and convenience for this copy of ESP GYM.</p>
 
           <section class="settings-view-panel feature-setup-panel">
-            <div class="settings-view-note feature-setup-identifier" data-feature-setup-identifier>Current identifier: none selected.</div>
+            <div class="settings-view-note feature-setup-identifier" data-feature-setup-identifier>Current Unique Name: none selected.</div>
             <div class="settings-view-status" data-feature-setup-summary></div>
 
             <div class="feature-setup-grid">
@@ -1220,6 +1374,12 @@
           <h1 class="beginner-title" id="contactTitle">Contact ESP Gym</h1>
 
           <section class="settings-view-panel contact-view-panel">
+            <div class="contact-explainer-box">
+              <p class="contact-explainer-copy">ESP Gym is interested in your feedback and any contributions you might have to add value to the website. Is your telepathic skill improving? Selected emails may be added to the "Comments and Suggestions" page if you have checked, "Allow this email to be displayed on the User Comments page?"</p>
+            </div>
+
+            <p class="contact-from-line" data-contact-from-line hidden></p>
+
             <label class="settings-view-field">
               <span class="settings-view-label">Message</span>
               <textarea
@@ -1241,6 +1401,10 @@
                 data-contact-email
                 placeholder="name@example.com"
               >
+            </label>
+            <label class="contact-display-checkbox">
+              <input type="checkbox" data-contact-allow-display>
+              <span>Allow this email to be displayed on the User Comments page?</span>
             </label>
             <div class="settings-view-status" data-contact-status></div>
 
@@ -1333,6 +1497,25 @@
               <input type="checkbox" data-admin-easy-admin-enabled>
               <span>Enable Easy Admin</span>
             </label>
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-admin-learn-more-save-enabled>
+              <span>Enable SAVE for Learn More text</span>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Explore PRO test duration (seconds)</span>
+              <input
+                class="settings-view-input"
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                autocomplete="off"
+                spellcheck="false"
+                data-admin-explore-pro-test-duration
+                placeholder="0"
+              >
+            </label>
+            <p class="settings-view-hint">Test only. Leave blank or enter 0 to use the normal 14-day exploration period. A positive number shortens new Explore PRO trials to that many seconds.</p>
 
             <div class="settings-view-note" data-admin-storage-info></div>
             <div class="settings-view-status" data-admin-status></div>
@@ -1347,12 +1530,13 @@
               <button class="options-button settings-view-save" type="button" data-open-image-pair-admin>Add image pairs</button>
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
+              <button class="options-button settings-view-save" type="button" data-admin-email-list>Email List</button>
               <button class="options-button settings-view-save" type="button" data-admin-open-analyzer>Analyze Results</button>
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='BeginnerUserManual_preserved_20260625.html?v=20260626j'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260626j'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='BeginnerUserManual_preserved_20260625.html?v=20260629l'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260629l'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -1372,6 +1556,22 @@
             <div class="report-summary" data-admin-user-list-summary></div>
             <div class="report-status" data-admin-user-list-status></div>
             <pre class="report-definition-debug admin-user-list-output" data-admin-user-list-output hidden></pre>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="admin-email-list" aria-labelledby="adminEmailListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin-email-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="adminEmailListTitle">Email List</h1>
+
+          <section class="report-panel admin-user-list-panel">
+            <div class="report-summary" data-admin-email-list-summary></div>
+            <div class="report-status" data-admin-email-list-status></div>
+            <pre class="report-definition-debug admin-user-list-output" data-admin-email-list-output hidden></pre>
           </section>
         </section>
 
@@ -1758,8 +1958,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="vendor/leaflet/leaflet.js?v=20260626j"></script>
-  <script src="telepathybeginner.js?v=20260626j"></script>
+  <script src="vendor/leaflet/leaflet.js?v=20260629l"></script>
+  <script src="telepathybeginner.js?v=20260629l"></script>
 </body>
 </html>
 

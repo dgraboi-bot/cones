@@ -1,6 +1,9 @@
-const CACHE_NAME = "telepathybeginner-v20260626j";
-const APP_VERSION = "20260626j";
+const CACHE_NAME = "telepathybeginner-v20260628o";
+const APP_VERSION = "20260628o";
+const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
+  "./",
+  APP_LAUNCH_URL,
   `./telepathybeginner.html?v=${APP_VERSION}`,
   `./telepathybeginner.css?v=${APP_VERSION}`,
   `./telepathybeginner.js?v=${APP_VERSION}`,
@@ -70,7 +73,7 @@ self.addEventListener("fetch", (event) => {
           if (cachedNavigation) {
             return cachedNavigation;
           }
-          return caches.match(`./telepathybeginner.html?v=${APP_VERSION}`);
+          return caches.match(APP_LAUNCH_URL) || caches.match(`./telepathybeginner.html?v=${APP_VERSION}`);
         })
     );
     return;
@@ -111,7 +114,7 @@ self.addEventListener("push", (event) => {
 
   const title = String(payload?.title || "ESP GYM message").trim() || "ESP GYM message";
   const body = String(payload?.body || "").trim();
-  const url = String(payload?.url || `./telepathybeginner.html?v=${APP_VERSION}`).trim() || `./telepathybeginner.html?v=${APP_VERSION}`;
+  const url = String(payload?.url || APP_LAUNCH_URL).trim() || APP_LAUNCH_URL;
   const tag = String(payload?.tag || "esp-gym-message").trim() || "esp-gym-message";
 
   event.waitUntil(
@@ -124,8 +127,9 @@ self.addEventListener("push", (event) => {
       const runtimeClientOpen = clientList.some((client) => {
         try {
           const clientUrl = new URL(client.url);
-          const path = clientUrl.pathname.toLowerCase();
-          return path.endsWith("/sender.html") || path.endsWith("/receiver.html");
+          const scopeUrl = new URL(self.registration.scope);
+          const scopePath = scopeUrl.pathname.endsWith("/") ? scopeUrl.pathname : `${scopeUrl.pathname}/`;
+          return clientUrl.origin === self.location.origin && clientUrl.pathname.startsWith(scopePath);
         } catch (_) {
           return false;
         }
@@ -152,7 +156,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = String(event.notification?.data?.url || `./telepathybeginner.html?v=${APP_VERSION}`).trim() || `./telepathybeginner.html?v=${APP_VERSION}`;
+  const targetUrl = String(event.notification?.data?.url || APP_LAUNCH_URL).trim() || APP_LAUNCH_URL;
 
   event.waitUntil((async () => {
     const clientList = await self.clients.matchAll({

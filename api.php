@@ -16,10 +16,14 @@ $stateDir = $privateRoot . DIRECTORY_SEPARATOR . 'data';
 $backupDir = $privateRoot . DIRECTORY_SEPARATOR . 'backup';
 $logsDir = $privateRoot . DIRECTORY_SEPARATOR . 'logs';
 $configDir = $privateRoot . DIRECTORY_SEPARATOR . 'config';
+$contentDir = $privateRoot . DIRECTORY_SEPARATOR . 'content';
 $pairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'pairs';
+$simulationPairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'simulation_pairs';
 $webPushConfigFile = $configDir . DIRECTORY_SEPARATOR . 'webpush.json';
 $publicImagePairsDir = __DIR__ . DIRECTORY_SEPARATOR . 'imagepairs';
 $imagePairsManifestFile = $publicImagePairsDir . DIRECTORY_SEPARATOR . 'pairs.json';
+$learnMoreContentFile = $contentDir . DIRECTORY_SEPARATOR . 'learn-more-main.txt';
+$clairvoyanceLearnMoreContentFile = $contentDir . DIRECTORY_SEPARATOR . 'learn-more-clairvoyance.txt';
 $stateFile = $stateDir . DIRECTORY_SEPARATOR . 'session-state.json';
 $debugLogFile = $stateDir . DIRECTORY_SEPARATOR . 'debug-log.txt';
 $safetyLogFile = $logsDir . DIRECTORY_SEPARATOR . 'safety-log.txt';
@@ -37,9 +41,90 @@ $safetyLogMaxBytes = 51200;
 $handleChangeCooldownMs = 7 * 24 * 60 * 60 * 1000;
 $maxHandleSubstantiveChanges = 2;
 $maxHandleLifetimeClaims = 3;
+$exploreProTrialDurationMs = 14 * 24 * 60 * 60 * 1000;
+$exploreProVerificationTtlMs = 15 * 60 * 1000;
+$exploreProResendCooldownMs = 30 * 1000;
 $nowMs = (int) floor(microtime(true) * 1000);
 
-foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $pairsDir, $publicImagePairsDir] as $directory) {
+if (!is_dir($simulationPairsDir)) {
+    @mkdir($simulationPairsDir, 0775, true);
+}
+
+$defaultLearnMoreMainContent = <<<'TEXT'
+INFORMATION ABOUT TELEPATHY
+-----------------------------
+More than a simple telepathy workout, Telepathy Beginner functions as an online course in telepathy and ESP sensitivity training. The more you know about this skill, the more effective you can become in using it. The purpose of this section is to help users understand what telepathy is, how practice is structured, and what mental habits seem to strengthen performance.
+
+[*] DISTANCE DOES NOT MATTER
+---------------------------
+Telepathic experience appears to be insensitive to distance. Your experience as a receiver can be essentially the same whether the sender is next to you in the same room, across the country, or far away in another part of the world. This is one reason the app can be used with partners anywhere on earth, as long as both partners can connect to the Internet and enter one another's identifiers correctly.
+
+[sr] WHY PRACTICE MATTERS
+------------------------
+Telepathy, if it is real, is subtle. Subtle skills are easy to miss without repetition, structure, and feedback. Practice gives the user repeated contact with a narrowly defined task, and immediate scoring allows users to see whether impressions are becoming more accurate over time or whether apparent success was only chance performance. The point is not just belief. The point is disciplined observation.
+
+[s] WHAT THE SENDER LEARNS
+-------------------------
+The sender is not merely "showing a picture." The sender is learning to stabilize attention, hold a target steadily in awareness, and keep returning to what is actually seen instead of drifting into analysis or fantasy. The sender strengthens the session most by quietly maintaining the real target rather than straining or mentally shouting.
+
+[r] WHAT THE RECEIVER LEARNS
+---------------------------
+The receiver is learning to notice faint impressions, trust the first clear difference that appears, and remember what briefly flashes into awareness. Often the first useful information is structural rather than semantic: one thing or many, vertical or horizontal, sparse or crowded, simple or complex. The receiver improves by recording what actually appears before analysis washes it away.
+
+[sr] WHY THE LEVELS ARE STRUCTURED
+---------------------------------
+The levels are designed to move from coarse discrimination toward more refined discrimination. In early work, the task is intentionally simple so that users can learn to detect a reliable difference. Later levels ask for more exact perception and memory. This helps determine whether a pair is merely sensing that "something is different" or is actually transferring more detailed visual information.
+
+[sr] THE APP AS AN ONLINE COURSE
+--------------------------------
+ESP GYM is meant to be used as a course of development, not merely as a one-time novelty. A good approach is to work repeatedly with the same partner, review the reports, observe whether confidence and speed relate to accuracy, and gradually progress through the levels. In this way the app becomes a guided training environment in which the user learns from both direct experience and recorded results.
+
+[sr] OPEN-MINDEDNESS AND PERSONAL CHANGE
+---------------------------------------
+These exercises promote increased awareness of subtle impressions, strengthened ability to perceive delicate mental signals, improve memory for fleeting inner events, and potentially strengthen intuitive abilities. They promote greater open-mindedness by encouraging users to explore experiences they may once have thought impossible.
+
+[v] REMOTE VIEWING AS A NEXT STEP
+--------------------------------
+Remote viewing asks for a related but more demanding skill. Instead of tuning into a live sender, the user attempts to perceive what is happening visually in another place or at another device. For many users it is easier to begin with partner-based telepathy and later experiment with remote viewing, because partner work gives clearer structure, stronger feedback, and more opportunity to build trust in subtle impressions.
+TEXT;
+
+$defaultLearnMoreClairvoyanceContent = <<<'TEXT'
+CLAIRVOYANCE / REMOTE VIEWING
+-----------------------------
+This page serves as a study reader for the clairvoyance and remote-viewing side of ESP GYM. Some users find it helpful to read historical case material while training, because repeated exposure to well-known cases makes the subject feel more concrete and less abstract. The items below are not presented as final proof of anything. They are presented as study material that may help clarify what kinds of experiences have been reported.
+
+[*] CROISET LOCATES GIRL IN DIKE
+-------------------------------
+In this case, Gerard Croiset was consulted after a search failed to find a drowned child. He reportedly described where the body would be found in relation to visible landmarks near a dike, and divers then recovered the child in the described area. Whether one interprets such a case cautiously or strongly, it is the kind of report that has kept interest in clairvoyance alive for decades.
+[Croiset Finds Girl in Dike](https://telepathyexperiment.com/doccases/Croiset%20Finds%20Girl%20in%20Dike.pdf)
+
+[*] LOST AND FOUND HARP
+----------------------
+This case has been preserved in ESP GYM as reading material for study in anomalous knowing and object-location themes. The linked PDF is brief, but it belongs in the collection because it points to the broader question of whether information about a distant or missing object can sometimes be accessed in unusual ways.
+[Lost and Found Harp](https://telepathyexperiment.com/doccases/Lost%20and%20Found%20Harp.pdf)
+
+[*] FURTHER CASE STUDY READING
+-----------------------------
+The following linked readings can be used as a small study sequence for users interested in clairvoyance, spontaneous telepathy, crisis cases, distant physiological response, object reading, and other psi-related claims:
+
+[Telepathy at Forty Miles](https://telepathyexperiment.com/doccases/A%20Fork%20at%20Forty%20Miles.pdf)
+[House in London](https://telepathyexperiment.com/doccases/House%20in%20London.pdf)
+[Twin Brother's Death](https://telepathyexperiment.com/doccases/Twin%20Brother%20Dies%20in%20Australia.pdf)
+[Twin Sisters' Bloody Nose](https://telepathyexperiment.com/doccases/Twin%20Sisters%20Share%20Bloody%20Nose.pdf)
+[Physiological Response At a Distance](https://telepathyexperiment.com/doccases/Polygraph%20Needle%20Runs%20Off%20Paper.pdf)
+[Involuntary Hitchhiker](https://telepathyexperiment.com/doccases/Involuntary%20Hitchhiker.pdf)
+[The Dog Will Be Cured by Some Sort of Shock](https://telepathyexperiment.com/doccases/The%20Dog%20Will%20Be%20Cured%20by%20Some%20Sort%20of%20Shock.pdf)
+[Pottery Jar Fragment from Pompeii](https://telepathyexperiment.com/doccases/Pottery%20Jar%20From%20Ruins%20of%20Pompeii.pdf)
+[An Image Put on Film](https://telepathyexperiment.com/doccases/Hurkos%20Puts%20Image%20on%20Film.pdf)
+[The Dream Happened Two Hours Earlier](https://telepathyexperiment.com/doccases/The%20Dream%20Happened%20Two%20Hours%20Earlier%20Than%20the%20Event.pdf)
+[Magnetometer in the Basement](https://telepathyexperiment.com/doccases/The%20Magnetometer%20in%20the%20Basement.pdf)
+
+[*] HOW TO USE THESE READINGS
+----------------------------
+The best use of this material is not to read it once and forget it, but to let it accompany practice. Read one case, reflect on what kind of information transfer it seems to suggest, then return to the app and train. Over time, the cases, the reports, and your own practice data begin to inform one another. That is the spirit in which this section is provided.
+TEXT;
+
+foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $contentDir, $pairsDir, $publicImagePairsDir] as $directory) {
     if (!is_dir($directory)) {
         mkdir($directory, 0777, true);
     }
@@ -284,6 +369,82 @@ function ensure_invitee_state(array &$state): void
     }
 }
 
+function ensure_email_list_state(array &$state): void
+{
+    if (!is_array($state['email_list'] ?? null)) {
+        $state['email_list'] = [];
+    }
+}
+
+function normalize_email_list_type($value): string
+{
+    $type = strtolower(trim((string) $value));
+    return $type === 'updates' ? 'updates' : '';
+}
+
+function validate_email_list_name_value($value, string $field = 'name'): string
+{
+    $text = trim(preg_replace('/\s+/', ' ', (string) $value) ?? '');
+    if (mb_strlen($text) > 160) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+    return $text;
+}
+
+function normalize_email_list_record($email, array $record): array
+{
+    $cleanEmail = strtolower(trim((string) ($record['email'] ?? $email)));
+    return [
+        'name' => validate_email_list_name_value($record['name'] ?? ''),
+        'email' => validate_invitee_email_value($cleanEmail, 'email'),
+        'type' => normalize_email_list_type($record['type'] ?? 'updates') ?: 'updates',
+        'acquired_ms' => isset($record['acquired_ms']) && is_numeric($record['acquired_ms']) ? (int) $record['acquired_ms'] : 0,
+        'updated_ms' => isset($record['updated_ms']) && is_numeric($record['updated_ms']) ? (int) $record['updated_ms'] : 0
+    ];
+}
+
+function save_email_list_record(array &$state, string $email, string $type, string $name, int $nowMs): array
+{
+    ensure_email_list_state($state);
+    $cleanEmail = strtolower(trim($email));
+    $validatedEmail = validate_invitee_email_value($cleanEmail, 'email');
+    $validatedType = normalize_email_list_type($type);
+    if ($validatedType === '') {
+        throw new RuntimeException('email list type is invalid.');
+    }
+    $validatedName = validate_email_list_name_value($name);
+    $existing = is_array($state['email_list'][$validatedEmail] ?? null) ? $state['email_list'][$validatedEmail] : [];
+    $record = [
+        'name' => $validatedName !== '' ? $validatedName : validate_email_list_name_value($existing['name'] ?? ''),
+        'email' => $validatedEmail,
+        'type' => $validatedType,
+        'acquired_ms' => isset($existing['acquired_ms']) && is_numeric($existing['acquired_ms']) ? (int) $existing['acquired_ms'] : $nowMs,
+        'updated_ms' => $nowMs
+    ];
+    $state['email_list'][$validatedEmail] = $record;
+    return normalize_email_list_record($validatedEmail, $record);
+}
+
+function list_email_list_records(array $state): array
+{
+    ensure_email_list_state($state);
+    $records = [];
+    foreach ($state['email_list'] as $email => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        try {
+            $records[] = normalize_email_list_record((string) $email, $record);
+        } catch (Throwable $exception) {
+            continue;
+        }
+    }
+    usort($records, static function (array $a, array $b): int {
+        return ((int) ($b['acquired_ms'] ?? 0)) <=> ((int) ($a['acquired_ms'] ?? 0));
+    });
+    return $records;
+}
+
 function validate_invitee_full_name_value($value, string $field = 'full_name'): string
 {
     $text = trim(preg_replace('/\s+/', ' ', (string) $value) ?? '');
@@ -479,6 +640,327 @@ function delete_invitee_record(array &$state, string $pairsDir, string $identifi
     ];
 }
 
+function ensure_explore_pro_state(array &$state): void
+{
+    if (!is_array($state['explore_pro_verifications'] ?? null)) {
+        $state['explore_pro_verifications'] = [];
+    }
+    if (!is_array($state['explore_pro_trials'] ?? null)) {
+        $state['explore_pro_trials'] = [];
+    }
+    if (!array_key_exists('explore_pro_test_duration_seconds', $state)) {
+        $state['explore_pro_test_duration_seconds'] = 0;
+    }
+}
+
+function get_explore_pro_trial_duration_ms(array $state): int
+{
+    global $exploreProTrialDurationMs;
+
+    $defaultDurationMs = max(1000, (int) $exploreProTrialDurationMs);
+    $overrideSeconds = max(0, (int) ($state['explore_pro_test_duration_seconds'] ?? 0));
+    if ($overrideSeconds <= 0) {
+        return $defaultDurationMs;
+    }
+    $overrideMs = $overrideSeconds * 1000;
+    return min($defaultDurationMs, max(1000, $overrideMs));
+}
+
+function normalize_explore_pro_email(string $email): string
+{
+    return strtolower(trim($email));
+}
+
+function get_explore_pro_email_key(string $email): string
+{
+    return normalize_explore_pro_email($email);
+}
+
+function mask_email_for_display(string $email): string
+{
+    $normalized = normalize_explore_pro_email($email);
+    if ($normalized === '' || strpos($normalized, '@') === false) {
+        return $email;
+    }
+    [$local, $domain] = explode('@', $normalized, 2);
+    if ($local === '') {
+        return $normalized;
+    }
+    if (strlen($local) <= 2) {
+        return substr($local, 0, 1) . str_repeat('*', max(1, strlen($local) - 1)) . '@' . $domain;
+    }
+    return substr($local, 0, 1) . str_repeat('*', max(1, strlen($local) - 2)) . substr($local, -1) . '@' . $domain;
+}
+
+function generate_explore_pro_verification_code(int $length = 5): string
+{
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $targetLength = max(5, min(8, $length));
+    $result = '';
+    for ($index = 0; $index < $targetLength; $index += 1) {
+        $result .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+    return $result;
+}
+
+function normalize_explore_pro_trial_record(array $record): array
+{
+    $email = normalize_explore_pro_email((string) ($record['email'] ?? ''));
+    $identifier = trim((string) ($record['identifier'] ?? ''));
+    $status = strtolower(trim((string) ($record['status'] ?? 'active')));
+    if (!in_array($status, ['active', 'expired'], true)) {
+        $status = 'active';
+    }
+
+    return [
+        'email' => $email,
+        'identifier' => $identifier,
+        'status' => $status,
+        'created_ms' => isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0,
+        'verified_ms' => isset($record['verified_ms']) && is_numeric($record['verified_ms']) ? (int) $record['verified_ms'] : 0,
+        'started_ms' => isset($record['started_ms']) && is_numeric($record['started_ms']) ? (int) $record['started_ms'] : 0,
+        'expires_ms' => isset($record['expires_ms']) && is_numeric($record['expires_ms']) ? (int) $record['expires_ms'] : 0,
+        'expired_ms' => isset($record['expired_ms']) && is_numeric($record['expired_ms']) ? (int) $record['expired_ms'] : 0
+    ];
+}
+
+function normalize_explore_pro_verification_record(array $record): array
+{
+    $email = normalize_explore_pro_email((string) ($record['email'] ?? ''));
+    return [
+        'email' => $email,
+        'code' => strtoupper(trim((string) ($record['code'] ?? ''))),
+        'created_ms' => isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0,
+        'expires_ms' => isset($record['expires_ms']) && is_numeric($record['expires_ms']) ? (int) $record['expires_ms'] : 0,
+        'last_sent_ms' => isset($record['last_sent_ms']) && is_numeric($record['last_sent_ms']) ? (int) $record['last_sent_ms'] : 0,
+        'send_count' => isset($record['send_count']) && is_numeric($record['send_count']) ? max(0, (int) $record['send_count']) : 0
+    ];
+}
+
+function get_explore_pro_expired_message(): string
+{
+    return 'Your ESP PRO exploration period has ended, and you are now using the free Telepathy Beginner. Your progress has been saved. If you found ESP PRO useful, click here to subscribe to ESP PRO and continue where you left off for $2.99/month or $25/year.';
+}
+
+function expire_explore_pro_trial_by_email(array &$state, string $emailKey, int $nowMs): ?array
+{
+    ensure_explore_pro_state($state);
+    $existing = is_array($state['explore_pro_trials'][$emailKey] ?? null) ? $state['explore_pro_trials'][$emailKey] : null;
+    if (!$existing) {
+        return null;
+    }
+
+    $record = normalize_explore_pro_trial_record($existing);
+    if ($record['status'] !== 'expired') {
+        $record['status'] = 'expired';
+        $record['expired_ms'] = $record['expired_ms'] > 0 ? $record['expired_ms'] : $nowMs;
+    }
+    $state['explore_pro_trials'][$emailKey] = $record;
+    if ($record['identifier'] !== '') {
+        assign_user_type_for_identifier($state, $record['identifier'], 'standard', $nowMs);
+    }
+    return $record;
+}
+
+function get_explore_pro_trial_status_for_identifier(array &$state, string $identifier, int $nowMs): ?array
+{
+    ensure_explore_pro_state($state);
+    $cleanIdentifier = trim((string) $identifier);
+    if ($cleanIdentifier === '') {
+        return null;
+    }
+
+    $status = get_identifier_status($state, $cleanIdentifier);
+    $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+    $preferredKey = normalize_identifier_for_lookup($preferredIdentifier);
+    if ($preferredKey === '') {
+        return null;
+    }
+
+    foreach ($state['explore_pro_trials'] as $emailKey => $rawRecord) {
+        if (!is_array($rawRecord)) {
+            continue;
+        }
+        $record = normalize_explore_pro_trial_record($rawRecord);
+        $recordKey = normalize_identifier_for_lookup($record['identifier']);
+        if ($recordKey === '' || $recordKey !== $preferredKey) {
+            continue;
+        }
+        if ($record['status'] !== 'expired' && $record['expires_ms'] > 0 && $record['expires_ms'] <= $nowMs) {
+            $record = expire_explore_pro_trial_by_email($state, (string) $emailKey, $nowMs) ?? $record;
+        } else {
+            $state['explore_pro_trials'][$emailKey] = $record;
+        }
+        return [
+            'identifier' => $record['identifier'],
+            'email' => $record['email'],
+            'email_masked' => mask_email_for_display($record['email']),
+            'started_ms' => $record['started_ms'],
+            'expires_ms' => $record['expires_ms'],
+            'expired_ms' => $record['expired_ms'],
+            'phase' => $record['status'] === 'expired' ? 'expired' : 'active',
+            'expired_message' => $record['status'] === 'expired' ? get_explore_pro_expired_message() : ''
+        ];
+    }
+
+    return null;
+}
+
+function migrate_explore_pro_trial_identifier(array &$state, string $oldIdentifier, string $newIdentifier): void
+{
+    ensure_explore_pro_state($state);
+    $oldKey = normalize_identifier_for_lookup($oldIdentifier);
+    $newClean = trim((string) $newIdentifier);
+    $newKey = normalize_identifier_for_lookup($newClean);
+    if ($oldKey === '' || $newKey === '' || $oldKey === $newKey) {
+        return;
+    }
+
+    foreach ($state['explore_pro_trials'] as $emailKey => $rawRecord) {
+        if (!is_array($rawRecord)) {
+            continue;
+        }
+        $record = normalize_explore_pro_trial_record($rawRecord);
+        if (normalize_identifier_for_lookup($record['identifier']) !== $oldKey) {
+            continue;
+        }
+        $record['identifier'] = $newClean;
+        $state['explore_pro_trials'][$emailKey] = $record;
+    }
+}
+
+function send_explore_pro_verification_code(array &$state, string $email, int $nowMs): array
+{
+    global $exploreProVerificationTtlMs, $exploreProResendCooldownMs;
+
+    ensure_explore_pro_state($state);
+    $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    $emailKey = get_explore_pro_email_key($cleanEmail);
+    $existingTrial = is_array($state['explore_pro_trials'][$emailKey] ?? null)
+        ? normalize_explore_pro_trial_record($state['explore_pro_trials'][$emailKey])
+        : null;
+
+    if ($existingTrial) {
+        if ($existingTrial['status'] !== 'expired' && $existingTrial['expires_ms'] > 0 && $existingTrial['expires_ms'] <= $nowMs) {
+            $existingTrial = expire_explore_pro_trial_by_email($state, $emailKey, $nowMs);
+        }
+        if (($existingTrial['status'] ?? '') === 'expired') {
+            throw new RuntimeException(get_explore_pro_expired_message());
+        }
+    }
+
+    $existingVerification = is_array($state['explore_pro_verifications'][$emailKey] ?? null)
+        ? normalize_explore_pro_verification_record($state['explore_pro_verifications'][$emailKey])
+        : null;
+    if ($existingVerification && $existingVerification['last_sent_ms'] > 0 && ($nowMs - $existingVerification['last_sent_ms']) < $exploreProResendCooldownMs) {
+        throw new RuntimeException('Please wait a little before requesting another verification code.');
+    }
+
+    $code = generate_explore_pro_verification_code(5);
+    $verification = [
+        'email' => $cleanEmail,
+        'code' => $code,
+        'created_ms' => $existingVerification['created_ms'] > 0 ? $existingVerification['created_ms'] : $nowMs,
+        'expires_ms' => $nowMs + $exploreProVerificationTtlMs,
+        'last_sent_ms' => $nowMs,
+        'send_count' => ($existingVerification['send_count'] ?? 0) + 1
+    ];
+
+    $subject = 'ESP PRO verification code';
+    $body =
+        "ESP GYM\r\n\r\n" .
+        "Your ESP PRO verification code is: {$code}\r\n\r\n" .
+        "Enter this 5-character code in ESP GYM to begin your free 14-day ESP PRO exploration.\r\n\r\n" .
+        "This code expires in 15 minutes.\r\n";
+
+    sendAppMail($cleanEmail, '', $subject, $body);
+    $state['explore_pro_verifications'][$emailKey] = $verification;
+
+    return [
+        'email' => $cleanEmail,
+        'email_masked' => mask_email_for_display($cleanEmail),
+        'expires_ms' => $verification['expires_ms'],
+        'send_count' => $verification['send_count']
+    ];
+}
+
+function begin_explore_pro_trial_from_code(array &$state, string $pairsDir, string $email, string $code, int $nowMs): array
+{
+    ensure_explore_pro_state($state);
+    $trialDurationMs = get_explore_pro_trial_duration_ms($state);
+    $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    $emailKey = get_explore_pro_email_key($cleanEmail);
+    $verification = is_array($state['explore_pro_verifications'][$emailKey] ?? null)
+        ? normalize_explore_pro_verification_record($state['explore_pro_verifications'][$emailKey])
+        : null;
+
+    if (!$verification || $verification['email'] === '') {
+        throw new RuntimeException('Please request a verification code first.');
+    }
+    if ($verification['expires_ms'] > 0 && $verification['expires_ms'] < $nowMs) {
+        unset($state['explore_pro_verifications'][$emailKey]);
+        throw new RuntimeException('That verification code has expired. Please request a new code.');
+    }
+
+    $normalizedCode = strtoupper(trim((string) $code));
+    if ($normalizedCode === '' || preg_match('/^[A-Z2-9]{5}$/', $normalizedCode) !== 1) {
+        throw new RuntimeException('Please enter the 5-character verification code.');
+    }
+    if (!hash_equals($verification['code'], $normalizedCode)) {
+        throw new RuntimeException('That verification code is invalid. Please try again.');
+    }
+
+    $trial = is_array($state['explore_pro_trials'][$emailKey] ?? null)
+        ? normalize_explore_pro_trial_record($state['explore_pro_trials'][$emailKey])
+        : null;
+    if ($trial && $trial['status'] !== 'expired' && $trial['expires_ms'] > 0 && $trial['expires_ms'] <= $nowMs) {
+        $trial = expire_explore_pro_trial_by_email($state, $emailKey, $nowMs);
+    }
+    if ($trial && ($trial['status'] ?? '') === 'expired') {
+        unset($state['explore_pro_verifications'][$emailKey]);
+        throw new RuntimeException(get_explore_pro_expired_message());
+    }
+
+    if (!$trial || $trial['identifier'] === '') {
+        $temporaryIdentity = create_temporary_identifier($state, $pairsDir, 'pro', $nowMs);
+        $trial = [
+            'email' => $cleanEmail,
+            'identifier' => (string) ($temporaryIdentity['identifier'] ?? ''),
+            'status' => 'active',
+            'created_ms' => $nowMs,
+            'verified_ms' => $nowMs,
+            'started_ms' => $nowMs,
+            'expires_ms' => $nowMs + $trialDurationMs,
+            'expired_ms' => 0
+        ];
+    } else {
+        $trial['email'] = $cleanEmail;
+        $trial['status'] = 'active';
+        $trial['verified_ms'] = $nowMs;
+        if ((int) ($trial['started_ms'] ?? 0) <= 0) {
+            $trial['started_ms'] = $nowMs;
+        }
+        if ((int) ($trial['expires_ms'] ?? 0) <= 0) {
+            $trial['expires_ms'] = ((int) $trial['started_ms']) + $trialDurationMs;
+        }
+        assign_user_type_for_identifier($state, $trial['identifier'], 'pro', $nowMs);
+    }
+
+    $trial = normalize_explore_pro_trial_record($trial);
+    $state['explore_pro_trials'][$emailKey] = $trial;
+    unset($state['explore_pro_verifications'][$emailKey]);
+
+    return [
+        'identifier' => $trial['identifier'],
+        'user_type' => 'pro',
+        'email' => $cleanEmail,
+        'email_masked' => mask_email_for_display($cleanEmail),
+        'started_ms' => $trial['started_ms'],
+        'expires_ms' => $trial['expires_ms'],
+        'phase' => 'active'
+    ];
+}
+
 function render_subscription_email_template(string $templateBody, array $variables): string
 {
     $replacements = [];
@@ -507,6 +989,46 @@ function read_subscription_email_log(string $path): array
         'size_formatted' => format_bytes(is_file($path) ? max(0, (int) filesize($path)) : 0),
         'content' => $content
     ];
+}
+
+function normalize_learn_more_content_key($value): string
+{
+    $key = trim((string) $value);
+    return match ($key) {
+        'main' => 'main',
+        'clairvoyance' => 'clairvoyance',
+        default => ''
+    };
+}
+
+function get_learn_more_content_path(string $contentKey): string
+{
+    global $learnMoreContentFile, $clairvoyanceLearnMoreContentFile;
+
+    return match ($contentKey) {
+        'main' => $learnMoreContentFile,
+        'clairvoyance' => $clairvoyanceLearnMoreContentFile,
+        default => ''
+    };
+}
+
+function read_learn_more_content_file(string $path): array
+{
+    $exists = is_file($path);
+    $content = $exists ? (string) file_get_contents($path) : '';
+    return [
+        'available' => $exists,
+        'content' => $content,
+        'path' => $path
+    ];
+}
+
+function write_learn_more_content_file(string $path, string $content): void
+{
+    $result = @file_put_contents($path, $content, LOCK_EX);
+    if ($result === false) {
+        throw new RuntimeException('Unable to write Learn More content.');
+    }
 }
 
 function collect_known_user_identifiers(array $state): array
@@ -1427,6 +1949,14 @@ function build_contact_message_body(string $message, array $metadata): string
     $senderEmail = trim((string) ($metadata['sender_email'] ?? ''));
     $lines[] = 'Sender\'s email: ' . ($senderEmail !== '' ? $senderEmail : 'not provided');
 
+    $currentUserIdentifier = trim((string) ($metadata['current_user_identifier'] ?? ''));
+    if ($currentUserIdentifier !== '') {
+        $lines[] = 'Current user identifier: ' . $currentUserIdentifier;
+    }
+
+    $allowDisplay = !empty($metadata['allow_display_on_comments_page']);
+    $lines[] = 'Allow email on User Comments page: ' . ($allowDisplay ? 'yes' : 'no');
+
     $buildVersion = trim((string) ($metadata['build_version'] ?? ''));
     if ($buildVersion !== '') {
         $lines[] = 'Build version: ' . $buildVersion;
@@ -2284,6 +2814,7 @@ function default_launcher_profile_state(): array
         'own_email' => '',
         'preferred_handle' => '',
         'current_partner' => '',
+        'difficulty_level' => '1',
         'partner_history' => [],
         'deleted_partners' => [],
         'updated_ms' => 0
@@ -3037,11 +3568,15 @@ function build_absolute_launcher_url(array $params = []): string
 
     $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
     if ($host === '') {
-        $host = $isWindows ? 'localhost' : 'telepathyexperiment.com';
+        $host = $isWindows ? 'localhost' : 'espgym.com';
     }
 
     $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/cones/api.php'));
     $baseDir = rtrim(dirname($scriptName), '/');
+    if (!array_key_exists('open', $params) || trim((string) $params['open']) === '') {
+        $params['open'] = 'launcher';
+    }
+
     $baseUrl = $scheme . '://' . $host . ($baseDir !== '' ? $baseDir : '') . '/telepathybeginner.html';
 
     if (!$params) {
@@ -3735,8 +4270,13 @@ function normalize_user_type($value): string
     return $type === 'pro' ? 'pro' : 'standard';
 }
 
-function get_user_type_for_identifier(array $state, string $identifier): string
+function get_user_type_for_identifier(array &$state, string $identifier): string
 {
+    $trialStatus = get_explore_pro_trial_status_for_identifier($state, $identifier, (int) floor(microtime(true) * 1000));
+    if (is_array($trialStatus) && ($trialStatus['phase'] ?? '') === 'active') {
+        return 'pro';
+    }
+
     $status = get_identifier_status($state, $identifier);
     $preferred = trim((string) ($status['preferred_identifier'] ?? $identifier));
     $lookupKey = get_canonical_identifier_key($state, $preferred);
@@ -3757,6 +4297,9 @@ function participant_identifier_exists(array $state, string $pairsDir, string $i
 {
     $cleanIdentifier = trim((string) $identifier);
     $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+    if ($lookup === 'robot') {
+        return true;
+    }
     if ($lookup === '') {
         return false;
     }
@@ -4298,6 +4841,7 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
 
     migrate_identifier_history_in_pair_storage($pairsDir, $oldHandle, $newIdentifier);
     migrate_identifier_in_partner_messaging_state($state, $oldHandle, $newIdentifier);
+    migrate_explore_pro_trial_identifier($state, $oldHandle, $newIdentifier);
 
     return [
         'updated' => true,
@@ -4452,12 +4996,18 @@ function validate_selected_pair_payload($value, string $field = 'selected_pair')
         throw new RuntimeException($field . ' must be an object.');
     }
 
-    require_allowed_keys($value, ['receiver_name', 'sender_name', 'session_code'], $field);
+    require_allowed_keys($value, ['receiver_name', 'sender_name', 'session_code', 'source'], $field);
+
+    $source = trim((string) ($value['source'] ?? ''));
+    if ($source !== '' && $source !== 'real' && $source !== 'simulation') {
+        throw new RuntimeException($field . '.source must be real or simulation.');
+    }
 
     return [
         'receiver_name' => validate_participant_identifier_string($value['receiver_name'] ?? '', $field . '.receiver_name', true),
         'sender_name' => validate_participant_identifier_string($value['sender_name'] ?? '', $field . '.sender_name', true),
-        'session_code' => validate_session_code_value($value['session_code'] ?? '', $field . '.session_code', false)
+        'session_code' => validate_session_code_value($value['session_code'] ?? '', $field . '.session_code', false),
+        'source' => $source !== '' ? $source : 'real'
     ];
 }
 
@@ -4467,10 +5017,11 @@ function validate_launcher_profile_payload($value, string $field = 'launcher_pro
         throw new RuntimeException($field . ' must be an object.');
     }
 
-    require_allowed_keys($value, ['current_partner', 'partner_history', 'deleted_partners'], $field);
+    require_allowed_keys($value, ['current_partner', 'difficulty_level', 'partner_history', 'deleted_partners'], $field);
 
     return [
         'current_partner' => validate_participant_identifier_string($value['current_partner'] ?? '', $field . '.current_partner', false),
+        'difficulty_level' => normalize_difficulty_level($value['difficulty_level'] ?? '1'),
         'partner_history' => validate_identifier_list($value['partner_history'] ?? [], $field . '.partner_history'),
         'deleted_partners' => validate_identifier_list($value['deleted_partners'] ?? [], $field . '.deleted_partners')
     ];
@@ -4618,6 +5169,7 @@ function get_launcher_profile_entry(array $state, string $role, string $ownEmail
         'own_email' => trim((string) ($entry['own_email'] ?? $ownEmail)),
         'preferred_handle' => trim((string) ($entry['preferred_handle'] ?? '')),
         'current_partner' => trim((string) ($entry['current_partner'] ?? '')),
+        'difficulty_level' => normalize_difficulty_level($entry['difficulty_level'] ?? '1'),
         'partner_history' => sanitize_string_list(is_array($entry['partner_history'] ?? null) ? $entry['partner_history'] : []),
         'deleted_partners' => sanitize_string_list(is_array($entry['deleted_partners'] ?? null) ? $entry['deleted_partners'] : []),
         'updated_ms' => isset($entry['updated_ms']) && is_numeric($entry['updated_ms']) ? (int) $entry['updated_ms'] : 0
@@ -4657,6 +5209,7 @@ function set_launcher_profile_entry(array &$state, string $role, string $ownEmai
         'own_email' => trim((string) (get_identifier_status($state, $ownEmail)['preferred_identifier'] ?? $ownEmail)),
         'preferred_handle' => trim((string) (get_identifier_status($state, $ownEmail)['preferred_handle'] ?? '')),
         'current_partner' => $currentPartner,
+        'difficulty_level' => normalize_difficulty_level($entry['difficulty_level'] ?? '1'),
         'partner_history' => array_values($partnerHistory),
         'deleted_partners' => array_values($deletedPartners),
         'updated_ms' => $nowMs
@@ -4743,7 +5296,19 @@ function read_csv_records(string $path): array
     return $records;
 }
 
-function append_pair_trial_record(string $pairsDir, array $record, string $sessionCode = ''): array
+function is_robot_simulation_identifier(string $value): bool
+{
+    return normalize_identifier_for_lookup($value) === 'robot';
+}
+
+function is_robot_simulation_trial_record(array $record): bool
+{
+    $receiverName = trim((string) ($record['rx name'] ?? ''));
+    $senderName = trim((string) ($record['tx name'] ?? ''));
+    return is_robot_simulation_identifier($receiverName) || is_robot_simulation_identifier($senderName);
+}
+
+function append_pair_trial_record(string $pairsDir, array $record, string $sessionCode = '', string $simulationMode = ''): array
 {
     $roundId = trim((string) ($record['round_id'] ?? ''));
     $receiverName = trim((string) ($record['rx name'] ?? ''));
@@ -4759,7 +5324,10 @@ function append_pair_trial_record(string $pairsDir, array $record, string $sessi
     }
 
     $headers = get_trial_csv_headers();
-    $path = get_pair_trial_csv_path($pairsDir, $receiverName, $senderName, $sessionCode);
+    $targetPairsDir = ($simulationMode === 'robot' || is_robot_simulation_trial_record($record))
+        ? ($GLOBALS['simulationPairsDir'] ?? $pairsDir)
+        : $pairsDir;
+    $path = get_pair_trial_csv_path($targetPairsDir, $receiverName, $senderName, $sessionCode);
     $existingRecords = is_file($path) ? read_csv_records($path) : [];
 
     foreach ($existingRecords as $existingRecord) {
@@ -5051,7 +5619,7 @@ function migrate_identifier_in_partner_messaging_state(array &$state, string $pr
     $state['partner_message_reads'] = $updatedReads;
 }
 
-function read_all_pair_trial_records(string $pairsDir): array
+function read_all_pair_trial_records(string $pairsDir, bool $includeRobotSimulation = false): array
 {
     $records = [];
     $paths = glob($pairsDir . DIRECTORY_SEPARATOR . '*.csv') ?: [];
@@ -5061,7 +5629,15 @@ function read_all_pair_trial_records(string $pairsDir): array
             continue;
         }
 
-        $records = array_merge($records, read_csv_records($path));
+        foreach (read_csv_records($path) as $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+            if (!$includeRobotSimulation && is_robot_simulation_trial_record($record)) {
+                continue;
+            }
+            $records[] = $record;
+        }
     }
 
     return $records;
@@ -5593,6 +6169,10 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
         return array_values(array_filter($records, static function (array $record): bool {
             $receiverName = trim((string) ($record['rx name'] ?? ''));
             $senderName = trim((string) ($record['tx name'] ?? ''));
+            $source = trim((string) ($record['_report_source'] ?? 'real'));
+            if (strcasecmp($source, 'simulation') === 0) {
+                return $receiverName !== '' && $senderName !== '';
+            }
             return $receiverName !== '' && $senderName !== '' && is_demo_report_pair($receiverName, $senderName);
         }));
     }
@@ -5601,6 +6181,13 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
     foreach ($records as $record) {
         $receiverName = trim((string) ($record['rx name'] ?? ''));
         $senderName = trim((string) ($record['tx name'] ?? ''));
+        $source = trim((string) ($record['_report_source'] ?? 'real'));
+
+        if (strcasecmp($source, 'simulation') === 0) {
+            $filtered[] = $record;
+            continue;
+        }
+
         $pairKey = build_pair_match_key($receiverName, $senderName);
 
         $matchesCandidatePair = $candidatePairKeys && isset($candidatePairKeys[$pairKey]);
@@ -5749,6 +6336,23 @@ function clear_pair_trial_records(string $pairsDir): void
             @unlink($path);
         }
     }
+}
+
+function read_all_pair_trial_records_with_source(string $pairsDir, string $source): array
+{
+    $records = read_all_pair_trial_records($pairsDir, $source === 'simulation');
+    return array_map(static function (array $record) use ($source): array {
+        $record['_report_source'] = $source;
+        return $record;
+    }, $records);
+}
+
+function resolve_pair_source_dir(string $source, string $pairsDir): string
+{
+    if ($source === 'simulation') {
+        return $GLOBALS['simulationPairsDir'] ?? $pairsDir;
+    }
+    return $pairsDir;
 }
 
 function clear_pair_analysis_records(string $pairsDir): void
@@ -6101,6 +6705,7 @@ function validate_pair_difficulty_access(array $state, string $receiverId, strin
     $normalizedDifficulty = normalize_difficulty_level($difficulty);
     $receiverType = get_user_type_for_identifier($state, $receiverId);
     $senderType = get_user_type_for_identifier($state, $senderId);
+    $robotPair = is_robot_simulation_identifier($receiverId) || is_robot_simulation_identifier($senderId);
 
     if (in_array($normalizedDifficulty, ['1', '2', '3'], true)) {
         return [
@@ -6113,7 +6718,7 @@ function validate_pair_difficulty_access(array $state, string $receiverId, strin
     }
 
     if ($normalizedDifficulty === '4') {
-        $allowed = $receiverType === 'pro';
+        $allowed = $robotPair || $receiverType === 'pro';
         return [
             'allowed' => $allowed,
             'message' => $allowed ? '' : 'Level 4 requires the receiver to be a PRO user.',
@@ -6145,6 +6750,10 @@ function validate_pair_difficulty_access(array $state, string $receiverId, strin
 
 function get_pair_max_difficulty_level(array $state, string $receiverId, string $senderId): string
 {
+    if (is_robot_simulation_identifier($receiverId) || is_robot_simulation_identifier($senderId)) {
+        return '4';
+    }
+
     $receiverType = get_user_type_for_identifier($state, $receiverId);
     $senderType = get_user_type_for_identifier($state, $senderId);
 
@@ -6684,9 +7293,13 @@ if (!is_array($state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'esp_lessons' => [],
         'invitees' => [],
+        'email_list' => [],
         'retired_handles' => [],
         'handle_owners' => [],
+        'explore_pro_verifications' => [],
+        'explore_pro_trials' => [],
         'stripe_users' => [],
         'stripe_customer_index' => [],
         'stripe_subscription_index' => [],
@@ -6696,6 +7309,8 @@ if (!is_array($state)) {
         'subscription_emails_enabled' => false,
         'subscription_reminders_enabled' => false,
         'easy_admin_enabled' => false,
+        'learn_more_save_enabled' => false,
+        'explore_pro_test_duration_seconds' => 0,
         'subscription_email_templates' => default_subscription_email_templates()
     ];
 }
@@ -6716,9 +7331,13 @@ if (!array_key_exists('sessions', $state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'esp_lessons' => [],
         'invitees' => [],
+        'email_list' => [],
         'retired_handles' => [],
         'handle_owners' => [],
+        'explore_pro_verifications' => [],
+        'explore_pro_trials' => [],
         'stripe_users' => [],
         'stripe_customer_index' => [],
         'stripe_subscription_index' => [],
@@ -6728,6 +7347,8 @@ if (!array_key_exists('sessions', $state)) {
         'subscription_emails_enabled' => false,
         'subscription_reminders_enabled' => false,
         'easy_admin_enabled' => false,
+        'learn_more_save_enabled' => false,
+        'explore_pro_test_duration_seconds' => 0,
         'subscription_email_templates' => default_subscription_email_templates()
     ];
 }
@@ -6756,6 +7377,7 @@ if (!is_array($state['partner_message_reads'] ?? null)) {
 if (!is_array($state['invitees'] ?? null)) {
     $state['invitees'] = [];
 }
+ensure_email_list_state($state);
 if (!is_array($state['unique_handles'] ?? null)) {
     $state['unique_handles'] = [];
 }
@@ -6777,6 +7399,7 @@ if (!is_array($state['retired_handles'] ?? null)) {
 if (!is_array($state['handle_owners'] ?? null)) {
     $state['handle_owners'] = [];
 }
+ensure_explore_pro_state($state);
 ensure_stripe_state_sections($state);
 prune_stripe_processed_events($state, $nowMs);
 if (!array_key_exists('debug_enabled', $state)) {
@@ -6784,6 +7407,9 @@ if (!array_key_exists('debug_enabled', $state)) {
 }
 if (!array_key_exists('easy_admin_enabled', $state)) {
     $state['easy_admin_enabled'] = false;
+}
+if (!array_key_exists('learn_more_save_enabled', $state)) {
+    $state['learn_more_save_enabled'] = false;
 }
 ensure_subscription_email_state($state);
 ensure_invitee_state($state);
@@ -7305,6 +7931,15 @@ if ($action === 'set_easy_admin_enabled' && $hasAdminAccess) {
     $hasAdminAccess = $isAdmin || $easyAdminEnabled;
 }
 
+if ($action === 'set_learn_more_save_enabled' && $hasAdminAccess) {
+    $state['learn_more_save_enabled'] = !empty($input['enabled']);
+}
+
+if ($action === 'set_explore_pro_test_duration_seconds' && $hasAdminAccess) {
+    $seconds = max(0, (int) ($input['seconds'] ?? 0));
+    $state['explore_pro_test_duration_seconds'] = $seconds;
+}
+
 if ($action === 'record_launcher_visit') {
     $state['launcher_visit_count'] = max(0, (int) ($state['launcher_visit_count'] ?? 0)) + 1;
 }
@@ -7345,6 +7980,79 @@ if ($action === 'get_admin_access_mode') {
         'easy_admin_enabled' => !empty($state['easy_admin_enabled']),
         'server_now_ms' => $nowMs
     ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_learn_more_content') {
+    try {
+        require_allowed_keys($input, ['action', 'content_key'], 'request');
+        $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
+        $path = get_learn_more_content_path($contentKey);
+        if ($contentKey === '' || $path === '') {
+            throw new RuntimeException('Learn More content key is invalid.');
+        }
+        $contentRecord = read_learn_more_content_file($path);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'learn_more_content' => [
+            'content_key' => $contentKey,
+            'available' => !empty($contentRecord['available']),
+            'content' => (string) ($contentRecord['content'] ?? ''),
+            'path' => (string) ($contentRecord['path'] ?? '')
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'save_learn_more_content') {
+    if (!$hasAdminAccess && empty($state['learn_more_save_enabled'])) {
+        fail_request($handle, $nowMs, 'Learn More saving is currently disabled.', 403);
+    }
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key', 'content'], 'request');
+        $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
+        $path = get_learn_more_content_path($contentKey);
+        $content = isset($input['content']) ? (string) $input['content'] : '';
+        if ($contentKey === '' || $path === '') {
+            throw new RuntimeException('Learn More content key is invalid.');
+        }
+        write_learn_more_content_file($path, $content);
+        $contentRecord = read_learn_more_content_file($path);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'learn_more_content' => [
+            'content_key' => $contentKey,
+            'available' => !empty($contentRecord['available']),
+            'content' => (string) ($contentRecord['content'] ?? ''),
+            'path' => (string) ($contentRecord['path'] ?? '')
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
     rewind($handle);
     ftruncate($handle, 0);
     fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
@@ -7422,7 +8130,71 @@ if ($action === 'get_identifier_status') {
     $response = [
         'ok' => true,
         'identifier_status' => get_identifier_status($state, $identifier),
+        'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'send_explore_pro_verification_code') {
+    try {
+        require_allowed_keys($input, ['action', 'email'], 'request');
+        $verification = send_explore_pro_verification_code($state, (string) ($input['email'] ?? ''), $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'verification' => $verification,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'verify_explore_pro_code') {
+    try {
+        require_allowed_keys($input, ['action', 'email', 'code'], 'request');
+        $trialActivation = begin_explore_pro_trial_from_code(
+            $state,
+            $pairsDir,
+            (string) ($input['email'] ?? ''),
+            (string) ($input['code'] ?? ''),
+            $nowMs
+        );
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $identifier = (string) ($trialActivation['identifier'] ?? '');
+    $response = [
+        'ok' => true,
+        'trial_activation' => $trialActivation,
+        'temporary_identity' => [
+            'identifier' => $identifier,
+            'user_type' => 'pro',
+            'created_ms' => (int) ($trialActivation['started_ms'] ?? $nowMs)
+        ],
+        'identifier_status' => $identifier !== '' ? get_identifier_status($state, $identifier) : null,
+        'user_type' => $identifier !== '' ? get_user_type_for_identifier($state, $identifier) : 'standard',
+        'explore_trial' => $identifier !== '' ? get_explore_pro_trial_status_for_identifier($state, $identifier, $nowMs) : null,
         'server_now_ms' => $nowMs
     ];
 
@@ -7472,6 +8244,7 @@ if ($action === 'claim_unique_handle') {
         foreach (($claimResult['previous_identifiers'] ?? []) as $previousIdentifier) {
             migrate_identifier_history_in_pair_storage($pairsDir, (string) $previousIdentifier, (string) ($claimResult['handle'] ?? ''));
             migrate_identifier_in_partner_messaging_state($state, (string) $previousIdentifier, (string) ($claimResult['handle'] ?? ''));
+            migrate_explore_pro_trial_identifier($state, (string) $previousIdentifier, (string) ($claimResult['handle'] ?? ''));
         }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -7503,11 +8276,13 @@ if ($action === 'get_user_type') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
+    $exploreTrial = get_explore_pro_trial_status_for_identifier($state, $identifier, $nowMs);
     $response = [
         'ok' => true,
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
+        'explore_trial' => $exploreTrial,
         'server_now_ms' => $nowMs
     ];
 
@@ -8169,6 +8944,56 @@ if ($action === 'list_invitees' && $hasAdminAccess) {
     exit;
 }
 
+if ($action === 'save_email_list_signup') {
+    try {
+        require_allowed_keys($input, ['action', 'email', 'type', 'name'], 'request');
+        $email = trim((string) ($input['email'] ?? ''));
+        $type = trim((string) ($input['type'] ?? 'updates'));
+        $name = trim((string) ($input['name'] ?? ''));
+        $emailRecord = save_email_list_record($state, $email, $type, $name, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'email_record' => $emailRecord,
+        'message' => 'Email address saved successfully.',
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'list_email_list' && $hasAdminAccess) {
+    $records = list_email_list_records($state);
+    $response = [
+        'ok' => true,
+        'email_list' => $records,
+        'email_list_meta' => [
+            'report_date' => gmdate('Y-m-d H:i') . ' UTC',
+            'total_records' => count($records)
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'save_invitee' && $hasAdminAccess) {
     try {
         require_allowed_keys($input, ['action', 'identifier', 'full_name', 'email', 'private_note', 'secret_candidate'], 'request');
@@ -8471,6 +9296,8 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['invitees'] = [];
     $state['retired_handles'] = [];
     $state['handle_owners'] = [];
+    $state['explore_pro_verifications'] = [];
+    $state['explore_pro_trials'] = [];
     $state['stripe_users'] = [];
     $state['stripe_customer_index'] = [];
     $state['stripe_subscription_index'] = [];
@@ -8480,12 +9307,18 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['partner_message_reads'] = [];
     $state['esp_lessons'] = [];
     $state['launcher_visit_count'] = 0;
+    $state['debug_enabled'] = false;
     $state['subscription_emails_enabled'] = false;
     $state['subscription_reminders_enabled'] = false;
     $state['easy_admin_enabled'] = false;
+    $state['learn_more_save_enabled'] = false;
+    $state['explore_pro_test_duration_seconds'] = 0;
+    ensure_email_list_state($state);
     $state['subscription_email_templates'] = default_subscription_email_templates();
     clear_pair_trial_records($pairsDir);
+    clear_pair_trial_records($simulationPairsDir);
     clear_pair_analysis_records($pairsDir);
+    clear_pair_analysis_records($simulationPairsDir);
     ensure_demo_pair_records($pairsDir, true);
     file_put_contents($subscriptionEmailLogFile, '');
 }
@@ -8590,7 +9423,8 @@ if ($roleConflict === null && $action === 'append_trial_record') {
     $trialRecord = isset($input['trial_record']) && is_array($input['trial_record'])
         ? $input['trial_record']
         : [];
-    $trialRecordAppendResult = append_pair_trial_record($pairsDir, $trialRecord, $sessionCode);
+    $simulationMode = trim((string) ($input['simulation_mode'] ?? ''));
+    $trialRecordAppendResult = append_pair_trial_record($pairsDir, $trialRecord, $sessionCode, $simulationMode);
 }
 
 if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action === 'start_round' && $role === 'sender') {
@@ -8956,6 +9790,8 @@ $response = [
     'subscription_emails_enabled' => !empty($state['subscription_emails_enabled']),
     'subscription_reminders_enabled' => !empty($state['subscription_reminders_enabled']),
     'easy_admin_enabled' => !empty($state['easy_admin_enabled']),
+    'learn_more_save_enabled' => !empty($state['learn_more_save_enabled']),
+    'explore_pro_test_duration_seconds' => max(0, (int) ($state['explore_pro_test_duration_seconds'] ?? 0)),
     'pair_difficulty' => normalize_difficulty_level($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
     'role_conflict' => $roleConflict,
     'state' => [
@@ -9029,7 +9865,10 @@ if ($action === 'performance_report') {
 }
 
 if ($action === 'report_csv_data') {
-    $allRecords = read_all_pair_trial_records($pairsDir);
+    $allRecords = array_merge(
+        read_all_pair_trial_records_with_source($pairsDir, 'real'),
+        read_all_pair_trial_records_with_source($simulationPairsDir, 'simulation')
+    );
     $candidatePairs = isset($input['candidate_pairs']) && is_array($input['candidate_pairs'])
         ? $input['candidate_pairs']
         : [];
@@ -9063,7 +9902,13 @@ if ($action === 'report_pair_csv_data') {
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
-    $pairRecords = read_pair_trial_records_for_pair($pairsDir, $selectedPair);
+    $selectedPairsDir = resolve_pair_source_dir((string) ($selectedPair['source'] ?? 'real'), $pairsDir);
+    $pairRecords = read_pair_trial_records_for_pair($selectedPairsDir, $selectedPair);
+    $pairSource = trim((string) ($selectedPair['source'] ?? '')) === 'simulation' ? 'simulation' : 'real';
+    $pairRecords = array_map(static function (array $record) use ($pairSource): array {
+        $record['_report_source'] = $pairSource;
+        return $record;
+    }, $pairRecords);
     usort($pairRecords, static function (array $left, array $right): int {
         $leftUtc = trim((string) ($left['utc time'] ?? ''));
         $rightUtc = trim((string) ($right['utc time'] ?? ''));
@@ -9078,8 +9923,8 @@ if ($action === 'report_pair_csv_data') {
     $response['report_csv'] = [
         'available' => count($pairRecords) > 0,
         'path' => ($selectedReceiver !== '' && $selectedSender !== '')
-            ? resolve_pair_trial_csv_path($pairsDir, $selectedReceiver, $selectedSender, trim((string) ($selectedPair['session_code'] ?? '')))
-            : $pairsDir,
+            ? resolve_pair_trial_csv_path($selectedPairsDir, $selectedReceiver, $selectedSender, trim((string) ($selectedPair['session_code'] ?? '')))
+            : $selectedPairsDir,
         'records' => $pairRecords,
         'message' => count($pairRecords) > 0
             ? ''
@@ -9099,7 +9944,8 @@ if ($action === 'get_location_visualization') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
-    $response['location_visualization'] = build_location_visualization_payload($pairsDir, $selectedPair, $input);
+    $selectedPairsDir = resolve_pair_source_dir((string) ($selectedPair['source'] ?? 'real'), $pairsDir);
+    $response['location_visualization'] = build_location_visualization_payload($selectedPairsDir, $selectedPair, $input);
 }
 
 if ($action === 'save_pair_analysis') {
@@ -9116,7 +9962,8 @@ if ($action === 'save_pair_analysis') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
-    $response['pair_analysis'] = save_pair_analysis_record($pairsDir, $selectedPair, $analysis);
+    $selectedPairsDir = resolve_pair_source_dir((string) ($selectedPair['source'] ?? 'real'), $pairsDir);
+    $response['pair_analysis'] = save_pair_analysis_record($selectedPairsDir, $selectedPair, $analysis);
 }
 
 echo json_encode($response);

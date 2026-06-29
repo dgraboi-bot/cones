@@ -38,7 +38,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-const runtimeBuildVersion = "20260621aq";
+  const runtimeBuildVersion = "20260629l";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -47,9 +47,17 @@ const runtimeBuildVersion = "20260621aq";
     }
   })();
   const runtimeMode = String(runtimeQuery.get("runtime_mode") || "").trim().toLowerCase();
+  const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
+  const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
+    ? String(runtimeQuery.get("include_confidence") || "").trim() === "1"
+    : null;
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
+  const isRobotSenderMode = runtimeMode === "robot-sender";
+  const isRobotReceiverMode = runtimeMode === "robot-receiver";
+  const isRobotSimulationMode = isRobotSenderMode || isRobotReceiverMode;
+  const robotSimulationIdentifier = "Robot";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -133,6 +141,16 @@ const runtimeBuildVersion = "20260621aq";
   let senderConfidencePanel = null;
   let senderConfidenceValue = null;
   let senderConfidenceDescription = null;
+  let receiverLevelOneFeedbackPanel = null;
+  let receiverLevelOneFeedbackActualWrap = null;
+  let receiverLevelOneFeedbackResponseText = null;
+  let receiverLevelOneFeedbackLeftLabel = null;
+  let receiverLevelOneFeedbackRightLabel = null;
+  let senderLevelOneFeedbackPanel = null;
+  let senderLevelOneFeedbackActualWrap = null;
+  let senderLevelOneFeedbackResponseText = null;
+  let senderLevelOneFeedbackLeftLabel = null;
+  let senderLevelOneFeedbackRightLabel = null;
   let imageDisplayPanel = null;
   let imageDisplayElement = null;
   let imageDisplayCaption = null;
@@ -164,13 +182,21 @@ const runtimeBuildVersion = "20260621aq";
   let receiverTransitioningScreen = false;
   let adminAuthorized = false;
   let debugEnabled = false;
-  let currentPairDifficultyLevel = "1";
+  let currentPairDifficultyLevel = requestedRuntimeDifficultyLevel;
   let adminStorageInfo = null;
   let adminDiskUsageAnalysis = null;
   let pendingLoggedRoundId = "";
   let settingsDraftSnapshot = "";
   let settingsConfirmDialog = null;
   let returningToLauncher = false;
+  let robotSimulationState = null;
+  let robotSimulationBootstrapped = false;
+  let robotSimulationRoundCounter = 0;
+  let robotSimulationRoundStarterHandle = null;
+  const robotSimulationTimerHandles = new Set();
+  const minimumWaitingOnlineDisplayMs = 3000;
+  let currentUiModeEnteredAtMs = 0;
+  let robotLevelFourPairsPromise = null;
 
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
@@ -383,7 +409,8 @@ const runtimeBuildVersion = "20260621aq";
         blink_sender_image: typeof parsed?.blink_sender_image === "boolean" ? parsed.blink_sender_image : false,
         blink_image_on_seconds: typeof parsed?.blink_image_on_seconds === "string" ? parsed.blink_image_on_seconds : "0.35",
         blink_image_off_seconds: typeof parsed?.blink_image_off_seconds === "string" ? parsed.blink_image_off_seconds : "0.8",
-        include_confidence: typeof parsed?.include_confidence === "boolean" ? parsed.include_confidence : true
+        include_confidence: typeof parsed?.include_confidence === "boolean" ? parsed.include_confidence : false,
+        difficulty_level: normalizeDifficultyLevel(parsed?.difficulty_level || "1")
       };
     } catch (error) {
       return {
@@ -397,7 +424,8 @@ const runtimeBuildVersion = "20260621aq";
         blink_sender_image: false,
         blink_image_on_seconds: "0.35",
         blink_image_off_seconds: "0.8",
-        include_confidence: true
+        include_confidence: false,
+        difficulty_level: "1"
       };
     }
   }
@@ -467,10 +495,11 @@ const runtimeBuildVersion = "20260621aq";
 
   function getCurrentSessionCode() {
     const settings = readSettings();
-    return buildSessionCodeFromValues(
+    const baseCode = buildSessionCodeFromValues(
       settings.own_email || "",
       settings.partner_email || ""
     );
+    return baseCode;
   }
 
   function populateSettingsForm() {
@@ -553,6 +582,398 @@ const runtimeBuildVersion = "20260621aq";
     };
   }
 
+  function clearRobotSimulationTimers() {
+    robotSimulationTimerHandles.forEach((handle) => {
+      window.clearTimeout(handle);
+    });
+    robotSimulationTimerHandles.clear();
+    if (robotSimulationRoundStarterHandle !== null) {
+      window.clearTimeout(robotSimulationRoundStarterHandle);
+      robotSimulationRoundStarterHandle = null;
+    }
+  }
+
+  function scheduleRobotSimulationStep(callback, delayMs) {
+    const handle = window.setTimeout(() => {
+      robotSimulationTimerHandles.delete(handle);
+      callback();
+    }, Math.max(0, delayMs));
+    robotSimulationTimerHandles.add(handle);
+    return handle;
+  }
+
+  function getRequestedDifficultyLevel() {
+    return normalizeDifficultyLevel(requestedRuntimeDifficultyLevel || currentPairDifficultyLevel || "1");
+  }
+
+  function getRobotSimulationProbabilityForLevel(level = currentPairDifficultyLevel) {
+    switch (normalizeDifficultyLevel(level)) {
+      case "1":
+        return 0.68;
+      case "2":
+        return 0.5;
+      case "3":
+        return 0.38;
+      case "4":
+        return 0.62;
+      default:
+        return 0.5;
+    }
+  }
+
+  function buildRobotSyncMetrics() {
+    return {
+      offset_ms: 0,
+      best_rtt_ms: 18,
+      uncertainty_best_ms: 0,
+      uncertainty_est_ms: 9,
+      uncertainty_worst_ms: 18
+    };
+  }
+
+  function buildRobotParticipantProfiles() {
+    const settings = readSettings();
+    const ownName = String(settings.own_email || "").trim();
+    const partnerLocation = "";
+    const ownProfile = {
+      name: ownName,
+      location: settings.device_location || ""
+    };
+    const robotProfile = {
+      name: robotSimulationIdentifier,
+      location: partnerLocation
+    };
+
+    return role === "sender"
+      ? {
+          sender_profile: ownProfile,
+          receiver_profile: robotProfile
+        }
+      : {
+          sender_profile: robotProfile,
+          receiver_profile: ownProfile
+        };
+  }
+
+  function ensureRobotSimulationState() {
+    if (robotSimulationState) {
+      return robotSimulationState;
+    }
+    const participantProfiles = buildRobotParticipantProfiles();
+    robotSimulationState = {
+      sender_online: false,
+      receiver_online: false,
+      receiver_ready: false,
+      round: null,
+      post_round: null,
+      receiver_view: {
+        phase: "idle",
+        confidence_value: 5,
+        selection_limit: 1,
+        selected_arrangement_codes: [],
+        selected_layout_numbers: [],
+        confidence_locked_at_ms: null,
+        done_reaction_ms: null
+      },
+      sender_profile: participantProfiles.sender_profile,
+      receiver_profile: participantProfiles.receiver_profile,
+      sender_sync: buildRobotSyncMetrics(),
+      receiver_sync: buildRobotSyncMetrics()
+    };
+    return robotSimulationState;
+  }
+
+  function buildRobotSimulationPayload() {
+    const state = ensureRobotSimulationState();
+    const difficultyLevel = getRequestedDifficultyLevel();
+    if (isRobotSenderMode) {
+      state.sender_online = true;
+    }
+    if (isRobotReceiverMode) {
+      state.receiver_online = true;
+    }
+    return {
+      ok: true,
+      is_admin: false,
+      debug_enabled: debugEnabled,
+      pair_difficulty: difficultyLevel,
+      state,
+      server_now_ms: estimatedServerNowMs()
+    };
+  }
+
+  function bootstrapRobotSimulation() {
+    if (!isRobotSimulationMode || robotSimulationBootstrapped) {
+      return;
+    }
+    robotSimulationBootstrapped = true;
+    const state = ensureRobotSimulationState();
+    currentPairDifficultyLevel = getRequestedDifficultyLevel();
+
+    scheduleRobotSimulationStep(() => {
+      if (isRobotSenderMode) {
+        state.sender_online = true;
+      } else {
+        state.receiver_online = true;
+      }
+    }, randomInt(700, 1500));
+
+    if (isRobotReceiverMode) {
+      scheduleRobotSimulationStep(() => {
+        state.receiver_online = true;
+      }, randomInt(1400, 2600));
+      scheduleRobotSimulationStep(() => {
+        state.receiver_ready = true;
+      }, randomInt(2400, 3800));
+    }
+  }
+
+  function resolveRobotRuntimeImageUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+    if (/^(https?:|data:)/i.test(raw)) {
+      return raw;
+    }
+    const normalized = raw.replace(/\\/g, "/").trim();
+    if (/^imagepairs\//i.test(normalized)) {
+      return normalized;
+    }
+    const lastSegment = normalized.split("/").filter(Boolean).pop() || "";
+    return lastSegment ? `imagepairs/${encodeURIComponent(lastSegment)}` : "";
+  }
+
+  async function loadRobotLevelFourPairs() {
+    if (robotLevelFourPairsPromise) {
+      return robotLevelFourPairsPromise;
+    }
+    robotLevelFourPairsPromise = (async () => {
+      try {
+        const response = await fetch(`./imagepairs/pairs.json?v=${runtimeBuildVersion}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Image-pair manifest request failed with status ${response.status}`);
+        }
+        const parsed = await response.json();
+        return Array.isArray(parsed?.pairs)
+          ? parsed.pairs
+              .map((pair) => {
+                const id = String(pair?.id || "").trim();
+                const images = Array.isArray(pair?.images) ? pair.images.map((item) => resolveRobotRuntimeImageUrl(item)).filter(Boolean) : [];
+                return id && images.length === 2 ? { id, images } : null;
+              })
+              .filter(Boolean)
+          : [];
+      } catch (error) {
+        return [];
+      }
+    })();
+    return robotLevelFourPairsPromise;
+  }
+
+  async function createRobotRound(startServerMs) {
+    const difficultyLevel = getRequestedDifficultyLevel();
+    const roundId = `robot-${Date.now().toString(36)}-${String(++robotSimulationRoundCounter).padStart(3, "0")}`;
+    const senderClientId = isRobotReceiverMode ? clientId : robotSimulationIdentifier;
+    const receiverClientId = isRobotSenderMode ? clientId : robotSimulationIdentifier;
+    const round = {
+      id: roundId,
+      sender_client_id: senderClientId,
+      receiver_client_id: receiverClientId,
+      start_server_ms: startServerMs,
+      last_activity_ms: startServerMs,
+      layout_number: null,
+      arrangement_code: "",
+      completed_server_ms: null,
+      guess_submitted_ms: null,
+      guess_layout_number: null,
+      second_guess_layout_number: null,
+      guess_confidence: "",
+      done_reaction_ms: "",
+      stimulus_kind: "layout",
+      image_pair_id: "",
+      image_choice_a: "",
+      image_choice_b: "",
+      image_sent_index: null,
+      image_sent: ""
+    };
+
+    if (difficultyLevel === "4") {
+      const pairs = await loadRobotLevelFourPairs();
+      if (pairs.length) {
+        const pair = pairs[randomInt(0, pairs.length - 1)];
+        const sentIndex = randomInt(1, 2);
+        round.stimulus_kind = "image_pair";
+        round.image_pair_id = pair.id;
+        round.image_choice_a = pair.images[0];
+        round.image_choice_b = pair.images[1];
+        round.image_sent_index = sentIndex;
+        round.image_sent = pair.images[sentIndex - 1];
+        return round;
+      }
+    }
+
+    round.layout_number = pickArrangementNumber();
+    round.arrangement_code = getArrangementCode(round.layout_number);
+    return round;
+  }
+
+  function chooseRobotGuessForRound(round) {
+    const difficultyLevel = getRequestedDifficultyLevel();
+    const probability = getRobotSimulationProbabilityForLevel(difficultyLevel);
+    const isCorrect = Math.random() < probability;
+
+    if (String(round?.stimulus_kind || "") === "image_pair") {
+      const actualIndex = Number(round?.image_sent_index || 1) === 2 ? 2 : 1;
+      return {
+        guessLayoutNumber: isCorrect ? actualIndex : (actualIndex === 1 ? 2 : 1),
+        secondGuessLayoutNumber: null,
+        confidence: isCorrect ? randomInt(6, 9) : randomInt(2, 6)
+      };
+    }
+
+    const actualLayoutNumber = Number(round?.layout_number || 1) || 1;
+    if (difficultyLevel === "1") {
+      const actualCountChoice = getLevelOneCountChoiceFromLayoutNumber(actualLayoutNumber);
+      const guessLayoutNumber = isCorrect ? actualCountChoice : (actualCountChoice === 1 ? 3 : 1);
+      return {
+        guessLayoutNumber,
+        secondGuessLayoutNumber: null,
+        confidence: isCorrect ? randomInt(6, 9) : randomInt(2, 6)
+      };
+    }
+
+    if (difficultyLevel === "2") {
+      const candidateChoices = [1, 6, 7, 8, 9];
+      const incorrectChoices = candidateChoices.filter((value) => value !== actualLayoutNumber);
+      return {
+        guessLayoutNumber: isCorrect ? actualLayoutNumber : incorrectChoices[randomInt(0, incorrectChoices.length - 1)],
+        secondGuessLayoutNumber: null,
+        confidence: isCorrect ? randomInt(6, 9) : randomInt(2, 6)
+      };
+    }
+
+    const candidateChoices = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const incorrectChoices = candidateChoices.filter((value) => value !== actualLayoutNumber);
+    return {
+      guessLayoutNumber: isCorrect ? actualLayoutNumber : incorrectChoices[randomInt(0, incorrectChoices.length - 1)],
+      secondGuessLayoutNumber: null,
+      confidence: isCorrect ? randomInt(6, 9) : randomInt(2, 6)
+    };
+  }
+
+  function resetRobotSimulationRoundState() {
+    if (!isRobotSimulationMode) {
+      return;
+    }
+    const state = ensureRobotSimulationState();
+    state.round = null;
+    state.post_round = null;
+    state.receiver_view = {
+      phase: "idle",
+      confidence_value: 5,
+      selection_limit: 1,
+      selected_arrangement_codes: [],
+      selected_layout_numbers: [],
+      confidence_locked_at_ms: null,
+      done_reaction_ms: null
+    };
+    if (isRobotReceiverMode) {
+      state.receiver_ready = true;
+    }
+  }
+
+  async function scheduleRobotSenderRoundStart() {
+    if (!isRobotSenderMode || localRoundRunning || roundScheduled || robotSimulationRoundStarterHandle !== null) {
+      return;
+    }
+    robotSimulationRoundStarterHandle = window.setTimeout(async () => {
+      robotSimulationRoundStarterHandle = null;
+      if (!receiverReady || localRoundRunning || roundScheduled) {
+        return;
+      }
+      const state = ensureRobotSimulationState();
+      const startServerMs = estimatedServerNowMs();
+      const round = await createRobotRound(startServerMs);
+      state.round = round;
+      state.post_round = null;
+      state.receiver_view.phase = "idle";
+      scheduleSynchronizedRound(round);
+      applyRemoteState(buildRobotSimulationPayload());
+    }, randomInt(2900, 3700));
+  }
+
+  function runRobotReceiverSimulationAfterRound() {
+    if (!isRobotReceiverMode || !activeRound?.id) {
+      return;
+    }
+    const state = ensureRobotSimulationState();
+    const round = activeRound;
+    const guess = chooseRobotGuessForRound(round);
+    const includeConfidence = false;
+    const selectedArrangementCodes = String(round?.stimulus_kind || "") === "image_pair"
+      ? []
+      : [getArrangementCode(guess.guessLayoutNumber)];
+
+    state.receiver_view = {
+      phase: includeConfidence ? "confidence" : "idle",
+      confidence_value: guess.confidence,
+      selection_limit: 1,
+      selected_arrangement_codes: [],
+      selected_layout_numbers: [],
+      confidence_locked_at_ms: null,
+      done_reaction_ms: null
+    };
+    state.post_round = null;
+    applyRemoteState(buildRobotSimulationPayload());
+
+    scheduleRobotSimulationStep(() => {
+      state.receiver_view = {
+        phase: "choices",
+        confidence_value: guess.confidence,
+        selection_limit: 1,
+        selected_arrangement_codes: includeConfidence ? selectedArrangementCodes : [],
+        selected_layout_numbers: includeConfidence ? [guess.guessLayoutNumber] : [],
+        confidence_locked_at_ms: null,
+        done_reaction_ms: null
+      };
+      applyRemoteState(buildRobotSimulationPayload());
+    }, randomInt(3600, 5600));
+
+    scheduleRobotSimulationStep(() => {
+      round.guess_layout_number = guess.guessLayoutNumber;
+      round.second_guess_layout_number = guess.secondGuessLayoutNumber;
+      round.guess_confidence = guess.confidence;
+      round.done_reaction_ms = randomInt(700, 2200);
+      round.guess_submitted_ms = estimatedServerNowMs();
+      round.completed_server_ms = round.guess_submitted_ms;
+      round.last_activity_ms = round.guess_submitted_ms;
+      state.round = round;
+      state.receiver_view = {
+        phase: "results",
+        confidence_value: guess.confidence,
+        selection_limit: 1,
+        selected_arrangement_codes: selectedArrangementCodes,
+        selected_layout_numbers: [guess.guessLayoutNumber],
+        confidence_locked_at_ms: estimatedServerNowMs(),
+        done_reaction_ms: round.done_reaction_ms
+      };
+      void appendTrialServerRecord(buildRobotSimulationPayload().state);
+      applyRemoteState(buildRobotSimulationPayload());
+    }, randomInt(13500, 19000));
+
+    scheduleRobotSimulationStep(() => {
+      const continueSession = robotSimulationRoundCounter < 2 ? true : Math.random() < 0.65;
+      state.post_round = {
+        receiver_choice: continueSession ? "another" : "enough",
+        sender_choice: null,
+        resolved: null,
+        updated_ms: estimatedServerNowMs()
+      };
+      applyRemoteState(buildRobotSimulationPayload());
+    }, randomInt(20500, 27000));
+  }
+
   function usesBrowserStorageMode() {
     return platformInfo.family === "iphone" || platformInfo.family === "android";
   }
@@ -575,6 +996,9 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   function getIncludeConfidenceEnabled() {
+    if (typeof requestedIncludeConfidence === "boolean") {
+      return requestedIncludeConfidence;
+    }
     return readSettings().include_confidence !== false;
   }
 
@@ -632,6 +1056,7 @@ const runtimeBuildVersion = "20260621aq";
       const blinkOnSeconds = String(params.get("blink_image_on_seconds") || "").trim();
       const blinkOffSeconds = String(params.get("blink_image_off_seconds") || "").trim();
       const includeConfidence = String(params.get("include_confidence") || "").trim();
+      const difficultyLevel = normalizeDifficultyLevel(params.get("difficulty_level") || currentPairDifficultyLevel || "1");
 
       if (!ownEmail && !partnerEmail) {
         return;
@@ -660,7 +1085,9 @@ const runtimeBuildVersion = "20260621aq";
       if (includeConfidence) {
         settings.include_confidence = includeConfidence === "1";
       }
+      settings.difficulty_level = difficultyLevel;
       writeSettings(settings);
+      currentPairDifficultyLevel = difficultyLevel;
 
       const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
       window.history.replaceState({}, document.title, cleanUrl);
@@ -1065,7 +1492,7 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   async function openSettings() {
-    window.location.href = "telepathybeginner.html?open=settings";
+    window.location.href = buildLauncherReturnUrl({ open: "settings" });
   }
 
   async function closeSettings() {
@@ -1681,6 +2108,7 @@ const runtimeBuildVersion = "20260621aq";
         params.set("partner_email", settings.partner_email);
       }
     }
+    params.set("difficulty_level", normalizeDifficultyLevel(currentPairDifficultyLevel || settings.difficulty_level || "1"));
 
     return `telepathybeginner.html?${params.toString()}`;
   }
@@ -2076,9 +2504,14 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   async function abortTrialAndReturnHome(options = {}) {
+    clearRobotSimulationTimers();
     try {
-      const response = await api("abort_to_home");
-      await appendTrialServerRecord(response?.state || {}, { aborted: true });
+      if (!isRobotSimulationMode) {
+        const response = await api("abort_to_home");
+        await appendTrialServerRecord(response?.state || {}, { aborted: true });
+      } else if (activeRound?.id) {
+        await appendTrialServerRecord(buildRobotSimulationPayload().state, { aborted: true });
+      }
     } catch (error) {
       // Ignore abort sync failures and still return home locally.
     } finally {
@@ -2408,6 +2841,57 @@ const runtimeBuildVersion = "20260621aq";
     return card;
   }
 
+  function getLevelOneResultWord(layoutNumber) {
+    const countChoice = getLevelOneCountChoiceFromLayoutNumber(layoutNumber);
+    return countChoice === 1 ? "ONE" : "MANY";
+  }
+
+  function buildLevelOneFeedbackSummaryPanel(options = {}) {
+    const {
+      panelId,
+      leftTitle,
+      rightTitle,
+      isReadOnly = false
+    } = options;
+
+    const panel = document.createElement("section");
+    panel.className = `level-one-result-panel arrangement${isReadOnly ? " read-only" : ""}`;
+    panel.id = panelId;
+
+    const leftGroup = document.createElement("div");
+    leftGroup.className = "level-one-result-group level-one-result-group-left";
+
+    const leftLabel = document.createElement("p");
+    leftLabel.className = "level-one-result-label";
+    leftLabel.textContent = leftTitle;
+
+    const actualWrap = document.createElement("div");
+    actualWrap.className = "level-one-result-actual-wrap";
+
+    leftGroup.append(leftLabel, actualWrap);
+
+    const rightGroup = document.createElement("div");
+    rightGroup.className = "level-one-result-group level-one-result-group-right";
+
+    const rightLabel = document.createElement("p");
+    rightLabel.className = "level-one-result-label";
+    rightLabel.textContent = rightTitle;
+
+    const responseText = document.createElement("div");
+    responseText.className = "level-one-result-response";
+
+    rightGroup.append(rightLabel, responseText);
+    panel.append(leftGroup, rightGroup);
+
+    return {
+      panel,
+      leftLabel,
+      rightLabel,
+      actualWrap,
+      responseText
+    };
+  }
+
   function buildLevelSubsetChoiceCard(layoutNumber, readOnly = false) {
     const card = document.createElement("button");
     card.className = "choice-card level-one-feedback-card";
@@ -2428,23 +2912,37 @@ const runtimeBuildVersion = "20260621aq";
     return card;
   }
 
+  function applyLevelTwoChoiceSlot(card, layoutNumber) {
+    const slotMap = {
+      1: "center",
+      6: "top-left",
+      7: "top-right",
+      8: "bottom-left",
+      9: "bottom-right"
+    };
+    const slot = slotMap[layoutNumber] || "center";
+    card.dataset.levelTwoSlot = slot;
+    card.style.gridArea = slot;
+  }
+
   function buildReceiverLevelOneFeedbackGrid() {
     if (role !== "receiver") {
       return;
     }
 
-    const grid = document.createElement("div");
-    grid.className = "level-one-feedback-grid arrangement";
-    grid.id = "receiverLevelOneFeedbackGrid";
-
-    levelOneTargetLayoutNumbers.forEach((layoutNumber) => {
-      const card = buildLevelOneFeedbackCard(layoutNumber);
-      levelOneFeedbackNodes.set(getArrangementCode(layoutNumber), card);
-      grid.appendChild(card);
+    const summary = buildLevelOneFeedbackSummaryPanel({
+      panelId: "receiverLevelOneFeedbackGrid",
+      leftTitle: "The Sender Sent:",
+      rightTitle: "You Said:"
     });
 
-    arrangementNodes.set("receiver-level-one-feedback-grid", grid);
-    stage.appendChild(grid);
+    receiverLevelOneFeedbackPanel = summary.panel;
+    receiverLevelOneFeedbackLeftLabel = summary.leftLabel;
+    receiverLevelOneFeedbackRightLabel = summary.rightLabel;
+    receiverLevelOneFeedbackActualWrap = summary.actualWrap;
+    receiverLevelOneFeedbackResponseText = summary.responseText;
+    arrangementNodes.set("receiver-level-one-feedback-grid", summary.panel);
+    stage.appendChild(summary.panel);
   }
 
   function buildSenderLevelOneFeedbackGrid() {
@@ -2452,18 +2950,20 @@ const runtimeBuildVersion = "20260621aq";
       return;
     }
 
-    const grid = document.createElement("div");
-    grid.className = "level-one-feedback-grid arrangement read-only";
-    grid.id = "senderLevelOneFeedbackGrid";
-
-    levelOneTargetLayoutNumbers.forEach((layoutNumber) => {
-      const card = buildLevelOneFeedbackCard(layoutNumber);
-      senderLevelOneFeedbackNodes.set(getArrangementCode(layoutNumber), card);
-      grid.appendChild(card);
+    const summary = buildLevelOneFeedbackSummaryPanel({
+      panelId: "senderLevelOneFeedbackGrid",
+      leftTitle: "The Sender Sent:",
+      rightTitle: "The Receiver Said:",
+      isReadOnly: true
     });
 
-    arrangementNodes.set("sender-level-one-feedback-grid", grid);
-    stage.appendChild(grid);
+    senderLevelOneFeedbackPanel = summary.panel;
+    senderLevelOneFeedbackLeftLabel = summary.leftLabel;
+    senderLevelOneFeedbackRightLabel = summary.rightLabel;
+    senderLevelOneFeedbackActualWrap = summary.actualWrap;
+    senderLevelOneFeedbackResponseText = summary.responseText;
+    arrangementNodes.set("sender-level-one-feedback-grid", summary.panel);
+    stage.appendChild(summary.panel);
   }
 
   function buildReceiverLevelTwoChoiceGrid() {
@@ -2472,11 +2972,12 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     const grid = document.createElement("div");
-    grid.className = "level-one-feedback-grid arrangement";
+    grid.className = "choice-grid level-two-choice-grid arrangement";
     grid.id = "receiverLevelTwoChoiceGrid";
 
     levelOneTargetLayoutNumbers.forEach((layoutNumber) => {
       const card = buildLevelSubsetChoiceCard(layoutNumber);
+      applyLevelTwoChoiceSlot(card, layoutNumber);
       card.addEventListener("click", () => {
         void handleReceiverChoice(layoutNumber);
       });
@@ -2494,11 +2995,12 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     const grid = document.createElement("div");
-    grid.className = "level-one-feedback-grid arrangement read-only";
+    grid.className = "choice-grid level-two-choice-grid arrangement read-only";
     grid.id = "senderLevelTwoChoiceGrid";
 
     levelOneTargetLayoutNumbers.forEach((layoutNumber) => {
       const card = buildLevelSubsetChoiceCard(layoutNumber, true);
+      applyLevelTwoChoiceSlot(card, layoutNumber);
       senderLevelTwoChoiceNodes.set(getArrangementCode(layoutNumber), card);
       grid.appendChild(card);
     });
@@ -2870,6 +3372,72 @@ const runtimeBuildVersion = "20260621aq";
     updateSettingsGearVisibility();
   }
 
+  function setFeedbackSummaryResponse(responseNode, options = {}) {
+    if (!responseNode) {
+      return;
+    }
+
+    const mode = options.mode === "card" ? "card" : "word";
+    const text = mode === "word" ? String(options.text || "") : "";
+    responseNode.classList.toggle("visual-response", mode === "card");
+
+    if (mode === "card") {
+      const layoutNumber = Number(options.layoutNumber);
+      const card = buildLevelOneFeedbackCard(layoutNumber);
+      responseNode.replaceChildren(card);
+      return;
+    }
+
+    responseNode.replaceChildren();
+    responseNode.textContent = text;
+  }
+
+  function renderArrangementFeedbackSummary(actualLayoutNumber, selectedLayoutNumbers, isSenderMirror = false, options = {}) {
+    const leftLabel = isSenderMirror ? senderLevelOneFeedbackLeftLabel : receiverLevelOneFeedbackLeftLabel;
+    const rightLabel = isSenderMirror ? senderLevelOneFeedbackRightLabel : receiverLevelOneFeedbackRightLabel;
+    const actualWrap = isSenderMirror ? senderLevelOneFeedbackActualWrap : receiverLevelOneFeedbackActualWrap;
+    const responseText = isSenderMirror ? senderLevelOneFeedbackResponseText : receiverLevelOneFeedbackResponseText;
+
+    if (!actualWrap || !responseText || !leftLabel || !rightLabel) {
+      return;
+    }
+
+    if (isSenderMirror) {
+      leftLabel.textContent = "The Sender Sent:";
+      rightLabel.textContent = isRobotReceiverMode ? "The Robot Receiver Said:" : "The Receiver Said:";
+    } else {
+      leftLabel.textContent = isRobotSenderMode ? "The Robot Sender Sent:" : "The Sender Sent:";
+      rightLabel.textContent = "You Said:";
+    }
+
+    const actualCard = buildLevelOneFeedbackCard(actualLayoutNumber);
+    actualCard.classList.add("actual");
+    actualWrap.replaceChildren(actualCard);
+
+    const selectedLayoutNumber = Array.isArray(selectedLayoutNumbers) && selectedLayoutNumbers.length
+      ? Number(selectedLayoutNumbers[0])
+      : actualLayoutNumber;
+
+    if (options.responseMode === "card") {
+      setFeedbackSummaryResponse(responseText, {
+        mode: "card",
+        layoutNumber: selectedLayoutNumber
+      });
+      return;
+    }
+
+    setFeedbackSummaryResponse(responseText, {
+      mode: "word",
+      text: getLevelOneResultWord(selectedLayoutNumber)
+    });
+  }
+
+  function renderLevelOneFeedbackSummary(actualLayoutNumber, selectedLayoutNumbers, isSenderMirror = false) {
+    renderArrangementFeedbackSummary(actualLayoutNumber, selectedLayoutNumbers, isSenderMirror, {
+      responseMode: "word"
+    });
+  }
+
   function showConfidencePanel() {
     if (
       !confidencePanel ||
@@ -2882,6 +3450,8 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     confidenceScreenOpen = true;
+    clearStageVisibility();
+    hideChoiceGrid();
     confidenceSlider.value = "5";
     pendingConfidenceValue = 5;
     confidenceValue.textContent = "5";
@@ -2978,6 +3548,10 @@ const runtimeBuildVersion = "20260621aq";
     messageText.textContent = text;
     messageActions.replaceChildren();
     messagePanel.classList.toggle("compact", actions.length === 0);
+    messagePanel.classList.toggle(
+      "post-round-result",
+      /can receive another image|has had enough/i.test(String(text || ""))
+    );
 
     actions.forEach((action) => {
       const button = document.createElement("button");
@@ -3008,6 +3582,7 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     messagePanel.classList.remove("compact");
+    messagePanel.classList.remove("post-round-result");
     messagePanel.classList.remove("visible");
     updateSettingsGearVisibility();
   }
@@ -3027,9 +3602,7 @@ const runtimeBuildVersion = "20260621aq";
       "receiver-level-two-choice-grid",
       "sender-level-two-choice-grid",
       "receiver-level-four-choice-grid",
-      "sender-level-four-choice-grid",
-      "receiver-level-one-feedback-grid",
-      "sender-level-one-feedback-grid"
+      "sender-level-four-choice-grid"
     ];
 
     for (const key of grids) {
@@ -3389,7 +3962,7 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   async function appendTrialServerRecord(remoteState, options = {}) {
-    if (role !== "receiver") {
+    if (role !== "receiver" && !(isRobotReceiverMode && role === "sender")) {
       return;
     }
 
@@ -3417,7 +3990,8 @@ const runtimeBuildVersion = "20260621aq";
           || remoteState?.timeout_notice?.created_ms
       });
       const response = await api("append_trial_record", {
-        trial_record: trialRecord
+        trial_record: trialRecord,
+        simulation_mode: isRobotSimulationMode ? "robot" : ""
       });
       const appendResult = response?.trial_record_append || null;
 
@@ -3546,6 +4120,16 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   async function completeRound(layoutNumber, arrangementCode) {
+    if (isRobotReceiverMode) {
+      if (activeRound) {
+        activeRound.layout_number = layoutNumber;
+        activeRound.arrangement_code = arrangementCode;
+        activeRound.last_activity_ms = estimatedServerNowMs();
+      }
+      runRobotReceiverSimulationAfterRound();
+      return;
+    }
+
     try {
       void logDebugEvent("sender_complete_round", {
         round_id: activeRound?.id ?? "",
@@ -3739,9 +4323,52 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   function showSenderLevelOneFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers) {
-    const highlightedLayoutNumbers = getLevelOneFeedbackSelectedLayoutNumbers(selectedLayoutNumbers, actualLayoutNumber);
-    renderChoiceSelection(senderLevelOneFeedbackNodes, highlightedLayoutNumbers, actualLayoutNumber);
+    renderLevelOneFeedbackSummary(actualLayoutNumber, selectedLayoutNumbers, true);
     showLevelOneFeedbackGrid(true);
+  }
+
+  function showSenderArrangementFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers) {
+    renderArrangementFeedbackSummary(actualLayoutNumber, selectedLayoutNumbers, true, {
+      responseMode: "card"
+    });
+    showLevelOneFeedbackGrid(true);
+  }
+
+  function renderSenderPostRoundResult(remoteState) {
+    if (role !== "sender") {
+      return;
+    }
+
+    const receiverView = remoteState.receiver_view || {};
+    const selectedLayoutNumbers = Array.isArray(receiverView.selected_layout_numbers)
+      ? receiverView.selected_layout_numbers.filter((value) => Number.isInteger(Number(value))).map(Number)
+      : [];
+    const actualArrangementCode =
+      getResolvedActualArrangementCode(remoteState.round) ||
+      getResolvedActualArrangementCode(activeRound);
+
+    if (!selectedLayoutNumbers.length || !actualArrangementCode) {
+      return;
+    }
+
+    if (isLevelOneDifficulty()) {
+      const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
+      showSenderLevelOneFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers);
+      return;
+    }
+
+    if (isLevelFourDifficulty()) {
+      const actualLayoutNumber = Number(remoteState.round?.image_sent_index ?? activeRound?.image_sent_index ?? 0) || null;
+      setLevelFourChoiceImages(senderLevelFourChoiceNodes, getLevelFourChoiceUrls(remoteState.round) || getLevelFourChoiceUrls(activeRound));
+      renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
+      clearStageVisibility();
+      showStage();
+      arrangementNodes.get("sender-level-four-choice-grid")?.classList.add("visible");
+      return;
+    }
+
+    const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
+    showSenderArrangementFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers);
   }
 
   function renderSenderMirror(remoteState, serverNowMs) {
@@ -3789,6 +4416,7 @@ const runtimeBuildVersion = "20260621aq";
         return true;
       }
       showSenderChoiceMirror(actualArrangementCode, selectedLayoutNumbers, true);
+      showMessagePanel("The receiver is deciding the best pick.", []);
       return true;
     }
 
@@ -3806,10 +4434,13 @@ const runtimeBuildVersion = "20260621aq";
       if (isLevelOneDifficulty()) {
         const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
         showSenderLevelOneFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers);
+        hideMessagePanel();
         return true;
       }
 
-      showSenderChoiceMirror(actualArrangementCode, selectedLayoutNumbers, true);
+      const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
+      showSenderArrangementFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers);
+      hideMessagePanel();
       return true;
     }
 
@@ -3842,8 +4473,7 @@ const runtimeBuildVersion = "20260621aq";
 
     if (isLevelOneDifficulty()) {
       const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
-      const highlightedLayoutNumbers = getLevelOneFeedbackSelectedLayoutNumbers(pendingGuessLayoutNumbers, actualLayoutNumber);
-      renderChoiceSelection(levelOneFeedbackNodes, highlightedLayoutNumbers, actualLayoutNumber);
+      renderLevelOneFeedbackSummary(actualLayoutNumber, pendingGuessLayoutNumbers, false);
       showLevelOneFeedbackGrid(false);
       if (!postRoundChoiceSubmitted) {
         showDecisionPanel();
@@ -3852,44 +4482,22 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     if (isLevelTwoDifficulty()) {
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-
-      showChoiceGrid();
-      const grid = arrangementNodes.get("receiver-level-two-choice-grid");
-      grid?.classList.add("results-locked");
-
-      levelTwoChoiceNodes.forEach((node) => {
-        node.disabled = true;
-        node.style.pointerEvents = "none";
-        node.setAttribute("tabindex", "-1");
-        node.blur();
-      });
       const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
-      renderChoiceSelection(levelTwoChoiceNodes, pendingGuessLayoutNumbers, actualLayoutNumber);
+      renderArrangementFeedbackSummary(actualLayoutNumber, pendingGuessLayoutNumbers, false, {
+        responseMode: "card"
+      });
+      showLevelOneFeedbackGrid(false);
       if (!postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
       return;
     }
 
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-
-    showChoiceGrid();
-    const grid = arrangementNodes.get("receiver-choice-grid");
-    grid?.classList.add("results-locked");
-
-    choiceNodes.forEach((node) => {
-      node.disabled = true;
-      node.style.pointerEvents = "none";
-      node.setAttribute("tabindex", "-1");
-      node.blur();
-    });
     const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
-    renderChoiceSelection(choiceNodes, pendingGuessLayoutNumbers, actualLayoutNumber);
+    renderArrangementFeedbackSummary(actualLayoutNumber, pendingGuessLayoutNumbers, false, {
+      responseMode: "card"
+    });
+    showLevelOneFeedbackGrid(false);
     if (!postRoundChoiceSubmitted) {
       showDecisionPanel();
     }
@@ -3958,6 +4566,29 @@ const runtimeBuildVersion = "20260621aq";
       setDecisionSelection(choice);
     }
 
+    if (isRobotSimulationMode) {
+      const state = ensureRobotSimulationState();
+      const automatedSenderChoice = role === "receiver" && isRobotSenderMode
+        ? choice
+        : String(state.post_round?.sender_choice || "");
+      state.post_round = {
+        receiver_choice: role === "receiver" ? choice : String(state.post_round?.receiver_choice || ""),
+        sender_choice: role === "sender" ? choice : automatedSenderChoice,
+        resolved: null,
+        updated_ms: estimatedServerNowMs()
+      };
+      scheduleRobotSimulationStep(() => {
+        state.post_round = {
+          ...state.post_round,
+          resolved: choice === "another" ? "continue" : "end",
+          updated_ms: estimatedServerNowMs()
+        };
+        applyRemoteState(buildRobotSimulationPayload());
+      }, randomInt(450, 1100));
+      applyRemoteState(buildRobotSimulationPayload());
+      return;
+    }
+
     try {
       const response = await api("post_round_choice", {
         round_id: activeRound.id,
@@ -3984,6 +4615,51 @@ const runtimeBuildVersion = "20260621aq";
     });
     postRoundClearPending = true;
 
+    if (isRobotSimulationMode) {
+      currentPairDifficultyLevel = getRequestedDifficultyLevel();
+      if (postRoundAutoClearHandle !== null) {
+        window.clearTimeout(postRoundAutoClearHandle);
+        postRoundAutoClearHandle = null;
+      }
+      if (options.preserveExited) {
+        postRoundClearPending = false;
+        return;
+      }
+      senderHoldingResult = false;
+      receiverReady = false;
+      awaitingReceiverDone = false;
+      receiverChoiceOpen = false;
+      localRoundRunning = false;
+      roundScheduled = false;
+      confidenceScreenOpen = false;
+      instructionScreenOpen = false;
+      receiverMirrorPhase = "idle";
+      currentUiMode = "";
+      postRoundChoiceSubmitted = false;
+      postRoundClearPending = false;
+      pendingGuessLayoutNumbers = [];
+      pendingGuessArrangementCodes = [];
+      clearStageVisibility();
+      hideStage();
+      hideChoiceGrid();
+      hideConfidencePanel();
+      hideInstructionPanel();
+      hideDecisionPanel();
+      hideMessagePanel();
+      resetRobotSimulationRoundState();
+      activeRound = null;
+      if (mode === "continue") {
+        if (isRobotSenderMode) {
+          receiverReady = true;
+          showReceiverReadyState();
+          void scheduleRobotSenderRoundStart();
+        } else {
+          applyRemoteState(buildRobotSimulationPayload());
+        }
+      }
+      return;
+    }
+
     try {
       const response = await api("clear_post_round", {
         mode
@@ -4005,6 +4681,7 @@ const runtimeBuildVersion = "20260621aq";
       confidenceScreenOpen = false;
       instructionScreenOpen = false;
       receiverMirrorPhase = "idle";
+      currentUiMode = "";
       postRoundChoiceSubmitted = false;
       postRoundClearPending = false;
       pendingGuessLayoutNumbers = [];
@@ -4072,6 +4749,7 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     hideDecisionPanel();
+    renderSenderPostRoundResult(remoteState);
 
     if (!postRound.receiver_choice) {
       hideMessagePanel();
@@ -4249,6 +4927,28 @@ const runtimeBuildVersion = "20260621aq";
         confidence,
         done_reaction_ms: doneReactionMs
       });
+
+      if (isRobotSenderMode) {
+        activeRound.guess_layout_number = guessLayoutNumber;
+        activeRound.second_guess_layout_number = secondGuessLayoutNumber;
+        activeRound.guess_confidence = confidence;
+        activeRound.done_reaction_ms = doneReactionMs;
+        activeRound.guess_submitted_ms = estimatedServerNowMs();
+        activeRound.completed_server_ms = activeRound.guess_submitted_ms;
+        activeRound.last_activity_ms = activeRound.guess_submitted_ms;
+        const actualArrangementCode = getResolvedActualArrangementCode(activeRound);
+        const isImagePairRound = String(activeRound?.stimulus_kind || "") === "image_pair";
+        hideConfidencePanel();
+        hideInstructionPanel();
+        receiverMirrorPhase = "results";
+        postRoundChoiceSubmitted = false;
+        markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        void appendTrialServerRecord(buildRobotSimulationPayload().state);
+        void pushReceiverViewState();
+        void triggerImmediateSync();
+        return;
+      }
+
       const response = await api("submit_guess", {
         round_id: activeRound.id,
         guess_layout_number: guessLayoutNumber,
@@ -4423,6 +5123,23 @@ const runtimeBuildVersion = "20260621aq";
 
     const startServerMs = estimatedServerNowMs();
 
+    if (isRobotReceiverMode) {
+      try {
+        const state = ensureRobotSimulationState();
+        const round = await createRobotRound(startServerMs);
+        state.round = round;
+        state.post_round = null;
+        state.receiver_view.phase = "idle";
+        scheduleSynchronizedRound(round);
+      } catch (error) {
+        localRoundRunning = false;
+        const prompt = "Unable to start robot simulation right now. Please try again.";
+        setPrompt(prompt, true, "Press when ready to send");
+        currentUiMode = "sender-ready";
+      }
+      return;
+    }
+
     try {
       const response = await api("start_round", {
         start_server_ms: startServerMs
@@ -4523,6 +5240,9 @@ const runtimeBuildVersion = "20260621aq";
       receiverReady = true;
       showReceiverReadyState();
       void ensureReceiverAudioUnlocked();
+      if (isRobotSenderMode) {
+        void scheduleRobotSenderRoundStart();
+      }
       return;
     }
 
@@ -4566,6 +5286,7 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     currentUiMode = mode;
+    currentUiModeEnteredAtMs = Date.now();
     hideStage();
 
     if (mode === "sender-waiting-online") {
@@ -4605,12 +5326,20 @@ const runtimeBuildVersion = "20260621aq";
     }
   }
 
+  function shouldHoldWaitingOnlinePrompt() {
+    if (currentUiMode !== "sender-waiting-online" && currentUiMode !== "receiver-waiting-online") {
+      return false;
+    }
+
+    return (Date.now() - currentUiModeEnteredAtMs) < minimumWaitingOnlineDisplayMs;
+  }
+
   function normalizeRound(round, serverNowMs) {
     if (!round || !round.id) {
       return null;
     }
 
-    if (round.completed_server_ms || round.layout_number !== null || round.arrangement_code) {
+    if (round.completed_server_ms) {
       return null;
     }
 
@@ -4648,6 +5377,12 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     const remoteState = payload.state || {};
+    if (isRobotSenderMode) {
+      remoteState.sender_online = true;
+    }
+    if (isRobotReceiverMode) {
+      remoteState.receiver_online = true;
+    }
 
     if (remoteState.authorization_notice) {
       void logDebugEvent("authorization_notice_seen", {
@@ -4737,12 +5472,16 @@ const runtimeBuildVersion = "20260621aq";
       }
 
       if (!remoteState.receiver_online) {
-        if (wasRunInProgress(remoteState)) {
+        if (!isRobotSimulationMode && wasRunInProgress(remoteState)) {
           void appendTrialServerRecord(remoteState, { aborted: true });
           showPartnerDisconnectState("Receiver disconnect - run over");
           return;
         }
         setUiMode("sender-waiting-online");
+        return;
+      }
+
+      if (shouldHoldWaitingOnlinePrompt()) {
         return;
       }
 
@@ -4759,13 +5498,17 @@ const runtimeBuildVersion = "20260621aq";
     }
 
     if (!remoteState.sender_online) {
-      if (wasRunInProgress(remoteState)) {
+      if (!isRobotSimulationMode && wasRunInProgress(remoteState)) {
         void appendTrialServerRecord(remoteState, { aborted: true });
         showPartnerDisconnectState("Sender disconnect - run over");
         return;
       }
       receiverReady = false;
       setUiMode("receiver-waiting-online");
+      return;
+    }
+
+    if (shouldHoldWaitingOnlinePrompt()) {
       return;
     }
 
@@ -4790,6 +5533,11 @@ const runtimeBuildVersion = "20260621aq";
   }
 
   async function syncState() {
+    if (isRobotSimulationMode) {
+      bootstrapRobotSimulation();
+      applyRemoteState(buildRobotSimulationPayload());
+      return;
+    }
     try {
       const payload = await api("heartbeat", {
         receiver_ready: role === "receiver" ? receiverReady : false,

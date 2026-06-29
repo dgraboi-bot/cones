@@ -7,6 +7,16 @@
   <link rel="preload" href="cone-lowglow-transparent.png" as="image">
   <script>
     (function () {
+      var currentUrl;
+      try {
+        currentUrl = new URL(window.location.href);
+      } catch (error) {
+        currentUrl = null;
+      }
+      var swResetRequested = currentUrl && currentUrl.searchParams.get("sw_reset") === "1";
+      var hadTelepathyBeginnerCache = false;
+      var hadTelepathyBeginnerWorker = false;
+
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then(function (registrations) {
           registrations.forEach(function (registration) {
@@ -18,15 +28,21 @@
               || waitingScript.indexOf("telepathybeginner-sw.js") !== -1
               || installingScript.indexOf("telepathybeginner-sw.js") !== -1
             ) {
+              hadTelepathyBeginnerWorker = true;
               registration.unregister().catch(function () {});
             }
           });
+          if ((hadTelepathyBeginnerWorker || hadTelepathyBeginnerCache) && currentUrl && !swResetRequested) {
+            currentUrl.searchParams.set("sw_reset", "1");
+            window.location.replace(currentUrl.toString());
+          }
         }).catch(function () {});
       }
       if ("caches" in window) {
         caches.keys().then(function (keys) {
           keys.forEach(function (key) {
             if (key.indexOf("telepathybeginner-") === 0) {
+              hadTelepathyBeginnerCache = true;
               caches.delete(key).catch(function () {});
             }
           });
@@ -34,11 +50,11 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="telepathy.css?v=20260621aq">
+  <link rel="stylesheet" href="telepathy.css?v=20260629l">
 </head>
 <body data-role="sender">
   <main class="screen">
-    <a class="home-link" href="telepathybeginner.html" aria-label="Go to Telepathy Beginner">⌂</a>
+    <a class="home-link" href="telepathybeginner.html?v=20260629l&amp;open=launcher" aria-label="Go to Telepathy Beginner">⌂</a>
     <button class="waiting-back-button hidden" id="waitingBackButton" type="button" aria-label="Return to Telepathy Beginner home">BACK</button>
     <button class="settings-gear" id="settingsGear" type="button" aria-label="Open settings">⚙</button>
     <div class="countdown-box" id="countdownBox" aria-live="polite">
@@ -47,7 +63,7 @@
     <section class="stage" id="stage" aria-label="Cone arrangement"></section>
     <section class="settings-screen" id="settingsScreen" aria-label="Settings"></section>
   </main>
-    <script src="telepathy.js?v=20260621aq"></script>
+    <script src="telepathy.js?v=20260629l"></script>
   </body>
   </html>
 

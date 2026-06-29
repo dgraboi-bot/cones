@@ -7,6 +7,7 @@
       receiverId: String(params.get("receiver_id") || "").trim(),
       senderId: String(params.get("sender_id") || "").trim(),
       sessionCode: String(params.get("session_code") || "").trim(),
+      source: String(params.get("source") || "").trim().toLowerCase() === "simulation" ? "simulation" : "real",
       returnUrl: String(params.get("return_url") || "").trim(),
       level: String(params.get("level") || "all").trim() || "all",
       minTrials: Number.isFinite(Number(params.get("min_trials"))) ? Math.max(1, Number(params.get("min_trials"))) : 1,
@@ -23,7 +24,8 @@
     return {
       receiver_name: query.receiverId,
       sender_name: query.senderId,
-      session_code: query.sessionCode
+      session_code: query.sessionCode,
+      source: query.source || "real"
     };
   }
 

@@ -1,7 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260626j";
+  const launcherBuildVersion = "20260629l";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -22,8 +22,7 @@
   const aidsView = document.querySelector('[data-view="aids"]');
   const rewireView = document.querySelector('[data-view="rewire"]');
   const generalInformationView = document.querySelector('[data-view="general-information"]');
-  const readingListView = document.querySelector('[data-view="reading-list"]');
-  const videoListView = document.querySelector('[data-view="video-list"]');
+  const readingsVideosView = document.querySelector('[data-view="readings-videos"]');
   const websitesEventsListView = document.querySelector('[data-view="websites-events-list"]');
   const caseStudiesListView = document.querySelector('[data-view="case-studies-list"]');
   const peerReviewedListView = document.querySelector('[data-view="peer-reviewed-list"]');
@@ -43,6 +42,8 @@
   const imagePairAdminView = document.querySelector('[data-view="image-pair-admin"]');
   const subscriptionEmailAdminView = document.querySelector('[data-view="subscription-email-admin"]');
   const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
+  const adminEmailListView = document.querySelector('[data-view="admin-email-list"]');
+  const onlineCourseView = document.querySelector('[data-view="online-course"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
@@ -57,7 +58,7 @@
   const openOptionsButton = document.querySelector("[data-open-options]");
   const openLearnMoreButton = document.querySelector("[data-open-learn-more]");
   const appVersionLabel = document.querySelector("[data-app-version-label]");
-  const closeOptionsButton = document.querySelector("[data-close-options]");
+  const closeOptionsButtons = Array.from(document.querySelectorAll("[data-close-options]"));
   const closeLearnMoreButton = document.querySelector("[data-close-learn-more]");
   const closeEspLessonDetailButton = document.querySelector("[data-close-esp-lesson-detail]");
   const saveLearnMoreButton = document.querySelector("[data-save-learn-more]");
@@ -68,15 +69,16 @@
   const roleLessonWraps = Array.from(document.querySelectorAll("[data-role-lesson-wrap]"));
   const roleLessonTitles = Array.from(document.querySelectorAll("[data-role-lesson-title]"));
   const roleLessonPreviews = Array.from(document.querySelectorAll("[data-role-lesson-preview]"));
-  const roleLessonMoreButtons = Array.from(document.querySelectorAll("[data-role-lesson-more]"));
   const roleLessonNextButtons = Array.from(document.querySelectorAll("[data-role-lesson-next]"));
   const roleLessonBackButtons = Array.from(document.querySelectorAll("[data-role-lesson-back]"));
   const roleLessonDismissButtons = Array.from(document.querySelectorAll("[data-role-lesson-dismiss]"));
   const openAidsButton = document.querySelector("[data-open-aids]");
+  const openOnlineCourseButton = document.querySelector("[data-open-online-course]");
+  const openOnlineCourseDirectButtons = Array.from(document.querySelectorAll("[data-open-online-course-direct]"));
+  const onlineCourseTargetButtons = Array.from(document.querySelectorAll("[data-online-course-target]"));
   const openGeneralInformationButton = document.querySelector("[data-open-general-information]");
   const openRewireButton = document.querySelector("[data-open-rewire]");
-  const openReadingListButton = document.querySelector("[data-open-reading-list]");
-  const openVideoListButton = document.querySelector("[data-open-video-list]");
+  const openReadingsVideosButton = document.querySelector("[data-open-readings-videos]");
   const openWebsitesEventsListButton = document.querySelector("[data-open-websites-events-list]");
   const openCaseStudiesListButton = document.querySelector("[data-open-case-studies-list]");
   const openPeerReviewedListButton = document.querySelector("[data-open-peer-reviewed-list]");
@@ -99,6 +101,7 @@
   const openHandleUpdateAdminButton = document.querySelector("[data-open-handle-update-admin]");
   const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
+  const adminEmailListButton = document.querySelector("[data-admin-email-list]");
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
   const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
   const adminOpenAnalyzerButton = document.querySelector("[data-admin-open-analyzer]");
@@ -110,10 +113,10 @@
   const closeInstallGuideButton = document.querySelector("[data-close-install-guide]");
   const closeTemporaryHomePageButton = document.querySelector("[data-close-temporary-home-page]");
   const closeAidsButton = document.querySelector("[data-close-aids]");
+  const closeOnlineCourseButton = document.querySelector("[data-close-online-course]");
   const closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
   const closeRewireButton = document.querySelector("[data-close-rewire]");
-  const closeReadingListButton = document.querySelector("[data-close-reading-list]");
-  const closeVideoListButton = document.querySelector("[data-close-video-list]");
+  const closeReadingsVideosButton = document.querySelector("[data-close-readings-videos]");
   const closeWebsitesEventsListButton = document.querySelector("[data-close-websites-events-list]");
   const closeCaseStudiesListButton = document.querySelector("[data-close-case-studies-list]");
   const closePeerReviewedListButton = document.querySelector("[data-close-peer-reviewed-list]");
@@ -129,6 +132,9 @@
   const closeClairvoyanceLearnMoreButton = document.querySelector("[data-close-clairvoyance-learn-more]");
   const saveClairvoyanceLearnMoreButton = document.querySelector("[data-save-clairvoyance-learn-more]");
   const closeSubscriptionManagementButton = document.querySelector("[data-close-subscription-management]");
+  const onlineCourseDate = document.querySelector("[data-online-course-date]");
+  const onlineCourseName = document.querySelector("[data-online-course-name]");
+  const onlineCourseCheckpointDate = document.querySelector("[data-online-course-checkpoint-date]");
   const otherSettingsHomeButton = document.querySelector("[data-other-settings-home]");
   const closeBehaviorsButton = document.querySelector("[data-close-behaviors]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
@@ -140,6 +146,7 @@
   const closeImagePairAdminButton = document.querySelector("[data-close-image-pair-admin]");
   const closeSubscriptionEmailAdminButton = document.querySelector("[data-close-subscription-email-admin]");
   const closeAdminUserListButton = document.querySelector("[data-close-admin-user-list]");
+  const closeAdminEmailListButton = document.querySelector("[data-close-admin-email-list]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const temporaryHomePageContinueButton = document.querySelector("[data-temporary-home-continue]");
   const temporaryHomePageInvitationCodeInput = document.querySelector("[data-temporary-home-invitation-code]");
@@ -178,6 +185,7 @@
   let reportImageLightboxImage = null;
   let levelFourImagePairsCachePromise = null;
   let contactReturnView = "help";
+  let contactFromLineRequestToken = 0;
   let goProReturnView = "subscription-management";
   let launcherGuestEntryActive = false;
   const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
@@ -210,6 +218,30 @@
   const pushSetupEnableButton = document.querySelector("[data-push-setup-enable]");
   const pushSetupTestButton = document.querySelector("[data-push-setup-test]");
   const pushSetupCloseButton = document.querySelector("[data-push-setup-close]");
+  const updatesOverlay = document.querySelector("[data-updates-overlay]");
+  const updatesDialog = updatesOverlay?.querySelector(".handle-dialog") || null;
+  const updatesEmailInput = document.querySelector("[data-updates-email]");
+  const updatesStatus = document.querySelector("[data-updates-status]");
+  const updatesYesButton = document.querySelector("[data-updates-yes]");
+  const updatesCloseButton = document.querySelector("[data-updates-close]");
+  const exploreProOverlay = document.querySelector("[data-explore-pro-overlay]");
+  const exploreProDialog = exploreProOverlay?.querySelector(".explore-pro-dialog") || null;
+  const exploreProEmailInput = document.querySelector("[data-explore-pro-email]");
+  const exploreProCodeInput = document.querySelector("[data-explore-pro-code]");
+  const exploreProStatus = document.querySelector("[data-explore-pro-status]");
+  const exploreProSendCodeButton = document.querySelector("[data-explore-pro-send-code]");
+  const exploreProResendCodeButton = document.querySelector("[data-explore-pro-resend-code]");
+  const exploreProStartButton = document.querySelector("[data-explore-pro-start]");
+  const exploreProSubscribeButton = document.querySelector("[data-explore-pro-subscribe]");
+  const exploreProCloseButton = document.querySelector("[data-explore-pro-close]");
+  const exploreProEndedOverlay = document.querySelector("[data-explore-pro-ended-overlay]");
+  const exploreProEndedDialog = exploreProEndedOverlay?.querySelector(".explore-pro-dialog") || null;
+  const exploreProEndedMessage = document.querySelector("[data-explore-pro-ended-message]");
+  const exploreProEndedSubscribeButton = document.querySelector("[data-explore-pro-ended-subscribe]");
+  const exploreProEndedContinueButton = document.querySelector("[data-explore-pro-ended-continue]");
+  const adminEmailListSummary = document.querySelector("[data-admin-email-list-summary]");
+  const adminEmailListStatus = document.querySelector("[data-admin-email-list-status]");
+  const adminEmailListOutput = document.querySelector("[data-admin-email-list-output]");
   const featureSetupIdentifier = document.querySelector("[data-feature-setup-identifier]");
   const featureSetupSummary = document.querySelector("[data-feature-setup-summary]");
   const featureSetupInstallStatus = document.querySelector("[data-feature-setup-install-status]");
@@ -271,6 +303,8 @@
   const contactMessageInput = document.querySelector("[data-contact-message]");
   const contactWordCount = document.querySelector("[data-contact-word-count]");
   const contactEmailInput = document.querySelector("[data-contact-email]");
+  const contactAllowDisplayCheckbox = document.querySelector("[data-contact-allow-display]");
+  const contactFromLine = document.querySelector("[data-contact-from-line]");
   const learnMoreTextInput = document.querySelector("[data-learn-more-text]");
   const learnMoreStatus = document.querySelector("[data-learn-more-status]");
   const learnMoreInlineStatus = document.querySelector("[data-learn-more-inline-status]");
@@ -297,6 +331,8 @@
   const adminSubscriptionEmailsEnabledCheckbox = document.querySelector("[data-admin-subscription-emails-enabled]");
   const adminSubscriptionRemindersEnabledCheckbox = document.querySelector("[data-admin-subscription-reminders-enabled]");
   const adminEasyAdminEnabledCheckbox = document.querySelector("[data-admin-easy-admin-enabled]");
+  const adminLearnMoreSaveEnabledCheckbox = document.querySelector("[data-admin-learn-more-save-enabled]");
+  const adminExploreProTestDurationInput = document.querySelector("[data-admin-explore-pro-test-duration]");
   const userTypeHandleInput = document.querySelector("[data-user-type-handle]");
   const userTypeStatus = document.querySelector("[data-user-type-status]");
   const userTypeOptionsWrap = document.querySelector("[data-user-type-options-wrap]");
@@ -350,6 +386,8 @@
   const locationPickerMapNode = document.querySelector("[data-location-picker-map]");
   const locationPickerSaveButton = document.querySelector("[data-location-picker-save]");
   const locationPickerCancelButton = document.querySelector("[data-location-picker-cancel]");
+  const locationPickerZoomInButton = document.querySelector("[data-location-picker-zoom-in]");
+  const locationPickerZoomOutButton = document.querySelector("[data-location-picker-zoom-out]");
   locationPickerOverlay?.classList.add("beginner-view-hidden");
   const remoteViewerForm = document.querySelector("[data-remote-viewer-form]");
   const remoteViewerOwnInput = document.querySelector("[data-remote-viewer-own]");
@@ -406,6 +444,11 @@
   const roleLessonFadeTimers = new Map();
   const roleLessonFadeTokens = new Map();
   const roleLessonFadeDurationMs = 3150;
+  const roleLessonSessionIds = {
+    sender: 0,
+    receiver: 0,
+    "remote-viewer": 0
+  };
   const roleLessonRuntimeState = {
     sender: null,
     receiver: null,
@@ -443,48 +486,79 @@ Because telepathy is insensitive to distance, you can work with a partner anywhe
 If you have an old friend that lives across the world, your friend can be the Sender, and you can be the Receiver. All that each partner needs is a device that connects to the Internet. The fact that distance does not matter has been substantiated in a multitude of documented cases.`;
   const defaultLearnMoreText = `INFORMATION ABOUT TELEPATHY
 -----------------------------
-The more you know about this ESP skill, the more effective you can be. This section explains what is known about telepathy and how best to become able to tune into it.
+More than a simple telepathy workout, Telepathy Beginner functions as an online course in telepathy and ESP sensitivity training. The more you know about this skill, the more effective you can become in using it. The purpose of this section is to help users understand what telepathy is, how practice is structured, and what mental habits seem to strengthen performance.
 
 [*] DISTANCE DOES NOT MATTER
 ---------------------------
-Because telepathy is insensitive to distance, you can work with a partner anywhere in the world. Your telepathic experience is the same if the Sender is next to you in the same room, or thousands of miles away, or deep in a submarine. You can experiment with partners, even the friends of partners whom you have never met, anywhere on earth.
-If you have an old friend that lives across the world, your friend can be the Sender, and you can be the Receiver. All that each partner needs is a device that connects to the Internet. The fact that distance does not matter has been substantiated in a multitude of documented cases.
+Telepathic experience appears to be insensitive to distance. Your experience as a receiver can be essentially the same whether the sender is next to you in the same room, across the country, or far away in another part of the world. This is one reason the app can be used with partners anywhere on earth, as long as both partners can connect to the Internet and enter one another's identifiers correctly.
 
-[sr] TRUST THE FIRST IMPRESSION
-------------------------------
-When an impression first arrives, it is often faint and easy to dismiss. The receiver improves by noticing the first clear difference that appears and recording it before analysis washes it away. The sender helps most by staying with the target steadily instead of mentally checking many possibilities.
+[sr] WHY PRACTICE MATTERS
+------------------------
+Telepathy, if it is real, is subtle. Subtle skills are easy to miss without repetition, structure, and feedback. Practice gives the user repeated contact with a narrowly defined task, and immediate scoring allows users to see whether impressions are becoming more accurate over time or whether apparent success was only chance performance. The point is not just belief. The point is disciplined observation.
 
-[s] SEND WHAT YOU ACTUALLY SEE
+[s] WHAT THE SENDER LEARNS
+-------------------------
+The sender is not merely "showing a picture." The sender is learning to stabilize attention, hold a target steadily in awareness, and keep returning to what is actually seen instead of drifting into analysis or fantasy. The sender strengthens the session most by quietly maintaining the real target rather than straining or mentally shouting.
+
+[r] WHAT THE RECEIVER LEARNS
+---------------------------
+The receiver is learning to notice faint impressions, trust the first clear difference that appears, and remember what briefly flashes into awareness. Often the first useful information is structural rather than semantic: one thing or many, vertical or horizontal, sparse or crowded, simple or complex. The receiver improves by recording what actually appears before analysis washes it away.
+
+[sr] WHY THE LEVELS ARE STRUCTURED
+---------------------------------
+The levels are designed to move from coarse discrimination toward more refined discrimination. In early work, the task is intentionally simple so that users can learn to detect a reliable difference. Later levels ask for more exact perception and memory. This helps determine whether a pair is merely sensing that "something is different" or is actually transferring more detailed visual information.
+
+[sr] THE APP AS AN ONLINE COURSE
+--------------------------------
+ESP GYM is meant to be used as a course of development, not merely as a one-time novelty. A good approach is to work repeatedly with the same partner, review the reports, observe whether confidence and speed relate to accuracy, and gradually progress through the levels. In this way the app becomes a guided training environment in which the user learns from both direct experience and recorded results.
+
+[sr] OPEN-MINDEDNESS AND PERSONAL CHANGE
+---------------------------------------
+These exercises promote increased awareness of subtle impressions, strengthened ability to perceive delicate mental signals, improve memory for fleeting inner events, and potentially strengthen intuitive abilities. They promote greater open-mindedness by encouraging users to explore experiences they may once have thought impossible.
+
+[v] REMOTE VIEWING AS A NEXT STEP
+--------------------------------
+Remote viewing asks for a related but more demanding skill. Instead of tuning into a live sender, the user attempts to perceive what is happening visually in another place or at another device. For many users it is easier to begin with partner-based telepathy and later experiment with remote viewing, because partner work gives clearer structure, stronger feedback, and more opportunity to build trust in subtle impressions.`;
+  const defaultClairvoyanceLearnMoreText = `CLAIRVOYANCE / REMOTE VIEWING
 -----------------------------
-The sender strengthens the session by holding the real target in mind, not by trying to invent a dramatic signal. Quiet, sustained attention is often better than strain. Let the image become stable in your own awareness first, then keep returning to it.
+This page serves as a study reader for the clairvoyance and remote-viewing side of ESP GYM. Some users find it helpful to read historical case material while training, because repeated exposure to well-known cases makes the subject feel more concrete and less abstract. The items below are not presented as final proof of anything. They are presented as study material that may help clarify what kinds of experiences have been reported.
 
-[r] NOTICE THE SHAPE BEFORE THE STORY
-------------------------------------
-Receivers often do better when they first catch structure instead of meaning. Is it one thing or many? Vertical or horizontal? Sparse or crowded? Let the scene assemble in layers instead of demanding a full explanation immediately.
-
-[v] LET THE SCENE FORM NATURALLY
+[*] CROISET LOCATES GIRL IN DIKE
 -------------------------------
-Remote viewing impressions may arrive in fragments rather than as a complete picture. A color, a line, a direction, or a texture may come first. Stay with what actually appears instead of forcing the mind to manufacture a full scene too quickly.`;
-  const defaultClairvoyanceLearnMoreText = `Croiset Finds Girl in Dike
-For the purposes of parapsychological research, Croiset recorded telephone calls of clients that
-were later turned into verbatim typewritten reports by his assistants. …
-The … victim was an eight-year-old girl that fell through the ice. When a two-day search failed
-to reveal the body, Croiset was consulted by telephone. He responded as follows:
-You are speaking with Croiset. I know you are searching for a girl that drowned the day before
-yesterday. You are calling now from a house not far from the dike. If you walk towards the dike
-in the direction of an excavator you will see two inlets. At the end of the second inlet you make
-an angle of 50 degrees on the axis of the dike. You must dive approximately 35 metres out from
-that point. You will not find the child immediately. She is covered completely with a layer of
-sand. Only the little boot with the skate attached protrudes above the sand. The wall of earth
-collapsed.
-A hole was cut in the ice at the place indicated by the psychic. Within five minutes a diver came
-up with the little skate, and the body was found.
-https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
+In this case, Gerard Croiset was consulted after a search failed to find a drowned child. He reportedly described where the body would be found in relation to visible landmarks near a dike, and divers then recovered the child in the described area. Whether one interprets such a case cautiously or strongly, it is the kind of report that has kept interest in clairvoyance alive for decades.
+[Croiset Finds Girl in Dike](https://telepathyexperiment.com/doccases/Croiset%20Finds%20Girl%20in%20Dike.pdf)
+
+[*] LOST AND FOUND HARP
+----------------------
+This case has been preserved in ESP GYM as reading material for study in anomalous knowing and object-location themes. The linked PDF is brief, but it belongs in the collection because it points to the broader question of whether information about a distant or missing object can sometimes be accessed in unusual ways.
+[Lost and Found Harp](https://telepathyexperiment.com/doccases/Lost%20and%20Found%20Harp.pdf)
+
+[*] FURTHER CASE STUDY READING
+-----------------------------
+The following linked readings can be used as a small study sequence for users interested in clairvoyance, spontaneous telepathy, crisis cases, distant physiological response, object reading, and other psi-related claims:
+
+[Telepathy at Forty Miles](https://telepathyexperiment.com/doccases/A%20Fork%20at%20Forty%20Miles.pdf)
+[House in London](https://telepathyexperiment.com/doccases/House%20in%20London.pdf)
+[Twin Brother's Death](https://telepathyexperiment.com/doccases/Twin%20Brother%20Dies%20in%20Australia.pdf)
+[Twin Sisters' Bloody Nose](https://telepathyexperiment.com/doccases/Twin%20Sisters%20Share%20Bloody%20Nose.pdf)
+[Physiological Response At a Distance](https://telepathyexperiment.com/doccases/Polygraph%20Needle%20Runs%20Off%20Paper.pdf)
+[Involuntary Hitchhiker](https://telepathyexperiment.com/doccases/Involuntary%20Hitchhiker.pdf)
+[The Dog Will Be Cured by Some Sort of Shock](https://telepathyexperiment.com/doccases/The%20Dog%20Will%20Be%20Cured%20by%20Some%20Sort%20of%20Shock.pdf)
+[Pottery Jar Fragment from Pompeii](https://telepathyexperiment.com/doccases/Pottery%20Jar%20From%20Ruins%20of%20Pompeii.pdf)
+[An Image Put on Film](https://telepathyexperiment.com/doccases/Hurkos%20Puts%20Image%20on%20Film.pdf)
+[The Dream Happened Two Hours Earlier](https://telepathyexperiment.com/doccases/The%20Dream%20Happened%20Two%20Hours%20Earlier%20Than%20the%20Event.pdf)
+[Magnetometer in the Basement](https://telepathyexperiment.com/doccases/The%20Magnetometer%20in%20the%20Basement.pdf)
+
+[*] HOW TO USE THESE READINGS
+----------------------------
+The best use of this material is not to read it once and forget it, but to let it accompany practice. Read one case, reflect on what kind of information transfer it seems to suggest, then return to the app and train. Over time, the cases, the reports, and your own practice data begin to inform one another. That is the spirit in which this section is provided.`;
   let stripePublicConfigCache = null;
   let stripeCheckoutInFlight = false;
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
+  let onlineCourseReturnTarget = { view: "aids", role: "" };
+  let suppressLauncherAutoCollapseUntil = 0;
   let inviteeRecordsCache = [];
   let inviteeLookupTimer = null;
   let pendingInviteeLookupToken = 0;
@@ -501,12 +575,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       subscription_emails_enabled: false,
       subscription_reminders_enabled: false,
       easy_admin_enabled: false,
+      learn_more_save_enabled: false,
+      explore_pro_test_duration_seconds: 0,
       storage: null,
       debug_log: null,
       subscription_email_log: null,
       subscription_email_templates: null,
       user_trial_summary: null,
       user_trial_summary_meta: null,
+      email_list: null,
+      email_list_meta: null,
       disk_usage_analysis: null
     };
   const defaultThemeColor = "#3160b0";
@@ -597,12 +675,17 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         locationFineTuneDismissedForTimestamp: Number.isFinite(Number(parsed?.locationFineTuneDismissedForTimestamp)) ? Number(parsed.locationFineTuneDismissedForTimestamp) : 0,
         partnerHistory: typeof parsed?.partnerHistory === "object" && parsed.partnerHistory ? parsed.partnerHistory : {},
         launcherProfiles: typeof parsed?.launcherProfiles === "object" && parsed.launcherProfiles ? parsed.launcherProfiles : {},
+        roleDifficultyLevels: typeof parsed?.roleDifficultyLevels === "object" && parsed.roleDifficultyLevels ? parsed.roleDifficultyLevels : {},
+        robotSimulationDifficultyLevels: typeof parsed?.robotSimulationDifficultyLevels === "object" && parsed.robotSimulationDifficultyLevels ? parsed.robotSimulationDifficultyLevels : {},
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         messagingDeviceId: typeof parsed?.messagingDeviceId === "string" ? parsed.messagingDeviceId : "",
         notificationPermission: typeof parsed?.notificationPermission === "string" ? parsed.notificationPermission : "",
+        updatesInterestEmail: typeof parsed?.updatesInterestEmail === "string" ? parsed.updatesInterestEmail : "",
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
         learnMoreText: normalizeStoredLearnMoreText(parsed?.learnMoreText),
-        clairvoyanceLearnMoreText: typeof parsed?.clairvoyanceLearnMoreText === "string" && parsed.clairvoyanceLearnMoreText.trim() ? parsed.clairvoyanceLearnMoreText : defaultClairvoyanceLearnMoreText,
+        clairvoyanceLearnMoreText: normalizeStoredClairvoyanceLearnMoreText(parsed?.clairvoyanceLearnMoreText),
+        learnMoreDraftText: typeof parsed?.learnMoreDraftText === "string" ? parsed.learnMoreDraftText : null,
+        clairvoyanceLearnMoreDraftText: typeof parsed?.clairvoyanceLearnMoreDraftText === "string" ? parsed.clairvoyanceLearnMoreDraftText : null,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
         remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
         blinkSenderImage: !!parsed?.blinkSenderImage,
@@ -616,6 +699,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           : null,
         pendingInviteeOnboarding: parsed?.pendingInviteeOnboarding && typeof parsed.pendingInviteeOnboarding === "object"
           ? parsed.pendingInviteeOnboarding
+          : null,
+        exploreTrial: parsed?.exploreTrial && typeof parsed.exploreTrial === "object"
+          ? {
+              identifier: typeof parsed.exploreTrial.identifier === "string" ? parsed.exploreTrial.identifier.trim() : "",
+              email: typeof parsed.exploreTrial.email === "string" ? parsed.exploreTrial.email.trim() : "",
+              status: String(parsed?.exploreTrial?.status || "").trim().toLowerCase() === "expired" ? "expired" : "active",
+              startedAt: Number.isFinite(Number(parsed?.exploreTrial?.startedAt)) ? Number(parsed.exploreTrial.startedAt) : 0,
+              expiresAt: Number.isFinite(Number(parsed?.exploreTrial?.expiresAt)) ? Number(parsed.exploreTrial.expiresAt) : 0,
+              noticeShown: !!parsed?.exploreTrial?.noticeShown
+            }
           : null,
         temporaryIdentity: parsed?.temporaryIdentity && typeof parsed.temporaryIdentity === "object"
           ? {
@@ -635,12 +728,17 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         locationFineTuneDismissedForTimestamp: 0,
         partnerHistory: {},
         launcherProfiles: {},
+        roleDifficultyLevels: {},
+        robotSimulationDifficultyLevels: {},
         identifierStatusMap: {},
         messagingDeviceId: "",
         notificationPermission: "",
+        updatesInterestEmail: "",
         themeColor: defaultThemeColor,
         learnMoreText: defaultLearnMoreText,
         clairvoyanceLearnMoreText: defaultClairvoyanceLearnMoreText,
+        learnMoreDraftText: null,
+        clairvoyanceLearnMoreDraftText: null,
         difficultyLevel: "1",
         remoteViewerDisplayDevice: false,
         blinkSenderImage: defaultBlinkSettings.enabled,
@@ -651,6 +749,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         resolvedMainUserType: "standard",
         loadedInviteeIdentity: null,
         pendingInviteeOnboarding: null,
+        exploreTrial: null,
         temporaryIdentity: null
       };
     }
@@ -661,13 +760,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function normalizeStoredLearnMoreText(value) {
-    const text = typeof value === "string" ? value : "";
-    if (!text.trim()) {
+    if (typeof value !== "string") {
       return defaultLearnMoreText;
     }
-    return text.trim() === legacyDefaultLearnMoreText.trim()
+    return value.trim() === legacyDefaultLearnMoreText.trim()
       ? defaultLearnMoreText
-      : text;
+      : value;
+  }
+
+  function normalizeStoredClairvoyanceLearnMoreText(value) {
+    return typeof value === "string" ? value : defaultClairvoyanceLearnMoreText;
   }
 
   function normalizeInstallState(input) {
@@ -716,6 +818,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return `Your unique identity which you should give to any partner you work with will be ${cleanIdentifier}. You can change it to a unique identity that you choose (as long as it is not already claimed) by clicking on the link below:`;
   }
 
+  function getTemporaryIdentityLinkText(identifier) {
+    const cleanIdentifier = String(identifier || "").trim();
+    return cleanIdentifier
+      ? `Choose another unique name instead of ${cleanIdentifier}`
+      : "Choose unique name instead of email address";
+  }
+
   function hasKnownLauncherIdentity(state = readLauncherState()) {
     const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
     const loadedInvitee = getLoadedInviteeIdentity(state);
@@ -750,11 +859,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       identifierStatusMap: {},
       messagingDeviceId: typeof baseState?.messagingDeviceId === "string" ? baseState.messagingDeviceId : "",
       notificationPermission: typeof baseState?.notificationPermission === "string" ? baseState.notificationPermission : "",
+      updatesInterestEmail: typeof baseState?.updatesInterestEmail === "string" ? baseState.updatesInterestEmail : "",
       themeColor: typeof baseState?.themeColor === "string" ? baseState.themeColor : defaultThemeColor,
       learnMoreText: normalizeStoredLearnMoreText(baseState?.learnMoreText),
-      clairvoyanceLearnMoreText: typeof baseState?.clairvoyanceLearnMoreText === "string" && baseState.clairvoyanceLearnMoreText.trim()
-        ? baseState.clairvoyanceLearnMoreText
-        : defaultClairvoyanceLearnMoreText,
+      clairvoyanceLearnMoreText: normalizeStoredClairvoyanceLearnMoreText(baseState?.clairvoyanceLearnMoreText),
+      learnMoreDraftText: typeof baseState?.learnMoreDraftText === "string" ? baseState.learnMoreDraftText : null,
+      clairvoyanceLearnMoreDraftText: typeof baseState?.clairvoyanceLearnMoreDraftText === "string" ? baseState.clairvoyanceLearnMoreDraftText : null,
       difficultyLevel: "1",
       remoteViewerDisplayDevice: false,
       blinkSenderImage: typeof baseState?.blinkSenderImage === "boolean" ? baseState.blinkSenderImage : defaultBlinkSettings.enabled,
@@ -765,6 +875,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       resolvedMainUserType: normalizedUserType,
       loadedInviteeIdentity: baseState?.loadedInviteeIdentity && typeof baseState.loadedInviteeIdentity === "object" ? baseState.loadedInviteeIdentity : null,
       pendingInviteeOnboarding: baseState?.pendingInviteeOnboarding && typeof baseState.pendingInviteeOnboarding === "object" ? baseState.pendingInviteeOnboarding : null,
+      exploreTrial: options.exploreTrial && cleanIdentifier
+        ? {
+            identifier: cleanIdentifier,
+            email: String(options.exploreTrial.email || "").trim(),
+            status: String(options.exploreTrial.status || "").trim().toLowerCase() === "expired" ? "expired" : "active",
+            startedAt: Number.isFinite(Number(options.exploreTrial.startedAt)) ? Number(options.exploreTrial.startedAt) : 0,
+            expiresAt: Number.isFinite(Number(options.exploreTrial.expiresAt)) ? Number(options.exploreTrial.expiresAt) : 0,
+            noticeShown: !!options.exploreTrial.noticeShown
+          }
+        : null,
       temporaryIdentity: options.temporaryIdentity && cleanIdentifier
         ? {
             identifier: cleanIdentifier,
@@ -779,9 +899,100 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return normalizeStoredLearnMoreText(state?.learnMoreText);
   }
 
+  function normalizeExploreTrialData(input, fallbackIdentifier = "") {
+    if (!input || typeof input !== "object") {
+      return null;
+    }
+    const identifier = String(input.identifier || fallbackIdentifier || "").trim();
+    if (!identifier) {
+      return null;
+    }
+    return {
+      identifier,
+      email: String(input.email || "").trim(),
+      emailMasked: String(input.email_masked || "").trim(),
+      status: String(input.phase || input.status || "").trim().toLowerCase() === "expired" ? "expired" : "active",
+      startedAt: Number.isFinite(Number(input.started_ms ?? input.startedAt)) ? Number(input.started_ms ?? input.startedAt) : 0,
+      expiresAt: Number.isFinite(Number(input.expires_ms ?? input.expiresAt)) ? Number(input.expires_ms ?? input.expiresAt) : 0,
+      expiredMessage: String(input.expired_message || "").trim()
+    };
+  }
+
+  function rememberExploreTrialState(trialData, options = {}) {
+    const normalized = normalizeExploreTrialData(trialData);
+    const latest = readLauncherState();
+    if (!normalized) {
+      latest.exploreTrial = null;
+      writeLauncherState(latest);
+      return null;
+    }
+    const prior = latest.exploreTrial && typeof latest.exploreTrial === "object" ? latest.exploreTrial : null;
+    latest.exploreTrial = {
+      identifier: normalized.identifier,
+      email: normalized.email,
+      status: normalized.status,
+      startedAt: normalized.startedAt,
+      expiresAt: normalized.expiresAt,
+      noticeShown: options.noticeShown === true
+        ? true
+        : !!prior?.noticeShown && normalizeIdentifierForStorage(String(prior?.identifier || "")) === normalizeIdentifierForStorage(normalized.identifier)
+    };
+    if (latest.temporaryIdentity && typeof latest.temporaryIdentity === "object" &&
+      normalizeIdentifierForStorage(String(latest.temporaryIdentity.identifier || "")) === normalizeIdentifierForStorage(normalized.identifier)) {
+      latest.temporaryIdentity.userType = normalized.status === "expired" ? "standard" : "pro";
+    }
+    writeLauncherState(latest);
+    return normalized;
+  }
+
+  function showExploreProEndedOverlay(message = "") {
+    if (exploreProEndedMessage) {
+      exploreProEndedMessage.textContent = String(message || "").trim() || "Your ESP PRO exploration period has ended, and you are now using the free Telepathy Beginner. Your progress has been saved. If you found ESP PRO useful, click here to subscribe to ESP PRO and continue where you left off for $2.99/month or $25/year.";
+    }
+    exploreProEndedOverlay?.classList.remove("beginner-view-hidden");
+  }
+
+  function closeExploreProEndedOverlay() {
+    exploreProEndedOverlay?.classList.add("beginner-view-hidden");
+  }
+
+  function syncExploreTrialStateFromServer(identifier, payload) {
+    const normalized = normalizeExploreTrialData(payload, identifier);
+    if (!normalized) {
+      return null;
+    }
+    const latest = readLauncherState();
+    const existing = latest.exploreTrial && typeof latest.exploreTrial === "object" ? latest.exploreTrial : null;
+    const sameTrial = normalizeIdentifierForStorage(String(existing?.identifier || "")) === normalizeIdentifierForStorage(normalized.identifier);
+    const shouldShowExpiredNotice = normalized.status === "expired" &&
+      isLandingExploreTemporaryIdentity(normalized.identifier, latest) &&
+      !(sameTrial && existing?.noticeShown);
+    rememberExploreTrialState(normalized, { noticeShown: shouldShowExpiredNotice });
+    if (shouldShowExpiredNotice) {
+      showExploreProEndedOverlay(normalized.expiredMessage);
+    }
+    return normalized;
+  }
+
   function getClairvoyanceLearnMoreText(state = readLauncherState()) {
-    const value = typeof state?.clairvoyanceLearnMoreText === "string" ? state.clairvoyanceLearnMoreText : "";
-    return value.trim() ? value : defaultClairvoyanceLearnMoreText;
+    return normalizeStoredClairvoyanceLearnMoreText(state?.clairvoyanceLearnMoreText);
+  }
+
+  function getLearnMoreDraftText(contentKey, state = readLauncherState()) {
+    if (contentKey === "clairvoyance") {
+      return typeof state?.clairvoyanceLearnMoreDraftText === "string" ? state.clairvoyanceLearnMoreDraftText : null;
+    }
+    return typeof state?.learnMoreDraftText === "string" ? state.learnMoreDraftText : null;
+  }
+
+  function setLearnMoreDraftText(contentKey, content) {
+    const latest = readLauncherState();
+    if (contentKey === "clairvoyance") {
+      latest.clairvoyanceLearnMoreDraftText = typeof content === "string" ? content : null;
+    } else {
+      latest.learnMoreDraftText = typeof content === "string" ? content : null;
+    }
+    writeLauncherState(latest);
   }
 
   function slugifyEspLessonTitle(value) {
@@ -888,23 +1099,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   function buildEspLessonPreview(body) {
     const text = String(body || "").trim().replace(/\r\n?/g, "\n");
-    if (!text) {
-      return { preview: "", remainder: "", hasMore: false };
-    }
-    const limit = 220;
-    if (text.length <= limit) {
-      return { preview: text, remainder: "", hasMore: false };
-    }
-    let slicePoint = text.lastIndexOf(" ", limit);
-    if (slicePoint < Math.floor(limit * 0.65)) {
-      slicePoint = limit;
-    }
-    const preview = text.slice(0, slicePoint).trim();
-    const remainder = text.slice(slicePoint).trim();
     return {
-      preview: `${preview}...`,
-      remainder,
-      hasMore: !!remainder
+      preview: text,
+      remainder: "",
+      hasMore: false
     };
   }
 
@@ -1035,6 +1233,21 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       : null;
   }
 
+  function beginRoleLessonSession(role) {
+    const normalizedRole = String(role || "").trim();
+    if (!normalizedRole) {
+      return 0;
+    }
+    const nextSessionId = Number(roleLessonSessionIds[normalizedRole] || 0) + 1;
+    roleLessonSessionIds[normalizedRole] = nextSessionId;
+    return nextSessionId;
+  }
+
+  function getRoleLessonSessionId(role) {
+    const normalizedRole = String(role || "").trim();
+    return Number(roleLessonSessionIds[normalizedRole] || 0);
+  }
+
   function updateRoleLessonBackButton(role) {
     const button = roleLessonBackButtons.find((item) => item.dataset.roleLessonBack === role) || null;
     if (!button) {
@@ -1044,6 +1257,31 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const hasHistory = Array.isArray(lessonRuntime?.history) && lessonRuntime.history.length > 0;
     button.disabled = !hasHistory;
     button.setAttribute("aria-disabled", hasHistory ? "false" : "true");
+  }
+
+  function promoteQueuedRoleLesson(role) {
+    const normalizedRole = String(role || "").trim();
+    const lessonRuntime = getCurrentRoleLesson(normalizedRole);
+    if (!lessonRuntime?.identifier || !Array.isArray(lessonRuntime.lessonIds) || !lessonRuntime.lessonIds.length) {
+      return;
+    }
+    const queuedLessonId = String(lessonRuntime.lessonState?.current_lesson_id || "").trim();
+    if (!queuedLessonId) {
+      return;
+    }
+    const lessons = getEspLessonsForRole(normalizedRole, readLauncherState());
+    const queuedLesson = lessons.find((item) => item.id === queuedLessonId) || null;
+    if (!queuedLesson) {
+      return;
+    }
+    const preview = buildEspLessonPreview(queuedLesson.body);
+    roleLessonRuntimeState[normalizedRole] = {
+      ...lessonRuntime,
+      lesson: queuedLesson,
+      preview,
+      history: []
+    };
+    updateRoleLessonBackButton(normalizedRole);
   }
 
   async function goBackRoleEspLesson(role) {
@@ -1136,8 +1374,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
     peerReviewedListView?.classList.add("beginner-view-hidden");
@@ -1193,7 +1431,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }, 80);
   }
 
-  async function refreshRoleEspLesson(role) {
+  async function refreshRoleEspLesson(role, options = {}) {
     const normalizedRole = String(role || "").trim();
     if (!normalizedRole) {
       return;
@@ -1219,6 +1457,65 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       return;
     }
 
+    const targetSessionId = Number(options.sessionId || getRoleLessonSessionId(normalizedRole) || 0);
+    const shouldForceFetch = options.forceFetch === true;
+    const shouldAutoAdvanceOnEntry = options.autoAdvanceOnEntry === true;
+    const existingRuntime = getCurrentRoleLesson(normalizedRole);
+    if (
+      !shouldForceFetch &&
+      existingRuntime &&
+      existingRuntime.identifier === ownIdentifier &&
+      Number(existingRuntime.sessionId || 0) === targetSessionId &&
+      existingRuntime.lesson
+    ) {
+      const preview = existingRuntime.preview || buildEspLessonPreview(existingRuntime.lesson.body || "");
+      roleLessonRuntimeState[normalizedRole] = {
+        ...existingRuntime,
+        preview
+      };
+      await transitionRoleLessonContent(normalizedRole, existingRuntime.lesson.title || "", preview.preview || existingRuntime.lesson.body || "");
+      updateRoleLessonBackButton(normalizedRole);
+      return;
+    }
+
+    if (
+      shouldAutoAdvanceOnEntry &&
+      !shouldForceFetch &&
+      existingRuntime &&
+      existingRuntime.identifier === ownIdentifier &&
+      Number(existingRuntime.sessionId || 0) !== targetSessionId
+    ) {
+      const queuedLessonId = String(existingRuntime.lessonState?.current_lesson_id || "").trim();
+      const queuedLesson = queuedLessonId ? lessons.find((item) => item.id === queuedLessonId) || null : null;
+      if (queuedLesson) {
+        const preview = buildEspLessonPreview(queuedLesson.body);
+        roleLessonRuntimeState[normalizedRole] = {
+          sessionId: targetSessionId,
+          identifier: ownIdentifier,
+          lessonIds: lessons.map((item) => item.id),
+          lessonState: existingRuntime.lessonState,
+          lesson: queuedLesson,
+          preview,
+          history: []
+        };
+        await transitionRoleLessonContent(normalizedRole, queuedLesson.title || "", preview.preview || queuedLesson.body || "");
+        updateRoleLessonBackButton(normalizedRole);
+        try {
+          const nextState = await advanceEspLessonState(ownIdentifier, lessons.map((item) => item.id), "next", queuedLesson.id);
+          const currentRuntime = getCurrentRoleLesson(normalizedRole);
+          if (currentRuntime && currentRuntime.identifier === ownIdentifier && Number(currentRuntime.sessionId || 0) === targetSessionId) {
+            roleLessonRuntimeState[normalizedRole] = {
+              ...currentRuntime,
+              lessonState: nextState
+            };
+          }
+        } catch (_) {
+          // Keep the displayed lesson stable even if the advance fails.
+        }
+        return;
+      }
+    }
+
     try {
       const lessonState = await fetchEspLessonState(ownIdentifier, lessons.map((lesson) => lesson.id));
       const lessonId = String(lessonState?.current_lesson_id || "").trim();
@@ -1228,18 +1525,37 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         return;
       }
       const preview = buildEspLessonPreview(lesson.body);
+      const preservedHistory = existingRuntime &&
+        existingRuntime.identifier === ownIdentifier &&
+        Number(existingRuntime.sessionId || 0) === targetSessionId &&
+        Array.isArray(existingRuntime.history)
+        ? existingRuntime.history
+        : [];
       roleLessonRuntimeState[normalizedRole] = {
+        sessionId: targetSessionId,
         identifier: ownIdentifier,
         lessonIds: lessons.map((item) => item.id),
         lessonState,
         lesson,
         preview,
-        history: Array.isArray(roleLessonRuntimeState[normalizedRole]?.history)
-          ? roleLessonRuntimeState[normalizedRole].history
-          : []
+        history: preservedHistory
       };
       await transitionRoleLessonContent(normalizedRole, lesson.title || "", preview.preview || lesson.body || "");
       updateRoleLessonBackButton(normalizedRole);
+      if (shouldAutoAdvanceOnEntry) {
+        try {
+          const nextState = await advanceEspLessonState(ownIdentifier, lessons.map((item) => item.id), "next", lesson.id);
+          const currentRuntime = getCurrentRoleLesson(normalizedRole);
+          if (currentRuntime && currentRuntime.identifier === ownIdentifier && Number(currentRuntime.sessionId || 0) === targetSessionId) {
+            roleLessonRuntimeState[normalizedRole] = {
+              ...currentRuntime,
+              lessonState: nextState
+            };
+          }
+        } catch (_) {
+          // Keep the displayed lesson stable even if the advance fails.
+        }
+      }
     } catch (error) {
       clearRoleLessonDisplay(normalizedRole);
     }
@@ -1272,7 +1588,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           ? [...(Array.isArray(lessonRuntime.history) ? lessonRuntime.history : []), priorLesson]
           : (Array.isArray(lessonRuntime.history) ? lessonRuntime.history : [])
       };
-      await refreshRoleEspLesson(role);
+      await refreshRoleEspLesson(role, {
+        forceFetch: true,
+        sessionId: Number(lessonRuntime.sessionId || getRoleLessonSessionId(role) || 0)
+      });
       if (options.keepDetailOpen) {
         if (getCurrentRoleLesson(role)) {
           renderEspLessonDetail(role);
@@ -1453,6 +1772,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       partnerHistory: cloneJsonValue(state?.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(state?.deletedPartners || {}, {}),
       launcherProfiles: cloneJsonValue(state?.launcherProfiles || {}, {}),
+      roleDifficultyLevels: cloneJsonValue(state?.roleDifficultyLevels || {}, {}),
+      robotSimulationDifficultyLevels: cloneJsonValue(state?.robotSimulationDifficultyLevels || {}, {}),
       identifierStatusMap: cloneJsonValue(state?.identifierStatusMap || {}, {}),
       resolvedMainUserType: String(state?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
       temporaryIdentity: cloneJsonValue(state?.temporaryIdentity || null, null),
@@ -1475,6 +1796,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       partnerHistory: cloneJsonValue(source.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(source.deletedPartners || {}, {}),
       launcherProfiles: cloneJsonValue(source.launcherProfiles || {}, {}),
+      roleDifficultyLevels: cloneJsonValue(source.roleDifficultyLevels || {}, {}),
+      robotSimulationDifficultyLevels: cloneJsonValue(source.robotSimulationDifficultyLevels || {}, {}),
       identifierStatusMap: cloneJsonValue(source.identifierStatusMap || {}, {}),
       resolvedMainUserType: String(source.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
       temporaryIdentity: cloneJsonValue(source.temporaryIdentity || null, null),
@@ -1549,7 +1872,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   function getConfidenceBehaviorSettings(state = readLauncherState()) {
     return {
-      include: state?.includeConfidence !== false
+      include: state?.includeConfidence === true
     };
   }
 
@@ -1658,7 +1981,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       senderId: String(selectedReportPair.senderName || "").trim(),
       receiverLabel: String(selectedReportPair.receiverName || "").trim(),
       senderLabel: String(selectedReportPair.senderName || "").trim(),
-      sessionCode: String(selectedReportPair.sessionCode || "").trim()
+      sessionCode: String(selectedReportPair.sessionCode || "").trim(),
+      source: String(selectedReportPair.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real"
     };
   }
 
@@ -1724,7 +2048,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       open: "report-definition",
       report_receiver: pairState?.receiverId || "",
       report_sender: pairState?.senderId || "",
-      report_session_code: pairState?.sessionCode || ""
+      report_session_code: pairState?.sessionCode || "",
+      report_source: pairState?.source || "real"
     });
     return buildStandaloneModuleUrl("globe/index.html", {
       v: launcherBuildVersion,
@@ -1733,6 +2058,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       receiver_id: pairState?.receiverId || "",
       sender_id: pairState?.senderId || "",
       session_code: pairState?.sessionCode || "",
+      source: pairState?.source || "real",
       min_trials: Number.isFinite(Number(options.minTrials)) ? Number(options.minTrials) : 1,
       include_incomplete: options.includeIncomplete ? 1 : 0,
       group_by: options.grouping || "exact",
@@ -1795,7 +2121,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     });
 
     const data = await parseApiResponse(response, `Identifier lookup failed with status ${response.status}`);
-    return data?.identifier_status || null;
+    if (!data?.identifier_status || typeof data.identifier_status !== "object") {
+      return null;
+    }
+    return {
+      ...data.identifier_status,
+      identifier_exists: !!data?.identifier_exists
+    };
   }
 
   async function fetchUserType(identifier) {
@@ -1815,6 +2147,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (data?.identifier_status) {
       rememberIdentifierStatus(cleanIdentifier, data.identifier_status);
     }
+    syncExploreTrialStateFromServer(cleanIdentifier, data?.explore_trial || null);
     return String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
   }
 
@@ -2051,6 +2384,52 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return parseApiResponse(response, `Temporary identity request failed with status ${response.status}`);
   }
 
+  async function sendExploreProVerificationCode(email) {
+    const cleanEmail = String(email || "").trim();
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "send_explore_pro_verification_code",
+        email: cleanEmail
+      })
+    });
+    const data = await parseApiResponse(response, `Explore PRO code request failed with status ${response.status}`);
+    const verification = data?.verification && typeof data.verification === "object" ? data.verification : null;
+    if (!verification || !String(verification.email || "").trim()) {
+      throw new Error("The server did not confirm that a verification code was sent.");
+    }
+    return verification;
+  }
+
+  async function verifyExploreProCode(email, code) {
+    const cleanEmail = String(email || "").trim();
+    const cleanCode = String(code || "").trim().toUpperCase();
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    if (!/^[A-Z2-9]{5}$/.test(cleanCode)) {
+      throw new Error("Please enter the 5-character verification code.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "verify_explore_pro_code",
+        email: cleanEmail,
+        code: cleanCode
+      })
+    });
+    return parseApiResponse(response, `Explore PRO verification failed with status ${response.status}`);
+  }
+
   async function fetchLandingInvitationIdentity(identifier) {
     const cleanIdentifier = assertValidParticipantIdentifier(identifier, "Invitation code");
     const response = await fetch("api.php", {
@@ -2073,6 +2452,48 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     };
   }
 
+  async function fetchLearnMoreContent(contentKey) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    if (!["main", "clairvoyance"].includes(normalizedKey)) {
+      throw new Error("Learn More content key is invalid.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_learn_more_content",
+        content_key: normalizedKey
+      })
+    });
+
+    const data = await parseApiResponse(response, `Learn More content request failed with status ${response.status}`);
+    return data?.learn_more_content || null;
+  }
+
+  async function saveLearnMoreContentToServer(contentKey, content) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    if (!["main", "clairvoyance"].includes(normalizedKey)) {
+      throw new Error("Learn More content key is invalid.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_learn_more_content",
+        content_key: normalizedKey,
+        content: typeof content === "string" ? content : "",
+        secret_candidate: launcherAdminSecret
+      })
+    });
+
+    const data = await parseApiResponse(response, `Learn More save failed with status ${response.status}`);
+    return data?.learn_more_content || null;
+  }
+
   async function saveLauncherProfile(role, ownEmail, profileState) {
     const payload = sanitizeLauncherProfileForServer(role, ownEmail, profileState);
     const response = await fetch("api.php", {
@@ -2090,6 +2511,28 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     const data = await parseApiResponse(response, `Launcher profile save failed with status ${response.status}`);
     return data?.launcher_profile || null;
+  }
+
+  async function saveEmailListSignup(email, type = "updates", name = "") {
+    const cleanEmail = String(email || "").trim();
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_email_list_signup",
+        email: cleanEmail,
+        type: String(type || "updates").trim() || "updates",
+        name: String(name || "").trim()
+      })
+    });
+
+    const data = await parseApiResponse(response, `Email signup request failed with status ${response.status}`);
+    return data?.email_record || null;
   }
 
   async function fetchPushSetup(ownIdentifier, deviceId) {
@@ -2377,7 +2820,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return {
       receiver_name: assertValidParticipantIdentifier(pairInfo?.receiverName, `${fieldName} receiver identifier`),
       sender_name: assertValidParticipantIdentifier(pairInfo?.senderName, `${fieldName} sender identifier`),
-      session_code: assertValidSessionCode(pairInfo?.sessionCode, `${fieldName} session code`)
+      session_code: assertValidSessionCode(pairInfo?.sessionCode, `${fieldName} session code`),
+      source: String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real"
     };
   }
 
@@ -2398,6 +2842,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       own_email: assertValidParticipantIdentifier(ownEmail, "own_email"),
       launcher_profile: {
         current_partner: assertValidParticipantIdentifier(profileState?.currentPartner, "launcher_profile.current_partner", { required: false }),
+        difficulty_level: normalizeDifficultyLevel(profileState?.difficultyLevel || "1"),
         partner_history: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []).map((item) =>
           assertValidParticipantIdentifier(item, "launcher_profile.partner_history item")
         ),
@@ -2601,6 +3046,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       owner_identifier: String(status.owner_identifier || "").trim(),
       uses_handle: !!status.uses_handle,
       is_handle: !!status.is_handle,
+      identifier_exists: !!status.identifier_exists,
       updated_at: Date.now()
     };
 
@@ -2901,6 +3347,40 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}` : `${normalizedRole}::`;
   }
 
+  function buildRobotSimulationDifficultyKey(role, ownIdentifier) {
+    const normalizedRole =
+      role === "sender"
+        ? "sender"
+        : role === "remote-viewer"
+          ? "remote-viewer"
+          : "receiver";
+    const normalizedIdentifier = normalizeIdentifierForStorage(getPreferredIdentifier(ownIdentifier));
+    return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}::robot` : `${normalizedRole}::::robot`;
+  }
+
+  function getRobotSimulationDifficulty(role, ownIdentifier, state = readLauncherState()) {
+    const key = buildRobotSimulationDifficultyKey(role, ownIdentifier);
+    return normalizeDifficultyLevel(
+      state?.robotSimulationDifficultyLevels?.[key] ||
+      state?.roleDifficultyLevels?.[role] ||
+      readRoleSettings(role).difficultyLevel ||
+      state?.difficultyLevel ||
+      "1"
+    );
+  }
+
+  function persistRobotSimulationDifficulty(role, ownIdentifier, level) {
+    const normalizedRole = String(role || "").trim();
+    const normalizedOwnIdentifier = String(ownIdentifier || "").trim();
+    if (!normalizedRole || !normalizedOwnIdentifier) {
+      return;
+    }
+    const latest = readLauncherState();
+    latest.robotSimulationDifficultyLevels = latest.robotSimulationDifficultyLevels || {};
+    latest.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey(normalizedRole, normalizedOwnIdentifier)] = normalizeDifficultyLevel(level);
+    writeLauncherState(latest);
+  }
+
   function readLauncherProfileState(role, ownIdentifier, state = readLauncherState()) {
     const profileKey = buildLauncherProfileKey(role, ownIdentifier);
     const launcherProfiles = typeof state.launcherProfiles === "object" && state.launcherProfiles
@@ -2910,6 +3390,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const legacyPartnerKey = partnerRole(role);
     return {
       currentPartner: String(scoped?.currentPartner || state.currentPartners?.[role] || "").trim(),
+      // Prefer the role-wide difficulty memory over older per-profile snapshots so
+      // a freshly changed Sender/Receiver level survives reloads cleanly.
+      difficultyLevel: normalizeDifficultyLevel(state.roleDifficultyLevels?.[role] || scoped?.difficultyLevel || state.difficultyLevel || "1"),
       partnerHistory: uniqueNames([
         ...(Array.isArray(scoped?.partnerHistory) ? scoped.partnerHistory : []),
         ...(Array.isArray(state.partnerHistory?.[legacyPartnerKey]) ? state.partnerHistory[legacyPartnerKey] : [])
@@ -2929,6 +3412,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     latest.deletedPartners = latest.deletedPartners || {};
     latest.launcherProfiles[buildLauncherProfileKey(role, ownIdentifier)] = {
       currentPartner: String(profileState?.currentPartner || "").trim(),
+      difficultyLevel: normalizeDifficultyLevel(profileState?.difficultyLevel || latest.roleDifficultyLevels?.[role] || latest.difficultyLevel || "1"),
       partnerHistory: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []),
       deletedPartners: uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : [])
     };
@@ -2949,12 +3433,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const parsed = raw ? JSON.parse(raw) : {};
       return {
         ownName: String(parsed?.own_email || "").trim(),
-        partnerName: String(parsed?.partner_email || "").trim()
+        partnerName: String(parsed?.partner_email || "").trim(),
+        difficultyLevel: normalizeDifficultyLevel(parsed?.difficulty_level || "1")
       };
     } catch (error) {
       return {
         ownName: "",
-        partnerName: ""
+        partnerName: "",
+        difficultyLevel: "1"
       };
     }
   }
@@ -3160,6 +3646,34 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return document.querySelector(`[data-role-handle-wrap="${role}"]`);
   }
 
+  function getRoleHandleButton(role) {
+    return document.querySelector(`[data-open-handle-control="${role}"]`);
+  }
+
+  function isRobotSimulationIdentifier(value) {
+    return String(value || "").replace(/\s+/g, " ").trim().toLowerCase() === "robot";
+  }
+
+  function getPartnerIdentifierDisplayLabel(role) {
+    if (role === "sender") {
+      return `Receiver - Enter "Robot" to experience a simulation of telepathy practice at this level.`;
+    }
+    if (role === "receiver") {
+      return `Sender - Enter "Robot" to experience a simulation of telepathy practice at this level.`;
+    }
+    return "Partner";
+  }
+
+  function getPartnerIdentifierShortLabel(role) {
+    if (role === "sender") {
+      return "Receiver";
+    }
+    if (role === "receiver") {
+      return "Sender";
+    }
+    return "Partner";
+  }
+
   function shouldHideHandleLink(role) {
     const normalizedRole = String(role || "").trim();
     if (!normalizedRole) {
@@ -3204,6 +3718,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (!isLocationFeatureReady()) {
       return true;
     }
+    if (!isEffectiveLauncherUserPro()) {
+      return false;
+    }
     const notificationPermission = syncNotificationPermissionSnapshot();
     if (notificationPermission !== "granted") {
       return true;
@@ -3230,6 +3747,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const { ownUsesHandle = false, partnerUsesHandle = false } = options;
     const { ownLabel, partnerLabel } = getRoleLabelElements(role);
     const handleWrap = getRoleHandleWrap(role);
+    const handleButton = getRoleHandleButton(role);
     const temporaryIdentity = getTemporaryIdentityState();
     const formValues = readRoleFormValues(role);
     const ownIdentifier = String(formValues?.ownName || "").trim();
@@ -3241,7 +3759,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       ownLabel.textContent = "You";
     }
     if (partnerLabel) {
-      partnerLabel.textContent = role === "sender" ? "Receiver" : "Sender";
+      partnerLabel.textContent = getPartnerIdentifierDisplayLabel(role);
     }
     setRoleMessagePresentation(role, "default");
     setRoleDefaultNoteText(
@@ -3250,10 +3768,15 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         ? buildTemporaryIdentityNote(temporaryIdentity.identifier)
         : ownUsesHandle
         ? ""
-        : "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
+        : buildDefaultEmailIdentityNote(role)
     );
     if (handleWrap) {
       handleWrap.hidden = usesTemporaryIdentity ? false : ownUsesHandle;
+    }
+    if (handleButton) {
+      handleButton.textContent = usesTemporaryIdentity
+        ? getTemporaryIdentityLinkText(temporaryIdentity.identifier)
+        : "Choose unique name instead of email address";
     }
     setRoleFeatureSetupPrompt(role, !usesTemporaryIdentity && ownUsesHandle && setupPromptVisible);
     if (shouldShowEspLessonForRole(role)) {
@@ -3376,6 +3899,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     try {
       const completedRole = activeHandleRole;
+      const returnRole = handleOverlayReturnRole || completedRole;
+      const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
       if (result?.status) {
@@ -3398,11 +3923,40 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         void persistLauncherProfileForForm(activeHandleRole, form);
       }
       void refreshMainUserType();
-      closeHandleOverlay();
+      if (handleStatus) {
+        handleStatus.textContent = acceptedHandle
+          ? `Unique name accepted: ${acceptedHandle}`
+          : "Unique name accepted.";
+      }
+      submitHandleButton && (submitHandleButton.disabled = true);
+      await new Promise((resolve) => window.setTimeout(resolve, 2600));
+      activeHandleRole = "";
+      handleOverlayReturnRole = "";
+      handleOverlay?.classList.add("beginner-view-hidden");
+      if (handleStatus) {
+        handleStatus.textContent = "";
+      }
+      if (handleInput) {
+        handleInput.value = "";
+      }
+      if (submitHandleButton) {
+        submitHandleButton.disabled = false;
+      }
       if (acceptedHandle && completedRole) {
-        openPushSetupOverlay(completedRole, acceptedHandle);
+        showFeatureSetupView({
+          role: completedRole,
+          returnView: completedRole === "remote-viewer" ? "remote-viewer" : "card",
+          scrollY: returnScrollY
+        });
+        const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
+        if (matchingCard) {
+          ensureCardExpanded(matchingCard, { scrollIntoView: false });
+        }
       }
     } catch (error) {
+      if (submitHandleButton) {
+        submitHandleButton.disabled = false;
+      }
       if (handleStatus) {
         handleStatus.textContent = error instanceof Error ? error.message : "Unable to accept that unique handle right now.";
       }
@@ -3908,8 +4462,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     if (featureSetupIdentifier) {
       featureSetupIdentifier.textContent = featureSetupOwnIdentifier
-        ? `Current identifier: ${featureSetupOwnIdentifier}`
-        : "Current identifier: no accepted unique name is currently loaded on this screen.";
+        ? `Current Unique Name: ${featureSetupOwnIdentifier}`
+        : "Current Unique Name: no accepted unique name is currently loaded on this screen.";
     }
 
     const installConfirmationState = getInstallConfirmationState();
@@ -3947,10 +4501,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const installedForMessaging = installed;
       const permission = syncNotificationPermissionSnapshot();
       if (!installedForMessaging) {
-        messagingStatusText = installConfirmationState === "temporary-shell"
-          ? "Install ESP GYM permanently on this device before enabling partner messaging."
-          : "Install ESP GYM as an app on this device before enabling partner messaging.";
-        messagingActionLabel = "INSTALL MESSAGING";
+        messagingStatusText = "Install app before unblocking notifications for the app.";
+        messagingActionLabel = "INSTALL APP FIRST";
+        messagingActionDisabled = true;
       } else if (permission === "denied") {
         messagingStatusText = "Notifications are blocked in the browser for this app on this device.";
         messagingActionLabel = "UNBLOCK NOTIFICATIONS";
@@ -4406,11 +4959,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (pushSetupEnableButton) {
       pushSetupEnableButton.disabled = permission === "unsupported";
       pushSetupEnableButton.textContent =
-        permission === "granted"
-          ? "REGISTER MESSAGING"
-          : permission === "denied"
-            ? "UNBLOCK NOTIFICATIONS"
-            : "ALLOW NOTIFICATIONS";
+        !installed
+          ? "INSTALL APP FIRST"
+          : permission === "granted"
+            ? "REGISTER MESSAGING"
+            : permission === "denied"
+              ? "UNBLOCK NOTIFICATIONS"
+              : "ALLOW NOTIFICATIONS";
     }
     if (pushSetupTestButton) {
       pushSetupTestButton.disabled = !(installed && permission === "granted");
@@ -4448,7 +5003,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     try {
       if (!isRunningAsInstalledApp()) {
-        throw new Error("Install this app on this device before enabling partner messaging.");
+        const installMessage = "Install ESP GYM as an app on this device before unblocking notifications for it.";
+        if (pushSetupStatus) {
+          pushSetupStatus.textContent = installMessage;
+        }
+        window.alert(installMessage);
+        showInstallGuideView({ returnView: "push-setup" });
+        return;
       }
       if (!("Notification" in window)) {
         throw new Error("This browser does not support app notifications.");
@@ -4509,7 +5070,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       renotify: false,
       requireInteraction: false,
       data: {
-        url: `./telepathybeginner.html?v=${launcherBuildVersion}`
+        url: `./telepathybeginner.html?v=${launcherBuildVersion}&open=launcher`
       }
     });
   }
@@ -5341,8 +5902,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return roleSkillExplanationCopy[String(role || "").trim()] || "";
   }
 
+  function buildDefaultEmailIdentityNote(role) {
+    const normalizedRole = String(role || "").trim();
+    if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
+      return "";
+    }
+    return "These email addresses are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use the same spellings for each other. Please verify the spellings carefully.\n\nYou don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.";
+  }
+
   function getHandleExplanation(role) {
-    return "You don't need your email to uniquely identify yourself to the app. You can create your own unique handle. Click here to propose a unique handle for you - one which is not yet being used.";
+    return buildDefaultEmailIdentityNote(role);
   }
 
   function showRoleSkillExplanation(role) {
@@ -5350,19 +5919,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function showRoleHandleExplanation(role) {
-    if (isRoleMessageAreaVisible(role)) {
-      return;
-    }
-    clearRoleLessonDisplay(role);
-    const note = getRoleNoteElement(role);
-    const panel = getRoleNotePanel(role);
-    const explanation = getHandleExplanation(role);
-    if (!note || !panel || !explanation) {
-      return;
-    }
-    note.dataset.previewActive = "true";
-    note.textContent = explanation;
-    panel.classList.add("is-level-preview");
+    return;
   }
 
   function setRoleDefaultNoteText(role, text) {
@@ -5782,7 +6339,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (match) {
       return Number(normalizeDifficultyLevel(match[1]));
     }
-    return Number(normalizeDifficultyLevel(readLauncherState().difficultyLevel || "1"));
+    const launcherState = readLauncherState();
+    return Number(normalizeDifficultyLevel(
+      launcherState.roleDifficultyLevels?.[role] ||
+      readRoleSettings(role).difficultyLevel ||
+      launcherState.difficultyLevel ||
+      "1"
+    ));
   }
 
   function getDifficultyRequirementMessage(role) {
@@ -5792,7 +6355,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       return `Enter both ${ownLabel} and ${partnerLabel} before going above Level 3.`;
     }
     const ownLabel = String(document.querySelector(`[data-own-identifier-label="${role}"]`)?.textContent || "You").trim();
-    const partnerLabel = String(document.querySelector(`[data-partner-identifier-label="${role}"]`)?.textContent || "Partner").trim();
+    const partnerLabel = getPartnerIdentifierShortLabel(role);
     return `Enter both ${ownLabel} and ${partnerLabel} before going above Level 3.`;
   }
 
@@ -6076,13 +6639,137 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return latest.difficultyLevel;
   }
 
+  function applyRememberedDifficultyLabels() {
+    const launcherState = readLauncherState();
+    const rememberedLevel = normalizeDifficultyLevel(launcherState.difficultyLevel || "1");
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      const roleSettings = readRoleSettings(role);
+      const launcherRoleLevel = normalizeDifficultyLevel(launcherState.roleDifficultyLevels?.[role] || "");
+      setRoleDifficultyLabel(role, normalizeDifficultyLevel(launcherRoleLevel || roleSettings.difficultyLevel || rememberedLevel));
+    });
+  }
+
+  function persistResolvedPairDifficultyForRole(role, context, level) {
+    const normalizedRole = String(role || "").trim();
+    const normalizedLevel = normalizeDifficultyLevel(level);
+    if (!normalizedRole) {
+      return;
+    }
+
+    const latest = readLauncherState();
+    latest.roleDifficultyLevels = latest.roleDifficultyLevels || {};
+    latest.roleDifficultyLevels[normalizedRole] = normalizedLevel;
+    writeLauncherState(latest);
+    writeRuntimeSettings(normalizedRole, { difficulty_level: normalizedLevel });
+
+    const ownIdentifier = String(context?.ownName || latest.ownNames?.[normalizedRole] || "").trim();
+    if (!ownIdentifier) {
+      return;
+    }
+
+    if (isRobotSimulationIdentifier(String(context?.partnerName || "").trim())) {
+      persistRobotSimulationDifficulty(normalizedRole, ownIdentifier, normalizedLevel);
+    }
+
+    const profileState = readLauncherProfileState(normalizedRole, ownIdentifier, latest);
+    writeLauncherProfileState(normalizedRole, ownIdentifier, {
+      currentPartner: String(context?.partnerName || profileState.currentPartner || "").trim(),
+      difficultyLevel: normalizedLevel,
+      partnerHistory: profileState.partnerHistory,
+      deletedPartners: profileState.deletedPartners
+    });
+  }
+
+  async function syncDifficultyLabelForRole(role, options = {}) {
+    const normalizedRole = String(role || "").trim();
+    if (!normalizedRole) {
+      return "1";
+    }
+
+    const launcherState = readLauncherState();
+    const context = options.context || getPairContextForRole(normalizedRole);
+    const robotFallbackLevel = context && isRobotSimulationIdentifier(context.partnerName)
+      ? getRobotSimulationDifficulty(normalizedRole, context.ownName, launcherState)
+      : "";
+    const localFallbackLevel = normalizeDifficultyLevel(
+      robotFallbackLevel ||
+      launcherState.roleDifficultyLevels?.[normalizedRole] ||
+      readRoleSettings(normalizedRole).difficultyLevel ||
+      launcherState.difficultyLevel ||
+      "1"
+    );
+    if (!context) {
+      setRoleDifficultyLabel(normalizedRole, localFallbackLevel);
+      return localFallbackLevel;
+    }
+
+    const pairParticipants = normalizedRole === "sender"
+      ? { senderName: context.ownName, receiverName: context.partnerName }
+      : normalizedRole === "receiver"
+        ? { senderName: context.partnerName, receiverName: context.ownName }
+        : null;
+
+    try {
+      const difficultyData = await fetchPairDifficulty(context.sessionCode, null, null, pairParticipants);
+      const pairLevel = Number(normalizeDifficultyLevel(difficultyData?.pair_difficulty));
+      const visibleLevel = normalizeDifficultyLevel(String(Math.min(pairLevel, getRoleMaxDifficultyLevel(normalizedRole, difficultyData))));
+      setRoleDifficultyLabel(normalizedRole, visibleLevel || localFallbackLevel);
+      persistResolvedPairDifficultyForRole(normalizedRole, context, visibleLevel || localFallbackLevel);
+      return visibleLevel || localFallbackLevel;
+    } catch (error) {
+      setRoleDifficultyLabel(normalizedRole, localFallbackLevel);
+      return localFallbackLevel;
+    }
+  }
+
+  function persistRoleDifficultyPreference(role, level) {
+    const normalizedRole = String(role || "").trim();
+    const normalizedLevel = normalizeDifficultyLevel(level);
+    const latest = readLauncherState();
+    latest.roleDifficultyLevels = latest.roleDifficultyLevels || {};
+    if (normalizedRole === "sender" || normalizedRole === "receiver") {
+      latest.roleDifficultyLevels.sender = normalizedLevel;
+      latest.roleDifficultyLevels.receiver = normalizedLevel;
+      writeLauncherState(latest);
+      writeRuntimeSettings("sender", { difficulty_level: normalizedLevel });
+      writeRuntimeSettings("receiver", { difficulty_level: normalizedLevel });
+      persistVisibleRoleDifficulty("sender", normalizedLevel);
+      persistVisibleRoleDifficulty("receiver", normalizedLevel);
+      return;
+    }
+    if (normalizedRole === "remote-viewer") {
+      latest.roleDifficultyLevels["remote-viewer"] = normalizedLevel;
+      writeLauncherState(latest);
+      writeRuntimeSettings("remote-viewer", { difficulty_level: normalizedLevel });
+      persistVisibleRoleDifficulty("remote-viewer", normalizedLevel);
+    }
+  }
+
+  function persistVisibleRoleDifficulty(role, level) {
+    const normalizedRole = String(role || "").trim();
+    const normalizedLevel = normalizeDifficultyLevel(level);
+    const state = readLauncherState();
+    const ownIdentifier = String(readVisibleRoleIdentifiers(normalizedRole)?.ownName || "").trim()
+      || String(state.ownNames?.[normalizedRole] || "").trim();
+    if (!ownIdentifier) {
+      return;
+    }
+    const profileState = readLauncherProfileState(normalizedRole, ownIdentifier, state);
+    writeLauncherProfileState(normalizedRole, ownIdentifier, {
+      currentPartner: profileState.currentPartner,
+      difficultyLevel: normalizedLevel,
+      partnerHistory: profileState.partnerHistory,
+      deletedPartners: profileState.deletedPartners
+    });
+  }
+
   function renderMainTitle(userType = getDisplayedLauncherUserType(), options = {}) {
     if (!beginnerMainTitle) {
       return;
     }
     const normalizedUserType = userType === "pro" ? "pro" : "standard";
+    resolvedMainUserType = normalizedUserType;
     if (options.persist !== false) {
-      resolvedMainUserType = normalizedUserType;
       const latest = readLauncherState();
       if (latest.resolvedMainUserType !== resolvedMainUserType) {
         latest.resolvedMainUserType = resolvedMainUserType;
@@ -6202,6 +6889,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const currentPartner = getPreferredIdentifier(currentPartnerRaw, sourceState);
     const storedProfile = await saveLauncherProfile("remote-viewer", ownIdentifier, {
       currentPartner,
+      difficultyLevel: profileState.difficultyLevel,
       partnerHistory: uniqueNames([
         ...profileState.partnerHistory,
         currentPartner
@@ -6212,6 +6900,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (storedProfile) {
       writeLauncherProfileState("remote-viewer", ownIdentifier, {
         currentPartner: storedProfile.current_partner || currentPartner,
+        difficultyLevel: normalizeDifficultyLevel(storedProfile.difficulty_level || profileState.difficultyLevel),
         partnerHistory: Array.isArray(storedProfile.partner_history) ? storedProfile.partner_history : profileState.partnerHistory,
         deletedPartners: Array.isArray(storedProfile.deleted_partners) ? storedProfile.deleted_partners : profileState.deletedPartners
       });
@@ -6255,6 +6944,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     const latest = writeLauncherProfileState("remote-viewer", getPreferredIdentifier(requestedIdentifier), {
       currentPartner: String(fetchedProfile?.current_partner || "").trim(),
+      difficultyLevel: normalizeDifficultyLevel(fetchedProfile?.difficulty_level || readRoleSettings("remote-viewer").difficultyLevel),
       partnerHistory: Array.isArray(fetchedProfile?.partner_history) ? fetchedProfile.partner_history : [],
       deletedPartners: Array.isArray(fetchedProfile?.deleted_partners) ? fetchedProfile.deleted_partners : []
     });
@@ -6291,8 +6981,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
     setRoleMessagePresentation("remote-viewer", "default");
     const handleWrap = getRoleHandleWrap("remote-viewer");
+    const handleButton = getRoleHandleButton("remote-viewer");
     if (handleWrap) {
       handleWrap.hidden = usesTemporaryIdentity ? false : ownUsesHandle;
+    }
+    if (handleButton) {
+      handleButton.textContent = usesTemporaryIdentity
+        ? getTemporaryIdentityLinkText(temporaryIdentity.identifier)
+        : "Choose unique name instead of email address";
     }
     setRoleDefaultNoteText(
       "remote-viewer",
@@ -6485,18 +7181,25 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         return;
       }
       const key = buildPairMatchKey(receiver, sender);
-      if (seen.has(key)) {
+      const source = (
+        isRobotSimulationIdentifier(receiver) ||
+        isRobotSimulationIdentifier(sender)
+      ) ? "simulation" : "real";
+      const sourceKey = `${key}|||${source}`;
+      if (seen.has(sourceKey)) {
         return;
       }
-      seen.add(key);
+      seen.add(sourceKey);
       candidates.push({
-        key,
+        key: sourceKey,
+        baseKey: key,
         receiverName: receiver,
         senderName: sender,
         sessionCode: getRecordSessionCode({
           "rx name": receiver,
           "tx name": sender
-        })
+        }),
+        source
       });
     };
 
@@ -6520,6 +7223,29 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     return candidates;
   }
 
+  function getPreferredAvailableReportPair(pairs) {
+    const available = Array.isArray(pairs) ? pairs : [];
+    if (!available.length) {
+      return null;
+    }
+
+    const candidatePairs = collectReportCandidatePairs();
+    for (const candidate of candidatePairs) {
+      const match = available.find((pairInfo) =>
+        pairInfo.key === candidate.key ||
+        (
+          pairInfo.baseKey === candidate.baseKey &&
+          String(pairInfo.source || "real").trim().toLowerCase() === String(candidate.source || "real").trim().toLowerCase()
+        )
+      );
+      if (match) {
+        return match;
+      }
+    }
+
+    return available[0] || null;
+  }
+
   function syncCurrentLauncherNamesToState() {
     const latest = readLauncherState();
     latest.ownNames = latest.ownNames || {};
@@ -6541,16 +7267,18 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const includeAllPairs = !!launcherAdminSecret;
     const ownNames = new Set(collectReportOwnNames().map((name) => normalizePersonNameForPairMatch(name)));
     const candidatePairs = collectReportCandidatePairs();
-    const candidateKeys = new Set(candidatePairs.map((pair) => pair.key));
+    const candidateKeys = new Set(candidatePairs.map((pair) => pair.baseKey || buildPairMatchKey(pair.receiverName, pair.senderName)));
     const latestByPair = new Map();
 
     if (!includeAllPairs) {
       candidatePairs.forEach((pairInfo) => {
         latestByPair.set(pairInfo.key, {
           key: pairInfo.key,
+          baseKey: pairInfo.baseKey || buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName),
           receiverName: pairInfo.receiverName,
           senderName: pairInfo.senderName,
           sessionCode: pairInfo.sessionCode,
+          source: String(pairInfo.source || "real"),
           latestUtcMillis: Number.NEGATIVE_INFINITY,
           recordCount: 0
         });
@@ -6565,8 +7293,15 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
 
       const pairKey = buildPairMatchKey(receiverName, senderName);
+      const source = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
+        ? "simulation"
+        : "real";
+      const sourceKey = `${pairKey}|||${source}`;
 
       if (!includeAllPairs) {
+        if (source === "simulation") {
+          // Always expose Robot/simulation pairs in the report picker.
+        } else {
         const candidateMatch = candidateKeys.size ? candidateKeys.has(pairKey) : false;
         const associatedMatch = ownNames.size
           ? (
@@ -6579,17 +7314,20 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         if ((candidateKeys.size || ownNames.size) && !candidateMatch && !associatedMatch && !demoMatch) {
           return;
         }
+        }
       }
 
       const currentMillis = parseUtcMillis(record);
-      const existing = latestByPair.get(pairKey);
+      const existing = latestByPair.get(sourceKey);
 
       if (!existing || currentMillis > existing.latestUtcMillis) {
-        latestByPair.set(pairKey, {
-          key: pairKey,
+        latestByPair.set(sourceKey, {
+          key: sourceKey,
+          baseKey: pairKey,
           receiverName,
           senderName,
           sessionCode: getRecordSessionCode(record),
+          source,
           latestUtcMillis: currentMillis,
           recordCount: (existing?.recordCount || 0) + 1
         });
@@ -6598,14 +7336,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     });
 
-    return [...latestByPair.values()].sort((left, right) => {
+    return [...latestByPair.values()]
+      .filter((pairInfo) => Number(pairInfo.recordCount || 0) > 0)
+      .sort((left, right) => {
       const leftHasData = Number.isFinite(left.latestUtcMillis);
       const rightHasData = Number.isFinite(right.latestUtcMillis);
       if (leftHasData !== rightHasData) {
         return leftHasData ? -1 : 1;
       }
       return right.latestUtcMillis - left.latestUtcMillis;
-    });
+      });
   }
 
   function closeReportPairMenu() {
@@ -6629,7 +7369,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     selectedReportPair = pairInfo || null;
     if (reportPairTriggerText) {
       reportPairTriggerText.innerHTML = selectedReportPair
-        ? `${escapeHtml(selectedReportPair.receiverName)}&nbsp;&nbsp;${escapeHtml(selectedReportPair.senderName)}`
+        ? `${escapeHtml(selectedReportPair.receiverName)}&nbsp;&nbsp;${escapeHtml(selectedReportPair.senderName)}${selectedReportPair.source === "simulation" ? "&nbsp;&nbsp;(Simulation)" : ""}`
         : "Select receiver and sender";
     }
     if (reportGoButton) {
@@ -6661,7 +7401,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       optionButton.innerHTML = `
         <span class="report-pair-option-value">${escapeHtml(pairInfo.receiverName)}</span>
         <span class="report-pair-option-value">${escapeHtml(pairInfo.senderName)}</span>
-        <span class="report-pair-option-value">${escapeHtml(String(pairInfo.recordCount || 0))}</span>
+        <span class="report-pair-option-value">${pairInfo.source === "simulation" ? "Sim" : "Human"} ${escapeHtml(String(pairInfo.recordCount || 0))}</span>
       `;
       optionButton.addEventListener("click", () => {
         setSelectedReportPair(pairInfo);
@@ -6693,7 +7433,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (pendingOpenReportPair?.receiverName && pendingOpenReportPair?.senderName) {
       const requestedKey = buildPairMatchKey(pendingOpenReportPair.receiverName, pendingOpenReportPair.senderName);
       const matchedPair = availableReportPairs.find((pairInfo) =>
-        pairInfo.key === requestedKey &&
+        (
+          pairInfo.key === requestedKey ||
+          buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName) === requestedKey
+        ) &&
         (!pendingOpenReportPair.sessionCode || String(pairInfo.sessionCode || "").trim() === pendingOpenReportPair.sessionCode)
       );
       if (matchedPair) {
@@ -6728,7 +7471,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     if (!selectedReportPair || !availableReportPairs.some((pairInfo) => pairInfo.key === selectedReportPair?.key)) {
-      setSelectedReportPair(null);
+      setSelectedReportPair(getPreferredAvailableReportPair(availableReportPairs));
     } else {
       renderReportPairOptions();
     }
@@ -6750,11 +7493,17 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     const targetKey = buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName);
+    const targetSource = String(pairInfo?.source || "real").trim().toLowerCase() === "simulation"
+      ? "simulation"
+      : "real";
     return (Array.isArray(records) ? records : [])
       .filter((record) => {
         const receiverName = String(record?.["rx name"] || "").trim();
         const senderName = String(record?.["tx name"] || "").trim();
-        return buildPairMatchKey(receiverName, senderName) === targetKey;
+        const recordSource = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
+          ? "simulation"
+          : "real";
+        return buildPairMatchKey(receiverName, senderName) === targetKey && recordSource === targetSource;
       })
       .sort((left, right) => parseUtcMillis(left) - parseUtcMillis(right));
   }
@@ -8391,6 +9140,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
 
     const locationHidden = isLocationPrivacyDisabled();
+    const simulationReport = (Array.isArray(records) ? records : []).some(
+      (record) => String(record?._report_source || "").trim().toLowerCase() === "simulation"
+    );
     const hasLevelFourTrials = !!options.hasLevelFourTrials;
     const levelFourImagePairsIndex = options.levelFourImagePairsIndex instanceof Map
       ? options.levelFourImagePairsIndex
@@ -8468,7 +9220,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
               ? ""
               : receiverLocation && senderLocation
               ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "miles" : "meters")
-              : "unknown";
+              : (simulationReport ? "N/A" : "unknown");
           td.appendChild(content);
         } else if (header === "rx done rt") {
           td.textContent = formatReactionTimeTenths(record?.[header] ?? "");
@@ -9041,10 +9793,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   async function refreshDifficultyLabels() {
     const token = ++difficultyLabelToken;
-    const fallbackLevel = "1";
     if (launcherGuestEntryActive) {
       ["sender", "receiver", "remote-viewer"].forEach((role) => {
-        setRoleDifficultyLabel(role, fallbackLevel);
+        const launcherState = readLauncherState();
+        const localFallbackLevel = normalizeDifficultyLevel(
+          launcherState.roleDifficultyLevels?.[role] ||
+          readRoleSettings(role).difficultyLevel ||
+          launcherState.difficultyLevel ||
+          "1"
+        );
+        setRoleDifficultyLabel(role, localFallbackLevel);
       });
       return;
     }
@@ -9055,8 +9813,19 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const cache = new Map();
 
     for (const { role, context } of contexts) {
+      const launcherState = readLauncherState();
+      const robotFallbackLevel = context && isRobotSimulationIdentifier(context.partnerName)
+        ? getRobotSimulationDifficulty(role, context.ownName, launcherState)
+        : "";
+      const localFallbackLevel = normalizeDifficultyLevel(
+        robotFallbackLevel ||
+        launcherState.roleDifficultyLevels?.[role] ||
+        readRoleSettings(role).difficultyLevel ||
+        launcherState.difficultyLevel ||
+        "1"
+      );
       if (!context) {
-        setRoleDifficultyLabel(role, fallbackLevel);
+        setRoleDifficultyLabel(role, localFallbackLevel);
         continue;
       }
 
@@ -9082,12 +9851,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       const difficultyData = cache.get(context.sessionCode);
       if (!difficultyData) {
-        setRoleDifficultyLabel(role, fallbackLevel);
+        setRoleDifficultyLabel(role, localFallbackLevel);
         continue;
       }
       const pairLevel = Number(normalizeDifficultyLevel(difficultyData?.pair_difficulty));
       const visibleLevel = String(Math.min(pairLevel, getRoleMaxDifficultyLevel(role, difficultyData)));
-      setRoleDifficultyLabel(role, visibleLevel || fallbackLevel);
+      setRoleDifficultyLabel(role, visibleLevel || localFallbackLevel);
+      persistResolvedPairDifficultyForRole(role, context, visibleLevel || localFallbackLevel);
     }
   }
 
@@ -9217,6 +9987,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     params.set("blink_image_off_seconds", blinkSettings.offSeconds);
     const confidenceSettings = getConfidenceBehaviorSettings(state);
     params.set("include_confidence", confidenceSettings.include ? "1" : "0");
+    params.set("difficulty_level", normalizeDifficultyLevel(getDifficultyLocalLevel(role)));
     if (typeof options.runtimeMode === "string" && options.runtimeMode.trim()) {
       params.set("runtime_mode", options.runtimeMode.trim());
     }
@@ -9620,6 +10391,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (locationPickerCancelButton) {
       locationPickerCancelButton.disabled = !!disabled;
     }
+    if (locationPickerZoomInButton) {
+      locationPickerZoomInButton.disabled = !!disabled || !locationPickerMap;
+    }
+    if (locationPickerZoomOutButton) {
+      locationPickerZoomOutButton.disabled = !!disabled || !locationPickerMap;
+    }
   }
 
   function setLocationPickerStatus(text) {
@@ -9630,7 +10407,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
-  function closeLocationPickerWithMessage(message, callback = null) {
+  function closeLocationPickerWithMessage(message, callback = null, delayMs = 5000) {
     if (locationPickerClosing) {
       return;
     }
@@ -9645,7 +10422,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       } finally {
         locationPickerClosing = false;
       }
-    }, 5000);
+    }, Math.max(0, Number(delayMs) || 0));
   }
 
   function updateLocationPickerMarker(selection, options = {}) {
@@ -9869,6 +10646,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     try {
       await ensureLeafletResources();
       initializeLocationPickerMap();
+      setLocationPickerButtonsDisabled(false);
 
       const savedLocation = getSavedDeviceLocation();
       if (savedLocation) {
@@ -9961,15 +10739,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     latest.locationFineTuneDismissedForTimestamp = 0;
     writeLauncherState(latest);
     renderLocationStatus();
-    closeLocationPickerWithMessage("Location saved.", () => {
-      hideLocationPicker();
-      if (resumePendingLocationPickerContinuation()) {
-        return;
-      }
-      if (otherSettingsView && !otherSettingsView.classList.contains("beginner-view-hidden")) {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      }
-    });
+    setLocationPickerStatus("Current location saved.");
+    window.confirm("CURRENT LOCATION SAVED");
+    setLocationPickerButtonsDisabled(false);
   }
 
   function getPartnerHistory(role, state = readLauncherState(), ownIdentifier = "") {
@@ -10052,17 +10824,23 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     const sourceState = overrideState || readLauncherState();
     const profileState = readLauncherProfileState(role, ownIdentifier, sourceState);
     const currentPartnerRaw = String(partnerInput?.value || profileState.currentPartner || "").trim();
+    const robotSimulationPartner = isRobotSimulationIdentifier(currentPartnerRaw);
     let currentPartner = "";
-    try {
-      currentPartner = await resolveAcceptedPartnerIdentifier(
-        getPreferredIdentifier(currentPartnerRaw, sourceState),
-        role === "sender" ? "Receiver identifier" : "Sender identifier"
-      );
-    } catch (error) {
-      currentPartner = "";
+    if (robotSimulationPartner) {
+      currentPartner = "Robot";
+    } else {
+      try {
+        currentPartner = await resolveAcceptedPartnerIdentifier(
+          getPreferredIdentifier(currentPartnerRaw, sourceState),
+          role === "sender" ? "Receiver identifier" : "Sender identifier"
+        );
+      } catch (error) {
+        currentPartner = "";
+      }
     }
     const storedProfile = await saveLauncherProfile(role, ownIdentifier, {
       currentPartner,
+      difficultyLevel: profileState.difficultyLevel,
       partnerHistory: uniqueNames([
         ...profileState.partnerHistory,
         currentPartner
@@ -10073,6 +10851,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (storedProfile) {
       writeLauncherProfileState(role, ownIdentifier, {
         currentPartner: storedProfile.current_partner || currentPartner,
+        difficultyLevel: normalizeDifficultyLevel(storedProfile.difficulty_level || profileState.difficultyLevel),
         partnerHistory: Array.isArray(storedProfile.partner_history) ? storedProfile.partner_history : profileState.partnerHistory,
         deletedPartners: Array.isArray(storedProfile.deleted_partners) ? storedProfile.deleted_partners : profileState.deletedPartners
       });
@@ -10107,6 +10886,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     const latest = writeLauncherProfileState(role, getPreferredIdentifier(requestedIdentifier), {
       currentPartner: String(fetchedProfile?.current_partner || "").trim(),
+      difficultyLevel: normalizeDifficultyLevel(fetchedProfile?.difficulty_level || readRoleSettings(role).difficultyLevel),
       partnerHistory: Array.isArray(fetchedProfile?.partner_history) ? fetchedProfile.partner_history : [],
       deletedPartners: Array.isArray(fetchedProfile?.deleted_partners) ? fetchedProfile.deleted_partners : []
     });
@@ -10434,6 +11214,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     ownInput.value = savedOwn;
     partnerInput.value = savedPartner;
+    const robotSimulationDifficulty = isRobotSimulationIdentifier(savedPartner)
+      ? getRobotSimulationDifficulty(role, savedOwn, state)
+      : "";
+    setRoleDifficultyLabel(
+      role,
+      normalizeDifficultyLevel(robotSimulationDifficulty || state.roleDifficultyLevels?.[role] || roleSettings.difficultyLevel || profileState?.difficultyLevel || state.difficultyLevel || "1")
+    );
     applyPartnerHistory(role, form, state, savedOwn);
     applyRoleIdentifierPresentation(role, {
       ownUsesHandle: isValidUniqueHandle(savedOwn) && !isValidEmailAddress(savedOwn),
@@ -10504,9 +11291,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     partnerInput.addEventListener("change", () => {
       void persistLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
+      void syncDifficultyLabelForRole(role);
     });
     partnerInput.addEventListener("blur", () => {
       void syncRoleIdentifierPresentation(role, form);
+      void syncDifficultyLabelForRole(role);
     });
 
     void refreshRoleMessaging(role);
@@ -10518,6 +11307,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       event.preventDefault();
       let ownName = ownInput.value.trim();
       let exactPartnerName = partnerInput.value.trim();
+      const robotSimulationPartner = isRobotSimulationIdentifier(exactPartnerName);
 
       if (!ownName || !exactPartnerName) {
         if (!ownName) {
@@ -10530,7 +11320,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
       try {
         ownName = assertValidParticipantIdentifier(ownName, "Your identifier");
-        exactPartnerName = assertValidParticipantIdentifier(exactPartnerName, role === "sender" ? "Receiver identifier" : "Sender identifier");
+        exactPartnerName = robotSimulationPartner
+          ? "Robot"
+          : assertValidParticipantIdentifier(exactPartnerName, role === "sender" ? "Receiver identifier" : "Sender identifier");
       } catch (error) {
         if (error instanceof Error) {
           alert(error.message);
@@ -10541,10 +11333,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       let ownStatus = null;
       let partnerStatus = null;
       try {
-        [ownStatus, partnerStatus] = await Promise.all([
-          fetchIdentifierStatus(ownName),
-          fetchIdentifierStatus(exactPartnerName)
-        ]);
+        ownStatus = await fetchIdentifierStatus(ownName);
+        if (!robotSimulationPartner) {
+          partnerStatus = await fetchIdentifierStatus(exactPartnerName);
+        }
       } catch (error) {
         // If lookup fails, continue with the identifiers as typed.
       }
@@ -10559,12 +11351,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
       try {
         ownName = assertAcceptedLauncherIdentifier(ownName, ownStatus, "Your identifier");
-        exactPartnerName = assertAcceptedLauncherIdentifier(
-          exactPartnerName,
-          partnerStatus,
-          role === "sender" ? "Receiver identifier" : "Sender identifier",
-          { allowClaimPrompt: false }
-        );
+        if (!robotSimulationPartner) {
+          exactPartnerName = assertAcceptedLauncherIdentifier(
+            exactPartnerName,
+            partnerStatus,
+            role === "sender" ? "Receiver identifier" : "Sender identifier",
+            { allowClaimPrompt: false }
+          );
+        } else {
+          exactPartnerName = "Robot";
+        }
       } catch (error) {
         if (error instanceof Error) {
           alert(error.message);
@@ -10576,19 +11372,27 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
       const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
 
-      try {
-        const authorization = await fetchPairAuthorizationForLauncherRole(
-          role,
-          canonicalOwnName,
-          canonicalPartnerName,
-          { sessionCode: pairSessionCode }
-        );
-        if (authorization && authorization.allowed === false) {
-          window.alert(authorization.message || "This pair is not authorized for the current difficulty level.");
+      if (robotSimulationPartner) {
+        const simulationLevel = Number(normalizeDifficultyLevel(getDifficultyLocalLevel(role)));
+        if (simulationLevel > 4) {
+          window.alert("Robot simulation currently supports Levels 1 through 4 only.");
           return;
         }
-      } catch (error) {
-        // If the authorization precheck fails, let the runtime/server make the final decision.
+      } else {
+        try {
+          const authorization = await fetchPairAuthorizationForLauncherRole(
+            role,
+            canonicalOwnName,
+            canonicalPartnerName,
+            { sessionCode: pairSessionCode }
+          );
+          if (authorization && authorization.allowed === false) {
+            window.alert(authorization.message || "This pair is not authorized for the current difficulty level.");
+            return;
+          }
+        } catch (error) {
+          // If the authorization precheck fails, let the runtime/server make the final decision.
+        }
       }
 
       latest.ownNames = latest.ownNames || {};
@@ -10597,7 +11401,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const existingProfile = readLauncherProfileState(role, canonicalOwnName, latest);
       const nextState = writeLauncherProfileState(role, ownName, {
         currentPartner: canonicalPartnerName,
-        partnerHistory: uniqueNames([...existingProfile.partnerHistory, canonicalPartnerName]),
+        partnerHistory: robotSimulationPartner
+          ? uniqueNames(existingProfile.partnerHistory)
+          : uniqueNames([...existingProfile.partnerHistory, canonicalPartnerName]),
         deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(canonicalPartnerName))
       });
       try {
@@ -10610,7 +11416,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         device_location: getLocationForRuntimeState(latest)
       });
 
-      const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName);
+      const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName, {
+        runtimeMode: robotSimulationPartner
+          ? (role === "sender" ? "robot-receiver" : "robot-sender")
+          : ""
+      });
       if (!(await prepareLocationForGo(role, { targetUrl }))) {
         return;
       }
@@ -10625,6 +11435,25 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     void refreshMainUserType();
   }
 
+  function syncRoleCardTitle(card, expanded) {
+    if (!(card instanceof Element)) {
+      return;
+    }
+    const title = card.querySelector(".role-card-title");
+    if (!(title instanceof HTMLElement)) {
+      return;
+    }
+    const expandedTitle = String(title.dataset.expandedTitle || "").trim();
+    const collapsedTitle = String(title.dataset.collapsedTitle || "").trim();
+    if (expanded && expandedTitle) {
+      title.textContent = expandedTitle;
+      return;
+    }
+    if (collapsedTitle) {
+      title.textContent = collapsedTitle;
+    }
+  }
+
   function activateCard(card) {
     const shouldActivate = !card.classList.contains("active");
     const role = String(card.dataset.roleCard || "");
@@ -10632,6 +11461,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     roleCards.forEach((item) => {
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
+      syncRoleCardTitle(item, false);
       const toggle = item.querySelector(".role-card-toggle");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
@@ -10640,10 +11470,12 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
     if (shouldActivate) {
       card.classList.add("active");
+      syncRoleCardTitle(card, true);
       activeLauncherRole = role;
       if (launcherGuestEntryActive && (role === "sender" || role === "receiver")) {
         applyFreshEntryRoleNotes(role);
       }
+      void syncDifficultyLabelForRole(role);
       void refreshDifficultyLabels();
       const toggle = card.querySelector(".role-card-toggle");
       if (toggle) {
@@ -10669,7 +11501,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         void refreshPartnerAliasHistory(String(card.dataset.roleCard || ""), activeForm);
       }
       void refreshRoleMessaging(role);
-      void refreshRoleEspLesson(role);
+      void refreshRoleEspLesson(role, {
+        sessionId: beginRoleLessonSession(role),
+        autoAdvanceOnEntry: true
+      });
       return;
     }
 
@@ -10686,13 +11521,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     roleCards.forEach((item) => {
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
+      syncRoleCardTitle(item, false);
       const toggle = item.querySelector(".role-card-toggle");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
       }
     });
     card.classList.add("active");
+    syncRoleCardTitle(card, true);
     activeLauncherRole = role;
+    void syncDifficultyLabelForRole(role);
     void refreshDifficultyLabels();
     const toggle = card.querySelector(".role-card-toggle");
     if (toggle) {
@@ -10709,7 +11547,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       void refreshPartnerAliasHistory(role, activeForm);
     }
     void refreshRoleMessaging(role);
-    void refreshRoleEspLesson(role);
+    void refreshRoleEspLesson(role, {
+      sessionId: beginRoleLessonSession(role),
+      autoAdvanceOnEntry: true
+    });
     if (shouldScrollIntoView) {
       window.setTimeout(() => {
         card.scrollIntoView({
@@ -10728,9 +11569,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       if (item.classList.contains("active") || item.classList.contains("role-card-hidden")) {
         changed = true;
       }
+      if (role && item.classList.contains("active")) {
+        promoteQueuedRoleLesson(role);
+      }
       item.classList.remove("active");
       item.classList.remove("role-card-hidden");
       item.classList.remove("role-card-level-adjusting");
+      syncRoleCardTitle(item, false);
       const toggle = item.querySelector(".role-card-toggle");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
@@ -10781,6 +11626,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     activeLauncherRole = "";
     roleCards.forEach((card) => {
       card.classList.remove("active");
+      syncRoleCardTitle(card, false);
       const toggle = card.querySelector(".role-card-toggle");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
@@ -10832,7 +11678,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       setRoleDefaultNoteText(
         role,
-        "No emails are sent. These email addresses are used only to uniquely identify participants. The app can connect only if both participants enter the same spellings. Please verify the email addresses carefully."
+        buildDefaultEmailIdentityNote(role)
       );
       const note = getRoleNoteElement(role);
       if (note) {
@@ -10870,6 +11716,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     learnMoreView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -10908,6 +11755,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     learnMoreView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -10959,6 +11807,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -10995,6 +11844,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     optionsView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -11022,21 +11872,18 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    setTemporaryHomeInvitationStatus("");
     resetTemporaryHomeExploreButton();
     const loadedInvitee = getLoadedInviteeIdentity();
     if (temporaryHomePageInvitationCodeInput) {
       temporaryHomePageInvitationCodeInput.value = loadedInvitee?.identifier || "";
     }
+    renderTemporaryHomeReturnState();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function showClairvoyanceLearnMoreView() {
     clearReportPanelOffset();
-    if (clairvoyanceLearnMoreTextInput) {
-      clairvoyanceLearnMoreTextInput.value = getClairvoyanceLearnMoreText(readLauncherState());
-      updateLearnMorePreview(clairvoyanceLearnMorePreview, clairvoyanceLearnMoreTextInput.value);
-    }
+    void populateLearnMoreEditorFromServer("clairvoyance");
     if (clairvoyanceLearnMoreStatus) {
       clairvoyanceLearnMoreStatus.textContent = "";
     }
@@ -11083,6 +11930,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     featureSetupView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
@@ -11317,10 +12165,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
 
   function showLearnMoreView() {
     clearReportPanelOffset();
-    if (learnMoreTextInput) {
-      learnMoreTextInput.value = getLearnMoreText(readLauncherState());
-      updateLearnMorePreview(learnMorePreview, learnMoreTextInput.value);
-    }
+    void populateLearnMoreEditorFromServer("main");
     if (learnMoreStatus) {
       learnMoreStatus.textContent = "";
     }
@@ -11379,168 +12224,174 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }, 4000));
   }
 
-  function saveLearnMoreContent() {
+  function cacheLearnMoreContentLocally(contentKey, content) {
+    const latest = readLauncherState();
+    if (contentKey === "clairvoyance") {
+      latest.clairvoyanceLearnMoreText = typeof content === "string" ? content : "";
+      latest.clairvoyanceLearnMoreDraftText = null;
+    } else {
+      latest.learnMoreText = typeof content === "string" ? content : "";
+      latest.learnMoreDraftText = null;
+    }
+    writeLauncherState(latest);
+  }
+
+  async function populateLearnMoreEditorFromServer(contentKey) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const isClairvoyance = normalizedKey === "clairvoyance";
+    const input = isClairvoyance ? clairvoyanceLearnMoreTextInput : learnMoreTextInput;
+    const preview = isClairvoyance ? clairvoyanceLearnMorePreview : learnMorePreview;
+    const status = isClairvoyance ? clairvoyanceLearnMoreStatus : learnMoreStatus;
+    const fallbackValue = isClairvoyance
+      ? getClairvoyanceLearnMoreText(readLauncherState())
+      : getLearnMoreText(readLauncherState());
+    const draftValue = getLearnMoreDraftText(normalizedKey);
+    const startingValue = draftValue !== null ? draftValue : fallbackValue;
+
+    if (input) {
+      input.value = startingValue;
+    }
+    updateLearnMorePreview(preview, startingValue);
+    if (status && draftValue !== null) {
+      status.textContent = "Showing your unsaved local draft.";
+    }
+
+    try {
+      const contentRecord = await fetchLearnMoreContent(normalizedKey);
+      const serverValue = typeof contentRecord?.content === "string" ? contentRecord.content : "";
+      if (contentRecord?.available) {
+        if (draftValue === null) {
+          cacheLearnMoreContentLocally(normalizedKey, serverValue);
+          if (input) {
+            input.value = serverValue;
+          }
+          updateLearnMorePreview(preview, serverValue);
+        }
+      }
+    } catch (error) {
+      if (status) {
+        status.textContent = "Unable to load the saved server copy right now. Showing local content.";
+      }
+    }
+  }
+
+  async function saveLearnMoreContent() {
     if (!learnMoreTextInput) {
       return;
     }
-    const latest = readLauncherState();
-    const nextValue = String(learnMoreTextInput.value || "").trim();
-    latest.learnMoreText = nextValue || defaultLearnMoreText;
-    writeLauncherState(latest);
-    if (learnMoreTextInput.value !== latest.learnMoreText) {
-      learnMoreTextInput.value = latest.learnMoreText;
-    }
-    updateLearnMorePreview(learnMorePreview, latest.learnMoreText);
+    const nextValue = typeof learnMoreTextInput.value === "string" ? learnMoreTextInput.value : "";
     if (learnMoreStatus) {
-      learnMoreStatus.textContent = "Learn More text saved.";
+      learnMoreStatus.textContent = "Saving Learn More text to the server...";
     }
-    showTemporaryInlineLearnMoreStatus(learnMoreInlineStatus, "Learn More text saved.");
+    try {
+      const saved = await saveLearnMoreContentToServer("main", nextValue);
+      const savedValue = typeof saved?.content === "string" ? saved.content : "";
+      cacheLearnMoreContentLocally("main", savedValue);
+      setLearnMoreDraftText("main", null);
+      if (learnMoreTextInput.value !== savedValue) {
+        learnMoreTextInput.value = savedValue;
+      }
+      updateLearnMorePreview(learnMorePreview, savedValue);
+      if (learnMoreStatus) {
+        learnMoreStatus.textContent = "Learn More text saved to the server.";
+      }
+      showTemporaryInlineLearnMoreStatus(learnMoreInlineStatus, "Learn More text saved to the server.");
+    } catch (error) {
+      setLearnMoreDraftText("main", nextValue);
+      if (learnMoreStatus) {
+        learnMoreStatus.textContent = String(error?.message || "Unable to save Learn More text right now.");
+      }
+      showTemporaryInlineLearnMoreStatus(learnMoreInlineStatus, "Unable to save Learn More text right now. Your local draft was preserved.");
+    }
   }
 
-  function saveClairvoyanceLearnMoreContent() {
+  async function saveClairvoyanceLearnMoreContent() {
     if (!clairvoyanceLearnMoreTextInput) {
       return;
     }
-    const latest = readLauncherState();
-    const nextValue = String(clairvoyanceLearnMoreTextInput.value || "").trim();
-    latest.clairvoyanceLearnMoreText = nextValue || defaultClairvoyanceLearnMoreText;
-    writeLauncherState(latest);
-    if (clairvoyanceLearnMoreTextInput.value !== latest.clairvoyanceLearnMoreText) {
-      clairvoyanceLearnMoreTextInput.value = latest.clairvoyanceLearnMoreText;
-    }
-    updateLearnMorePreview(clairvoyanceLearnMorePreview, latest.clairvoyanceLearnMoreText);
+    const nextValue = typeof clairvoyanceLearnMoreTextInput.value === "string" ? clairvoyanceLearnMoreTextInput.value : "";
     if (clairvoyanceLearnMoreStatus) {
-      clairvoyanceLearnMoreStatus.textContent = "Learn More text saved.";
+      clairvoyanceLearnMoreStatus.textContent = "Saving Learn More text to the server...";
     }
-    showTemporaryInlineLearnMoreStatus(clairvoyanceLearnMoreInlineStatus, "Learn More text saved.");
+    try {
+      const saved = await saveLearnMoreContentToServer("clairvoyance", nextValue);
+      const savedValue = typeof saved?.content === "string" ? saved.content : "";
+      cacheLearnMoreContentLocally("clairvoyance", savedValue);
+      setLearnMoreDraftText("clairvoyance", null);
+      if (clairvoyanceLearnMoreTextInput.value !== savedValue) {
+        clairvoyanceLearnMoreTextInput.value = savedValue;
+      }
+      updateLearnMorePreview(clairvoyanceLearnMorePreview, savedValue);
+      if (clairvoyanceLearnMoreStatus) {
+        clairvoyanceLearnMoreStatus.textContent = "Learn More text saved to the server.";
+      }
+      showTemporaryInlineLearnMoreStatus(clairvoyanceLearnMoreInlineStatus, "Learn More text saved to the server.");
+    } catch (error) {
+      setLearnMoreDraftText("clairvoyance", nextValue);
+      if (clairvoyanceLearnMoreStatus) {
+        clairvoyanceLearnMoreStatus.textContent = String(error?.message || "Unable to save Learn More text right now.");
+      }
+      showTemporaryInlineLearnMoreStatus(clairvoyanceLearnMoreInlineStatus, "Unable to save Learn More text right now. Your local draft was preserved.");
+    }
   }
 
-  function showAidsView() {
-    clearReportPanelOffset();
-    aidsView?.classList.remove("beginner-view-hidden");
-    generalInformationView?.classList.add("beginner-view-hidden");
-    rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
-    websitesEventsListView?.classList.add("beginner-view-hidden");
-    peerReviewedListView?.classList.add("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
-    temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
-    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
-    optionsView?.classList.add("beginner-view-hidden");
-    helpView?.classList.add("beginner-view-hidden");
-    toolsView?.classList.add("beginner-view-hidden");
-    goProView?.classList.add("beginner-view-hidden");
-    otherSettingsView?.classList.add("beginner-view-hidden");
-    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
-    subscriptionManagementView?.classList.add("beginner-view-hidden");
-    behaviorsView?.classList.add("beginner-view-hidden");
-    colorSchemeView?.classList.add("beginner-view-hidden");
-    blinkBehaviorView?.classList.add("beginner-view-hidden");
-    confidenceBehaviorView?.classList.add("beginner-view-hidden");
-    contactView?.classList.add("beginner-view-hidden");
-    aboutView?.classList.add("beginner-view-hidden");
-    reportDefinitionView?.classList.add("beginner-view-hidden");
-    reportView?.classList.add("beginner-view-hidden");
-    visualizationView?.classList.add("beginner-view-hidden");
-    analyzerView?.classList.add("beginner-view-hidden");
-    difficultyView?.classList.add("beginner-view-hidden");
-    settingsView?.classList.add("beginner-view-hidden");
-    adminView?.classList.add("beginner-view-hidden");
-    userTypeAdminView?.classList.add("beginner-view-hidden");
-    handleUpdateAdminView?.classList.add("beginner-view-hidden");
-    imagePairAdminView?.classList.add("beginner-view-hidden");
-    adminUserListView?.classList.add("beginner-view-hidden");
-    closeReportPairMenu();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  function getOnlineCourseDisplayIdentifier(state = readLauncherState()) {
+    const currentIdentifier = String(getCurrentTelepathyProIdentifier() || "").trim();
+    if (currentIdentifier) {
+      return currentIdentifier;
+    }
+    const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    return String(
+      ownNames.sender ||
+      ownNames.receiver ||
+      ownNames["remote-viewer"] ||
+      loadedInvitee?.identifier ||
+      temporaryIdentity?.identifier ||
+      "XXXXXXX"
+    ).trim() || "XXXXXXX";
   }
 
-  function showGeneralInformationView() {
-    clearReportPanelOffset();
-    generalInformationView?.classList.remove("beginner-view-hidden");
-    aidsView?.classList.add("beginner-view-hidden");
-    rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
-    websitesEventsListView?.classList.add("beginner-view-hidden");
-    peerReviewedListView?.classList.add("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
-    temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
-    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
-    optionsView?.classList.add("beginner-view-hidden");
-    helpView?.classList.add("beginner-view-hidden");
-    toolsView?.classList.add("beginner-view-hidden");
-    goProView?.classList.add("beginner-view-hidden");
-    otherSettingsView?.classList.add("beginner-view-hidden");
-    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
-    subscriptionManagementView?.classList.add("beginner-view-hidden");
-    behaviorsView?.classList.add("beginner-view-hidden");
-    colorSchemeView?.classList.add("beginner-view-hidden");
-    blinkBehaviorView?.classList.add("beginner-view-hidden");
-    confidenceBehaviorView?.classList.add("beginner-view-hidden");
-    contactView?.classList.add("beginner-view-hidden");
-    aboutView?.classList.add("beginner-view-hidden");
-    reportDefinitionView?.classList.add("beginner-view-hidden");
-    reportView?.classList.add("beginner-view-hidden");
-    visualizationView?.classList.add("beginner-view-hidden");
-    analyzerView?.classList.add("beginner-view-hidden");
-    difficultyView?.classList.add("beginner-view-hidden");
-    settingsView?.classList.add("beginner-view-hidden");
-    adminView?.classList.add("beginner-view-hidden");
-    userTypeAdminView?.classList.add("beginner-view-hidden");
-    handleUpdateAdminView?.classList.add("beginner-view-hidden");
-    imagePairAdminView?.classList.add("beginner-view-hidden");
-    adminUserListView?.classList.add("beginner-view-hidden");
-    closeReportPairMenu();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  function formatOnlineCourseDate(date = new Date()) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric"
+      }).format(date);
+    } catch (error) {
+      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    }
   }
 
-  function showRewireView() {
-    clearReportPanelOffset();
-    rewireView?.classList.remove("beginner-view-hidden");
-    aidsView?.classList.add("beginner-view-hidden");
-    generalInformationView?.classList.add("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
-    temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
-    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
-    optionsView?.classList.add("beginner-view-hidden");
-    helpView?.classList.add("beginner-view-hidden");
-    toolsView?.classList.add("beginner-view-hidden");
-    goProView?.classList.add("beginner-view-hidden");
-    otherSettingsView?.classList.add("beginner-view-hidden");
-    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
-    subscriptionManagementView?.classList.add("beginner-view-hidden");
-    behaviorsView?.classList.add("beginner-view-hidden");
-    colorSchemeView?.classList.add("beginner-view-hidden");
-    blinkBehaviorView?.classList.add("beginner-view-hidden");
-    confidenceBehaviorView?.classList.add("beginner-view-hidden");
-    contactView?.classList.add("beginner-view-hidden");
-    aboutView?.classList.add("beginner-view-hidden");
-    reportDefinitionView?.classList.add("beginner-view-hidden");
-    reportView?.classList.add("beginner-view-hidden");
-    visualizationView?.classList.add("beginner-view-hidden");
-    analyzerView?.classList.add("beginner-view-hidden");
-    difficultyView?.classList.add("beginner-view-hidden");
-    settingsView?.classList.add("beginner-view-hidden");
-    adminView?.classList.add("beginner-view-hidden");
-    userTypeAdminView?.classList.add("beginner-view-hidden");
-    handleUpdateAdminView?.classList.add("beginner-view-hidden");
-    imagePairAdminView?.classList.add("beginner-view-hidden");
-    adminUserListView?.classList.add("beginner-view-hidden");
-    closeReportPairMenu();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  function renderOnlineCourseView() {
+    const state = readLauncherState();
+    const displayDate = formatOnlineCourseDate();
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    if (onlineCourseDate) {
+      onlineCourseDate.textContent = displayDate;
+    }
+    if (onlineCourseName) {
+      onlineCourseName.textContent = displayIdentifier;
+    }
+    if (onlineCourseCheckpointDate) {
+      onlineCourseCheckpointDate.textContent = `Completed ${displayDate}`;
+    }
   }
 
-  function showReadingListView() {
+  function showOnlineCourseView(options = {}) {
     clearReportPanelOffset();
-    readingListView?.classList.remove("beginner-view-hidden");
+    onlineCourseReturnTarget = {
+      view: String(options.view || "aids").trim() || "aids",
+      role: String(options.role || "").trim()
+    };
+    renderOnlineCourseView();
+    onlineCourseView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
     peerReviewedListView?.classList.add("beginner-view-hidden");
@@ -11577,13 +12428,183 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showVideoListView() {
+  function showRoleCourseTarget(role) {
+    const normalizedRole = String(role || "").trim();
+    suppressLauncherAutoCollapseUntil = Date.now() + 600;
+    if (normalizedRole === "remote-viewer") {
+      showClairvoyanceViewingView();
+    } else {
+      showLauncherView();
+    }
+    const matchingCard = findRoleCard(normalizedRole);
+    if (matchingCard) {
+      const activateViaToggle = () => ensureCardExpanded(matchingCard, { scrollIntoView: true });
+      window.setTimeout(activateViaToggle, 0);
+      window.setTimeout(() => {
+        if (!matchingCard.classList.contains("active")) {
+          activateViaToggle();
+        }
+      }, 120);
+    }
+  }
+
+  function closeOnlineCourseView() {
+    const targetView = String(onlineCourseReturnTarget?.view || "aids").trim();
+    const targetRole = String(onlineCourseReturnTarget?.role || "").trim();
+    if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
+      showRoleCourseTarget(targetRole);
+      return;
+    }
+    if (targetView === "report-definition") {
+      showReportDefinitionView();
+      return;
+    }
+    if (targetView === "options") {
+      showOptionsView();
+      return;
+    }
+    showAidsView();
+  }
+
+  function showAidsView() {
     clearReportPanelOffset();
-    videoListView?.classList.remove("beginner-view-hidden");
-    aidsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.remove("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showGeneralInformationView() {
+    clearReportPanelOffset();
+    generalInformationView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showRewireView() {
+    clearReportPanelOffset();
+    rewireView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showReadingsVideosView() {
+    clearReportPanelOffset();
+    readingsVideosView?.classList.remove("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
     peerReviewedListView?.classList.add("beginner-view-hidden");
@@ -11624,10 +12645,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     websitesEventsListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     userCommentsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
     peerReviewedListView?.classList.add("beginner-view-hidden");
@@ -11667,10 +12689,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     userCommentsListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
     peerReviewedListView?.classList.add("beginner-view-hidden");
@@ -11710,11 +12733,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     caseStudiesListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
     peerReviewedListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -11752,12 +12777,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     clearReportPanelOffset();
     peerReviewedListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    readingListView?.classList.add("beginner-view-hidden");
-    videoListView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     learnMoreView?.classList.add("beginner-view-hidden");
@@ -11915,6 +12942,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
+        persistRoleDifficultyPreference(role, String(nextLevel));
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
@@ -11934,6 +12962,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
+        persistRoleDifficultyPreference(role, String(nextLevel));
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
@@ -11950,6 +12979,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
+        persistRoleDifficultyPreference(role, String(nextLevel));
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
@@ -11988,6 +13018,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`);
         }
         rememberDifficultyLevel(String(currentLevel));
+        persistRoleDifficultyPreference(role, String(currentLevel));
+        persistResolvedPairDifficultyForRole(role, pairContext, String(currentLevel));
         setRoleDifficultyLabel(role, String(currentLevel));
         scheduleGuidedLevelExplanation(role, String(currentLevel));
         return;
@@ -12007,6 +13039,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         )
       );
       rememberDifficultyLevel(confirmedLevel);
+      persistRoleDifficultyPreference(role, confirmedLevel);
+      persistResolvedPairDifficultyForRole(role, pairContext, visibleConfirmedLevel);
       setRoleDifficultyLabel(role, visibleConfirmedLevel);
       void refreshDifficultyLabels();
       const pairLabel = describeDifficultyChange(role, pairContext);
@@ -12162,6 +13196,55 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     }
 
+    function formatAdminEmailList(rows) {
+      const items = Array.isArray(rows) ? rows : [];
+      if (!items.length) {
+        return "No email-list records are available right now.";
+      }
+
+      const nameWidth = Math.max("Name".length, ...items.map((row) => String(row?.name || "").length));
+      const dateWidth = Math.max("Date Acquired".length, ...items.map((row) => String(row?.acquired_date || "").length));
+      const typeWidth = Math.max("Type".length, ...items.map((row) => String(row?.type || "").length));
+      const emailWidth = Math.max("Email".length, ...items.map((row) => String(row?.email || "").length));
+      const pad = (value, width) => String(value ?? "").padEnd(width, " ");
+
+      const lines = [
+        `${pad("Name", nameWidth)}  ${pad("Date Acquired", dateWidth)}  ${pad("Type", typeWidth)}  ${pad("Email", emailWidth)}`,
+        `${"-".repeat(nameWidth)}  ${"-".repeat(dateWidth)}  ${"-".repeat(typeWidth)}  ${"-".repeat(emailWidth)}`
+      ];
+
+      items.forEach((row) => {
+        lines.push(
+          `${pad(row?.name || "", nameWidth)}  ${pad(row?.acquired_date || "", dateWidth)}  ${pad(row?.type || "", typeWidth)}  ${pad(row?.email || "", emailWidth)}`
+        );
+      });
+
+      return lines.join("\n");
+    }
+
+    function renderAdminEmailListView() {
+      const rows = Array.isArray(launcherAdminState.email_list) ? launcherAdminState.email_list : [];
+      const meta = launcherAdminState.email_list_meta || {};
+      const reportDate = String(meta.report_date || "").trim() || "unknown";
+      const totalRecords = Number.isFinite(Number(meta.total_records)) ? Number(meta.total_records) : rows.length;
+
+      if (adminEmailListSummary) {
+        adminEmailListSummary.textContent = `Report Date: ${reportDate}   Total Records: ${totalRecords}`;
+      }
+      if (adminEmailListStatus) {
+        adminEmailListStatus.textContent = rows.length ? "" : "No email-list records are available right now.";
+      }
+      if (adminEmailListOutput) {
+        if (rows.length) {
+          adminEmailListOutput.hidden = false;
+          adminEmailListOutput.textContent = formatAdminEmailList(rows);
+        } else {
+          adminEmailListOutput.hidden = true;
+          adminEmailListOutput.textContent = "";
+        }
+      }
+    }
+
     function renderAdminView() {
       if (adminDebugEnabledCheckbox) {
         adminDebugEnabledCheckbox.checked = !!launcherAdminState.debug_enabled;
@@ -12174,6 +13257,13 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       if (adminEasyAdminEnabledCheckbox) {
         adminEasyAdminEnabledCheckbox.checked = !!launcherAdminState.easy_admin_enabled;
+      }
+      if (adminLearnMoreSaveEnabledCheckbox) {
+        adminLearnMoreSaveEnabledCheckbox.checked = !!launcherAdminState.learn_more_save_enabled;
+      }
+      if (adminExploreProTestDurationInput) {
+        const seconds = Math.max(0, Number(launcherAdminState.explore_pro_test_duration_seconds || 0) || 0);
+        adminExploreProTestDurationInput.value = seconds > 0 ? String(seconds) : "";
       }
       if (adminClearDebugLogButton) {
         const debugLog = launcherAdminState.debug_log;
@@ -12215,12 +13305,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           subscription_emails_enabled: !!data?.subscription_emails_enabled,
           subscription_reminders_enabled: !!data?.subscription_reminders_enabled,
           easy_admin_enabled: !!data?.easy_admin_enabled,
+          learn_more_save_enabled: !!data?.learn_more_save_enabled,
+          explore_pro_test_duration_seconds: Math.max(0, Number(data?.explore_pro_test_duration_seconds || 0) || 0),
           storage: data?.storage || null,
           debug_log: data?.debug_log || null,
           subscription_email_log: data?.subscription_email_log || null,
           subscription_email_templates: data?.subscription_email_templates || null,
           user_trial_summary: data?.user_trial_summary || null,
           user_trial_summary_meta: data?.user_trial_summary_meta || null,
+          email_list: data?.email_list || null,
+          email_list_meta: data?.email_list_meta || null,
           disk_usage_analysis: data?.disk_usage_analysis || null
         };
       if (adminStatus) {
@@ -12230,6 +13324,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       if (!adminUserListView?.classList.contains("beginner-view-hidden")) {
         renderAdminUserListView();
       }
+      if (!adminEmailListView?.classList.contains("beginner-view-hidden")) {
+        renderAdminEmailListView();
+      }
     } catch (error) {
       if (adminStatus) {
         adminStatus.textContent = "Unable to load admin data right now.";
@@ -12237,27 +13334,75 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     }
   }
 
-  function clearLocalFreshStartState() {
+  function deleteIndexedDbDatabase(name) {
+    return new Promise((resolve) => {
+      try {
+        if (!("indexedDB" in window) || !name) {
+          resolve();
+          return;
+        }
+        const request = window.indexedDB.deleteDatabase(name);
+        request.onsuccess = () => resolve();
+        request.onerror = () => resolve();
+        request.onblocked = () => resolve();
+      } catch (error) {
+        resolve();
+      }
+    });
+  }
+
+  function clearAppCacheArtifacts() {
+    return new Promise((resolve) => {
+      try {
+        if (!("caches" in window)) {
+          resolve();
+          return;
+        }
+        caches.keys()
+          .then((keys) => Promise.all(
+            keys
+              .filter((key) => String(key || "").indexOf("telepathybeginner-") === 0)
+              .map((key) => caches.delete(key).catch(() => false))
+          ))
+          .then(() => resolve())
+          .catch(() => resolve());
+      } catch (error) {
+        resolve();
+      }
+    });
+  }
+
+  async function clearLocalFreshStartState() {
     try {
       localStorage.removeItem(launcherKey);
       localStorage.removeItem(analysisStorageKey);
+      localStorage.removeItem(stripeReturnIdentifierStorageKey);
       localStorage.removeItem("cones-local-trials-receiver");
+      localStorage.removeItem("cones-local-trials-v2-sender");
+      localStorage.removeItem("cones-local-trials-v2-receiver");
       localStorage.removeItem("conesArrangementHistory");
       localStorage.removeItem("conesArrangementHistory-v2");
       localStorage.removeItem("cones-settings-v2-sender");
       localStorage.removeItem("cones-settings-v2-receiver");
+      localStorage.removeItem("cones-settings-v2-remote-viewer");
+      localStorage.removeItem("cones-receiver-skip-two-choice-instructions");
     } catch (error) {
       // Ignore local cleanup failures.
     }
+    await deleteIndexedDbDatabase("cones-folder-handles");
   }
 
-  function clearAppLocalStorageArtifacts() {
-    clearLocalFreshStartState();
+  async function clearAppLocalStorageArtifacts() {
+    await clearLocalFreshStartState();
     try {
       sessionStorage.removeItem(launcherKey);
+      sessionStorage.removeItem("cones-client-id-sender");
+      sessionStorage.removeItem("cones-client-id-receiver");
+      sessionStorage.removeItem("cones-client-id-remote-viewer");
     } catch (error) {
       // Ignore session cleanup failures.
     }
+    await clearAppCacheArtifacts();
   }
 
   function showAdminView() {
@@ -12265,6 +13410,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     adminView?.classList.remove("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
@@ -12295,6 +13441,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   function showAdminUserListView() {
     adminUserListView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
@@ -12317,6 +13464,35 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderAdminUserListView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showAdminEmailListView() {
+    adminEmailListView?.classList.remove("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderAdminEmailListView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -12614,6 +13790,229 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     temporaryHomePageInvitationStatus.style.color = options.isError
       ? "rgba(255, 201, 201, 0.96)"
       : "rgba(255, 234, 190, 0.92)";
+  }
+
+  function renderTemporaryHomeReturnState() {
+    const state = readLauncherState();
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    const exploreTrial = state?.exploreTrial && typeof state.exploreTrial === "object" ? state.exploreTrial : null;
+    const hasMatchingActiveExploreTrial =
+      temporaryIdentity &&
+      temporaryIdentity.source === "landing-explore-pro" &&
+      exploreTrial &&
+      String(exploreTrial.status || "").trim().toLowerCase() !== "expired" &&
+      normalizeIdentifierForStorage(String(exploreTrial.identifier || "")) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
+
+    if (temporaryHomePageContinueButton) {
+      temporaryHomePageContinueButton.textContent = hasMatchingActiveExploreTrial
+        ? "CONTINUE into your active ESP PRO exploration"
+        : "CONTINUE into the ESP GYM training environment";
+    }
+
+    if (hasMatchingActiveExploreTrial) {
+      setTemporaryHomeInvitationStatus(
+        `This device already has an active ESP PRO exploration for ${temporaryIdentity.identifier}. Press CONTINUE to return to it.`
+      );
+      return;
+    }
+
+    setTemporaryHomeInvitationStatus("");
+  }
+
+  function setExploreProStatus(message = "", options = {}) {
+    if (!exploreProStatus) {
+      return;
+    }
+    const text = String(message || "").trim();
+    exploreProStatus.textContent = text;
+    exploreProStatus.style.color = options.isError
+      ? "rgba(255, 201, 201, 0.96)"
+      : "rgba(255, 234, 190, 0.92)";
+  }
+
+  function setUpdatesStatus(message = "", options = {}) {
+    if (!updatesStatus) {
+      return;
+    }
+    const text = String(message || "").trim();
+    updatesStatus.textContent = text;
+    updatesStatus.style.color = options.isError
+      ? "rgba(255, 201, 201, 0.96)"
+      : "rgba(255, 234, 190, 0.92)";
+  }
+
+  function openUpdatesOverlay() {
+    const state = readLauncherState();
+    if (updatesEmailInput) {
+      updatesEmailInput.value = String(state.updatesInterestEmail || "").trim();
+    }
+    setUpdatesStatus("");
+    updatesOverlay?.classList.remove("beginner-view-hidden");
+    updatesEmailInput?.focus();
+    updatesEmailInput?.select?.();
+  }
+
+  function getPreferredUpdatesSignupName(state = readLauncherState()) {
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
+    return String(
+      temporaryIdentity?.identifier ||
+      loadedInvitee?.identifier ||
+      ownNames.sender ||
+      ownNames.receiver ||
+      ownNames["remote-viewer"] ||
+      ""
+    ).trim();
+  }
+
+  function closeUpdatesOverlay() {
+    updatesOverlay?.classList.add("beginner-view-hidden");
+  }
+
+  async function saveUpdatesInterest() {
+    const email = String(updatesEmailInput?.value || "").trim();
+    if (!isValidEmailAddress(email)) {
+      setUpdatesStatus("Please enter a valid email address.", { isError: true });
+      return;
+    }
+    const latest = readLauncherState();
+    const optionalName = getPreferredUpdatesSignupName(latest);
+    setUpdatesStatus("Saving email address...");
+    try {
+      await saveEmailListSignup(email, "updates", optionalName);
+      latest.updatesInterestEmail = email;
+      writeLauncherState(latest);
+      setUpdatesStatus("Email address saved for ESP GYM updates.");
+      window.setTimeout(() => {
+        closeUpdatesOverlay();
+      }, 700);
+    } catch (error) {
+      setUpdatesStatus(error instanceof Error ? error.message : "Unable to save that email address right now.", { isError: true });
+    }
+  }
+
+  function resetExploreProOverlay() {
+    if (exploreProEmailInput) {
+      exploreProEmailInput.value = "";
+    }
+    if (exploreProCodeInput) {
+      exploreProCodeInput.value = "";
+    }
+    setExploreProStatus("");
+    if (exploreProResendCodeButton) {
+      exploreProResendCodeButton.hidden = true;
+    }
+    if (exploreProSubscribeButton) {
+      exploreProSubscribeButton.hidden = true;
+    }
+    if (exploreProSendCodeButton) {
+      exploreProSendCodeButton.disabled = false;
+    }
+    if (exploreProResendCodeButton) {
+      exploreProResendCodeButton.disabled = false;
+    }
+    if (exploreProStartButton) {
+      exploreProStartButton.disabled = false;
+    }
+    if (exploreProCloseButton) {
+      exploreProCloseButton.disabled = false;
+    }
+  }
+
+  function openExploreProOverlay() {
+    resetExploreProOverlay();
+    exploreProOverlay?.classList.remove("beginner-view-hidden");
+    exploreProEmailInput?.focus();
+    exploreProEmailInput?.select?.();
+  }
+
+  function closeExploreProOverlay() {
+    exploreProOverlay?.classList.add("beginner-view-hidden");
+  }
+
+  async function requestExploreProCode(resend = false) {
+    const email = String(exploreProEmailInput?.value || "").trim();
+    setExploreProStatus(resend ? "Sending a new verification code..." : "Sending verification code...");
+    if (exploreProSendCodeButton) {
+      exploreProSendCodeButton.disabled = true;
+    }
+    if (exploreProResendCodeButton) {
+      exploreProResendCodeButton.disabled = true;
+    }
+    try {
+      const verification = await sendExploreProVerificationCode(email);
+      if (exploreProResendCodeButton) {
+        exploreProResendCodeButton.hidden = false;
+      }
+      if (exploreProSubscribeButton) {
+        exploreProSubscribeButton.hidden = true;
+      }
+      setExploreProStatus(`Verification code sent to ${verification?.email || email}.`);
+      exploreProCodeInput?.focus();
+      exploreProCodeInput?.select?.();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to send a verification code right now.";
+      setExploreProStatus(message, { isError: true });
+      if (/exploration period has ended/i.test(message) && exploreProSubscribeButton) {
+        exploreProSubscribeButton.hidden = false;
+      }
+    } finally {
+      if (exploreProSendCodeButton) {
+        exploreProSendCodeButton.disabled = false;
+      }
+      if (exploreProResendCodeButton) {
+        exploreProResendCodeButton.disabled = false;
+      }
+    }
+  }
+
+  async function startExploreProTrial() {
+    const email = String(exploreProEmailInput?.value || "").trim();
+    const code = String(exploreProCodeInput?.value || "").trim().toUpperCase();
+    setExploreProStatus("Verifying code...");
+    if (exploreProStartButton) {
+      exploreProStartButton.disabled = true;
+    }
+    try {
+      const data = await verifyExploreProCode(email, code);
+      const temporaryIdentity = String(data?.temporary_identity?.identifier || "").trim();
+      const userType = String(data?.temporary_identity?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+      const baseState = readLauncherState();
+      const exploreTrial = normalizeExploreTrialData(data?.explore_trial || data?.trial_activation || null, temporaryIdentity);
+      const nextState = buildLauncherIdentityState(baseState, temporaryIdentity, userType, {
+        temporaryIdentity: {
+          source: "landing-explore-pro"
+        },
+        exploreTrial: exploreTrial
+          ? {
+              email: exploreTrial.email,
+              status: exploreTrial.status,
+              startedAt: exploreTrial.startedAt,
+              expiresAt: exploreTrial.expiresAt,
+              noticeShown: false
+            }
+          : null
+      });
+      if (data?.identifier_status && temporaryIdentity) {
+        nextState.identifierStatusMap = nextState.identifierStatusMap || {};
+        nextState.identifierStatusMap[normalizeIdentifierForStorage(temporaryIdentity)] = data.identifier_status;
+      }
+      await clearLocalFreshStartState();
+      writeLauncherState(nextState);
+      closeExploreProOverlay();
+      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to verify that code right now.";
+      setExploreProStatus(message, { isError: true });
+      if (/exploration period has ended/i.test(message) && exploreProSubscribeButton) {
+        exploreProSubscribeButton.hidden = false;
+      }
+    } finally {
+      if (exploreProStartButton) {
+        exploreProStartButton.disabled = false;
+      }
+    }
   }
 
   function resetTemporaryHomeExploreButton() {
@@ -13714,18 +15113,39 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function applyLauncherOpenRequest() {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const requestedView = String(params.get("open") || "").trim().toLowerCase();
-      const directOpen = params.get("direct_open") === "1";
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const requestedView = String(params.get("open") || "").trim().toLowerCase();
+        const requestedDifficultyLevel = normalizeDifficultyLevel(params.get("difficulty_level") || "");
+        const requestedOwnIdentifier = String(params.get("own_email") || "").trim();
+        const requestedPartnerIdentifier = String(params.get("partner_email") || "").trim();
+        const directOpen = params.get("direct_open") === "1";
       const stripeReturnState = String(params.get("stripe") || "").trim().toLowerCase();
       const requestedReportReceiver = String(params.get("report_receiver") || "").trim();
       const requestedReportSender = String(params.get("report_sender") || "").trim();
       const requestedReportSessionCode = String(params.get("report_session_code") || "").trim();
+      const requestedReportSource = String(params.get("report_source") || "").trim().toLowerCase() === "simulation" ? "simulation" : "real";
       const messageOwner = String(params.get("message_owner") || "").trim();
-      const messagePartner = String(params.get("message_partner") || "").trim();
-      const messageFocus = params.get("message_focus") === "1";
-      const launcherState = readLauncherState();
+        const messagePartner = String(params.get("message_partner") || "").trim();
+        const messageFocus = params.get("message_focus") === "1";
+        const launcherState = readLauncherState();
+        if (requestedDifficultyLevel) {
+          launcherState.difficultyLevel = requestedDifficultyLevel;
+          launcherState.roleDifficultyLevels = launcherState.roleDifficultyLevels || {};
+          launcherState.roleDifficultyLevels.sender = requestedDifficultyLevel;
+          launcherState.roleDifficultyLevels.receiver = requestedDifficultyLevel;
+          writeLauncherState(launcherState);
+          if (
+            ["sender", "receiver"].includes(requestedView) &&
+            requestedOwnIdentifier &&
+            isRobotSimulationIdentifier(requestedPartnerIdentifier)
+          ) {
+            persistRobotSimulationDifficulty(requestedView, requestedOwnIdentifier, requestedDifficultyLevel);
+          }
+          ["sender", "receiver", "remote-viewer"].forEach((role) => {
+            setRoleDifficultyLabel(role, requestedDifficultyLevel);
+          });
+        }
       if (requestedView === "launcher") {
         enterWorkingHomeFromLanding("resume");
         return;
@@ -13758,7 +15178,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           ? {
               receiverName: requestedReportReceiver,
               senderName: requestedReportSender,
-              sessionCode: requestedReportSessionCode
+              sessionCode: requestedReportSessionCode,
+              source: requestedReportSource
             }
           : null;
         showReportDefinitionView();
@@ -13888,6 +15309,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   }
 
   function closeGoProViewToOrigin() {
+    if (goProReturnView === "temporary-home-page") {
+      showTemporaryHomePageView();
+      return;
+    }
     if (goProReturnView === "subscription-management") {
       showSubscriptionManagementView();
       return;
@@ -14099,6 +15524,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   async function sendContactMessage(messageText, senderEmail) {
     const meta = buildContactMessageMeta();
     const cleanSenderEmail = assertValidEmailIdentifier(senderEmail, "Your email");
+    const currentUserIdentifier = getCurrentContactIdentifier(meta);
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
@@ -14111,6 +15537,8 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
           app: "Telepathy Beginner",
           build_version: launcherBuildVersion,
           sender_email: cleanSenderEmail,
+          current_user_identifier: currentUserIdentifier,
+          allow_display_on_comments_page: !!contactAllowDisplayCheckbox?.checked,
           own_names: meta.ownNames,
           pair: meta.pair,
           location: meta.location
@@ -14130,6 +15558,85 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     contactWordCount.classList.toggle("is-over-limit", words > 300);
   }
 
+  function getCurrentContactIdentifier(meta = buildContactMessageMeta()) {
+    const state = readLauncherState();
+    const activeRole = ["sender", "receiver", "remote-viewer"].includes(activeLauncherRole)
+      ? activeLauncherRole
+      : "";
+    const activeOwnName = activeRole ? String(readVisibleRoleIdentifiers(activeRole).ownName || "").trim() : "";
+    const ownNames = Array.isArray(meta?.ownNames) ? meta.ownNames : [];
+    const preferred = uniqueNames([
+      activeOwnName,
+      ...getCurrentUserTypeCandidates(),
+      ...ownNames,
+      String(state.ownNames?.sender || "").trim(),
+      String(state.ownNames?.receiver || "").trim(),
+      String(state.ownNames?.["remote-viewer"] || "").trim()
+    ])[0] || "";
+    return preferred ? getPreferredIdentifier(preferred, state) : "";
+  }
+
+  function isAcceptedContactIdentifier(identifier, status = null) {
+    const raw = String(identifier || "").trim();
+    if (!raw) {
+      return false;
+    }
+    if (isValidEmailAddress(raw)) {
+      return true;
+    }
+    return isAcceptedUniqueHandleIdentifier(raw, status);
+  }
+
+  async function renderContactFromLine() {
+    if (!contactFromLine) {
+      return;
+    }
+    const requestToken = ++contactFromLineRequestToken;
+    const identifier = String(getCurrentContactIdentifier() || "").trim();
+    const hideLine = () => {
+      contactFromLine.hidden = true;
+      contactFromLine.textContent = "";
+    };
+    if (!identifier) {
+      hideLine();
+      return;
+    }
+
+    const cachedStatus = getCachedIdentifierStatus(identifier);
+    if (isAcceptedContactIdentifier(identifier, cachedStatus)) {
+      if (requestToken !== contactFromLineRequestToken) {
+        return;
+      }
+      const displayIdentifier = String(cachedStatus.preferred_identifier || identifier).trim() || identifier;
+      contactFromLine.hidden = false;
+      contactFromLine.textContent = `Message from ${displayIdentifier}`;
+      return;
+    }
+
+    hideLine();
+    try {
+      const status = await fetchIdentifierStatus(identifier);
+      if (requestToken !== contactFromLineRequestToken) {
+        return;
+      }
+      if (status) {
+        rememberIdentifierStatus(identifier, status);
+      }
+      if (!isAcceptedContactIdentifier(identifier, status)) {
+        hideLine();
+        return;
+      }
+      const displayIdentifier = String(status.preferred_identifier || identifier).trim() || identifier;
+      contactFromLine.hidden = false;
+      contactFromLine.textContent = `Message from ${displayIdentifier}`;
+    } catch (_error) {
+      if (requestToken !== contactFromLineRequestToken) {
+        return;
+      }
+      hideLine();
+    }
+  }
+
   function resetContactView(options = {}) {
     const clearMessage = options.clearMessage !== false;
     const clearEmail = options.clearEmail !== false;
@@ -14140,12 +15647,16 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     if (clearEmail && contactEmailInput) {
       contactEmailInput.value = "";
     }
+    if (contactAllowDisplayCheckbox) {
+      contactAllowDisplayCheckbox.checked = false;
+    }
     if (clearStatus && contactStatus) {
       contactStatus.textContent = "";
     }
     if (contactSendButton) {
       contactSendButton.disabled = false;
     }
+    renderContactFromLine();
     renderContactWordCount();
   }
 
@@ -14323,6 +15834,9 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
       if (contactEmailInput) {
         contactEmailInput.value = "";
+      }
+      if (contactAllowDisplayCheckbox) {
+        contactAllowDisplayCheckbox.checked = false;
       }
       renderContactWordCount();
     } catch (error) {
@@ -14662,16 +16176,6 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       clearRoleLevelExplanation(role);
     });
   });
-  roleLessonMoreButtons.forEach((button) => {
-    const role = String(button.dataset.roleLessonMore || "").trim();
-    if (!role) {
-      return;
-    }
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      showEspLessonDetail(role);
-    });
-  });
   roleLessonNextButtons.forEach((button) => {
     const role = String(button.dataset.roleLessonNext || "").trim();
     if (!role) {
@@ -14731,27 +16235,27 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   });
   locationPickerOverlay?.addEventListener("click", (event) => {
     if (event.target === locationPickerOverlay) {
-      closeLocationPickerWithMessage("Location not changed.", () => {
-        dismissLocationPicker();
-      });
+      dismissLocationPicker();
     }
   });
   locationPickerDialog?.addEventListener("click", (event) => {
     event.stopPropagation();
   });
   locationPickerCancelButton?.addEventListener("click", () => {
-    closeLocationPickerWithMessage("Location not changed.", () => {
-      dismissLocationPicker();
-    });
+    dismissLocationPicker();
   });
   locationPickerSaveButton?.addEventListener("click", () => {
     saveExactLocationSelection();
   });
+  locationPickerZoomInButton?.addEventListener("click", () => {
+    locationPickerMap?.zoomIn();
+  });
+  locationPickerZoomOutButton?.addEventListener("click", () => {
+    locationPickerMap?.zoomOut();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && locationPickerOverlay && !locationPickerOverlay.classList.contains("beginner-view-hidden")) {
-      closeLocationPickerWithMessage("Location not changed.", () => {
-        dismissLocationPicker();
-      });
+      dismissLocationPicker();
       return;
     }
     if (event.key === "Escape" && reportImageLightbox && !reportImageLightbox.classList.contains("beginner-view-hidden")) {
@@ -14948,23 +16452,48 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   openOptionsButton?.addEventListener("click", showOptionsView);
   openLearnMoreButton?.addEventListener("click", showLearnMoreView);
   openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
+  openOnlineCourseButton?.addEventListener("click", () => {
+    showOnlineCourseView({ view: "aids" });
+  });
+  openOnlineCourseDirectButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const role = String(button.dataset.openOnlineCourseDirect || "").trim();
+      const returnView = role === "remote-viewer" ? "clairvoyance-viewing" : "launcher";
+      showOnlineCourseView({ view: returnView, role });
+    });
+  });
+  onlineCourseTargetButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = String(button.dataset.onlineCourseTarget || "").trim();
+      if (target === "performance") {
+        showReportDefinitionView();
+        return;
+      }
+      if (target === "sender" || target === "receiver") {
+        showRoleCourseTarget(target);
+      }
+    });
+  });
   openGeneralInformationButton?.addEventListener("click", showGeneralInformationView);
   openRewireButton?.addEventListener("click", showRewireView);
-  openReadingListButton?.addEventListener("click", showReadingListView);
-  openVideoListButton?.addEventListener("click", showVideoListView);
+  openReadingsVideosButton?.addEventListener("click", showReadingsVideosView);
   openWebsitesEventsListButton?.addEventListener("click", showWebsitesEventsListView);
   openUserCommentsListButton?.addEventListener("click", showUserCommentsListView);
   openCaseStudiesListButton?.addEventListener("click", showCaseStudiesListView);
   openPeerReviewedListButton?.addEventListener("click", showPeerReviewedListView);
-  closeOptionsButton?.addEventListener("click", showLauncherView);
+  closeOptionsButtons.forEach((button) => {
+    button.addEventListener("click", showLauncherView);
+  });
   closeLearnMoreButton?.addEventListener("click", showLauncherView);
   saveLearnMoreButton?.addEventListener("click", saveLearnMoreContent);
   learnMoreTextInput?.addEventListener("input", () => {
+    setLearnMoreDraftText("main", typeof learnMoreTextInput.value === "string" ? learnMoreTextInput.value : "");
     updateLearnMorePreview(learnMorePreview, learnMoreTextInput.value);
   });
   closeClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceViewingView);
   saveClairvoyanceLearnMoreButton?.addEventListener("click", saveClairvoyanceLearnMoreContent);
   clairvoyanceLearnMoreTextInput?.addEventListener("input", () => {
+    setLearnMoreDraftText("clairvoyance", typeof clairvoyanceLearnMoreTextInput.value === "string" ? clairvoyanceLearnMoreTextInput.value : "");
     updateLearnMorePreview(clairvoyanceLearnMorePreview, clairvoyanceLearnMoreTextInput.value);
   });
   openHelpButton?.addEventListener("click", showHelpView);
@@ -15037,10 +16566,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   closeProUserManualButton?.addEventListener("click", showHelpView);
   closeTemporaryHomePageButton?.addEventListener("click", showOptionsView);
   closeAidsButton?.addEventListener("click", showOptionsView);
+  closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
   closeGeneralInformationButton?.addEventListener("click", showAidsView);
   closeRewireButton?.addEventListener("click", showAidsView);
-  closeReadingListButton?.addEventListener("click", showAidsView);
-  closeVideoListButton?.addEventListener("click", showAidsView);
+  closeReadingsVideosButton?.addEventListener("click", showAidsView);
   closeWebsitesEventsListButton?.addEventListener("click", showAidsView);
   closeUserCommentsListButton?.addEventListener("click", showAidsView);
   closeCaseStudiesListButton?.addEventListener("click", showAidsView);
@@ -15062,6 +16591,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   closeImagePairAdminButton?.addEventListener("click", showAdminView);
   closeSubscriptionEmailAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
+  closeAdminEmailListButton?.addEventListener("click", showAdminView);
   temporaryHomePageContinueButton?.addEventListener("click", () => {
     void continueFromLandingPage();
   });
@@ -15074,40 +16604,29 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   temporaryHomePageFreshOpenButton?.addEventListener("click", () => {
     window.location.href = buildCanonicalLauncherUrl({ open: "fresh-launcher" });
   });
-  temporaryHomePageExploreButton?.addEventListener("click", () => {
-    const originalText = String(temporaryHomePageExploreButton.textContent || "Explore").trim() || "Explore";
-    temporaryHomePageExploreButton.disabled = true;
-    temporaryHomePageExploreButton.textContent = "Preparing...";
-    void createTemporaryLauncherIdentity("pro")
-      .then((data) => {
-        const temporaryIdentity = String(data?.temporary_identity?.identifier || "").trim();
-        const userType = String(data?.temporary_identity?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
-        const baseState = readLauncherState();
-        const nextState = buildLauncherIdentityState(baseState, temporaryIdentity, userType, {
-          temporaryIdentity: {
-            source: "landing-explore-pro"
-          }
-        });
-        if (data?.identifier_status && temporaryIdentity) {
-          nextState.identifierStatusMap = nextState.identifierStatusMap || {};
-          nextState.identifierStatusMap[normalizeIdentifierForStorage(temporaryIdentity)] = data.identifier_status;
-        }
-        clearLocalFreshStartState();
-        writeLauncherState(nextState);
-        window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
-      })
-      .catch((error) => {
-        temporaryHomePageExploreButton.disabled = false;
-        temporaryHomePageExploreButton.textContent = originalText;
-        window.alert(error instanceof Error ? error.message : "Unable to prepare ESP PRO right now.");
-      });
-  });
+  temporaryHomePageExploreButton?.addEventListener("click", openExploreProOverlay);
   temporaryHomePageClairvoyanceButton?.addEventListener("click", showClairvoyanceViewingView);
   temporaryHomePageContactButton?.addEventListener("click", () => {
     showContactView("temporary-home-page");
   });
   temporaryHomePageHelpButton?.addEventListener("click", () => {
-    // Placeholder for a future update-signup flow.
+    openUpdatesOverlay();
+  });
+  updatesYesButton?.addEventListener("click", saveUpdatesInterest);
+  updatesCloseButton?.addEventListener("click", closeUpdatesOverlay);
+  updatesDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  updatesOverlay?.addEventListener("click", (event) => {
+    if (event.target === updatesOverlay) {
+      closeUpdatesOverlay();
+    }
+  });
+  updatesEmailInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveUpdatesInterest();
+    }
   });
   closeHandleButton?.addEventListener("click", closeHandleOverlay);
   handleDialog?.addEventListener("click", (event) => {
@@ -15164,6 +16683,53 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   pushSetupOverlay?.addEventListener("click", (event) => {
     if (event.target === pushSetupOverlay) {
       closePushSetupOverlay();
+    }
+  });
+  exploreProCloseButton?.addEventListener("click", closeExploreProOverlay);
+  exploreProDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  exploreProOverlay?.addEventListener("click", (event) => {
+    if (event.target === exploreProOverlay) {
+      closeExploreProOverlay();
+    }
+  });
+  exploreProSendCodeButton?.addEventListener("click", () => {
+    void requestExploreProCode(false);
+  });
+  exploreProResendCodeButton?.addEventListener("click", () => {
+    void requestExploreProCode(true);
+  });
+  exploreProStartButton?.addEventListener("click", () => {
+    void startExploreProTrial();
+  });
+  exploreProSubscribeButton?.addEventListener("click", () => {
+    closeExploreProOverlay();
+    showGoProView("temporary-home-page");
+  });
+  exploreProEmailInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void requestExploreProCode(false);
+    }
+  });
+  exploreProCodeInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void startExploreProTrial();
+    }
+  });
+  exploreProEndedSubscribeButton?.addEventListener("click", () => {
+    closeExploreProEndedOverlay();
+    showGoProView("temporary-home-page");
+  });
+  exploreProEndedContinueButton?.addEventListener("click", closeExploreProEndedOverlay);
+  exploreProEndedDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  exploreProEndedOverlay?.addEventListener("click", (event) => {
+    if (event.target === exploreProEndedOverlay) {
+      closeExploreProEndedOverlay();
     }
   });
   openFeatureSetupButtons.forEach((button) => {
@@ -15704,6 +17270,52 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     }
   });
+  adminLearnMoreSaveEnabledCheckbox?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      if (adminStatus) {
+        adminStatus.textContent = "Saving Learn More save setting...";
+      }
+      const data = await launcherAdminApi("set_learn_more_save_enabled", { enabled: adminLearnMoreSaveEnabledCheckbox.checked });
+      launcherAdminState.learn_more_save_enabled = !!data?.learn_more_save_enabled;
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.learn_more_save_enabled
+          ? "SAVE for Learn More text is currently enabled."
+          : "SAVE for Learn More text is currently disabled.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the Learn More SAVE setting right now.";
+      }
+    }
+  });
+  adminExploreProTestDurationInput?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    const seconds = Math.max(0, Number.parseInt(String(adminExploreProTestDurationInput.value || "0").trim() || "0", 10) || 0);
+    adminExploreProTestDurationInput.value = seconds > 0 ? String(seconds) : "";
+    try {
+      if (adminStatus) {
+        adminStatus.textContent = "Saving Explore PRO test duration...";
+      }
+      const data = await launcherAdminApi("set_explore_pro_test_duration_seconds", { seconds });
+      launcherAdminState.explore_pro_test_duration_seconds = Math.max(0, Number(data?.explore_pro_test_duration_seconds || 0) || 0);
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.explore_pro_test_duration_seconds > 0
+          ? `Explore PRO test duration is currently ${launcherAdminState.explore_pro_test_duration_seconds} second${launcherAdminState.explore_pro_test_duration_seconds === 1 ? "" : "s"}.`
+          : "Explore PRO test duration is currently using the normal 14-day period.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the Explore PRO test duration right now.";
+      }
+    }
+  });
   adminClearDebugLogButton?.addEventListener("click", async () => {
     if (!hasLauncherAdminAccess()) {
       return;
@@ -15753,6 +17365,32 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
         }
       }
     });
+  adminEmailListButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Building email list...";
+    }
+    try {
+      const data = await launcherAdminApi("list_email_list");
+      launcherAdminState.storage = data?.storage || launcherAdminState.storage;
+      launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
+      launcherAdminState.email_list = Array.isArray(data?.email_list) ? data.email_list : [];
+      launcherAdminState.email_list_meta = data?.email_list_meta || null;
+      if (adminStatus) {
+        const count = launcherAdminState.email_list.length;
+        adminStatus.textContent = `Email list updated. ${count} line item${count === 1 ? "" : "s"} found.`;
+      }
+      renderAdminView();
+      renderAdminEmailListView();
+      showAdminEmailListView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to build the email list right now.";
+      }
+    }
+  });
   adminAnalyzeDiskButton?.addEventListener("click", async () => {
       if (!hasLauncherAdminAccess()) {
         return;
@@ -15792,7 +17430,7 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       launcherAdminState.user_trial_summary = null;
       launcherAdminState.user_trial_summary_meta = null;
       launcherAdminState.disk_usage_analysis = null;
-      clearLocalFreshStartState();
+      await clearLocalFreshStartState();
       launcherAdminSecret = "";
       if (adminStatus) {
         adminStatus.textContent = "Fresh start complete.";
@@ -15804,11 +17442,11 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
       }
     }
   });
-  adminClearLocalStorageButton?.addEventListener("click", () => {
+  adminClearLocalStorageButton?.addEventListener("click", async () => {
     if (!window.confirm("Clear localStorage for this device and reload the app?")) {
       return;
     }
-    clearAppLocalStorageArtifacts();
+    await clearAppLocalStorageArtifacts();
     window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
   });
   adminRunRemindersButton?.addEventListener("click", async () => {
@@ -15872,10 +17510,14 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
     maybePromptForLocationFineTune(state);
   });
   renderContactWordCount();
-  updateInstallButtonLabel();
-  void recordLauncherVisit();
-  void refreshDifficultyLabels();
+    updateInstallButtonLabel();
+    void recordLauncherVisit();
+    applyRememberedDifficultyLabels();
+    void refreshDifficultyLabels();
   applyLauncherOpenRequest();
+  window.setTimeout(() => {
+    void refreshDifficultyLabels();
+  }, 0);
   if (launcherGuestEntryActive) {
     window.setTimeout(() => {
       resetLauncherWorkingHomeForFreshEntry();
@@ -15968,6 +17610,10 @@ https://psi-encyclopedia.spr.ac.uk/articles/croiset-archive`;
   document.addEventListener("click", (event) => {
     if (!reportPairPicker?.contains(event.target)) {
       closeReportPairMenu();
+    }
+
+    if (Date.now() < suppressLauncherAutoCollapseUntil) {
+      return;
     }
 
     const launcherVisible = launcherView && !launcherView.classList.contains("beginner-view-hidden");

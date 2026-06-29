@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# Keep the old public launcher URLs from existing as a second public copy of the app.
+# Runtime pages, API endpoints, and assets stay on the old origin for now so older
+# installed copies do not hard-break during the transition.
+RewriteCond %{HTTP_HOST} ^(?:www\.)?telepathyexperiment\.com$ [NC]
+RewriteRule ^$ https://espgym.com/ [R=302,L,NE]
+
+RewriteCond %{HTTP_HOST} ^(?:www\.)?telepathyexperiment\.com$ [NC]
+RewriteRule ^(?:index\.html|telepathybeginner\.html)$ https://espgym.com/telepathybeginner.html [R=302,L,NE,QSA]
+
+RewriteCond %{HTTP_HOST} ^(?:www\.)?telepathyexperiment\.com$ [NC]
+RewriteRule ^BeginnerUserManual(?:_preserved_20260625)?\.html$ https://espgym.com/telepathybeginner.html [R=302,L,NE,QSA]
+
+RewriteCond %{HTTP_HOST} ^(?:www\.)?telepathyexperiment\.com$ [NC]
+RewriteRule ^globe/index\.html$ https://espgym.com/globe/index.html [R=302,L,NE,QSA]
