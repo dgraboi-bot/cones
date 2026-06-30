@@ -3374,6 +3374,29 @@ body {
   line-height: 1.55;
 }
 
+.online-course-lesson-main.online-course-lesson-row-clickable,
+.online-course-lesson-main.online-course-lesson-row-clickable .online-course-lesson-title,
+.online-course-lesson-main.online-course-lesson-row-clickable .online-course-lesson-subcopy {
+  cursor: pointer !important;
+}
+
+.online-course-lesson-main.online-course-lesson-row-clickable + .online-course-lesson-checkbox,
+.online-course-lesson-row .online-course-lesson-checkbox {
+  cursor: default;
+}
+
+.online-course-lesson-main.online-course-lesson-row-clickable:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+
+.online-course-lesson-row-restored {
+  outline: 1px solid rgba(255, 255, 255, 0.88);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+
 .online-course-lesson-checkbox {
   margin-top: 0.28rem;
 }

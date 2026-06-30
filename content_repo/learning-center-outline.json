@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "rows": [
+    {
+      "id": "baseline",
+      "display_number": "0",
+      "title": "ESTABLISH A BASELINE",
+      "subcopy": "",
+      "type": "baseline"
+    },
+    {
+      "id": "distance-does-not-matter",
+      "display_number": "1",
+      "title": "DISTANCE DOES NOT AFFECT TELEPATHIC COMMUNICATION",
+      "subcopy": "Speed of telepathic communication · propagation medium · type of encoding",
+      "type": "lesson-page"
+    },
+    {
+      "id": "everything-is-connected",
+      "display_number": "2",
+      "title": "EVERYTHING IS CONNECTED",
+      "subcopy": "People are connected · plants · animals · things? · link to psychometry and how to do it · concept of how things get connected · hair · toothbrush",
+      "type": "lesson-page"
+    },
+    {
+      "id": "where-is-out-there",
+      "display_number": "3",
+      "title": "WHERE IS “OUT THERE”?",
+      "subcopy": "Idea of outside space · outside time · speed of telepathy? · entanglement · link to journal article",
+      "type": "lesson-page"
+    },
+    {
+      "id": "lost-found-harp",
+      "display_number": "4",
+      "title": "LOST AND FOUND HARP",
+      "subcopy": "H. McCoy · this changes everything",
+      "type": "lesson-page"
+    },
+    {
+      "id": "ossoweicki-and-croisset",
+      "display_number": "5",
+      "title": "OSSOWEICKI AND CROISSET",
+      "subcopy": "You will marry a woman named Lydia · The ice-skate blade is showing in the mud",
+      "type": "lesson-page"
+    },
+    {
+      "id": "related-phenomena",
+      "display_number": "6",
+      "title": "RELATED PHENOMENA",
+      "subcopy": "Dogs · psychokinesis · apports · healing · sprouting · rebar bending · videos · psychometry · clairvoyance · precognition · thought forms",
+      "type": "lesson-page"
+    },
+    {
+      "id": "the-minds-eye",
+      "display_number": "7",
+      "title": "THE MIND’S EYE",
+      "subcopy": "How perception works · top down vs. bottom up · top-down projection · visual imagination · visualization exercises",
+      "type": "lesson-page"
+    },
+    {
+      "id": "learn-the-task-by-first-working-with-a-robot",
+      "display_number": "8",
+      "title": "LEARN THE TASK BY FIRST WORKING WITH A ROBOT",
+      "subcopy": "Do a few trials at Level 1 · explore being a receiver · a sender · confidence on and off",
+      "type": "lesson-page"
+    },
+    {
+      "id": "difference-between-a-robot-and-a-person",
+      "display_number": "9",
+      "title": "DIFFERENCE BETWEEN A ROBOT AND A PERSON",
+      "subcopy": "Randomness · chance vs. not chance · the trouble with statistics · it isn’t clear · it’s transient · it’s dim · it fades in and out · low resolution · you can’t care · mizu no kokoro",
+      "type": "lesson-page"
+    },
+    {
+      "id": "first-real-trials-as-a-receiver",
+      "display_number": "10",
+      "title": "FIND A PARTNER AND DO YOUR FIRST REAL TRIALS AS A RECEIVER",
+      "subcopy": "Scheduling · messaging function · spontaneous trials · fill out first session questionnaire",
+      "type": "after-first-session"
+    },
+    {
+      "id": "debriefing-what-happened-and-performance-reports",
+      "display_number": "11",
+      "title": "DEBRIEFING: WHAT HAPPENED AND PERFORMANCE REPORTS",
+      "subcopy": "Raw data · visualization of data · data statistics · GLOBE · questions",
+      "type": "lesson-page"
+    },
+    {
+      "id": "being-a-sender",
+      "display_number": "12",
+      "title": "BEING A SENDER",
+      "subcopy": "Visualize a white circle on a black background with your eyes open · strong sending vs. weak sending · sustained intention",
+      "type": "lesson-page"
+    },
+    {
+      "id": "sending-trials-with-partner",
+      "display_number": "13",
+      "title": "SENDING TRIALS WITH PARTNER",
+      "subcopy": "",
+      "type": "lesson-page"
+    },
+    {
+      "id": "debrief-analysis-questions",
+      "display_number": "14",
+      "title": "DEBRIEF: ANALYSIS / QUESTIONS",
+      "subcopy": "",
+      "type": "lesson-page"
+    },
+    {
+      "id": "ongoing-research",
+      "display_number": "15",
+      "title": "ONGOING RESEARCH",
+      "subcopy": "PRO topic",
+      "type": "lesson-page"
+    },
+    {
+      "id": "where-to-go-from-here",
+      "display_number": "16",
+      "title": "WHERE TO GO FROM HERE",
+      "subcopy": "PRO topic · journal articles · parapsychology org · ions · sheldrake · anna breitenberg? · consciousness studies · communications with animals · dolphin · macro PK · eric · previous PK experiments · some videos · talk with animals · connect with plants · healing · scientific study of phenomena · proposal to measure the speed of thought propagation",
+      "type": "lesson-page"
+    }
+  ]
+}

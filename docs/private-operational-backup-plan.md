@@ -7,7 +7,7 @@ This document defines the private backup layout needed to restore the live opera
 The Git repository is intended to recover:
 - app code
 - public assets
-- tracked infrastructure content such as the Learn More files
+- tracked infrastructure content such as the Learn More files, rotating box messages, and Learning Center lesson files
 
 The private operational backup is intended to recover:
 - secrets and private configuration
@@ -38,6 +38,9 @@ private-backups/
     content/
       learn-more-main.txt
       learn-more-clairvoyance.txt
+      esp-lessons.txt
+      learning-center-lessons/
+        lesson-*.txt
     data/
       session-state.json
     pairs/
@@ -58,6 +61,8 @@ These files are the minimum private set needed to restore the app's live operati
 - `config/zoho-mail.json`
 - `content/learn-more-main.txt`
 - `content/learn-more-clairvoyance.txt`
+- `content/esp-lessons.txt`
+- `content/learning-center-lessons/lesson-*.txt`
 - `data/session-state.json`
 - `pairs/*.csv`
 - `pairs/*.analysis.json`
@@ -105,7 +110,7 @@ These files are the minimum private set needed to restore the app's live operati
 Stored in GitHub:
 - code
 - public assets
-- tracked repo copies of Learn More content under `content_repo/`
+- tracked repo copies of editable infrastructure content under `content_repo/`
 - operational documentation such as this plan
 
 Stored only in the private operational backup:

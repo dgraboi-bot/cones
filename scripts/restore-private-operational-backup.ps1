@@ -81,12 +81,28 @@ $singleFiles = @(
   @{ Source = (Join-Path $SnapshotRoot "config\zoho-mail.json"); Destination = (Join-Path $configTarget "zoho-mail.json") },
   @{ Source = (Join-Path $SnapshotRoot "content\learn-more-main.txt"); Destination = (Join-Path $contentTarget "learn-more-main.txt") },
   @{ Source = (Join-Path $SnapshotRoot "content\learn-more-clairvoyance.txt"); Destination = (Join-Path $contentTarget "learn-more-clairvoyance.txt") },
+  @{ Source = (Join-Path $SnapshotRoot "content\esp-lessons.txt"); Destination = (Join-Path $contentTarget "esp-lessons.txt") },
   @{ Source = (Join-Path $SnapshotRoot "data\session-state.json"); Destination = (Join-Path $dataTarget "session-state.json") }
 )
 
 foreach ($entry in $singleFiles) {
   if (Copy-IfExists -SourcePath $entry.Source -DestinationPath $entry.Destination) {
     $restored += $entry.Destination
+  }
+}
+
+$lessonSource = Join-Path $SnapshotRoot "content\learning-center-lessons"
+if (Test-Path -LiteralPath $lessonSource) {
+  Get-ChildItem -LiteralPath $lessonSource -File | Where-Object {
+    $_.Name -like "lesson-*.txt"
+  } | ForEach-Object {
+    $destination = Join-Path $contentTarget ("learning-center-lessons\" + $_.Name)
+    $parent = Split-Path -Parent $destination
+    if ($parent) {
+      Ensure-Directory -Path $parent
+    }
+    Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+    $restored += $destination
   }
 }
 

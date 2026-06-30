@@ -1,7 +1,9 @@
-(() => {
+﻿(() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260629w";
+  const launcherBuildVersion = "20260630k";
+  const canonicalInfrastructureOrigin = "https://espgym.com";
+  const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -16,7 +18,7 @@
   const proUserManualView = document.querySelector('[data-view="pro-user-manual"]');
   const featureSetupView = document.querySelector('[data-view="feature-setup"]');
   const installGuideView = document.querySelector('[data-view="install-guide"]');
-  const learnMoreView = document.querySelector('[data-view="learn-more"]');
+  const lessonEditorView = document.querySelector('[data-view="learn-more"]');
   const espLessonDetailView = document.querySelector('[data-view="esp-lesson-detail"]');
   const clairvoyanceLearnMoreView = document.querySelector('[data-view="clairvoyance-learn-more"]');
   const aidsView = document.querySelector('[data-view="aids"]');
@@ -58,12 +60,12 @@
   const beginnerPanel = document.querySelector(".beginner-panel");
   const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
-  const openLearnMoreButton = document.querySelector("[data-open-learn-more]");
+  const openLessonEditorButton = document.querySelector("[data-open-learn-more]");
   const appVersionLabel = document.querySelector("[data-app-version-label]");
   const closeOptionsButtons = Array.from(document.querySelectorAll("[data-close-options]"));
-  const closeLearnMoreButton = document.querySelector("[data-close-learn-more]");
+  const closeLessonEditorButton = document.querySelector("[data-close-learn-more]");
   const closeEspLessonDetailButton = document.querySelector("[data-close-esp-lesson-detail]");
-  const saveLearnMoreButton = document.querySelector("[data-save-learn-more]");
+  const saveLessonEditorButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
   const openTelepathyPracticeButton = document.querySelector("[data-open-telepathy-practice]");
   const openUserGuideButton = document.querySelector("[data-open-user-guide]");
@@ -119,6 +121,7 @@
   const closeAidsButton = document.querySelector("[data-close-aids]");
   const closeOnlineCourseButton = document.querySelector("[data-close-online-course]");
   const saveOnlineCourseWordButton = document.querySelector("[data-save-online-course-word]");
+  const onlineCourseLessonList = document.querySelector(".online-course-lesson-list");
   const closeBaselineQuestionsButton = document.querySelector("[data-close-baseline-questions]");
   const closeAfterFirstSessionQuestionsButton = document.querySelector("[data-close-after-first-session-questions]");
   const closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
@@ -203,6 +206,12 @@
   const temporaryHomePageContactButton = document.querySelector("[data-open-temporary-home-contact]");
   const temporaryHomePageHelpButton = document.querySelector("[data-open-temporary-home-help]");
   const closeContactButton = document.querySelector("[data-close-contact]");
+  const rotatingMessagesEditorView = document.querySelector('[data-view="rotating-messages-editor"]');
+  const openRotatingMessagesEditorButton = document.querySelector("[data-open-rotating-messages-editor]");
+  const closeRotatingMessagesEditorButton = document.querySelector("[data-close-rotating-messages-editor]");
+  const saveRotatingMessagesButton = document.querySelector("[data-save-rotating-messages]");
+  const rotatingMessagesTextInput = document.querySelector("[data-rotating-messages-text]");
+  const rotatingMessagesStatus = document.querySelector("[data-rotating-messages-status]");
   const openAboutButton = document.querySelector("[data-open-about]");
   const closeAboutButton = document.querySelector("[data-close-about]");
   const openReportButton = document.querySelector("[data-open-report]");
@@ -351,10 +360,10 @@
   const contactEmailInput = document.querySelector("[data-contact-email]");
   const contactAllowDisplayCheckbox = document.querySelector("[data-contact-allow-display]");
   const contactFromLine = document.querySelector("[data-contact-from-line]");
-  const learnMoreTextInput = document.querySelector("[data-learn-more-text]");
-  const learnMoreStatus = document.querySelector("[data-learn-more-status]");
-  const learnMoreInlineStatus = document.querySelector("[data-learn-more-inline-status]");
-  const learnMorePreview = document.querySelector("[data-learn-more-preview]");
+  const lessonEditorTextInput = document.querySelector("[data-learn-more-text]");
+  const lessonEditorStatus = document.querySelector("[data-learn-more-status]");
+  const lessonEditorInlineStatus = document.querySelector("[data-learn-more-inline-status]");
+  const lessonEditorPreview = document.querySelector("[data-learn-more-preview]");
   const clairvoyanceLearnMoreTextInput = document.querySelector("[data-clairvoyance-learn-more-text]");
   const clairvoyanceLearnMoreStatus = document.querySelector("[data-clairvoyance-learn-more-status]");
   const clairvoyanceLearnMoreInlineStatus = document.querySelector("[data-clairvoyance-learn-more-inline-status]");
@@ -598,14 +607,27 @@ The following linked readings can be used as a small study sequence for users in
 [*] HOW TO USE THESE READINGS
 ----------------------------
 The best use of this material is not to read it once and forget it, but to let it accompany practice. Read one case, reflect on what kind of information transfer it seems to suggest, then return to the app and train. Over time, the cases, the reports, and your own practice data begin to inform one another. That is the spirit in which this section is provided.`;
+  const defaultEspLessonsText = `[*] Paragraph One
+----------------
+This is simply a test message for now.
+
+[*] Paragraph Two
+----------------
+This is an alternate test message to show now.`;
+  let espLessonsSourceText = defaultEspLessonsText;
   let stripePublicConfigCache = null;
   let stripeCheckoutInFlight = false;
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
-  let onlineCourseReturnTarget = { view: "options", role: "" };
-  let baselineQuestionsReturnTarget = { view: "online-course", role: "" };
-  let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "" };
+  let onlineCourseReturnTarget = { view: "options", role: "", scrollY: 0 };
+  let baselineQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
+  let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
+  let activeEspLessonMode = "role";
+  let activeLearningCenterLessonId = "";
+  let activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
+  let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
+  let learningCenterLessonIndex = [];
   let suppressLauncherAutoCollapseUntil = 0;
   let inviteeRecordsCache = [];
   let inviteeLookupTimer = null;
@@ -947,6 +969,12 @@ The best use of this material is not to read it once and forget it, but to let i
     return normalizeStoredLearnMoreText(state?.learnMoreText);
   }
 
+  function getEspLessonsSourceText() {
+    return typeof espLessonsSourceText === "string" && espLessonsSourceText.trim()
+      ? espLessonsSourceText
+      : defaultEspLessonsText;
+  }
+
   function normalizeExploreTrialData(input, fallbackIdentifier = "") {
     if (!input || typeof input !== "object") {
       return null;
@@ -1140,8 +1168,8 @@ The best use of this material is not to read it once and forget it, but to let i
       }));
   }
 
-  function getEspLessonsForRole(role, state = readLauncherState()) {
-    const sourceText = getLearnMoreText(state);
+  function getEspLessonsForRole(role) {
+    const sourceText = getEspLessonsSourceText();
     return parseEspLessonsFromLearnMoreText(sourceText).filter((lesson) => Array.isArray(lesson.roles) && lesson.roles.includes(role));
   }
 
@@ -1403,7 +1431,93 @@ The best use of this material is not to read it once and forget it, but to let i
     espLessonDetailBody.hidden = !preview.hasMore;
   }
 
+  function renderLearningCenterLessonDetail(lessonRecord, content) {
+    if (!espLessonDetailTitle || !espLessonDetailPreview || !espLessonDetailBody) {
+      return;
+    }
+    const title = `LESSON ${String(lessonRecord?.display_number || "").trim()} - ${String(lessonRecord?.title || "").trim()}`.trim();
+    const lessonMarkup = renderLearnMorePreviewMarkup(stripLessonEditorDirective(content).replace(/^TITLE=.*$/im, "").replace(/^\n+/, ""));
+    espLessonDetailTitle.textContent = title || String(lessonRecord?.title || "").trim();
+    espLessonDetailPreview.innerHTML = lessonMarkup;
+    espLessonDetailBody.textContent = "";
+    espLessonDetailBody.hidden = true;
+  }
+
+  async function showLearningCenterLessonDetail(lessonId, options = {}) {
+    const normalizedLessonId = normalizeLearningCenterLessonId(lessonId);
+    const lessonRecord = getLearningCenterLessonRecordById(normalizedLessonId);
+    const contentKey = buildLearningCenterLessonContentKey(normalizedLessonId);
+    if (!normalizedLessonId || !lessonRecord || !contentKey) {
+      return;
+    }
+    try {
+      const record = await fetchEditableContentFromServer(contentKey);
+      if (!record?.available) {
+        return;
+      }
+      activeEspLessonMode = "learning-center";
+      activeLearningCenterLessonId = normalizedLessonId;
+      activeLearningCenterLessonReturnTarget = {
+        view: String(options.view || "online-course").trim() || "online-course",
+        scrollY: Math.max(0, Number(options.scrollY ?? window.scrollY ?? window.pageYOffset ?? 0) || 0),
+        focusId: String(options.focusId || buildLearningCenterLessonRowId(normalizedLessonId)).trim()
+      };
+      renderLearningCenterLessonDetail(lessonRecord, String(record.content || ""));
+      setEspLessonDetailStatus("");
+      espLessonDetailView?.classList.remove("beginner-view-hidden");
+      launcherView?.classList.add("beginner-view-hidden");
+      temporaryHomePageView?.classList.add("beginner-view-hidden");
+      optionsView?.classList.add("beginner-view-hidden");
+      helpView?.classList.add("beginner-view-hidden");
+      beginnerUserManualView?.classList.add("beginner-view-hidden");
+      proUserManualView?.classList.add("beginner-view-hidden");
+      featureSetupView?.classList.add("beginner-view-hidden");
+      installGuideView?.classList.add("beginner-view-hidden");
+      lessonEditorView?.classList.add("beginner-view-hidden");
+      clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+      aidsView?.classList.add("beginner-view-hidden");
+      rewireView?.classList.add("beginner-view-hidden");
+      generalInformationView?.classList.add("beginner-view-hidden");
+      readingsVideosView?.classList.add("beginner-view-hidden");
+      websitesEventsListView?.classList.add("beginner-view-hidden");
+      caseStudiesListView?.classList.add("beginner-view-hidden");
+      peerReviewedListView?.classList.add("beginner-view-hidden");
+      userCommentsListView?.classList.add("beginner-view-hidden");
+      toolsView?.classList.add("beginner-view-hidden");
+      goProView?.classList.add("beginner-view-hidden");
+      otherSettingsView?.classList.add("beginner-view-hidden");
+      clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+      subscriptionManagementView?.classList.add("beginner-view-hidden");
+      behaviorsView?.classList.add("beginner-view-hidden");
+      colorSchemeView?.classList.add("beginner-view-hidden");
+      blinkBehaviorView?.classList.add("beginner-view-hidden");
+      confidenceBehaviorView?.classList.add("beginner-view-hidden");
+      inviteeAdminView?.classList.add("beginner-view-hidden");
+      userTypeAdminView?.classList.add("beginner-view-hidden");
+      handleUpdateAdminView?.classList.add("beginner-view-hidden");
+      imagePairAdminView?.classList.add("beginner-view-hidden");
+      subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+      adminUserListView?.classList.add("beginner-view-hidden");
+      contactView?.classList.add("beginner-view-hidden");
+      aboutView?.classList.add("beginner-view-hidden");
+      reportDefinitionView?.classList.add("beginner-view-hidden");
+      reportView?.classList.add("beginner-view-hidden");
+      visualizationView?.classList.add("beginner-view-hidden");
+      analyzerView?.classList.add("beginner-view-hidden");
+      difficultyView?.classList.add("beginner-view-hidden");
+      settingsView?.classList.add("beginner-view-hidden");
+      adminView?.classList.add("beginner-view-hidden");
+      onlineCourseView?.classList.add("beginner-view-hidden");
+      baselineQuestionsView?.classList.add("beginner-view-hidden");
+      afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      setEspLessonDetailStatus("Unable to load that lesson right now.", { isError: true });
+    }
+  }
+
   function showEspLessonDetail(role) {
+    activeEspLessonMode = "role";
     activeEspLessonRole = String(role || "").trim();
     activeEspLessonReturnScrollY = Math.max(window.scrollY || 0, 0);
     renderEspLessonDetail(activeEspLessonRole);
@@ -1417,7 +1531,7 @@ The best use of this material is not to read it once and forget it, but to let i
     proUserManualView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     installGuideView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -1456,6 +1570,22 @@ The best use of this material is not to read it once and forget it, but to let i
   }
 
   function closeEspLessonDetail() {
+    if (activeEspLessonMode === "learning-center") {
+      const targetView = String(activeLearningCenterLessonReturnTarget?.view || "online-course").trim();
+      const returnScrollY = Math.max(0, Number(activeLearningCenterLessonReturnTarget.scrollY || 0) || 0);
+      const returnFocusId = String(activeLearningCenterLessonReturnTarget.focusId || "").trim();
+      activeEspLessonMode = "role";
+      activeLearningCenterLessonId = "";
+      activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
+      espLessonDetailView?.classList.add("beginner-view-hidden");
+      showOnlineCourseView({
+        view: targetView || "online-course",
+        role: "",
+        scrollY: returnScrollY
+      });
+      restoreOnlineCourseLaunchFocus(returnFocusId);
+      return;
+    }
     const returnRole = activeEspLessonRole;
     const returnScrollY = activeEspLessonReturnScrollY;
     activeEspLessonRole = "";
@@ -2500,46 +2630,270 @@ The best use of this material is not to read it once and forget it, but to let i
     };
   }
 
-  async function fetchLearnMoreContent(contentKey) {
-    const normalizedKey = String(contentKey || "").trim().toLowerCase();
-    if (!["main", "clairvoyance"].includes(normalizedKey)) {
-      throw new Error("Learn More content key is invalid.");
-    }
-    const response = await fetch("api.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        action: "get_learn_more_content",
-        content_key: normalizedKey
-      })
-    });
-
-    const data = await parseApiResponse(response, `Learn More content request failed with status ${response.status}`);
-    return data?.learn_more_content || null;
+  function isLocalInfrastructureHost() {
+    const hostname = String(window.location.hostname || "").trim().toLowerCase();
+    return localInfrastructureHosts.has(hostname);
   }
 
-  async function saveLearnMoreContentToServer(contentKey, content) {
-    const normalizedKey = String(contentKey || "").trim().toLowerCase();
-    if (!["main", "clairvoyance"].includes(normalizedKey)) {
-      throw new Error("Learn More content key is invalid.");
+  function getCanonicalInfrastructureApiUrl() {
+    const currentOrigin = String(window.location.origin || "").trim();
+    if (currentOrigin === canonicalInfrastructureOrigin) {
+      return "api.php";
     }
-    const response = await fetch("api.php", {
+    return `${canonicalInfrastructureOrigin}/api.php`;
+  }
+
+  function getLocalInfrastructureMirrorApiUrl() {
+    return isLocalInfrastructureHost() ? "api.php" : "";
+  }
+
+  async function postJsonApiRequest(url, payload, failureLabel) {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        action: "save_learn_more_content",
-        content_key: normalizedKey,
-        content: typeof content === "string" ? content : "",
-        secret_candidate: launcherAdminSecret
-      })
+      body: JSON.stringify(payload || {})
     });
+    return parseApiResponse(response, `${failureLabel} with status ${response.status}`);
+  }
 
-    const data = await parseApiResponse(response, `Learn More save failed with status ${response.status}`);
-    return data?.learn_more_content || null;
+  async function postInfrastructureContentRequest(action, payload = {}, options = {}) {
+    const canonicalUrl = getCanonicalInfrastructureApiUrl();
+    const localMirrorUrl = getLocalInfrastructureMirrorApiUrl();
+    const requestPayload = {
+      action,
+      ...(payload || {})
+    };
+
+    try {
+      const canonicalResponse = await postJsonApiRequest(
+        canonicalUrl,
+        requestPayload,
+        `Infrastructure content request failed`
+      );
+      let shouldPreferLocal = false;
+      if (
+        options?.preferLocalWhenCanonicalEmpty &&
+        localMirrorUrl &&
+        canonicalUrl !== localMirrorUrl &&
+        typeof options.preferLocalWhenCanonicalEmpty === "function"
+      ) {
+        shouldPreferLocal = Boolean(options.preferLocalWhenCanonicalEmpty(canonicalResponse));
+      }
+
+      if (
+        options?.mirrorToLocalWhenAvailable &&
+        localMirrorUrl &&
+        canonicalUrl !== localMirrorUrl
+      ) {
+        try {
+          await postJsonApiRequest(
+            localMirrorUrl,
+            requestPayload,
+            `Local infrastructure mirror save failed`
+          );
+        } catch (mirrorError) {
+          console.warn("Local infrastructure mirror save failed.", mirrorError);
+        }
+      }
+
+      if (shouldPreferLocal) {
+        return postJsonApiRequest(
+          localMirrorUrl,
+          requestPayload,
+          `Local infrastructure preferred fallback request failed`
+        );
+      }
+
+      return canonicalResponse;
+    } catch (canonicalError) {
+      if (options?.allowLocalFallback && localMirrorUrl && canonicalUrl !== localMirrorUrl) {
+        return postJsonApiRequest(
+          localMirrorUrl,
+          requestPayload,
+          `Local infrastructure fallback request failed`
+        );
+      }
+      throw canonicalError;
+    }
+  }
+
+  async function fetchEditableContentFromServer(contentKey) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    if (!/^main$|^clairvoyance$|^esp-lessons$|^learning-center-outline$|^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
+      throw new Error("Learn More content key is invalid.");
+    }
+    const response = await postInfrastructureContentRequest("get_learn_more_content", {
+      content_key: normalizedKey
+    }, {
+      allowLocalFallback: true
+    });
+    return response?.learn_more_content || null;
+  }
+
+  async function saveEditableContentToServer(contentKey, content) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    if (!/^main$|^clairvoyance$|^esp-lessons$|^learning-center-outline$|^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
+      throw new Error("Learn More content key is invalid.");
+    }
+    const response = await postInfrastructureContentRequest("save_learn_more_content", {
+      content_key: normalizedKey,
+      content: typeof content === "string" ? content : "",
+      secret_candidate: launcherAdminSecret
+    }, {
+      mirrorToLocalWhenAvailable: true
+    });
+    return response?.learn_more_content || null;
+  }
+
+  async function fetchLearningCenterLessonIndex() {
+    const response = await postInfrastructureContentRequest("list_learning_center_lessons", {}, {
+      allowLocalFallback: true,
+      preferLocalWhenCanonicalEmpty: (result) => {
+        const lessons = result?.learning_center_lessons;
+        if (!Array.isArray(lessons) || lessons.length === 0) {
+          return true;
+        }
+        const firstLesson = lessons[0] || {};
+        return !("lesson_id" in firstLesson) || !("title" in firstLesson);
+      }
+    });
+    return Array.isArray(response?.learning_center_lessons)
+      ? response.learning_center_lessons
+          .map((record) => normalizeLearningCenterLessonRecord(record))
+          .filter(Boolean)
+      : [];
+  }
+
+  async function fetchLearningCenterOutlineFromServer() {
+    const responseEnvelope = await postInfrastructureContentRequest("get_learn_more_content", {
+      content_key: "learning-center-outline"
+    }, {
+      allowLocalFallback: true,
+      preferLocalWhenCanonicalEmpty: (result) => !result?.learn_more_content || !String(result.learn_more_content.content || "").trim()
+    });
+    const response = responseEnvelope?.learn_more_content || null;
+    const rawContent = typeof response?.content === "string" ? response.content : "";
+    if (!rawContent.trim()) {
+      return { version: 1, rows: [] };
+    }
+    const parsed = JSON.parse(rawContent);
+    const rows = Array.isArray(parsed?.rows)
+      ? parsed.rows.map((record) => normalizeLearningCenterLessonRecord(record)).filter(Boolean)
+      : [];
+    rows.sort((left, right) => compareLearningCenterDisplayNumbers(left.display_number, right.display_number));
+    return {
+      version: Number(parsed?.version || 1) || 1,
+      rows
+    };
+  }
+
+  async function saveLearningCenterOutlineToServer(rows) {
+    const normalizedRows = (Array.isArray(rows) ? rows : [])
+      .map((record) => normalizeLearningCenterLessonRecord(record))
+      .filter(Boolean)
+      .sort((left, right) => compareLearningCenterDisplayNumbers(left.display_number, right.display_number));
+    const payload = JSON.stringify({
+      version: 1,
+      rows: normalizedRows.map((record) => ({
+        id: record.lesson_id,
+        display_number: record.display_number,
+        title: record.title,
+        subcopy: record.subcopy,
+        type: record.type
+      }))
+    }, null, 2);
+    await saveEditableContentToServer("learning-center-outline", payload);
+    return normalizedRows;
+  }
+
+  async function upsertLearningCenterOutlineRecord(record) {
+    const normalizedRecord = normalizeLearningCenterLessonRecord(record);
+    if (!normalizedRecord) {
+      throw new Error("Learning Center lesson metadata is invalid.");
+    }
+    const outline = await fetchLearningCenterOutlineFromServer();
+    const nextRows = [
+      ...(Array.isArray(outline.rows) ? outline.rows : []).filter((item) => normalizeLearningCenterLessonId(item?.lesson_id) !== normalizedRecord.lesson_id),
+      normalizedRecord
+    ];
+    return saveLearningCenterOutlineToServer(nextRows);
+  }
+
+  async function refreshEspLessonsSourceText() {
+    try {
+      const record = await fetchEditableContentFromServer("esp-lessons");
+      const nextText = typeof record?.content === "string" && record.content.trim()
+        ? record.content
+        : defaultEspLessonsText;
+      espLessonsSourceText = nextText;
+      const activeCard = roleCards.find((card) => card.classList.contains("active"));
+      const activeRole = String(activeCard?.dataset.roleCard || "").trim();
+      if (activeRole) {
+        void refreshRoleEspLesson(activeRole, {
+          sessionId: getRoleLessonSessionId(activeRole),
+          forceFetch: true
+        });
+      }
+    } catch (error) {
+      espLessonsSourceText = defaultEspLessonsText;
+    }
+  }
+
+  async function populateRotatingMessagesEditorFromServer() {
+    if (rotatingMessagesStatus) {
+      rotatingMessagesStatus.textContent = "";
+    }
+    if (rotatingMessagesTextInput) {
+      rotatingMessagesTextInput.value = getEspLessonsSourceText();
+    }
+    try {
+      const record = await fetchEditableContentFromServer("esp-lessons");
+      const serverValue = typeof record?.content === "string" ? record.content : "";
+      const nextText = serverValue.trim() ? serverValue : defaultEspLessonsText;
+      espLessonsSourceText = nextText;
+      if (rotatingMessagesTextInput) {
+        rotatingMessagesTextInput.value = nextText;
+      }
+    } catch (error) {
+      if (rotatingMessagesStatus) {
+        rotatingMessagesStatus.textContent = "Unable to load the saved rotating messages right now.";
+      }
+    }
+  }
+
+  async function saveRotatingMessagesContent() {
+    if (!rotatingMessagesTextInput) {
+      return;
+    }
+    const nextValue = typeof rotatingMessagesTextInput.value === "string" ? rotatingMessagesTextInput.value : "";
+    if (rotatingMessagesStatus) {
+      rotatingMessagesStatus.textContent = "Saving rotating messages to the server...";
+    }
+    try {
+      const saved = await saveEditableContentToServer("esp-lessons", nextValue);
+      const savedValue = typeof saved?.content === "string" ? saved.content : nextValue;
+      espLessonsSourceText = savedValue.trim() ? savedValue : defaultEspLessonsText;
+      if (rotatingMessagesTextInput.value !== savedValue) {
+        rotatingMessagesTextInput.value = savedValue;
+      }
+      if (rotatingMessagesStatus) {
+        rotatingMessagesStatus.textContent = "Rotating messages saved to the server.";
+      }
+      const activeCard = roleCards.find((card) => card.classList.contains("active"));
+      const activeRole = String(activeCard?.dataset.roleCard || "").trim();
+      if (activeRole) {
+        void refreshRoleEspLesson(activeRole, {
+          sessionId: getRoleLessonSessionId(activeRole),
+          forceFetch: true
+        });
+      }
+    } catch (error) {
+      if (rotatingMessagesStatus) {
+        rotatingMessagesStatus.textContent = String(error?.message || "Unable to save rotating messages right now.");
+      }
+    }
   }
 
   async function saveLauncherProfile(role, ownEmail, profileState) {
@@ -3049,6 +3403,174 @@ The best use of this material is not to read it once and forget it, but to let i
       return;
     }
     previewElement.innerHTML = renderLearnMorePreviewMarkup(value);
+  }
+
+  function normalizeLearningCenterLessonId(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function normalizeLearningCenterDisplayNumber(value) {
+    return String(value || "").trim();
+  }
+
+  function buildLearningCenterLessonContentKey(lessonId) {
+    const normalized = normalizeLearningCenterLessonId(lessonId);
+    return normalized ? `lesson-id:${normalized}` : "";
+  }
+
+  function buildLearningCenterLessonRowId(lessonId) {
+    const normalized = normalizeLearningCenterLessonId(lessonId);
+    return normalized ? `learningCenterLesson-${normalized}` : "";
+  }
+
+  function getLearningCenterLessonRowTitle(row) {
+    return String(row?.querySelector(".online-course-lesson-title")?.textContent || "").trim();
+  }
+
+  function getLearningCenterLessonRowById(lessonId) {
+    const target = normalizeLearningCenterLessonId(lessonId);
+    if (!target || !onlineCourseLessonList) {
+      return null;
+    }
+    return onlineCourseLessonList.querySelector(`.online-course-lesson-row[data-lesson-id="${target}"]`);
+  }
+
+  function getLearningCenterLessonRecordById(lessonId, sourceIndex = learningCenterLessonIndex) {
+    const target = normalizeLearningCenterLessonId(lessonId);
+    return (Array.isArray(sourceIndex) ? sourceIndex : []).find((record) => normalizeLearningCenterLessonId(record?.lesson_id) === target) || null;
+  }
+
+  function getLearningCenterLessonRecordByDisplayNumber(displayNumber, sourceIndex = learningCenterLessonIndex) {
+    const target = normalizeLearningCenterDisplayNumber(displayNumber);
+    return (Array.isArray(sourceIndex) ? sourceIndex : []).find((record) => normalizeLearningCenterDisplayNumber(record?.display_number) === target) || null;
+  }
+
+  function compareLearningCenterDisplayNumbers(left, right) {
+    const leftParts = String(left || "").split(/[^0-9]+/).filter(Boolean).map((value) => Number(value) || 0);
+    const rightParts = String(right || "").split(/[^0-9]+/).filter(Boolean).map((value) => Number(value) || 0);
+    const maxLength = Math.max(leftParts.length, rightParts.length);
+    for (let index = 0; index < maxLength; index += 1) {
+      const leftValue = leftParts[index] ?? 0;
+      const rightValue = rightParts[index] ?? 0;
+      if (leftValue !== rightValue) {
+        return leftValue - rightValue;
+      }
+    }
+    return String(left || "").localeCompare(String(right || ""), undefined, { numeric: true, sensitivity: "base" });
+  }
+
+  function normalizeLearningCenterLessonRecord(record) {
+    const lessonId = normalizeLearningCenterLessonId(record?.lesson_id || record?.id || "");
+    const displayNumber = normalizeLearningCenterDisplayNumber(record?.display_number);
+    const title = String(record?.title || "").trim();
+    const subcopy = String(record?.subcopy || "").trim();
+    const type = ["lesson-page", "baseline", "after-first-session"].includes(String(record?.type || "").trim())
+      ? String(record.type).trim()
+      : "lesson-page";
+    const contentKey = type === "lesson-page"
+      ? buildLearningCenterLessonContentKey(lessonId)
+      : "";
+    const available = type !== "lesson-page" || Boolean(record?.available);
+    if (!lessonId || !displayNumber || !title) {
+      return null;
+    }
+    return {
+      lesson_id: lessonId,
+      display_number: displayNumber,
+      title,
+      subcopy,
+      type,
+      content_key: contentKey,
+      available
+    };
+  }
+
+  function parseLessonEditorDirective(value) {
+    const normalized = String(value || "").replace(/\r\n?/g, "\n");
+    const lines = normalized.split("\n");
+    const metadata = {};
+    let bodyStartIndex = lines.length;
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = String(lines[index] || "");
+      const trimmed = line.trim();
+      if (!trimmed) {
+        bodyStartIndex = index + 1;
+        break;
+      }
+      const match = trimmed.match(/^([a-z][a-z0-9_-]*)\s*=\s*(.+)\s*$/i);
+      if (!match) {
+        bodyStartIndex = index;
+        break;
+      }
+      metadata[String(match[1] || "").trim().toLowerCase()] = String(match[2] || "").trim();
+    }
+    const legacyNumber = String(metadata.lesson || "").trim();
+    const lessonId = normalizeLearningCenterLessonId(metadata["lesson-id"] || metadata.lesson_id || "");
+    const displayNumber = normalizeLearningCenterDisplayNumber(metadata.number || legacyNumber || "");
+    const title = String(metadata.title || "").trim();
+    const subcopy = String(metadata.subcopy || "").trim();
+    const type = ["lesson-page", "baseline", "after-first-session"].includes(String(metadata.type || "").trim())
+      ? String(metadata.type).trim()
+      : "lesson-page";
+    if (!lessonId && !displayNumber) {
+      return null;
+    }
+    return {
+      lessonId,
+      displayNumber,
+      title,
+      subcopy,
+      type,
+      metadata,
+      remainder: lines.slice(bodyStartIndex).join("\n").replace(/^\n+/, "")
+    };
+  }
+
+  function stripLessonEditorDirective(value) {
+    const directive = parseLessonEditorDirective(value);
+    return directive ? directive.remainder : String(value || "");
+  }
+
+  function buildStarterLessonContent(recordOrLessonId, fallbackDisplayNumber = "", fallbackTitle = "", fallbackSubcopy = "", fallbackType = "lesson-page") {
+    const lessonRecord = typeof recordOrLessonId === "object" && recordOrLessonId
+      ? recordOrLessonId
+      : {
+          lesson_id: recordOrLessonId,
+          display_number: fallbackDisplayNumber,
+          title: fallbackTitle,
+          subcopy: fallbackSubcopy,
+          type: fallbackType
+        };
+    const lessonId = normalizeLearningCenterLessonId(lessonRecord?.lesson_id || "");
+    const displayNumber = normalizeLearningCenterDisplayNumber(lessonRecord?.display_number || "");
+    const title = String(lessonRecord?.title || "").trim();
+    const subcopy = String(lessonRecord?.subcopy || "").trim();
+    const type = ["lesson-page", "baseline", "after-first-session"].includes(String(lessonRecord?.type || "").trim())
+      ? String(lessonRecord.type).trim()
+      : "lesson-page";
+    return [
+      `lesson-id=${lessonId}`,
+      `number=${displayNumber}`,
+      `title=${title}`,
+      subcopy ? `subcopy=${subcopy}` : "",
+      `type=${type}`,
+      "",
+      title ? `TITLE=${title}` : "",
+      "",
+      ""
+    ].filter((line, index, array) => line !== "" || (index > 0 && array[index - 1] !== "")).join("\n");
+  }
+
+  function isDirectiveOnlyLessonEditorText(value) {
+    const directive = parseLessonEditorDirective(value);
+    if (!directive) {
+      return false;
+    }
+    return !String(directive.remainder || "").trim();
   }
 
   function partnerRole(role) {
@@ -4299,8 +4821,8 @@ The best use of this material is not to read it once and forget it, but to let i
       return `
         <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"} ${isUnread ? "is-unread" : ""}" data-message-id="${escapeHtml(messageId)}">
           <div class="role-message-meta-row">
-            <span class="role-message-meta">${isUnread ? `<span class="role-message-unread-dot" aria-hidden="true"></span>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` · ${escapeHtml(createdLabel)}` : ""}</span>
-            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">🗑</button>
+            <span class="role-message-meta">${isUnread ? `<span class="role-message-unread-dot" aria-hidden="true"></span>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` Â· ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">ðŸ—‘</button>
           </div>
           <div>${escapeHtml(String(message?.text || ""))}</div>
         </div>
@@ -4397,7 +4919,7 @@ The best use of this material is not to read it once and forget it, but to let i
       return;
     }
     if (pushSetupStatus) {
-      pushSetupStatus.textContent = "Checking this device…";
+      pushSetupStatus.textContent = "Checking this deviceâ€¦";
     }
     pushSetupOverlay?.classList.remove("beginner-view-hidden");
     void refreshPushSetupOverlay();
@@ -4677,7 +5199,7 @@ The best use of this material is not to read it once and forget it, but to let i
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.remove("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -4944,7 +5466,7 @@ The best use of this material is not to read it once and forget it, but to let i
     installGuideView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -5096,7 +5618,7 @@ The best use of this material is not to read it once and forget it, but to let i
     }
     pushSetupInFlight = true;
     if (pushSetupStatus) {
-      pushSetupStatus.textContent = "Enabling partner messaging…";
+      pushSetupStatus.textContent = "Enabling partner messagingâ€¦";
     }
     try {
       if (!isRunningAsInstalledApp()) {
@@ -5250,7 +5772,7 @@ The best use of this material is not to read it once and forget it, but to let i
     messagesView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -5901,8 +6423,8 @@ The best use of this material is not to read it once and forget it, but to let i
       return `
         <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"}" data-message-id="${escapeHtml(messageId)}">
           <div class="role-message-meta-row">
-            <span class="role-message-meta">${isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` · ${escapeHtml(createdLabel)}` : ""}</span>
-            <button class="role-message-trash" type="button" data-role-message-delete="${escapeHtml(role)}" data-message-id="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">🗑</button>
+            <span class="role-message-meta">${isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` Â· ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-role-message-delete="${escapeHtml(role)}" data-message-id="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">ðŸ—‘</button>
           </div>
           <div>${escapeHtml(String(message?.text || ""))}</div>
         </div>
@@ -11818,7 +12340,8 @@ The best use of this material is not to read it once and forget it, but to let i
     launcherView?.classList.remove("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
@@ -11857,7 +12380,7 @@ The best use of this material is not to read it once and forget it, but to let i
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
@@ -11910,7 +12433,8 @@ The best use of this material is not to read it once and forget it, but to let i
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -11947,7 +12471,7 @@ The best use of this material is not to read it once and forget it, but to let i
     temporaryHomePageView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -11988,7 +12512,7 @@ The best use of this material is not to read it once and forget it, but to let i
 
   function showClairvoyanceLearnMoreView() {
     clearReportPanelOffset();
-    void populateLearnMoreEditorFromServer("clairvoyance");
+    void populateLessonEditorFromServer("clairvoyance");
     if (clairvoyanceLearnMoreStatus) {
       clairvoyanceLearnMoreStatus.textContent = "";
     }
@@ -11996,7 +12520,7 @@ The best use of this material is not to read it once and forget it, but to let i
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
@@ -12033,7 +12557,7 @@ The best use of this material is not to read it once and forget it, but to let i
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -12068,7 +12592,7 @@ The best use of this material is not to read it once and forget it, but to let i
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
@@ -12102,7 +12626,7 @@ The best use of this material is not to read it once and forget it, but to let i
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
@@ -12136,7 +12660,7 @@ The best use of this material is not to read it once and forget it, but to let i
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
@@ -12167,7 +12691,7 @@ The best use of this material is not to read it once and forget it, but to let i
     beginnerUserManualView?.classList.add("beginner-view-hidden");
     proUserManualView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -12201,7 +12725,7 @@ The best use of this material is not to read it once and forget it, but to let i
     proUserManualView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     installGuideView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -12239,7 +12763,7 @@ The best use of this material is not to read it once and forget it, but to let i
     beginnerUserManualView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     installGuideView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -12268,13 +12792,10 @@ The best use of this material is not to read it once and forget it, but to let i
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showLearnMoreView() {
+  function showLessonEditorView() {
     clearReportPanelOffset();
-    void populateLearnMoreEditorFromServer("main");
-    if (learnMoreStatus) {
-      learnMoreStatus.textContent = "";
-    }
-    learnMoreView?.classList.remove("beginner-view-hidden");
+    resetLessonEditorToBlank("Start with lesson-id=<permanent-id>. You can also add number=, title=, subcopy=, and type=. Then press ENTER or SAVE.");
+    lessonEditorView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -12329,6 +12850,25 @@ The best use of this material is not to read it once and forget it, but to let i
     }, 4000));
   }
 
+  function resetLessonEditorToBlank(message = "") {
+    lessonEditorTarget = {
+      kind: "main",
+      contentKey: "main",
+      lessonId: "",
+      displayNumber: "",
+      title: "",
+      subcopy: "",
+      type: "lesson-page"
+    };
+    if (lessonEditorTextInput) {
+      lessonEditorTextInput.value = "";
+    }
+    updateLearnMorePreview(lessonEditorPreview, "");
+    if (lessonEditorStatus) {
+      lessonEditorStatus.textContent = String(message || "").trim();
+    }
+  }
+
   function cacheLearnMoreContentLocally(contentKey, content) {
     const latest = readLauncherState();
     if (contentKey === "clairvoyance") {
@@ -12341,36 +12881,71 @@ The best use of this material is not to read it once and forget it, but to let i
     writeLauncherState(latest);
   }
 
-  async function populateLearnMoreEditorFromServer(contentKey) {
+  function applyMainLessonEditorContent(contentKey, content, options = {}) {
+    const normalizedKey = String(contentKey || "main").trim().toLowerCase();
+    const lessonMatch = normalizedKey.match(/^lesson-id:([a-z0-9-]{1,80})$/);
+    const lessonId = lessonMatch ? normalizeLearningCenterLessonId(lessonMatch[1]) : "";
+    const lessonRecord = lessonId ? getLearningCenterLessonRecordById(lessonId) : null;
+    lessonEditorTarget = {
+      kind: lessonId ? "lesson" : "main",
+      contentKey: normalizedKey || "main",
+      lessonId,
+      displayNumber: String(options.displayNumber || lessonRecord?.display_number || "").trim(),
+      title: String(options.title || lessonRecord?.title || "").trim(),
+      subcopy: String(options.subcopy || lessonRecord?.subcopy || "").trim(),
+      type: String(options.type || lessonRecord?.type || "lesson-page").trim() || "lesson-page"
+    };
+    if (lessonEditorTextInput) {
+      lessonEditorTextInput.value = typeof content === "string" ? content : "";
+    }
+    updateLearnMorePreview(lessonEditorPreview, stripLessonEditorDirective(content));
+    if (lessonEditorStatus) {
+      lessonEditorStatus.textContent = String(options.status || "").trim();
+    }
+  }
+
+  async function populateLessonEditorFromServer(contentKey) {
     const normalizedKey = String(contentKey || "").trim().toLowerCase();
     const isClairvoyance = normalizedKey === "clairvoyance";
-    const input = isClairvoyance ? clairvoyanceLearnMoreTextInput : learnMoreTextInput;
-    const preview = isClairvoyance ? clairvoyanceLearnMorePreview : learnMorePreview;
-    const status = isClairvoyance ? clairvoyanceLearnMoreStatus : learnMoreStatus;
+    const input = isClairvoyance ? clairvoyanceLearnMoreTextInput : lessonEditorTextInput;
+    const preview = isClairvoyance ? clairvoyanceLearnMorePreview : lessonEditorPreview;
+    const status = isClairvoyance ? clairvoyanceLearnMoreStatus : lessonEditorStatus;
     const fallbackValue = isClairvoyance
       ? getClairvoyanceLearnMoreText(readLauncherState())
       : getLearnMoreText(readLauncherState());
-    const draftValue = getLearnMoreDraftText(normalizedKey);
-    const startingValue = draftValue !== null ? draftValue : fallbackValue;
 
     if (input) {
-      input.value = startingValue;
+      input.value = fallbackValue;
     }
-    updateLearnMorePreview(preview, startingValue);
-    if (status && draftValue !== null) {
-      status.textContent = "Showing your unsaved local draft.";
+    updateLearnMorePreview(preview, isClairvoyance ? fallbackValue : stripLessonEditorDirective(fallbackValue));
+    if (status) {
+      status.textContent = "";
+    }
+    if (!isClairvoyance) {
+      lessonEditorTarget = {
+        kind: "main",
+        contentKey: "main",
+        lessonId: "",
+        displayNumber: "",
+        title: "",
+        subcopy: "",
+        type: "lesson-page"
+      };
+      setLearnMoreDraftText("main", null);
     }
 
     try {
-      const contentRecord = await fetchLearnMoreContent(normalizedKey);
+      const contentRecord = await fetchEditableContentFromServer(normalizedKey);
       const serverValue = typeof contentRecord?.content === "string" ? contentRecord.content : "";
       if (contentRecord?.available) {
-        if (draftValue === null) {
-          cacheLearnMoreContentLocally(normalizedKey, serverValue);
+        cacheLearnMoreContentLocally(normalizedKey, serverValue);
+        if (isClairvoyance) {
           if (input) {
             input.value = serverValue;
           }
           updateLearnMorePreview(preview, serverValue);
+        } else {
+          applyMainLessonEditorContent("main", serverValue);
         }
       }
     } catch (error) {
@@ -12380,33 +12955,100 @@ The best use of this material is not to read it once and forget it, but to let i
     }
   }
 
-  async function saveLearnMoreContent() {
-    if (!learnMoreTextInput) {
+  async function saveLessonEditorContent() {
+    if (!lessonEditorTextInput) {
       return;
     }
-    const nextValue = typeof learnMoreTextInput.value === "string" ? learnMoreTextInput.value : "";
-    if (learnMoreStatus) {
-      learnMoreStatus.textContent = "Saving Learn More text to the server...";
+    const nextValue = typeof lessonEditorTextInput.value === "string" ? lessonEditorTextInput.value : "";
+    const directive = parseLessonEditorDirective(nextValue);
+    if (lessonEditorStatus) {
+      lessonEditorStatus.textContent = directive
+        ? `Processing lesson ${directive.lessonId || directive.displayNumber || ""}...`
+        : "Start with lesson-id=<permanent-id>, then press ENTER or SAVE.";
     }
     try {
-      const saved = await saveLearnMoreContentToServer("main", nextValue);
-      const savedValue = typeof saved?.content === "string" ? saved.content : "";
-      cacheLearnMoreContentLocally("main", savedValue);
-      setLearnMoreDraftText("main", null);
-      if (learnMoreTextInput.value !== savedValue) {
-        learnMoreTextInput.value = savedValue;
+      if (directive) {
+        const currentOutlineRecord = directive.lessonId
+          ? getLearningCenterLessonRecordById(directive.lessonId)
+          : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber);
+        const lessonId = normalizeLearningCenterLessonId(directive.lessonId || currentOutlineRecord?.lesson_id || "");
+        const displayNumber = normalizeLearningCenterDisplayNumber(directive.displayNumber || currentOutlineRecord?.display_number || "");
+        const title = String(directive.title || currentOutlineRecord?.title || "").trim();
+        const subcopy = String(directive.subcopy || currentOutlineRecord?.subcopy || "").trim();
+        const type = String(directive.type || currentOutlineRecord?.type || "lesson-page").trim() || "lesson-page";
+        if (!lessonId || !displayNumber || !title) {
+          throw new Error("Lesson metadata must include lesson-id=, number=, and title= before saving.");
+        }
+        const lessonRecord = {
+          lesson_id: lessonId,
+          display_number: displayNumber,
+          title,
+          subcopy,
+          type,
+          available: type !== "lesson-page" ? true : Boolean(currentOutlineRecord?.available)
+        };
+        const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
+        if (isDirectiveOnlyLessonEditorText(nextValue)) {
+          if (type === "lesson-page") {
+            const existing = await fetchEditableContentFromServer(lessonKey);
+            if (existing?.available) {
+              lessonRecord.available = true;
+              learningCenterLessonIndex = await upsertLearningCenterOutlineRecord(lessonRecord);
+              renderLearningCenterLessonLinks(learningCenterLessonIndex);
+              applyMainLessonEditorContent(lessonKey, String(existing.content || ""), {
+                status: `Loaded LESSON ${displayNumber} into the editor.`,
+                displayNumber,
+                title,
+                subcopy,
+                type
+              });
+              return;
+            }
+          }
+          const starterContent = buildStarterLessonContent(lessonRecord);
+          lessonRecord.available = true;
+          learningCenterLessonIndex = await upsertLearningCenterOutlineRecord(lessonRecord);
+          if (type === "lesson-page") {
+            await saveEditableContentToServer(lessonKey, starterContent);
+          }
+          renderLearningCenterLessonLinks(learningCenterLessonIndex);
+          applyMainLessonEditorContent(type === "lesson-page" ? lessonKey : "main", starterContent, {
+            status: `Created LESSON ${displayNumber}. Add content, then press SAVE again.`,
+            displayNumber,
+            title,
+            subcopy,
+            type
+          });
+          return;
+        }
+
+        lessonRecord.available = true;
+        learningCenterLessonIndex = await upsertLearningCenterOutlineRecord(lessonRecord);
+        const savedLesson = type === "lesson-page"
+          ? await saveEditableContentToServer(lessonKey, nextValue)
+          : { content: nextValue };
+        const savedLessonValue = typeof savedLesson?.content === "string" ? savedLesson.content : nextValue;
+        renderLearningCenterLessonLinks(learningCenterLessonIndex);
+        applyMainLessonEditorContent(type === "lesson-page" ? lessonKey : "main", savedLessonValue, {
+          status: `LESSON ${displayNumber} saved to the server.`,
+          displayNumber,
+          title,
+          subcopy,
+          type
+        });
+        showTemporaryInlineLearnMoreStatus(lessonEditorInlineStatus, `LESSON ${displayNumber} saved to the server.`);
+        return;
       }
-      updateLearnMorePreview(learnMorePreview, savedValue);
-      if (learnMoreStatus) {
-        learnMoreStatus.textContent = "Learn More text saved to the server.";
+
+      if (lessonEditorStatus) {
+        lessonEditorStatus.textContent = "Start with lesson-id=<permanent-id>. Add number= and title=, then press ENTER or SAVE.";
       }
-      showTemporaryInlineLearnMoreStatus(learnMoreInlineStatus, "Learn More text saved to the server.");
+      showTemporaryInlineLearnMoreStatus(lessonEditorInlineStatus, "Enter lesson-id=<permanent-id> to load or create a lesson.");
     } catch (error) {
-      setLearnMoreDraftText("main", nextValue);
-      if (learnMoreStatus) {
-        learnMoreStatus.textContent = String(error?.message || "Unable to save Learn More text right now.");
+      if (lessonEditorStatus) {
+        lessonEditorStatus.textContent = String(error?.message || "Unable to save lesson text right now.");
       }
-      showTemporaryInlineLearnMoreStatus(learnMoreInlineStatus, "Unable to save Learn More text right now. Your local draft was preserved.");
+      showTemporaryInlineLearnMoreStatus(lessonEditorInlineStatus, "Unable to save lesson text right now.");
     }
   }
 
@@ -12419,7 +13061,7 @@ The best use of this material is not to read it once and forget it, but to let i
       clairvoyanceLearnMoreStatus.textContent = "Saving Learn More text to the server...";
     }
     try {
-      const saved = await saveLearnMoreContentToServer("clairvoyance", nextValue);
+      const saved = await saveEditableContentToServer("clairvoyance", nextValue);
       const savedValue = typeof saved?.content === "string" ? saved.content : "";
       cacheLearnMoreContentLocally("clairvoyance", savedValue);
       setLearnMoreDraftText("clairvoyance", null);
@@ -12579,7 +13221,7 @@ The best use of this material is not to read it once and forget it, but to let i
     if (baselineStatus) {
       baselineStatus.textContent = `Baseline questions saved for ${displayIdentifier}.`;
     }
-    renderOnlineCourseView();
+    closeBaselineQuestionsView();
   }
 
   function getAfterFirstSessionQuestionsStorageKey(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
@@ -12722,6 +13364,7 @@ The best use of this material is not to read it once and forget it, but to let i
     if (afterFirstSessionStatus) {
       afterFirstSessionStatus.textContent = `After First Session Questions saved for ${displayIdentifier}.`;
     }
+    closeAfterFirstSessionQuestionsView();
   }
 
   function formatOnlineCourseDate(date = new Date()) {
@@ -12848,6 +13491,117 @@ The best use of this material is not to read it once and forget it, but to let i
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
+  function buildLearningCenterLessonRow(record) {
+    const normalizedRecord = normalizeLearningCenterLessonRecord(record);
+    if (!normalizedRecord) {
+      return null;
+    }
+    const row = document.createElement("label");
+    row.className = "online-course-lesson-row";
+    row.dataset.lessonId = normalizedRecord.lesson_id;
+    row.dataset.onlineCourseLaunch = normalizedRecord.type;
+    row.id = buildLearningCenterLessonRowId(normalizedRecord.lesson_id);
+
+    const checkbox = document.createElement("input");
+    checkbox.className = "online-course-lesson-checkbox";
+    checkbox.type = "checkbox";
+    checkbox.disabled = false;
+
+    const main = document.createElement("span");
+    main.className = "online-course-lesson-main";
+    if (normalizedRecord.type === "lesson-page" && normalizedRecord.available) {
+      main.classList.add("online-course-lesson-row-clickable");
+      main.tabIndex = 0;
+      main.setAttribute("role", "button");
+      main.dataset.openLearningCenterLesson = normalizedRecord.lesson_id;
+    } else if (normalizedRecord.type === "baseline" || normalizedRecord.type === "after-first-session") {
+      main.classList.add("online-course-lesson-row-clickable");
+      main.tabIndex = 0;
+      main.setAttribute("role", "button");
+    }
+
+    const title = document.createElement("span");
+    title.className = "online-course-lesson-title";
+    title.textContent = `LESSON ${normalizedRecord.display_number} - ${normalizedRecord.title}`;
+    main.appendChild(title);
+
+    if (normalizedRecord.subcopy) {
+      const subcopy = document.createElement("span");
+      subcopy.className = "online-course-lesson-subcopy";
+      subcopy.textContent = normalizedRecord.subcopy;
+      main.appendChild(subcopy);
+    }
+
+    row.appendChild(checkbox);
+    row.appendChild(main);
+    return row;
+  }
+
+  function renderLearningCenterLessonLinks(indexRecords = learningCenterLessonIndex) {
+    if (!onlineCourseLessonList) {
+      return;
+    }
+    onlineCourseLessonList.innerHTML = "";
+    const normalizedRecords = (Array.isArray(indexRecords) ? indexRecords : [])
+      .map((record) => normalizeLearningCenterLessonRecord(record))
+      .filter(Boolean)
+      .sort((left, right) => compareLearningCenterDisplayNumbers(left.display_number, right.display_number));
+    normalizedRecords.forEach((record) => {
+      const row = buildLearningCenterLessonRow(record);
+      if (row) {
+        onlineCourseLessonList.appendChild(row);
+      }
+    });
+  }
+
+  function openLearningCenterRowTarget(row) {
+    if (!(row instanceof Element)) {
+      return false;
+    }
+    const rowWrap = row.closest(".online-course-lesson-row");
+    if (!(rowWrap instanceof Element)) {
+      return false;
+    }
+    const launchMode = String(rowWrap.getAttribute("data-online-course-launch") || "").trim().toLowerCase();
+    const rowFocusId = String(rowWrap.id || "").trim();
+    const currentScrollY = Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0);
+    if (launchMode === "baseline") {
+      showBaselineQuestionsView({
+        view: "online-course",
+        scrollY: currentScrollY,
+        focusId: rowFocusId
+      });
+      return true;
+    }
+    if (launchMode === "after-first-session") {
+      showAfterFirstSessionQuestionsView({
+        view: "online-course",
+        scrollY: currentScrollY,
+        focusId: rowFocusId
+      });
+      return true;
+    }
+    const lessonId = normalizeLearningCenterLessonId(rowWrap.dataset.lessonId || row.dataset.openLearningCenterLesson || "");
+    if (!lessonId) {
+      return false;
+    }
+    void showLearningCenterLessonDetail(lessonId, {
+      view: "online-course",
+      scrollY: currentScrollY,
+      focusId: rowFocusId || buildLearningCenterLessonRowId(lessonId)
+    });
+    return true;
+  }
+
+  async function refreshLearningCenterLessonIndex() {
+    try {
+      learningCenterLessonIndex = await fetchLearningCenterLessonIndex();
+    } catch (error) {
+      learningCenterLessonIndex = [];
+    }
+    renderLearningCenterLessonLinks(learningCenterLessonIndex);
+  }
+
   function renderOnlineCourseView() {
     const state = readLauncherState();
     const displayDate = formatOnlineCourseDate();
@@ -12868,11 +13622,15 @@ The best use of this material is not to read it once and forget it, but to let i
 
   function showOnlineCourseView(options = {}) {
     clearReportPanelOffset();
+    const requestedScrollY = Number(options.scrollY);
+    const targetScrollY = Number.isFinite(requestedScrollY) ? Math.max(0, requestedScrollY) : 0;
     onlineCourseReturnTarget = {
       view: String(options.view || "options").trim() || "options",
-      role: String(options.role || "").trim()
+      role: String(options.role || "").trim(),
+      scrollY: targetScrollY
     };
     renderOnlineCourseView();
+    void refreshLearningCenterLessonIndex();
     onlineCourseView?.classList.remove("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
     afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
@@ -12886,7 +13644,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -12913,7 +13671,39 @@ The best use of this material is not to read it once and forget it, but to let i
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: targetScrollY, behavior: "auto" });
+  }
+
+  function restoreOnlineCourseLaunchFocus(focusId = "") {
+    const normalizedFocusId = String(focusId || "").trim();
+    const lessonRows = Array.from(document.querySelectorAll(".online-course-lesson-row"));
+    lessonRows.forEach((row) => row.classList.remove("online-course-lesson-row-restored"));
+    if (!normalizedFocusId) {
+      return;
+    }
+    const attemptRestore = (remainingAttempts = 8) => {
+      const row = document.getElementById(normalizedFocusId);
+      const target = row?.querySelector(".online-course-lesson-main.online-course-lesson-row-clickable");
+      if (!row || !target || typeof target.focus !== "function") {
+        if (remainingAttempts > 0) {
+          window.setTimeout(() => attemptRestore(remainingAttempts - 1), 80);
+        }
+        return;
+      }
+      try {
+        target.focus({ preventScroll: true });
+      } catch (error) {
+        target.focus();
+      }
+      row.classList.add("online-course-lesson-row-restored");
+      const clearRestoredState = () => {
+        row.classList.remove("online-course-lesson-row-restored");
+        target.removeEventListener("blur", clearRestoredState);
+      };
+      target.addEventListener("blur", clearRestoredState);
+      window.setTimeout(clearRestoredState, 3000);
+    };
+    window.requestAnimationFrame(() => attemptRestore());
   }
 
   function showRoleCourseTarget(role) {
@@ -12956,9 +13746,15 @@ The best use of this material is not to read it once and forget it, but to let i
 
   function showBaselineQuestionsView(options = {}) {
     clearReportPanelOffset();
+    const requestedScrollY = Number(options.scrollY);
+    const targetScrollY = Number.isFinite(requestedScrollY)
+      ? Math.max(0, requestedScrollY)
+      : Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0);
     baselineQuestionsReturnTarget = {
       view: String(options.view || "online-course").trim() || "online-course",
-      role: String(options.role || "").trim()
+      role: String(options.role || "").trim(),
+      scrollY: targetScrollY,
+      focusId: String(options.focusId || "").trim()
     };
     renderBaselineQuestionsView();
     baselineQuestionsView?.classList.remove("beginner-view-hidden");
@@ -12974,7 +13770,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13003,9 +13799,62 @@ The best use of this material is not to read it once and forget it, but to let i
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showRotatingMessagesEditorView() {
+    clearReportPanelOffset();
+    void populateRotatingMessagesEditorFromServer();
+    rotatingMessagesEditorView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function closeBaselineQuestionsView() {
     const targetView = String(baselineQuestionsReturnTarget?.view || "online-course").trim();
     const targetRole = String(baselineQuestionsReturnTarget?.role || "").trim();
+    const targetScrollY = Math.max(0, Number(baselineQuestionsReturnTarget?.scrollY || 0) || 0);
+    const targetFocusId = String(baselineQuestionsReturnTarget?.focusId || "").trim();
     if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
       showRoleCourseTarget(targetRole);
       return;
@@ -13014,14 +13863,25 @@ The best use of this material is not to read it once and forget it, but to let i
       showOptionsView();
       return;
     }
-    showOnlineCourseView({ view: "options" });
+    showOnlineCourseView({
+      view: targetView || "online-course",
+      role: targetRole,
+      scrollY: targetScrollY
+    });
+    restoreOnlineCourseLaunchFocus(targetFocusId);
   }
 
   function showAfterFirstSessionQuestionsView(options = {}) {
     clearReportPanelOffset();
+    const requestedScrollY = Number(options.scrollY);
+    const targetScrollY = Number.isFinite(requestedScrollY)
+      ? Math.max(0, requestedScrollY)
+      : Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0);
     afterFirstSessionQuestionsReturnTarget = {
       view: String(options.view || "online-course").trim() || "online-course",
-      role: String(options.role || "").trim()
+      role: String(options.role || "").trim(),
+      scrollY: targetScrollY,
+      focusId: String(options.focusId || "").trim()
     };
     renderAfterFirstSessionQuestionsView();
     afterFirstSessionQuestionsView?.classList.remove("beginner-view-hidden");
@@ -13037,7 +13897,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13069,6 +13929,8 @@ The best use of this material is not to read it once and forget it, but to let i
   function closeAfterFirstSessionQuestionsView() {
     const targetView = String(afterFirstSessionQuestionsReturnTarget?.view || "online-course").trim();
     const targetRole = String(afterFirstSessionQuestionsReturnTarget?.role || "").trim();
+    const targetScrollY = Math.max(0, Number(afterFirstSessionQuestionsReturnTarget?.scrollY || 0) || 0);
+    const targetFocusId = String(afterFirstSessionQuestionsReturnTarget?.focusId || "").trim();
     if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
       showRoleCourseTarget(targetRole);
       return;
@@ -13077,7 +13939,12 @@ The best use of this material is not to read it once and forget it, but to let i
       showOptionsView();
       return;
     }
-    showOnlineCourseView({ view: "options" });
+    showOnlineCourseView({
+      view: targetView || "online-course",
+      role: targetRole,
+      scrollY: targetScrollY
+    });
+    restoreOnlineCourseLaunchFocus(targetFocusId);
   }
 
   function showAidsView() {
@@ -13099,7 +13966,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13144,7 +14011,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13188,7 +14055,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13233,7 +14100,7 @@ The best use of this material is not to read it once and forget it, but to let i
     peerReviewedListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13278,7 +14145,7 @@ The best use of this material is not to read it once and forget it, but to let i
     peerReviewedListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13323,7 +14190,7 @@ The best use of this material is not to read it once and forget it, but to let i
     peerReviewedListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13368,7 +14235,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13403,7 +14270,7 @@ The best use of this material is not to read it once and forget it, but to let i
     activeToolsRole = role === "sender" || role === "receiver" ? role : "";
     toolsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -13437,7 +14304,7 @@ The best use of this material is not to read it once and forget it, but to let i
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -13488,7 +14355,7 @@ The best use of this material is not to read it once and forget it, but to let i
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -13676,7 +14543,7 @@ The best use of this material is not to read it once and forget it, but to let i
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
@@ -13990,6 +14857,7 @@ The best use of this material is not to read it once and forget it, but to let i
     clearReportPanelOffset();
     adminView?.classList.remove("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
@@ -15869,7 +16737,7 @@ The best use of this material is not to read it once and forget it, but to let i
     clearReportPanelOffset();
     goProView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -15919,7 +16787,7 @@ The best use of this material is not to read it once and forget it, but to let i
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -15950,7 +16818,7 @@ The best use of this material is not to read it once and forget it, but to let i
     clearReportPanelOffset();
     subscriptionManagementView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -15984,7 +16852,7 @@ The best use of this material is not to read it once and forget it, but to let i
     clearReportPanelOffset();
     blinkBehaviorView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -16015,7 +16883,7 @@ The best use of this material is not to read it once and forget it, but to let i
     clearReportPanelOffset();
     confidenceBehaviorView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -17007,7 +17875,7 @@ The best use of this material is not to read it once and forget it, but to let i
   });
 
   openOptionsButton?.addEventListener("click", showOptionsView);
-  openLearnMoreButton?.addEventListener("click", showLearnMoreView);
+  openLessonEditorButton?.addEventListener("click", showLessonEditorView);
   openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
   openOnlineCourseButton?.addEventListener("click", () => {
     showOnlineCourseView({ view: "aids" });
@@ -17021,13 +17889,70 @@ The best use of this material is not to read it once and forget it, but to let i
   });
   openBaselineQuestionsButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      showBaselineQuestionsView({ view: "online-course" });
+      if (button.closest(".online-course-lesson-row")) {
+        return;
+      }
+      showBaselineQuestionsView({
+        view: "online-course",
+        focusId: String(button.id || "").trim()
+      });
+    });
+    button.addEventListener("keydown", (event) => {
+      if (button.closest(".online-course-lesson-row")) {
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        showBaselineQuestionsView({
+          view: "online-course",
+          focusId: String(button.id || "").trim()
+        });
+      }
     });
   });
   openAfterFirstSessionQuestionsButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      showAfterFirstSessionQuestionsView({ view: "online-course" });
+      if (button.closest(".online-course-lesson-row")) {
+        return;
+      }
+      showAfterFirstSessionQuestionsView({
+        view: "online-course",
+        focusId: String(button.id || "").trim()
+      });
     });
+    button.addEventListener("keydown", (event) => {
+      if (button.closest(".online-course-lesson-row")) {
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        showAfterFirstSessionQuestionsView({
+          view: "online-course",
+          focusId: String(button.id || "").trim()
+        });
+      }
+    });
+  });
+  onlineCourseLessonList?.addEventListener("click", (event) => {
+    const clickableMain = event.target instanceof Element ? event.target.closest(".online-course-lesson-main.online-course-lesson-row-clickable") : null;
+    if (!clickableMain) {
+      return;
+    }
+    if (event.target instanceof Element && event.target.closest(".online-course-lesson-checkbox")) {
+      return;
+    }
+    openLearningCenterRowTarget(clickableMain);
+  });
+  onlineCourseLessonList?.addEventListener("keydown", (event) => {
+    const target = event.target instanceof Element ? event.target.closest(".online-course-lesson-main.online-course-lesson-row-clickable") : null;
+    if (!target) {
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    openLearningCenterRowTarget(target);
   });
   onlineCourseTargetButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -17059,11 +17984,23 @@ The best use of this material is not to read it once and forget it, but to let i
   closeOptionsButtons.forEach((button) => {
     button.addEventListener("click", showLauncherView);
   });
-  closeLearnMoreButton?.addEventListener("click", showLauncherView);
-  saveLearnMoreButton?.addEventListener("click", saveLearnMoreContent);
-  learnMoreTextInput?.addEventListener("input", () => {
-    setLearnMoreDraftText("main", typeof learnMoreTextInput.value === "string" ? learnMoreTextInput.value : "");
-    updateLearnMorePreview(learnMorePreview, learnMoreTextInput.value);
+  closeLessonEditorButton?.addEventListener("click", showLauncherView);
+  saveLessonEditorButton?.addEventListener("click", saveLessonEditorContent);
+  lessonEditorTextInput?.addEventListener("input", () => {
+    if (lessonEditorStatus) {
+      lessonEditorStatus.textContent = "Unsaved edits. Press SAVE to apply them, or BACK to cancel them.";
+    }
+  });
+  lessonEditorTextInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+    const value = typeof lessonEditorTextInput.value === "string" ? lessonEditorTextInput.value : "";
+    if (!isDirectiveOnlyLessonEditorText(value)) {
+      return;
+    }
+    event.preventDefault();
+    void saveLessonEditorContent();
   });
   closeClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceViewingView);
   saveClairvoyanceLearnMoreButton?.addEventListener("click", saveClairvoyanceLearnMoreContent);
@@ -17244,7 +18181,7 @@ The best use of this material is not to read it once and forget it, but to let i
     }
     pushSetupInFlight = true;
     if (pushSetupStatus) {
-      pushSetupStatus.textContent = "Sending a test notification to this device…";
+      pushSetupStatus.textContent = "Sending a test notification to this deviceâ€¦";
     }
     void triggerPartnerMessagingTestNotification()
       .then(() => {
@@ -17470,7 +18407,7 @@ The best use of this material is not to read it once and forget it, but to let i
     button.addEventListener("click", () => {
       insertTextIntoRoleMessage(
         String(button.dataset.roleMessageEmoji || ""),
-        String(button.dataset.emojiValue || button.textContent || "").trim() || "👍"
+        String(button.dataset.emojiValue || button.textContent || "").trim() || "ðŸ‘"
       );
     });
   });
@@ -17613,6 +18550,16 @@ The best use of this material is not to read it once and forget it, but to let i
   imagePairFileInputB?.addEventListener("change", updateImagePairPreview);
   imagePairSubmitButton?.addEventListener("click", () => {
     void submitImagePairAdmin();
+  });
+  openRotatingMessagesEditorButton?.addEventListener("click", showRotatingMessagesEditorView);
+  closeRotatingMessagesEditorButton?.addEventListener("click", showAdminView);
+  saveRotatingMessagesButton?.addEventListener("click", () => {
+    void saveRotatingMessagesContent();
+  });
+  rotatingMessagesTextInput?.addEventListener("input", () => {
+    if (rotatingMessagesStatus) {
+      rotatingMessagesStatus.textContent = "Unsaved edits. Press SAVE to apply them, or BACK to cancel them.";
+    }
   });
   openContactButton?.addEventListener("click", () => {
     showContactView("other-settings");
@@ -18049,6 +18996,7 @@ The best use of this material is not to read it once and forget it, but to let i
   if (!launcherGuestEntryActive) {
     void refreshMainUserType();
   }
+  void refreshEspLessonsSourceText();
   reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
   reportResizeHandles.forEach((handle) => {
     handle.addEventListener("pointerdown", beginReportResize);
@@ -18244,6 +19192,15 @@ The best use of this material is not to read it once and forget it, but to let i
     }
   }
 })();
+
+
+
+
+
+
+
+
+
 
 
 

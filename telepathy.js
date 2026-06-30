@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const role = document.body.dataset.role;
   const clientId = (() => {
     const storageKey = `cones-client-id-${role}`;
@@ -38,7 +38,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260629w";
+  const runtimeBuildVersion = "20260630k";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -1540,7 +1540,7 @@
     restartControl.className = "settings-restart";
     restartControl.type = "button";
     restartControl.setAttribute("aria-label", "Restart app");
-    restartControl.innerHTML = 'Restart <span class="settings-restart-icon">↻</span>';
+    restartControl.innerHTML = 'Restart <span class="settings-restart-icon">â†»</span>';
     restartControl.addEventListener("click", () => {
       window.location.reload();
     });
@@ -5676,6 +5676,13 @@
 
   void boot();
 })();
+
+
+
+
+
+
+
 
 
 

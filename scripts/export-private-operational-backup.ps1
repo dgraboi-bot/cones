@@ -53,6 +53,7 @@ $singleFiles = @(
   @{ Source = (Join-Path $configSource "zoho-mail.json"); Destination = (Join-Path $snapshotRoot "config\zoho-mail.json") },
   @{ Source = (Join-Path $contentSource "learn-more-main.txt"); Destination = (Join-Path $snapshotRoot "content\learn-more-main.txt") },
   @{ Source = (Join-Path $contentSource "learn-more-clairvoyance.txt"); Destination = (Join-Path $snapshotRoot "content\learn-more-clairvoyance.txt") },
+  @{ Source = (Join-Path $contentSource "esp-lessons.txt"); Destination = (Join-Path $snapshotRoot "content\esp-lessons.txt") },
   @{ Source = (Join-Path $dataSource "session-state.json"); Destination = (Join-Path $snapshotRoot "data\session-state.json") }
 )
 
@@ -62,6 +63,24 @@ foreach ($entry in $singleFiles) {
     $manifest.files += [ordered]@{
       relative_path = $item.FullName.Substring($snapshotRoot.Length).TrimStart('\')
       bytes = [int64]$item.Length
+    }
+  }
+}
+
+$lessonSource = Join-Path $contentSource "learning-center-lessons"
+if (Test-Path -LiteralPath $lessonSource) {
+  Get-ChildItem -LiteralPath $lessonSource -File | Where-Object {
+    $_.Name -like "lesson-*.txt"
+  } | ForEach-Object {
+    $destination = Join-Path $snapshotRoot ("content\learning-center-lessons\" + $_.Name)
+    $parent = Split-Path -Parent $destination
+    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+      New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+    $manifest.files += [ordered]@{
+      relative_path = ("content\learning-center-lessons\" + $_.Name)
+      bytes = [int64]$_.Length
     }
   }
 }

@@ -8,6 +8,26 @@ use Minishlink\WebPush\WebPush;
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
+$requestOrigin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
+$allowedOrigins = [
+    'https://espgym.com',
+    'https://telepathyexperiment.com',
+    'http://localhost',
+    'http://127.0.0.1'
+];
+
+if ($requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true)) {
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+    header('Vary: Origin');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 $isWindows = DIRECTORY_SEPARATOR === '\\';
 $privateRoot = $isWindows
     ? 'C:\\xampp\\telepathyexperiment_private\\cones'
@@ -17,6 +37,11 @@ $backupDir = $privateRoot . DIRECTORY_SEPARATOR . 'backup';
 $logsDir = $privateRoot . DIRECTORY_SEPARATOR . 'logs';
 $configDir = $privateRoot . DIRECTORY_SEPARATOR . 'config';
 $contentDir = $privateRoot . DIRECTORY_SEPARATOR . 'content';
+$learningCenterLessonsDir = $contentDir . DIRECTORY_SEPARATOR . 'learning-center-lessons';
+$learningCenterOutlineFile = $contentDir . DIRECTORY_SEPARATOR . 'learning-center-outline.json';
+$contentRepoDir = __DIR__ . DIRECTORY_SEPARATOR . 'content_repo';
+$contentRepoLessonsDir = $contentRepoDir . DIRECTORY_SEPARATOR . 'learning-center-lessons';
+$learningCenterOutlineRepoFile = $contentRepoDir . DIRECTORY_SEPARATOR . 'learning-center-outline.json';
 $pairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'pairs';
 $simulationPairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'simulation_pairs';
 $webPushConfigFile = $configDir . DIRECTORY_SEPARATOR . 'webpush.json';
@@ -24,6 +49,10 @@ $publicImagePairsDir = __DIR__ . DIRECTORY_SEPARATOR . 'imagepairs';
 $imagePairsManifestFile = $publicImagePairsDir . DIRECTORY_SEPARATOR . 'pairs.json';
 $learnMoreContentFile = $contentDir . DIRECTORY_SEPARATOR . 'learn-more-main.txt';
 $clairvoyanceLearnMoreContentFile = $contentDir . DIRECTORY_SEPARATOR . 'learn-more-clairvoyance.txt';
+$espLessonsContentFile = $contentDir . DIRECTORY_SEPARATOR . 'esp-lessons.txt';
+$learnMoreContentRepoFile = $contentRepoDir . DIRECTORY_SEPARATOR . 'learn-more-main.txt';
+$clairvoyanceLearnMoreContentRepoFile = $contentRepoDir . DIRECTORY_SEPARATOR . 'learn-more-clairvoyance.txt';
+$espLessonsContentRepoFile = $contentRepoDir . DIRECTORY_SEPARATOR . 'esp-lessons.txt';
 $stateFile = $stateDir . DIRECTORY_SEPARATOR . 'session-state.json';
 $debugLogFile = $stateDir . DIRECTORY_SEPARATOR . 'debug-log.txt';
 $safetyLogFile = $logsDir . DIRECTORY_SEPARATOR . 'safety-log.txt';
@@ -124,7 +153,142 @@ The following linked readings can be used as a small study sequence for users in
 The best use of this material is not to read it once and forget it, but to let it accompany practice. Read one case, reflect on what kind of information transfer it seems to suggest, then return to the app and train. Over time, the cases, the reports, and your own practice data begin to inform one another. That is the spirit in which this section is provided.
 TEXT;
 
-foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $contentDir, $pairsDir, $publicImagePairsDir] as $directory) {
+$defaultEspLessonsContent = <<<'TEXT'
+[*] Paragraph One
+----------------
+This is simply a test message for now.
+
+[*] Paragraph Two
+----------------
+This is an alternate test message to show now.
+TEXT;
+
+$defaultLearningCenterOutline = [
+    'version' => 1,
+    'rows' => [
+        [
+            'id' => 'baseline',
+            'display_number' => '0',
+            'title' => 'ESTABLISH A BASELINE',
+            'subcopy' => '',
+            'type' => 'baseline'
+        ],
+        [
+            'id' => 'distance-does-not-matter',
+            'display_number' => '1',
+            'title' => 'DISTANCE DOES NOT AFFECT TELEPATHIC COMMUNICATION',
+            'subcopy' => 'Speed of telepathic communication · propagation medium · type of encoding',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'everything-is-connected',
+            'display_number' => '2',
+            'title' => 'EVERYTHING IS CONNECTED',
+            'subcopy' => 'People are connected · plants · animals · things? · link to psychometry and how to do it · concept of how things get connected · hair · toothbrush',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'where-is-out-there',
+            'display_number' => '3',
+            'title' => 'WHERE IS “OUT THERE”?',
+            'subcopy' => 'Idea of outside space · outside time · speed of telepathy? · entanglement · link to journal article',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'lost-found-harp',
+            'display_number' => '4',
+            'title' => 'LOST AND FOUND HARP',
+            'subcopy' => 'H. McCoy · this changes everything',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'ossoweicki-and-croisset',
+            'display_number' => '5',
+            'title' => 'OSSOWEICKI AND CROISSET',
+            'subcopy' => 'You will marry a woman named Lydia · The ice-skate blade is showing in the mud',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'related-phenomena',
+            'display_number' => '6',
+            'title' => 'RELATED PHENOMENA',
+            'subcopy' => 'Dogs · psychokinesis · apports · healing · sprouting · rebar bending · videos · psychometry · clairvoyance · precognition · thought forms',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'the-minds-eye',
+            'display_number' => '7',
+            'title' => 'THE MIND’S EYE',
+            'subcopy' => 'How perception works · top down vs. bottom up · top-down projection · visual imagination · visualization exercises',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'learn-the-task-by-first-working-with-a-robot',
+            'display_number' => '8',
+            'title' => 'LEARN THE TASK BY FIRST WORKING WITH A ROBOT',
+            'subcopy' => 'Do a few trials at Level 1 · explore being a receiver · a sender · confidence on and off',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'difference-between-a-robot-and-a-person',
+            'display_number' => '9',
+            'title' => 'DIFFERENCE BETWEEN A ROBOT AND A PERSON',
+            'subcopy' => 'Randomness · chance vs. not chance · the trouble with statistics · it isn’t clear · it’s transient · it’s dim · it fades in and out · low resolution · you can’t care · mizu no kokoro',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'first-real-trials-as-a-receiver',
+            'display_number' => '10',
+            'title' => 'FIND A PARTNER AND DO YOUR FIRST REAL TRIALS AS A RECEIVER',
+            'subcopy' => 'Scheduling · messaging function · spontaneous trials · fill out first session questionnaire',
+            'type' => 'after-first-session'
+        ],
+        [
+            'id' => 'debriefing-what-happened-and-performance-reports',
+            'display_number' => '11',
+            'title' => 'DEBRIEFING: WHAT HAPPENED AND PERFORMANCE REPORTS',
+            'subcopy' => 'Raw data · visualization of data · data statistics · GLOBE · questions',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'being-a-sender',
+            'display_number' => '12',
+            'title' => 'BEING A SENDER',
+            'subcopy' => 'Visualize a white circle on a black background with your eyes open · strong sending vs. weak sending · sustained intention',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'sending-trials-with-partner',
+            'display_number' => '13',
+            'title' => 'SENDING TRIALS WITH PARTNER',
+            'subcopy' => '',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'debrief-analysis-questions',
+            'display_number' => '14',
+            'title' => 'DEBRIEF: ANALYSIS / QUESTIONS',
+            'subcopy' => '',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'ongoing-research',
+            'display_number' => '15',
+            'title' => 'ONGOING RESEARCH',
+            'subcopy' => 'PRO topic',
+            'type' => 'lesson-page'
+        ],
+        [
+            'id' => 'where-to-go-from-here',
+            'display_number' => '16',
+            'title' => 'WHERE TO GO FROM HERE',
+            'subcopy' => 'PRO topic · journal articles · parapsychology org · ions · sheldrake · anna breitenberg? · consciousness studies · communications with animals · dolphin · macro PK · eric · previous PK experiments · some videos · talk with animals · connect with plants · healing · scientific study of phenomena · proposal to measure the speed of thought propagation',
+            'type' => 'lesson-page'
+        ]
+    ]
+];
+
+foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $contentDir, $learningCenterLessonsDir, $contentRepoDir, $contentRepoLessonsDir, $pairsDir, $publicImagePairsDir] as $directory) {
     if (!is_dir($directory)) {
         mkdir($directory, 0777, true);
     }
@@ -994,22 +1158,362 @@ function read_subscription_email_log(string $path): array
 function normalize_learn_more_content_key($value): string
 {
     $key = trim((string) $value);
-    return match ($key) {
-        'main' => 'main',
-        'clairvoyance' => 'clairvoyance',
-        default => ''
-    };
+    if ($key === 'main' || $key === 'clairvoyance' || $key === 'esp-lessons' || $key === 'learning-center-outline') {
+        return $key;
+    }
+    if (preg_match('/^lesson-(\d{1,4})$/', $key, $matches)) {
+        return 'lesson-' . (string) ((int) $matches[1]);
+    }
+    if (preg_match('/^lesson-id:([a-z0-9-]{1,80})$/', $key, $matches)) {
+        return 'lesson-id:' . trim((string) $matches[1]);
+    }
+    return '';
+}
+
+function get_default_learn_more_content(string $contentKey): string
+{
+    global $defaultLearnMoreMainContent, $defaultLearnMoreClairvoyanceContent, $defaultEspLessonsContent, $defaultLearningCenterOutline;
+
+    if ($contentKey === 'main') {
+        return $defaultLearnMoreMainContent;
+    }
+    if ($contentKey === 'clairvoyance') {
+        return $defaultLearnMoreClairvoyanceContent;
+    }
+    if ($contentKey === 'esp-lessons') {
+        return $defaultEspLessonsContent;
+    }
+    if ($contentKey === 'learning-center-outline') {
+        $payload = json_encode($defaultLearningCenterOutline, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return is_string($payload) ? $payload : '';
+    }
+    return '';
 }
 
 function get_learn_more_content_path(string $contentKey): string
 {
-    global $learnMoreContentFile, $clairvoyanceLearnMoreContentFile;
+    global $learnMoreContentFile, $clairvoyanceLearnMoreContentFile, $espLessonsContentFile, $learningCenterLessonsDir, $learningCenterOutlineFile;
 
-    return match ($contentKey) {
-        'main' => $learnMoreContentFile,
-        'clairvoyance' => $clairvoyanceLearnMoreContentFile,
-        default => ''
-    };
+    if ($contentKey === 'main') {
+        return $learnMoreContentFile;
+    }
+    if ($contentKey === 'clairvoyance') {
+        return $clairvoyanceLearnMoreContentFile;
+    }
+    if ($contentKey === 'esp-lessons') {
+        return $espLessonsContentFile;
+    }
+    if ($contentKey === 'learning-center-outline') {
+        return $learningCenterOutlineFile;
+    }
+    if (preg_match('/^lesson-(\d{1,4})$/', $contentKey, $matches)) {
+        if (!is_dir($learningCenterLessonsDir)) {
+            @mkdir($learningCenterLessonsDir, 0775, true);
+        }
+        return $learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lesson-' . (string) ((int) $matches[1]) . '.txt';
+    }
+    if (preg_match('/^lesson-id:([a-z0-9-]{1,80})$/', $contentKey, $matches)) {
+        if (!is_dir($learningCenterLessonsDir)) {
+            @mkdir($learningCenterLessonsDir, 0775, true);
+        }
+        return $learningCenterLessonsDir . DIRECTORY_SEPARATOR . trim((string) $matches[1]) . '.txt';
+    }
+    return '';
+}
+
+function get_learn_more_repo_content_path(string $contentKey): string
+{
+    global $learnMoreContentRepoFile, $clairvoyanceLearnMoreContentRepoFile, $espLessonsContentRepoFile, $contentRepoLessonsDir, $learningCenterOutlineRepoFile;
+
+    if ($contentKey === 'main') {
+        return $learnMoreContentRepoFile;
+    }
+    if ($contentKey === 'clairvoyance') {
+        return $clairvoyanceLearnMoreContentRepoFile;
+    }
+    if ($contentKey === 'esp-lessons') {
+        return $espLessonsContentRepoFile;
+    }
+    if ($contentKey === 'learning-center-outline') {
+        return $learningCenterOutlineRepoFile;
+    }
+    if (preg_match('/^lesson-(\d{1,4})$/', $contentKey, $matches)) {
+        if (!is_dir($contentRepoLessonsDir)) {
+            @mkdir($contentRepoLessonsDir, 0775, true);
+        }
+        return $contentRepoLessonsDir . DIRECTORY_SEPARATOR . 'lesson-' . (string) ((int) $matches[1]) . '.txt';
+    }
+    if (preg_match('/^lesson-id:([a-z0-9-]{1,80})$/', $contentKey, $matches)) {
+        if (!is_dir($contentRepoLessonsDir)) {
+            @mkdir($contentRepoLessonsDir, 0775, true);
+        }
+        return $contentRepoLessonsDir . DIRECTORY_SEPARATOR . trim((string) $matches[1]) . '.txt';
+    }
+    return '';
+}
+
+function ensure_parent_directory(string $path): void
+{
+    $directory = dirname($path);
+    if ($directory !== '' && !is_dir($directory)) {
+        @mkdir($directory, 0775, true);
+    }
+}
+
+function copy_file_if_missing(string $sourcePath, string $destinationPath): void
+{
+    if (!is_file($sourcePath) || is_file($destinationPath)) {
+        return;
+    }
+    ensure_parent_directory($destinationPath);
+    @copy($sourcePath, $destinationPath);
+}
+
+function normalize_learning_center_outline_id($value): string
+{
+    $id = strtolower(trim((string) $value));
+    if ($id === '' || !preg_match('/^[a-z0-9-]{1,80}$/', $id)) {
+        return '';
+    }
+    return $id;
+}
+
+function normalize_learning_center_outline_type($value): string
+{
+    $type = strtolower(trim((string) $value));
+    return in_array($type, ['lesson-page', 'baseline', 'after-first-session'], true) ? $type : 'lesson-page';
+}
+
+function compare_learning_center_display_numbers(string $left, string $right): int
+{
+    $leftParts = preg_split('/[^0-9]+/', $left) ?: [];
+    $rightParts = preg_split('/[^0-9]+/', $right) ?: [];
+    $maxCount = max(count($leftParts), count($rightParts));
+    for ($index = 0; $index < $maxCount; $index += 1) {
+        $leftValue = isset($leftParts[$index]) && $leftParts[$index] !== '' ? (int) $leftParts[$index] : 0;
+        $rightValue = isset($rightParts[$index]) && $rightParts[$index] !== '' ? (int) $rightParts[$index] : 0;
+        if ($leftValue !== $rightValue) {
+            return $leftValue <=> $rightValue;
+        }
+    }
+    return strnatcasecmp($left, $right);
+}
+
+function normalize_learning_center_outline(array $parsed): array
+{
+    $rows = [];
+    $seenIds = [];
+    foreach ((array) ($parsed['rows'] ?? []) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $id = normalize_learning_center_outline_id($row['id'] ?? '');
+        if ($id === '' || isset($seenIds[$id])) {
+            continue;
+        }
+        $displayNumber = trim((string) ($row['display_number'] ?? ''));
+        $title = trim((string) ($row['title'] ?? ''));
+        $subcopy = trim((string) ($row['subcopy'] ?? ''));
+        $type = normalize_learning_center_outline_type($row['type'] ?? '');
+        if ($displayNumber === '' || $title === '') {
+            continue;
+        }
+        $seenIds[$id] = true;
+        $rows[] = [
+            'id' => $id,
+            'display_number' => $displayNumber,
+            'title' => $title,
+            'subcopy' => $subcopy,
+            'type' => $type
+        ];
+    }
+
+    usort($rows, static function (array $left, array $right): int {
+        $numberOrder = compare_learning_center_display_numbers(
+            (string) ($left['display_number'] ?? ''),
+            (string) ($right['display_number'] ?? '')
+        );
+        if ($numberOrder !== 0) {
+            return $numberOrder;
+        }
+        return strcasecmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+    });
+
+    return [
+        'version' => isset($parsed['version']) && is_numeric($parsed['version']) ? (int) $parsed['version'] : 1,
+        'rows' => $rows
+    ];
+}
+
+function read_learning_center_outline_file(string $path): array
+{
+    if (!is_file($path)) {
+        return [
+            'available' => false,
+            'outline' => ['version' => 1, 'rows' => []],
+            'content' => '',
+            'path' => $path
+        ];
+    }
+
+    $content = (string) file_get_contents($path);
+    $parsed = json_decode($content, true);
+    if (!is_array($parsed)) {
+        throw new RuntimeException('The Learning Center outline JSON is invalid.');
+    }
+
+    return [
+        'available' => true,
+        'outline' => normalize_learning_center_outline($parsed),
+        'content' => $content,
+        'path' => $path
+    ];
+}
+
+function write_learning_center_outline_file(string $path, array $outline, string $mirrorPath = ''): void
+{
+    $normalized = normalize_learning_center_outline($outline);
+    $payload = json_encode($normalized, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($payload) || $payload === '') {
+        throw new RuntimeException('Unable to encode the Learning Center outline.');
+    }
+    ensure_parent_directory($path);
+    $result = @file_put_contents($path, $payload, LOCK_EX);
+    if ($result === false) {
+        throw new RuntimeException('Unable to write the Learning Center outline.');
+    }
+    if ($mirrorPath !== '') {
+        ensure_parent_directory($mirrorPath);
+        @file_put_contents($mirrorPath, $payload, LOCK_EX);
+    }
+}
+
+function load_learning_center_outline(): array
+{
+    $contentKey = 'learning-center-outline';
+    ensure_learn_more_content_seeded($contentKey);
+    $record = read_learning_center_outline_file(get_learn_more_content_path($contentKey));
+    return (array) ($record['outline'] ?? ['version' => 1, 'rows' => []]);
+}
+
+function get_learning_center_outline_row_by_id(array $outline, string $lessonId): ?array
+{
+    $normalizedId = normalize_learning_center_outline_id($lessonId);
+    foreach ((array) ($outline['rows'] ?? []) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        if (normalize_learning_center_outline_id($row['id'] ?? '') === $normalizedId) {
+            return $row;
+        }
+    }
+    return null;
+}
+
+function get_learning_center_outline_row_by_display_number(array $outline, string $displayNumber): ?array
+{
+    $normalizedNumber = trim((string) $displayNumber);
+    foreach ((array) ($outline['rows'] ?? []) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        if (trim((string) ($row['display_number'] ?? '')) === $normalizedNumber) {
+            return $row;
+        }
+    }
+    return null;
+}
+
+function ensure_learning_center_lessons_seeded(): void
+{
+    global $learningCenterLessonsDir, $contentRepoLessonsDir;
+
+    if (!is_dir($learningCenterLessonsDir)) {
+        @mkdir($learningCenterLessonsDir, 0775, true);
+    }
+    if (!is_dir($contentRepoLessonsDir)) {
+        @mkdir($contentRepoLessonsDir, 0775, true);
+    }
+
+    $privateMatches = glob($learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lesson-*.txt') ?: [];
+    foreach ($privateMatches as $privatePath) {
+        $name = basename((string) $privatePath);
+        $repoPath = $contentRepoLessonsDir . DIRECTORY_SEPARATOR . $name;
+        copy_file_if_missing($privatePath, $repoPath);
+    }
+
+    $repoMatches = glob($contentRepoLessonsDir . DIRECTORY_SEPARATOR . 'lesson-*.txt') ?: [];
+    foreach ($repoMatches as $repoPath) {
+        $name = basename((string) $repoPath);
+        $privatePath = $learningCenterLessonsDir . DIRECTORY_SEPARATOR . $name;
+        copy_file_if_missing($repoPath, $privatePath);
+    }
+
+    $legacyLessonFourPrivatePath = $learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lesson-4.txt';
+    $legacyLessonFourRepoPath = $contentRepoLessonsDir . DIRECTORY_SEPARATOR . 'lesson-4.txt';
+    $permanentLessonFourPrivatePath = $learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lost-found-harp.txt';
+    $permanentLessonFourRepoPath = $contentRepoLessonsDir . DIRECTORY_SEPARATOR . 'lost-found-harp.txt';
+    copy_file_if_missing($legacyLessonFourPrivatePath, $permanentLessonFourPrivatePath);
+    copy_file_if_missing($legacyLessonFourRepoPath, $permanentLessonFourRepoPath);
+    copy_file_if_missing($permanentLessonFourPrivatePath, $permanentLessonFourRepoPath);
+    copy_file_if_missing($permanentLessonFourRepoPath, $permanentLessonFourPrivatePath);
+}
+
+function ensure_learn_more_content_seeded(string $contentKey): void
+{
+    $privatePath = get_learn_more_content_path($contentKey);
+    $repoPath = get_learn_more_repo_content_path($contentKey);
+    if ($privatePath === '' || $repoPath === '') {
+        return;
+    }
+
+    if ($contentKey === 'learning-center-outline') {
+        if (is_file($privatePath) && !is_file($repoPath)) {
+            copy_file_if_missing($privatePath, $repoPath);
+            return;
+        }
+
+        if (!is_file($privatePath) && is_file($repoPath)) {
+            copy_file_if_missing($repoPath, $privatePath);
+            return;
+        }
+
+        if (!is_file($privatePath) && !is_file($repoPath)) {
+            $defaultContent = get_default_learn_more_content($contentKey);
+            if ($defaultContent !== '') {
+                ensure_parent_directory($privatePath);
+                ensure_parent_directory($repoPath);
+                @file_put_contents($privatePath, $defaultContent, LOCK_EX);
+                @file_put_contents($repoPath, $defaultContent, LOCK_EX);
+            }
+        }
+        return;
+    }
+
+    if (preg_match('/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/', $contentKey)) {
+        ensure_learning_center_lessons_seeded();
+        return;
+    }
+
+    if (is_file($privatePath) && !is_file($repoPath)) {
+        copy_file_if_missing($privatePath, $repoPath);
+        return;
+    }
+
+    if (!is_file($privatePath) && is_file($repoPath)) {
+        copy_file_if_missing($repoPath, $privatePath);
+        return;
+    }
+
+    if (!is_file($privatePath) && !is_file($repoPath)) {
+        $defaultContent = get_default_learn_more_content($contentKey);
+        if ($defaultContent !== '') {
+            ensure_parent_directory($privatePath);
+            ensure_parent_directory($repoPath);
+            @file_put_contents($privatePath, $defaultContent, LOCK_EX);
+            @file_put_contents($repoPath, $defaultContent, LOCK_EX);
+        }
+    }
 }
 
 function read_learn_more_content_file(string $path): array
@@ -1023,12 +1527,36 @@ function read_learn_more_content_file(string $path): array
     ];
 }
 
-function write_learn_more_content_file(string $path, string $content): void
+function write_learn_more_content_file(string $path, string $content, string $mirrorPath = ''): void
 {
+    ensure_parent_directory($path);
     $result = @file_put_contents($path, $content, LOCK_EX);
     if ($result === false) {
         throw new RuntimeException('Unable to write Learn More content.');
     }
+
+    if ($mirrorPath !== '') {
+        ensure_parent_directory($mirrorPath);
+        @file_put_contents($mirrorPath, $content, LOCK_EX);
+    }
+}
+
+function list_learning_center_lesson_numbers(): array
+{
+    $outline = load_learning_center_outline();
+    $numbers = [];
+    foreach ((array) ($outline['rows'] ?? []) as $row) {
+        if (!is_array($row) || normalize_learning_center_outline_type($row['type'] ?? '') !== 'lesson-page') {
+            continue;
+        }
+        $displayNumber = trim((string) ($row['display_number'] ?? ''));
+        if (preg_match('/^\d{1,4}$/', $displayNumber)) {
+            $numbers[] = (int) $displayNumber;
+        }
+    }
+    $numbers = array_values(array_unique($numbers));
+    sort($numbers, SORT_NUMERIC);
+    return $numbers;
 }
 
 function collect_known_user_identifiers(array $state): array
@@ -7998,6 +8526,7 @@ if ($action === 'get_learn_more_content') {
         if ($contentKey === '' || $path === '') {
             throw new RuntimeException('Learn More content key is invalid.');
         }
+        ensure_learn_more_content_seeded($contentKey);
         $contentRecord = read_learn_more_content_file($path);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -8024,6 +8553,55 @@ if ($action === 'get_learn_more_content') {
     exit;
 }
 
+if ($action === 'list_learning_center_lessons') {
+    try {
+        require_allowed_keys($input, ['action'], 'request');
+        $outline = load_learning_center_outline();
+        $lessonRows = [];
+        foreach ((array) ($outline['rows'] ?? []) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $lessonId = normalize_learning_center_outline_id($row['id'] ?? '');
+            $displayNumber = trim((string) ($row['display_number'] ?? ''));
+            $title = trim((string) ($row['title'] ?? ''));
+            $subcopy = trim((string) ($row['subcopy'] ?? ''));
+            $type = normalize_learning_center_outline_type($row['type'] ?? '');
+            if ($lessonId === '' || $displayNumber === '' || $title === '') {
+                continue;
+            }
+            $contentKey = $type === 'lesson-page' ? 'lesson-id:' . $lessonId : '';
+            $available = $type !== 'lesson-page' || is_file(get_learn_more_content_path($contentKey));
+            $lessonRows[] = [
+                'lesson_id' => $lessonId,
+                'display_number' => $displayNumber,
+                'title' => $title,
+                'subcopy' => $subcopy,
+                'type' => $type,
+                'content_key' => $contentKey,
+                'available' => $available
+            ];
+        }
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'learning_center_lessons' => $lessonRows,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'save_learn_more_content') {
     if (!$hasAdminAccess && empty($state['learn_more_save_enabled'])) {
         fail_request($handle, $nowMs, 'Learn More saving is currently disabled.', 403);
@@ -8032,11 +8610,13 @@ if ($action === 'save_learn_more_content') {
         require_allowed_keys($input, ['action', 'secret_candidate', 'content_key', 'content'], 'request');
         $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
         $path = get_learn_more_content_path($contentKey);
+        $mirrorPath = get_learn_more_repo_content_path($contentKey);
         $content = isset($input['content']) ? (string) $input['content'] : '';
-        if ($contentKey === '' || $path === '') {
+        if ($contentKey === '' || $path === '' || $mirrorPath === '') {
             throw new RuntimeException('Learn More content key is invalid.');
         }
-        write_learn_more_content_file($path, $content);
+        ensure_learn_more_content_seeded($contentKey);
+        write_learn_more_content_file($path, $content, $mirrorPath);
         $contentRecord = read_learn_more_content_file($path);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
