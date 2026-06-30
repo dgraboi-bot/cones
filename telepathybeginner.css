@@ -552,6 +552,7 @@ body {
 
 .launcher-top-row,
 .options-top-row,
+.online-course-top-row,
 .clairvoyance-top-row,
 .learn-more-top-row {
   position: relative;
@@ -571,6 +572,8 @@ body {
 .launcher-top-row .beginner-top-menu-button,
 .options-top-row .beginner-top-home-button,
 .options-top-row .beginner-top-version,
+.online-course-top-row .beginner-top-button-left,
+.online-course-top-row .beginner-top-button-right,
 .clairvoyance-top-row .beginner-top-button-left,
 .clairvoyance-top-row .beginner-top-button-right,
 .learn-more-top-row .beginner-top-button-left,
@@ -580,6 +583,7 @@ body {
 
 .launcher-top-row .beginner-top-button-left,
 .options-top-row .beginner-top-home-button,
+.online-course-top-row .beginner-top-button-left,
 .clairvoyance-top-row .beginner-top-button-left,
 .learn-more-top-row .beginner-top-button-left {
   position: absolute;
@@ -589,6 +593,7 @@ body {
 
 .launcher-top-row .beginner-top-menu-button,
 .options-top-row .beginner-top-version,
+.online-course-top-row .beginner-top-button-right,
 .clairvoyance-top-row .beginner-top-button-right,
 .learn-more-top-row .beginner-top-button-right {
   position: absolute;
@@ -599,6 +604,7 @@ body {
 
 .launcher-top-row .beginner-kicker,
 .options-top-row .beginner-kicker,
+.online-course-top-row .beginner-kicker,
 .clairvoyance-top-row .beginner-kicker,
 .learn-more-top-row .beginner-kicker {
   position: static;
@@ -864,6 +870,7 @@ body {
 }
 
 .clairvoyance-top-row .beginner-top-button-right,
+.online-course-top-row .beginner-top-button-right,
 .clairvoyance-top-row .beginner-top-button-back.beginner-top-button-right {
   justify-self: end;
 }
@@ -1374,6 +1381,21 @@ body {
 .feature-setup-action.is-pro-locked-button:hover,
 .feature-setup-action.is-pro-locked-button:focus-visible {
   filter: saturate(0.35) brightness(0.82);
+}
+
+.role-message-open:disabled {
+  opacity: 0.52;
+  cursor: default;
+  filter: grayscale(0.18);
+}
+
+.role-message-open:disabled:hover,
+.role-message-open:disabled:focus-visible {
+  filter: grayscale(0.18);
+}
+
+.is-role-message-disabled {
+  opacity: 0.82;
 }
 
 .role-message-badge {
@@ -3269,6 +3291,11 @@ body {
   font-size: 0.96rem;
 }
 
+.online-course-action-row {
+  display: grid;
+  gap: 14px;
+}
+
 .online-course-reference {
   display: grid;
   gap: 8px;
@@ -3308,6 +3335,62 @@ body {
   margin-top: 6px;
   color: rgba(226, 234, 247, 0.84);
   font-size: 0.94rem;
+}
+
+.online-course-divider {
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+
+.online-course-curriculum {
+  display: grid;
+  gap: 16px;
+}
+
+.online-course-course-heading {
+  margin-bottom: 0;
+  text-align: center;
+}
+
+.online-course-course-subheading {
+  margin: 0;
+}
+
+.online-course-lesson-list {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.online-course-lesson-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  color: rgba(248, 240, 232, 0.92);
+  line-height: 1.55;
+}
+
+.online-course-lesson-checkbox {
+  margin-top: 0.28rem;
+}
+
+.online-course-lesson-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.online-course-lesson-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.online-course-lesson-subcopy {
+  color: rgba(226, 234, 247, 0.84);
 }
 
 .online-course-checklist {
@@ -3352,6 +3435,89 @@ body {
   color: rgba(226, 234, 247, 0.78);
   white-space: nowrap;
   text-align: right;
+}
+
+.baseline-questions-panel {
+  gap: 18px;
+}
+
+.baseline-questions-form {
+  display: grid;
+  gap: 18px;
+}
+
+.baseline-questions-reference {
+  margin-top: 0;
+}
+
+.baseline-question-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.baseline-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 14px;
+}
+
+.baseline-choice-grid-multi {
+  margin-bottom: 6px;
+}
+
+.baseline-trial-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.baseline-scale-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.baseline-scale-input {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  accent-color: var(--brand-top-hover);
+}
+
+.baseline-scale-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.baseline-scale-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  color: rgba(248, 240, 232, 0.82);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.baseline-scale-meta strong {
+  color: rgba(255, 247, 228, 0.98);
+  font-size: 1.06rem;
+}
+
+@media (max-width: 640px) {
+  .baseline-trial-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .baseline-scale-meta {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
 }
 
 .install-guide-steps {

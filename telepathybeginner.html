@@ -55,16 +55,16 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260629l">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260629w">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260629l">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260629l">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260629l">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260629w">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260629w">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260629w">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260629l">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260629l">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260629l">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260629w">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260629w">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260629w">
 </head>
 <body>
   <main class="beginner-shell">
@@ -167,7 +167,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                       </button>
                     </div>
                     <div class="role-course-launch">
-                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="sender">Online Course</button>
+                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="sender">Learning Center</button>
                     </div>
                   </div>
                 </label>
@@ -260,7 +260,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                       </button>
                     </div>
                     <div class="role-course-launch">
-                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="receiver">Online Course</button>
+                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="receiver">Learning Center</button>
                     </div>
                   </div>
                 </label>
@@ -514,7 +514,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260629l</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260629w</span>
           </div>
         </div>
 
@@ -523,11 +523,12 @@ You don't need to use your email to identify yourself uniquely in this app. You 
         </h1>
 
         <div class="options-actions">
-          <button class="options-button" type="button" data-open-help>Help</button>
-          <button class="options-button" type="button" data-open-report>Performance Reports</button>
           <button class="options-button" type="button" data-open-aids>Learning Center</button>
+          <button class="options-button" type="button" data-open-telepathy-practice>Telepathy Practice</button>
+          <button class="options-button" type="button" data-open-report>Performance Reports</button>
           <button class="options-button" type="button" data-open-messaging-setup>Setup Website Features</button>
           <button class="options-button" type="button" data-open-other-settings>Other Settings and ESP Tasks</button>
+          <button class="options-button" type="button" data-open-help>User Guide</button>
         </div>
         </section>
 
@@ -647,105 +648,351 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </footer>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="aids" aria-labelledby="aidsTitle">
-          <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-aids>BACK</button>
-            <p class="beginner-kicker">ESP GYM</p>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
-          </div>
-
-          <h1 class="beginner-title" id="aidsTitle">Learning Center</h1>
-          <p class="beginner-subtitle">This page is a placeholder for future aids and support tools.</p>
-
-          <div class="options-actions">
-            <button class="options-button" type="button" data-open-online-course>Online Course</button>
-            <button class="options-button" type="button" data-open-general-information>General Information</button>
-            <button class="options-button" type="button" data-open-rewire>Rewire</button>
-            <button class="options-button" type="button" data-open-readings-videos>Readings and Videos</button>
-            <button class="options-button" type="button" data-open-websites-events-list>Websites and Events</button>
-            <button class="options-button" type="button" data-open-case-studies-list>Case Studies</button>
-            <button class="options-button" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
-            <button class="options-button" type="button" data-open-user-comments-list>Comments, Suggestions & Testimonials from Users</button>
-          </div>
-        </section>
-
         <section class="beginner-view beginner-view-hidden" data-view="online-course" aria-labelledby="onlineCourseTitle">
-          <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-online-course>BACK</button>
+          <div class="beginner-top-row online-course-top-row">
+            <button class="beginner-top-button beginner-top-button-left beginner-top-pill" type="button" data-save-online-course-word>SAVE as WORD FILE</button>
             <p class="beginner-kicker">ESP GYM</p>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-button-right beginner-top-pill" type="button" data-close-online-course>BACK</button>
           </div>
 
-          <h1 class="beginner-title" id="onlineCourseTitle">Online Course</h1>
+          <h1 class="beginner-title" id="onlineCourseTitle">Learning Center</h1>
           <div class="online-course-jump-links" aria-label="Online course quick links">
+            <button class="role-note-link online-course-jump-link" type="button" data-open-baseline-questions data-online-course-target="baseline" onclick="window.location.href='./telepathybeginner.html?v=20260629w&amp;open=baseline-questions'">Baseline Questions</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-after-first-session-questions onclick="window.location.href='./telepathybeginner.html?v=20260629w&amp;open=after-first-session-questions'">After First Session Questions</button>
             <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="sender">Sender</button>
             <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="receiver">Receiver</button>
             <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="performance">Performance</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-general-information>General Information</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-rewire>Rewire</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-readings-videos>Readings and Videos</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-websites-events-list>Websites and Events</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-case-studies-list>Case Studies</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
+            <button class="role-note-link online-course-jump-link" type="button" data-open-user-comments-list>Comments, Suggestions & Testimonials from Users</button>
           </div>
 
           <section class="settings-view-panel about-view-panel online-course-panel">
-            <div class="about-section">
-              <p class="about-section-copy">In this course we will go over what telepathy is and look at some case studies. Then we will look at our biology and get an understanding of how the mind's eye works. After that, we will be introduced to the simple Level 1 operation of the telepathy task, the need to find a partner or partners to work with, setting up for the practice trials, and how to schedule them spontaneously or not. Then we will start to do actual telepathy practice trials and look at performance reports, and examine introspectively what our minds were doing.</p>
-              <p class="about-section-copy">But first, to establish a beginning reference point, please answer the following questions:</p>
-            </div>
+              <div class="about-section">
+                <p class="about-section-copy">Welcome to the Learning Center. This is where the structured steps of this online course are presented. To participate in this course as a course-taker, click on each line that starts with a checkbox below pretty much in order. They will take you on a structured tour of an area of perceptual sensitivity which is just now beginning to be explored seriously by modern science. As familiarity with your own telepathic perception increases, and with intention, your ability to perceive information telepathically and accurately may improve. There is no guarantee, because the extent to which a person can improve their telepathic ability through intention and practice is not known.</p>
+                <p class="about-section-copy"><strong>Goal:</strong> Become better able to tune in to information in telepathic form present “out there.” Where exactly “out there” is remains to be seen. It is possibly outside of space itself.</p>
+                <p class="about-section-copy">This course starts by presenting information that leads to a deeper understanding of telepathy and what receivers and senders of telepathic information should expect. In order to be a receiver of telepathic information, it is essential to believe completely in the reality of telepathy. A sender of telepathic information does not need to believe in telepathy and can be a skeptic. To strengthen the belief of doubters who nevertheless have an open mind, we will examine a few documented case studies and look at examples of what a few exceptionally gifted people were able to do with telepathic sensitivity.</p>
+                <p class="about-section-copy">We will also look at our biology and get an understanding of how the mind's eye works. After that, we will be introduced to the simple Level 1 operation of the telepathy task, the need to find a partner or partners to work with, preparing for the practice trials, and how to schedule them spontaneously or not. Then we will start to do actual telepathy practice trials and look at performance reports, and examine introspectively what our minds were doing.</p>
+                <p class="about-section-copy">This is basically a course in learning how to be more sensitive to specifically the visual information that can manifest in your ‘mind’s eye.’ Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become familiar with it.</p>
+                <p class="about-section-copy">The lessons have put together and condensed a wealth of information already known and understood about telepathy from diverse sources. Some of this information may be new even for those quite familiar with parapsychology.</p>
+                <p class="about-section-copy">The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is tracked, analyzed constantly for chance vs. better-than-chance performance, and can be viewed at any time by going to the Performance Reports menu item.</p>
+                <p class="about-section-copy">For those not interested in visiting ESP Gym for its courseware, but just to use its tools to explore and practice telepathy, they should simply go directly to the practice tools and start workouts with them: Practice Telepathy menu item.</p>
+                <p class="about-section-copy">First, to establish a baseline reference point, please answer the following questions:</p>
+              </div>
 
-            <div class="online-course-reference">
-              <p class="online-course-reference-title">REFERENCE POINT</p>
-              <p class="online-course-reference-meta">DATE: <span data-online-course-date></span> &nbsp;&nbsp;&nbsp; UNIQUE NAME: <span data-online-course-name></span></p>
-            </div>
+              <div class="online-course-reference">
+                <p class="online-course-reference-title">REFERENCE POINT</p>
+                <p class="online-course-reference-meta">DATE: <span data-online-course-date></span> &nbsp;&nbsp;&nbsp; UNIQUE NAME: <span data-online-course-name></span></p>
+              </div>
 
-            <div class="about-section">
-              <ol class="online-course-questions">
-                <li>How strong is your current belief in the reality of telepathy?</li>
-                <li>How strong is your current belief in the reality of telepathy for you?</li>
-                <li>Have you ever, or one or a few times, or frequently experienced ESP phenomena?
-                  <div class="online-course-inline-note">If so, which phenomena: Telepathy &nbsp; Clairvoyance &nbsp; Precognition &nbsp; Other</div>
-                </li>
-                <li>Have you ever practiced telepathic communication before now?</li>
-                <li>If you do exceptionally well, would you be available to participate in further research?</li>
-              </ol>
-            </div>
+              <div class="online-course-action-row">
+                <button class="options-button settings-view-save" type="button" data-open-baseline-questions data-online-course-target="baseline" onclick="window.location.href='./telepathybeginner.html?v=20260629w&amp;open=baseline-questions'">Open Baseline Questions</button>
+                <button class="options-button settings-view-save" type="button" data-open-after-first-session-questions onclick="window.location.href='./telepathybeginner.html?v=20260629w&amp;open=after-first-session-questions'">Open After First Session Questions</button>
+              </div>
 
-            <div class="about-section">
-              <p class="about-section-copy">Below is a set of checkpoints for each individual course objective in the suggested order. To take the course, simply come here, and click on each link and participate as called for in that lesson.</p>
-            </div>
+              <div class="about-section">
+                <p class="about-section-copy online-course-divider">- - - - - - - - - - - - - - - - - - - - -</p>
+                <p class="about-section-copy">Below is a set of checkpoints for each individual course objective in the suggested order. To take the course, simply come here, and click on each link and participate as called for in that lesson. Go at your own speed.</p>
+              </div>
 
-            <div class="online-course-checklist">
-              <div class="online-course-checklist-header">Lesson Checkpoint Summary <span class="online-course-checklist-header-right">Telepathy Beginner &nbsp;&nbsp;&nbsp; ESP PRO</span></div>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Reference Point</span> <span class="online-course-checklist-date" data-online-course-checkpoint-date></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>What is telepathy?</span> <span class="online-course-checklist-date">xxxx/x/x/x</span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Telepathy case studies</span> <span class="online-course-checklist-date">xxxx/x/x/x</span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Especially gifted telepathists</span> <span class="online-course-checklist-date">xxxx/x/x/x</span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Explanation of the Level 1 task</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Completed 1st session with 3 Level 1 trials</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 1 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Advance to Level 2</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 2 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Advance to Level 3</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 3 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Advance to Level 4</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Level 4 Performance better than chance for 10 trials</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Read 1 Journal article</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Ongoing Research</span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Questionnaire for Potential Research Participation <strong>&lt;--- PRO FEATURE</strong></span> <span class="online-course-checklist-date"></span></label>
-              <label class="online-course-checklist-row"><input type="checkbox" disabled> <span>Participate in Ongoing Research <strong>&lt;--- PRO FEATURE</strong></span> <span class="online-course-checklist-date"></span></label>
-            </div>
+              <section class="online-course-curriculum">
+                <h2 class="about-section-title online-course-course-heading">STRUCTURED COURSE</h2>
+                <p class="about-section-copy online-course-course-subheading">Tap or click on a lesson below to bring up that lesson. To return here after completing a lesson, tap or click on the ‘Back’ button at the top right of each lesson page.</p>
+                <p class="about-section-copy online-course-course-subheading">NOTE: in front of each LESSON line below there is a checkbox. These checkboxes will become checked when the user completes the lesson associated with the LESSON line. Later, tapping or clicking on each line will bring up a page with that lesson on it.</p>
 
-            <section class="about-section">
-              <h2 class="about-section-title">After Doing the First Trial</h2>
-              <ol class="online-course-questions">
-                <li>Were you able to look at the contents of your mind's eye?</li>
-                <li>Did you trust that the right information would be in your mind's eye?</li>
-                <li>Did you close your eyes and focus on the contents of your mind's eye at the end of the countdown?</li>
-                <li>Did anything, probably quite unclear and dim, but with some clear-enough features, show up in your mind's eye?</li>
-                <li>Did you catch any color anywhere? If so, where? (left, right, ...)</li>
-                <li>Did you catch whether there was one "attention magnet" or "more than one attention magnet" in the visual shape(s) in your mind's eye?</li>
-                <li>If there was more than one shape, were the shapes arranged horizontally, left to right? Vertically bottom to top? Diagonally up from bottom left? Diagonally down from top left?</li>
-                <li>Was the shape(s) constantly present, or did shapes fade in and out of perception?</li>
-                <li>Did you make an effort to remember the exact visual shape of what you saw fleetingly?</li>
-                <li>Were the visual features clear enough to give a name to? (It's usually better not to name)</li>
-              </ol>
+                <div class="online-course-lesson-list">
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 0 - ESTABLISH A BASELINE</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 1 - DISTANCE DOES NOT AFFECT TELEPATHIC COMMUNICATION</span><span class="online-course-lesson-subcopy">Speed of telepathic communication · propagation medium · type of encoding</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 2 - EVERYTHING IS CONNECTED</span><span class="online-course-lesson-subcopy">People are connected · plants · animals · things? · link to psychometry and how to do it · concept of how things get connected · hair · toothbrush</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 3 - WHERE IS “OUT THERE”?</span><span class="online-course-lesson-subcopy">Idea of outside space · outside time · speed of telepathy? · entanglement · link to journal article</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 4 - LOST AND FOUND HARP</span><span class="online-course-lesson-subcopy">H. McCoy · this changes everything</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 5 - OSSOWEICKI AND CROISSET</span><span class="online-course-lesson-subcopy">You will marry a woman named Lydia · The ice-skate blade is showing in the mud</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 6 - RELATED PHENOMENA</span><span class="online-course-lesson-subcopy">Dogs · psychokinesis · apports · healing · sprouting · rebar bending · videos · psychometry · clairvoyance · precognition · thought forms</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 7 - THE MIND’S EYE</span><span class="online-course-lesson-subcopy">How perception works · top down vs. bottom up · top-down projection · visual imagination · visualization exercises</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 8 - LEARN THE TASK BY FIRST WORKING WITH A ROBOT</span><span class="online-course-lesson-subcopy">Do a few trials at Level 1 · explore being a receiver · a sender · confidence on and off</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 9 - DIFFERENCE BETWEEN A ROBOT AND A PERSON</span><span class="online-course-lesson-subcopy">Randomness · chance vs. not chance · the trouble with statistics · it isn’t clear · it’s transient · it’s dim · it fades in and out · low resolution · you can’t care · mizu no kokoro</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 10 - FIND A PARTNER AND DO YOUR FIRST REAL TRIALS AS A RECEIVER</span><span class="online-course-lesson-subcopy">Scheduling · messaging function · spontaneous trials · fill out first session questionnaire</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 11 - DEBRIEFING: WHAT HAPPENED AND PERFORMANCE REPORTS</span><span class="online-course-lesson-subcopy">Raw data · visualization of data · data statistics · GLOBE · questions</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 12 - BEING A SENDER</span><span class="online-course-lesson-subcopy">Visualize a white circle on a black background with your eyes open · strong sending vs. weak sending · sustained intention</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 13 - SENDING TRIALS WITH PARTNER</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 14 - DEBRIEF: ANALYSIS / QUESTIONS</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 15 - ONGOING RESEARCH</span><span class="online-course-lesson-subcopy">PRO topic</span></span></label>
+
+                  <label class="online-course-lesson-row"><input class="online-course-lesson-checkbox" type="checkbox" disabled> <span class="online-course-lesson-main"><span class="online-course-lesson-title">LESSON 16 - WHERE TO GO FROM HERE</span><span class="online-course-lesson-subcopy">PRO topic · journal articles · parapsychology org · ions · sheldrake · anna breitenberg? · consciousness studies · communications with animals · dolphin · macro PK · eric · previous PK experiments · some videos · talk with animals · connect with plants · healing · scientific study of phenomena · proposal to measure the speed of thought propagation</span></span></label>
+                </div>
+              </section>
             </section>
+          </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="baseline-questions" aria-labelledby="baselineQuestionsTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-baseline-questions>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="baselineQuestionsTitle">BASELINE QUESTIONS</h1>
+
+          <section class="settings-view-panel about-view-panel baseline-questions-panel">
+            <div class="online-course-reference baseline-questions-reference">
+              <p class="online-course-reference-title">BASELINE</p>
+              <p class="online-course-reference-meta">DATE: <span data-baseline-date></span> &nbsp;&nbsp;&nbsp; UNIQUE NAME: <span data-baseline-name></span></p>
+            </div>
+
+            <form class="baseline-questions-form" data-baseline-form>
+              <div class="settings-view-field">
+                <label class="settings-view-label" for="baselineAgeGroup">1. Approximate age</label>
+                <select class="settings-view-input" id="baselineAgeGroup" data-baseline-age>
+                  <option value="">Select one</option>
+                  <option value="1-6">1-6</option>
+                  <option value="7-12">7-12</option>
+                  <option value="13-18">13-18</option>
+                  <option value="19-22">19-22</option>
+                  <option value="23-30">23-30</option>
+                  <option value="31-45">31-45</option>
+                  <option value="45-60">45-60</option>
+                  <option value="61-75">61-75</option>
+                  <option value="75+">75+</option>
+                  <option value="Rather not say">Rather not say</option>
+                </select>
+              </div>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">2. Sex</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="F" data-baseline-sex> <span>F</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="M" data-baseline-sex> <span>M</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="Rather not say" data-baseline-sex> <span>Rather not say</span></label>
+                </div>
+              </fieldset>
+
+              <div class="settings-view-field">
+                <label class="settings-view-label" for="baselineBeliefTelepathy">3. How strong is your current belief in the reality of telepathy?</label>
+                <div class="baseline-scale-wrap">
+                  <input class="settings-view-input baseline-scale-input" id="baselineBeliefTelepathy" type="range" min="1" max="10" step="1" value="5" data-baseline-belief-telepathy>
+                  <div class="baseline-scale-meta">
+                    <span>1 = not at all</span>
+                    <strong data-baseline-belief-telepathy-value>5</strong>
+                    <span>10 = absolutely, without a doubt</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-view-field">
+                <label class="settings-view-label" for="baselineBeliefPersonal">4. How strong is your current belief in the reality of telepathy for you?</label>
+                <div class="baseline-scale-wrap">
+                  <input class="settings-view-input baseline-scale-input" id="baselineBeliefPersonal" type="range" min="1" max="10" step="1" value="5" data-baseline-belief-personal>
+                  <div class="baseline-scale-meta">
+                    <span>1 = not at all</span>
+                    <strong data-baseline-belief-personal-value>5</strong>
+                    <span>10 = absolutely, without a doubt</span>
+                  </div>
+                </div>
+              </div>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">5. Are you related to people with psi abilities?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineRelatedPsi" value="Yes" data-baseline-related-psi> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineRelatedPsi" value="No" data-baseline-related-psi> <span>No</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineRelatedPsi" value="Don't know" data-baseline-related-psi> <span>Don't know</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">6. Have you ever experienced telepathy or other ESP phenomena?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineExperienceFrequency" value="Never" data-baseline-experience-frequency> <span>Never</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineExperienceFrequency" value="Once" data-baseline-experience-frequency> <span>Once</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineExperienceFrequency" value="A few times" data-baseline-experience-frequency> <span>A few times</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineExperienceFrequency" value="Frequently" data-baseline-experience-frequency> <span>Frequently</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">7. If so, which phenomena have you experienced?</legend>
+                <div class="baseline-choice-grid baseline-choice-grid-multi">
+                  <label class="settings-view-checkbox"><input type="checkbox" value="Telepathy" data-baseline-phenomenon> <span>Telepathy</span></label>
+                  <label class="settings-view-checkbox"><input type="checkbox" value="Clairvoyance" data-baseline-phenomenon> <span>Clairvoyance</span></label>
+                  <label class="settings-view-checkbox"><input type="checkbox" value="Precognition" data-baseline-phenomenon> <span>Precognition</span></label>
+                  <label class="settings-view-checkbox"><input type="checkbox" value="Other" data-baseline-phenomenon> <span>Other</span></label>
+                </div>
+                <label class="settings-view-label" for="baselinePhenomenaOther">If other, please specify</label>
+                <input class="settings-view-input" id="baselinePhenomenaOther" type="text" data-baseline-phenomena-other>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">8. Have you undertaken to learn to be telepathic or to have other ESP skills before now?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="baselinePriorTraining" value="Yes" data-baseline-prior-training> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselinePriorTraining" value="No" data-baseline-prior-training> <span>No</span></label>
+                </div>
+                <label class="settings-view-label" for="baselinePriorSkills">If yes, which skill(s)?</label>
+                <input class="settings-view-input" id="baselinePriorSkills" type="text" data-baseline-prior-skills>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">9. If you do exceptionally well, would you be available to participate in further research?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineFurtherResearch" value="Yes" data-baseline-further-research> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineFurtherResearch" value="No" data-baseline-further-research> <span>No</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineFurtherResearch" value="Maybe" data-baseline-further-research> <span>Maybe</span></label>
+                </div>
+              </fieldset>
+            </form>
+
+            <p class="settings-view-status" data-baseline-status></p>
+            <button class="options-button settings-view-save" type="button" data-save-baseline-questions>SAVE BASELINE QUESTIONS</button>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="after-first-session-questions" aria-labelledby="afterFirstSessionQuestionsTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-after-first-session-questions>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="afterFirstSessionQuestionsTitle">AFTER FIRST SESSION QUESTIONS</h1>
+
+          <section class="settings-view-panel about-view-panel baseline-questions-panel">
+            <div class="online-course-reference baseline-questions-reference">
+              <p class="online-course-reference-title">AFTER YOUR FIRST SESSION WITH A PERSON</p>
+              <p class="online-course-reference-meta">DATE: <span data-after-first-session-date></span></p>
+              <p class="online-course-reference-meta">RECEIVER: <span data-after-first-session-receiver></span> &nbsp;&nbsp;&nbsp; SENDER: <span data-after-first-session-sender></span></p>
+            </div>
+
+            <form class="baseline-questions-form" data-after-first-session-form>
+              <div class="baseline-trial-summary-grid">
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="afterFirstSessionTrialStart">Trial number started with</label>
+                  <input class="settings-view-input" id="afterFirstSessionTrialStart" type="number" min="0" step="1" data-after-first-session-trial-start>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="afterFirstSessionTrialEnd">Trial number ended with</label>
+                  <input class="settings-view-input" id="afterFirstSessionTrialEnd" type="number" min="0" step="1" data-after-first-session-trial-end>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="afterFirstSessionTrialsReceiver">How many trials did you do as receiver?</label>
+                  <input class="settings-view-input" id="afterFirstSessionTrialsReceiver" type="number" min="0" step="1" data-after-first-session-trials-receiver>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="afterFirstSessionTrialsSender">How many trials did you do as sender?</label>
+                  <input class="settings-view-input" id="afterFirstSessionTrialsSender" type="number" min="0" step="1" data-after-first-session-trials-sender>
+                </div>
+              </div>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">1. Were you able to look at the contents of your mind's eye?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionLookMindEye" value="Yes" data-after-first-session-look-mind-eye> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionLookMindEye" value="No" data-after-first-session-look-mind-eye> <span>No</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">2. Did you trust that the right information would be in your mind's eye?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionTrustMindEye" value="Yes" data-after-first-session-trust-mind-eye> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionTrustMindEye" value="No" data-after-first-session-trust-mind-eye> <span>No</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">3. Did you close your eyes and focus on the contents of your mind's eye at the end of the countdown?</legend>
+                <p class="settings-view-hint">Closing the eyes is optional, but is often helpful.</p>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionClosedEyes" value="Yes" data-after-first-session-closed-eyes> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionClosedEyes" value="No" data-after-first-session-closed-eyes> <span>No</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">4. Did anything, probably quite unclear and dim, but with some clear-enough features, show up in your mind's eye?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAnythingShowed" value="Yes" data-after-first-session-anything-showed> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAnythingShowed" value="No" data-after-first-session-anything-showed> <span>No</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">5. Did you perceive any color anywhere?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionPerceivedColor" value="Yes" data-after-first-session-perceived-color> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionPerceivedColor" value="No" data-after-first-session-perceived-color> <span>No</span></label>
+                </div>
+                <label class="settings-view-label" for="afterFirstSessionColorWhere">If yes, where? (left, right, ...)</label>
+                <input class="settings-view-input" id="afterFirstSessionColorWhere" type="text" data-after-first-session-color-where>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">6. How many attention magnets did you perceive in the visual shape(s) in your mind's eye?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAttentionMagnetCount" value="Zero" data-after-first-session-attention-magnet-count> <span>Zero</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAttentionMagnetCount" value="One" data-after-first-session-attention-magnet-count> <span>One</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAttentionMagnetCount" value="More than one" data-after-first-session-attention-magnet-count> <span>More than one</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">7. If there was more than one shape, how were the shapes arranged?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Horizontally" data-after-first-session-arrangement> <span>Horizontally</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Vertically" data-after-first-session-arrangement> <span>Vertically</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Diagonally up from bottom left" data-after-first-session-arrangement> <span>Diagonally up from bottom left</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Diagonally down from top left" data-after-first-session-arrangement> <span>Diagonally down from top left</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">8. Were the shape(s) constantly present, or did shapes fade in and out of perception?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionShapePersistence" value="Constant" data-after-first-session-shape-persistence> <span>Constant</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionShapePersistence" value="Fading in and out" data-after-first-session-shape-persistence> <span>Fading in and out</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">9. Did you make an effort to remember the exact visual shape of what you saw fleetingly?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionRememberShape" value="Yes" data-after-first-session-remember-shape> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionRememberShape" value="No" data-after-first-session-remember-shape> <span>No</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">10. Were the visual features clear enough to give a name to anything?</legend>
+                <p class="settings-view-hint">It's usually better not to name.</p>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionNamedAnything" value="Yes" data-after-first-session-named-anything> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionNamedAnything" value="No" data-after-first-session-named-anything> <span>No</span></label>
+                </div>
+                <label class="settings-view-label" for="afterFirstSessionNameAccurate">If so, did the name turn out to be accurate?</label>
+                <input class="settings-view-input" id="afterFirstSessionNameAccurate" type="text" data-after-first-session-name-accurate>
+              </fieldset>
+            </form>
+
+            <p class="settings-view-status" data-after-first-session-status></p>
+            <button class="options-button settings-view-save" type="button" data-save-after-first-session-questions>SAVE AFTER FIRST SESSION QUESTIONS</button>
           </section>
         </section>
 
@@ -943,10 +1190,10 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           <h1 class="beginner-title" id="otherSettingsTitle">Other Settings and ESP Tasks</h1>
 
           <div class="options-actions">
-            <button class="options-button" type="button" data-open-behaviors>Behaviors</button>
             <button class="options-button" type="button" data-open-contact>Contact ESP Gym</button>
             <button class="options-button" type="button" data-open-clairvoyance-viewing data-pro-only-other-settings hidden>Clairvoyance / Remote Viewing</button>
             <button class="options-button" type="button" data-open-subscription-management>PRO Subscription</button>
+            <button class="options-button" type="button" data-open-confidence-behavior>Confidence</button>
           </div>
         </section>
 
@@ -1020,7 +1267,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                         data-remote-viewer-own
                       >
                       <div class="role-course-launch">
-                        <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="remote-viewer">Online Course</button>
+                        <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="remote-viewer">Learning Center</button>
                       </div>
                     </div>
                   </label>
@@ -1092,23 +1339,6 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           <div class="options-actions">
             <button class="options-button" type="button" data-open-go-pro>PRO Subscription</button>
             <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO Subscription</button>
-          </div>
-        </section>
-
-        <section class="beginner-view beginner-view-hidden" data-view="behaviors" aria-labelledby="behaviorsTitle">
-          <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-behaviors>BACK</button>
-            <p class="beginner-kicker">ESP GYM</p>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
-          </div>
-
-          <h1 class="beginner-title" id="behaviorsTitle">Behaviors</h1>
-          <p class="beginner-subtitle">Adjust trial behaviors for this device.</p>
-
-          <div class="options-actions">
-            <button class="options-button" type="button" data-open-color-scheme>Color Scheme Picker</button>
-            <button class="options-button" type="button" data-open-blink-behavior>Blink Behavior</button>
-            <button class="options-button" type="button" data-open-confidence-behavior>Confidence</button>
           </div>
         </section>
 
@@ -1524,6 +1754,8 @@ You don't need to use your email to identify yourself uniquely in this app. You 
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
+              <button class="options-button settings-view-save" type="button" data-open-color-scheme>Color Scheme Picker</button>
+              <button class="options-button settings-view-save" type="button" data-open-blink-behavior>Blink Behavior</button>
               <button class="options-button settings-view-save" type="button" data-open-user-type-admin>Assign user type</button>
               <button class="options-button settings-view-save" type="button" data-open-invitee-admin-direct>Manage Invitees</button>
               <button class="options-button settings-view-save" type="button" data-open-handle-update-admin>Update a user handle</button>
@@ -1535,8 +1767,8 @@ You don't need to use your email to identify yourself uniquely in this app. You 
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='BeginnerUserManual_preserved_20260625.html?v=20260629l'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260629l'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='BeginnerUserManual_preserved_20260625.html?v=20260629w'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260629w'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -1958,8 +2190,8 @@ You don't need to use your email to identify yourself uniquely in this app. You 
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-  <script src="vendor/leaflet/leaflet.js?v=20260629l"></script>
-  <script src="telepathybeginner.js?v=20260629l"></script>
+  <script src="vendor/leaflet/leaflet.js?v=20260629w"></script>
+  <script src="telepathybeginner.js?v=20260629w"></script>
 </body>
 </html>
 

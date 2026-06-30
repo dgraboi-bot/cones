@@ -1,7 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260629l";
+  const launcherBuildVersion = "20260629w";
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -32,7 +32,7 @@
   const otherSettingsView = document.querySelector('[data-view="other-settings"]');
   const clairvoyanceViewingView = document.querySelector('[data-view="clairvoyance-viewing"]');
   const subscriptionManagementView = document.querySelector('[data-view="subscription-management"]');
-  const behaviorsView = document.querySelector('[data-view="behaviors"]');
+  const behaviorsView = null;
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
   const blinkBehaviorView = document.querySelector('[data-view="blink-behavior"]');
   const confidenceBehaviorView = document.querySelector('[data-view="confidence-behavior"]');
@@ -44,6 +44,8 @@
   const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
   const adminEmailListView = document.querySelector('[data-view="admin-email-list"]');
   const onlineCourseView = document.querySelector('[data-view="online-course"]');
+  const baselineQuestionsView = document.querySelector('[data-view="baseline-questions"]');
+  const afterFirstSessionQuestionsView = document.querySelector('[data-view="after-first-session-questions"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
@@ -63,6 +65,7 @@
   const closeEspLessonDetailButton = document.querySelector("[data-close-esp-lesson-detail]");
   const saveLearnMoreButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
+  const openTelepathyPracticeButton = document.querySelector("[data-open-telepathy-practice]");
   const openUserGuideButton = document.querySelector("[data-open-user-guide]");
   const openMessagingSetupButton = document.querySelector("[data-open-messaging-setup]");
   const openFeatureSetupButtons = Array.from(document.querySelectorAll("[data-open-feature-setup]"));
@@ -76,6 +79,8 @@
   const openOnlineCourseButton = document.querySelector("[data-open-online-course]");
   const openOnlineCourseDirectButtons = Array.from(document.querySelectorAll("[data-open-online-course-direct]"));
   const onlineCourseTargetButtons = Array.from(document.querySelectorAll("[data-online-course-target]"));
+  const openBaselineQuestionsButtons = Array.from(document.querySelectorAll("[data-open-baseline-questions]"));
+  const openAfterFirstSessionQuestionsButtons = Array.from(document.querySelectorAll("[data-open-after-first-session-questions]"));
   const openGeneralInformationButton = document.querySelector("[data-open-general-information]");
   const openRewireButton = document.querySelector("[data-open-rewire]");
   const openReadingsVideosButton = document.querySelector("[data-open-readings-videos]");
@@ -88,7 +93,6 @@
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
-  const openBehaviorsButton = document.querySelector("[data-open-behaviors]");
   const openSubscriptionManagementButton = document.querySelector("[data-open-subscription-management]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
   const openLocationPickerSettingsButton = document.querySelector("[data-open-location-picker-settings]");
@@ -114,6 +118,9 @@
   const closeTemporaryHomePageButton = document.querySelector("[data-close-temporary-home-page]");
   const closeAidsButton = document.querySelector("[data-close-aids]");
   const closeOnlineCourseButton = document.querySelector("[data-close-online-course]");
+  const saveOnlineCourseWordButton = document.querySelector("[data-save-online-course-word]");
+  const closeBaselineQuestionsButton = document.querySelector("[data-close-baseline-questions]");
+  const closeAfterFirstSessionQuestionsButton = document.querySelector("[data-close-after-first-session-questions]");
   const closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
   const closeRewireButton = document.querySelector("[data-close-rewire]");
   const closeReadingsVideosButton = document.querySelector("[data-close-readings-videos]");
@@ -135,8 +142,47 @@
   const onlineCourseDate = document.querySelector("[data-online-course-date]");
   const onlineCourseName = document.querySelector("[data-online-course-name]");
   const onlineCourseCheckpointDate = document.querySelector("[data-online-course-checkpoint-date]");
+  const baselineDate = document.querySelector("[data-baseline-date]");
+  const baselineName = document.querySelector("[data-baseline-name]");
+  const baselineForm = document.querySelector("[data-baseline-form]");
+  const baselineAgeInput = document.querySelector("[data-baseline-age]");
+  const baselineSexInputs = Array.from(document.querySelectorAll("[data-baseline-sex]"));
+  const baselineBeliefTelepathyInput = document.querySelector("[data-baseline-belief-telepathy]");
+  const baselineBeliefTelepathyValue = document.querySelector("[data-baseline-belief-telepathy-value]");
+  const baselineBeliefPersonalInput = document.querySelector("[data-baseline-belief-personal]");
+  const baselineBeliefPersonalValue = document.querySelector("[data-baseline-belief-personal-value]");
+  const baselineRelatedPsiInputs = Array.from(document.querySelectorAll("[data-baseline-related-psi]"));
+  const baselineExperienceFrequencyInputs = Array.from(document.querySelectorAll("[data-baseline-experience-frequency]"));
+  const baselinePhenomenonInputs = Array.from(document.querySelectorAll("[data-baseline-phenomenon]"));
+  const baselinePhenomenaOtherInput = document.querySelector("[data-baseline-phenomena-other]");
+  const baselinePriorTrainingInputs = Array.from(document.querySelectorAll("[data-baseline-prior-training]"));
+  const baselinePriorSkillsInput = document.querySelector("[data-baseline-prior-skills]");
+  const baselineFurtherResearchInputs = Array.from(document.querySelectorAll("[data-baseline-further-research]"));
+  const baselineStatus = document.querySelector("[data-baseline-status]");
+  const baselineSaveButton = document.querySelector("[data-save-baseline-questions]");
+  const afterFirstSessionDate = document.querySelector("[data-after-first-session-date]");
+  const afterFirstSessionReceiver = document.querySelector("[data-after-first-session-receiver]");
+  const afterFirstSessionSender = document.querySelector("[data-after-first-session-sender]");
+  const afterFirstSessionForm = document.querySelector("[data-after-first-session-form]");
+  const afterFirstSessionTrialStartInput = document.querySelector("[data-after-first-session-trial-start]");
+  const afterFirstSessionTrialEndInput = document.querySelector("[data-after-first-session-trial-end]");
+  const afterFirstSessionTrialsReceiverInput = document.querySelector("[data-after-first-session-trials-receiver]");
+  const afterFirstSessionTrialsSenderInput = document.querySelector("[data-after-first-session-trials-sender]");
+  const afterFirstSessionLookMindEyeInputs = Array.from(document.querySelectorAll("[data-after-first-session-look-mind-eye]"));
+  const afterFirstSessionTrustMindEyeInputs = Array.from(document.querySelectorAll("[data-after-first-session-trust-mind-eye]"));
+  const afterFirstSessionClosedEyesInputs = Array.from(document.querySelectorAll("[data-after-first-session-closed-eyes]"));
+  const afterFirstSessionAnythingShowedInputs = Array.from(document.querySelectorAll("[data-after-first-session-anything-showed]"));
+  const afterFirstSessionPerceivedColorInputs = Array.from(document.querySelectorAll("[data-after-first-session-perceived-color]"));
+  const afterFirstSessionColorWhereInput = document.querySelector("[data-after-first-session-color-where]");
+  const afterFirstSessionAttentionMagnetCountInputs = Array.from(document.querySelectorAll("[data-after-first-session-attention-magnet-count]"));
+  const afterFirstSessionArrangementInputs = Array.from(document.querySelectorAll("[data-after-first-session-arrangement]"));
+  const afterFirstSessionShapePersistenceInputs = Array.from(document.querySelectorAll("[data-after-first-session-shape-persistence]"));
+  const afterFirstSessionRememberShapeInputs = Array.from(document.querySelectorAll("[data-after-first-session-remember-shape]"));
+  const afterFirstSessionNamedAnythingInputs = Array.from(document.querySelectorAll("[data-after-first-session-named-anything]"));
+  const afterFirstSessionNameAccurateInput = document.querySelector("[data-after-first-session-name-accurate]");
+  const afterFirstSessionStatus = document.querySelector("[data-after-first-session-status]");
+  const afterFirstSessionSaveButton = document.querySelector("[data-save-after-first-session-questions]");
   const otherSettingsHomeButton = document.querySelector("[data-other-settings-home]");
-  const closeBehaviorsButton = document.querySelector("[data-close-behaviors]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
   const closeConfidenceBehaviorButton = document.querySelector("[data-close-confidence-behavior]");
@@ -557,7 +603,9 @@ The best use of this material is not to read it once and forget it, but to let i
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
-  let onlineCourseReturnTarget = { view: "aids", role: "" };
+  let onlineCourseReturnTarget = { view: "options", role: "" };
+  let baselineQuestionsReturnTarget = { view: "online-course", role: "" };
+  let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "" };
   let suppressLauncherAutoCollapseUntil = 0;
   let inviteeRecordsCache = [];
   let inviteeLookupTimer = null;
@@ -4037,6 +4085,51 @@ The best use of this material is not to read it once and forget it, but to let i
     return openRoleMessagesButtons.find((item) => item.dataset.openRoleMessages === role) || null;
   }
 
+  function getRoleMessageAvailabilityReason(role) {
+    const normalizedRole = String(role || "").trim();
+    if (!["sender", "receiver"].includes(normalizedRole)) {
+      return "";
+    }
+    const { partnerIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
+    if (isRobotSimulationIdentifier(partnerIdentifier)) {
+      return 'Messaging is unavailable when your partner is "Robot".';
+    }
+    return "";
+  }
+
+  function applyRoleMessageAvailabilityState(role) {
+    const normalizedRole = String(role || "").trim();
+    const button = getRoleMessageLaunchButton(normalizedRole);
+    const launchWrap = document.querySelector(`[data-role-messaging-launch="${normalizedRole}"]`);
+    const reason = getRoleMessageAvailabilityReason(normalizedRole);
+    const disabledForRobot = !!reason;
+
+    if (launchWrap) {
+      launchWrap.classList.toggle("is-role-message-disabled", disabledForRobot);
+      if (disabledForRobot) {
+        launchWrap.setAttribute("title", reason);
+      } else if (!isProLockedButton(button)) {
+        launchWrap.removeAttribute("title");
+      }
+    }
+
+    if (!button) {
+      return disabledForRobot;
+    }
+
+    button.disabled = disabledForRobot;
+    if (disabledForRobot) {
+      button.setAttribute("aria-disabled", "true");
+      button.setAttribute("title", reason);
+    } else if (!isProLockedButton(button)) {
+      button.removeAttribute("aria-disabled");
+      button.removeAttribute("title");
+    } else if (button.dataset.proLockMessage) {
+      button.setAttribute("title", button.dataset.proLockMessage);
+    }
+    return disabledForRobot;
+  }
+
   function getRoleMessageBadge(role) {
     return roleMessageBadges.find((item) => item.dataset.roleMessageBadge === role) || null;
   }
@@ -4221,6 +4314,10 @@ The best use of this material is not to read it once and forget it, but to let i
   }
 
   async function refreshRoleMessageButton(role) {
+    if (applyRoleMessageAvailabilityState(role)) {
+      setRoleMessageBadge(role, 0);
+      return;
+    }
     const inboxState = await fetchRoleMessageInboxState(role);
     if (!inboxState) {
       return;
@@ -5351,6 +5448,11 @@ The best use of this material is not to read it once and forget it, but to let i
     if (!["sender", "receiver"].includes(normalizedRole)) {
       return;
     }
+    const availabilityReason = getRoleMessageAvailabilityReason(normalizedRole);
+    if (availabilityReason) {
+      window.alert(availabilityReason);
+      return;
+    }
     const { ownIdentifier, partnerIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
     const ownRaw = String(options.ownerIdentifier || ownIdentifier || "").trim();
     const partnerRaw = String(options.partnerIdentifier || partnerIdentifier || "").trim();
@@ -6252,10 +6354,12 @@ The best use of this material is not to read it once and forget it, but to let i
       button.setAttribute("aria-disabled", "true");
       button.setAttribute("title", cleanMessage);
       button.dataset.proLocked = "true";
+      button.dataset.proLockMessage = cleanMessage;
     } else {
       button.removeAttribute("aria-disabled");
       button.removeAttribute("title");
       delete button.dataset.proLocked;
+      delete button.dataset.proLockMessage;
     }
   }
 
@@ -6275,6 +6379,7 @@ The best use of this material is not to read it once and forget it, but to let i
       const launchButton = document.querySelector(`[data-open-role-messages="${role}"]`);
       applyProLockPresentation(launchWrap, !isPro, beginnerMessagingMessage);
       applyProLockToButton(launchButton, !isPro, beginnerMessagingMessage);
+      applyRoleMessageAvailabilityState(role);
     });
 
     applyProLockPresentation(openClairvoyanceViewingButton, !isPro, beginnerRemoteViewingMessage);
@@ -12353,6 +12458,272 @@ The best use of this material is not to read it once and forget it, but to let i
     ).trim() || "XXXXXXX";
   }
 
+  function getBaselineQuestionsStorageKey(identifier = getOnlineCourseDisplayIdentifier()) {
+    const normalizedIdentifier = normalizeIdentifierForStorage(identifier) || "anonymous";
+    return `cones-baseline-questions-v1-${normalizedIdentifier}`;
+  }
+
+  function readBaselineQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier()) {
+    try {
+      const raw = localStorage.getItem(getBaselineQuestionsStorageKey(identifier));
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeBaselineQuestionsResponse(identifier, payload) {
+    localStorage.setItem(
+      getBaselineQuestionsStorageKey(identifier),
+      JSON.stringify(payload)
+    );
+  }
+
+  function setBaselineRadioValue(inputs, value) {
+    const normalizedValue = String(value || "").trim();
+    inputs.forEach((input) => {
+      input.checked = String(input.value || "").trim() === normalizedValue;
+    });
+  }
+
+  function getBaselineRadioValue(inputs) {
+    const selected = inputs.find((input) => input.checked);
+    return selected ? String(selected.value || "").trim() : "";
+  }
+
+  function updateBaselineScaleDisplay(input, output) {
+    if (!input || !output) {
+      return;
+    }
+    output.textContent = String(input.value || "");
+  }
+
+  function populateBaselineQuestionsForm(saved = null) {
+    const response = saved && typeof saved === "object" ? saved : {};
+    if (baselineAgeInput) {
+      baselineAgeInput.value = String(response.age_group || "");
+    }
+    setBaselineRadioValue(baselineSexInputs, response.sex);
+    if (baselineBeliefTelepathyInput) {
+      baselineBeliefTelepathyInput.value = String(response.belief_telepathy || "5");
+    }
+    updateBaselineScaleDisplay(baselineBeliefTelepathyInput, baselineBeliefTelepathyValue);
+    if (baselineBeliefPersonalInput) {
+      baselineBeliefPersonalInput.value = String(response.belief_personal || "5");
+    }
+    updateBaselineScaleDisplay(baselineBeliefPersonalInput, baselineBeliefPersonalValue);
+    setBaselineRadioValue(baselineRelatedPsiInputs, response.related_psi);
+    setBaselineRadioValue(baselineExperienceFrequencyInputs, response.experience_frequency);
+    const selectedPhenomena = Array.isArray(response.phenomena) ? response.phenomena.map((item) => String(item || "").trim()) : [];
+    baselinePhenomenonInputs.forEach((input) => {
+      input.checked = selectedPhenomena.includes(String(input.value || "").trim());
+    });
+    if (baselinePhenomenaOtherInput) {
+      baselinePhenomenaOtherInput.value = String(response.phenomena_other || "");
+    }
+    setBaselineRadioValue(baselinePriorTrainingInputs, response.prior_training);
+    if (baselinePriorSkillsInput) {
+      baselinePriorSkillsInput.value = String(response.prior_skills || "");
+    }
+    setBaselineRadioValue(baselineFurtherResearchInputs, response.further_research);
+  }
+
+  function collectBaselineQuestionsFormResponse() {
+    return {
+      age_group: String(baselineAgeInput?.value || "").trim(),
+      sex: getBaselineRadioValue(baselineSexInputs),
+      belief_telepathy: String(baselineBeliefTelepathyInput?.value || "").trim(),
+      belief_personal: String(baselineBeliefPersonalInput?.value || "").trim(),
+      related_psi: getBaselineRadioValue(baselineRelatedPsiInputs),
+      experience_frequency: getBaselineRadioValue(baselineExperienceFrequencyInputs),
+      phenomena: baselinePhenomenonInputs
+        .filter((input) => input.checked)
+        .map((input) => String(input.value || "").trim())
+        .filter(Boolean),
+      phenomena_other: String(baselinePhenomenaOtherInput?.value || "").trim(),
+      prior_training: getBaselineRadioValue(baselinePriorTrainingInputs),
+      prior_skills: String(baselinePriorSkillsInput?.value || "").trim(),
+      further_research: getBaselineRadioValue(baselineFurtherResearchInputs)
+    };
+  }
+
+  function renderBaselineQuestionsView() {
+    const state = readLauncherState();
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const saved = readBaselineQuestionsResponse(displayIdentifier);
+    const displayDate = String(saved?.baseline_date || formatOnlineCourseDate()).trim();
+    if (baselineDate) {
+      baselineDate.textContent = displayDate;
+    }
+    if (baselineName) {
+      baselineName.textContent = displayIdentifier;
+    }
+    populateBaselineQuestionsForm(saved);
+    if (baselineStatus) {
+      baselineStatus.textContent = saved?.saved_at
+        ? `Baseline questions saved for ${displayIdentifier}.`
+        : "";
+    }
+  }
+
+  function saveBaselineQuestions() {
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(readLauncherState());
+    const displayDate = formatOnlineCourseDate();
+    const payload = {
+      baseline_date: displayDate,
+      identifier: displayIdentifier,
+      saved_at: new Date().toISOString(),
+      ...collectBaselineQuestionsFormResponse()
+    };
+    writeBaselineQuestionsResponse(displayIdentifier, payload);
+    if (baselineStatus) {
+      baselineStatus.textContent = `Baseline questions saved for ${displayIdentifier}.`;
+    }
+    renderOnlineCourseView();
+  }
+
+  function getAfterFirstSessionQuestionsStorageKey(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
+    const normalizedIdentifier = normalizeIdentifierForStorage(identifier) || "anonymous";
+    const normalizedReceiver = normalizeIdentifierForStorage(receiver) || "unknown-receiver";
+    const normalizedSender = normalizeIdentifierForStorage(sender) || "unknown-sender";
+    return `cones-after-first-session-questions-v1-${normalizedIdentifier}-${normalizedReceiver}-${normalizedSender}`;
+  }
+
+  function getAfterFirstSessionPairContext(state = readLauncherState()) {
+    const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
+    const partnerNames = state?.partnerNames && typeof state.partnerNames === "object" ? state.partnerNames : {};
+    const senderOwn = String(ownNames.sender || "").trim();
+    const senderPartner = String(partnerNames.sender || "").trim();
+    if (senderOwn && senderPartner) {
+      return {
+        receiver: senderPartner,
+        sender: senderOwn
+      };
+    }
+    const receiverOwn = String(ownNames.receiver || "").trim();
+    const receiverPartner = String(partnerNames.receiver || "").trim();
+    if (receiverOwn && receiverPartner) {
+      return {
+        receiver: receiverOwn,
+        sender: receiverPartner
+      };
+    }
+    return {
+      receiver: "",
+      sender: ""
+    };
+  }
+
+  function readAfterFirstSessionQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
+    try {
+      const raw = localStorage.getItem(getAfterFirstSessionQuestionsStorageKey(identifier, receiver, sender));
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeAfterFirstSessionQuestionsResponse(identifier, receiver, sender, payload) {
+    localStorage.setItem(
+      getAfterFirstSessionQuestionsStorageKey(identifier, receiver, sender),
+      JSON.stringify(payload)
+    );
+  }
+
+  function populateAfterFirstSessionQuestionsForm(saved = null) {
+    const response = saved && typeof saved === "object" ? saved : {};
+    if (afterFirstSessionTrialStartInput) {
+      afterFirstSessionTrialStartInput.value = String(response.trial_start || "");
+    }
+    if (afterFirstSessionTrialEndInput) {
+      afterFirstSessionTrialEndInput.value = String(response.trial_end || "");
+    }
+    if (afterFirstSessionTrialsReceiverInput) {
+      afterFirstSessionTrialsReceiverInput.value = String(response.trials_as_receiver || "");
+    }
+    if (afterFirstSessionTrialsSenderInput) {
+      afterFirstSessionTrialsSenderInput.value = String(response.trials_as_sender || "");
+    }
+    setBaselineRadioValue(afterFirstSessionLookMindEyeInputs, response.look_mind_eye);
+    setBaselineRadioValue(afterFirstSessionTrustMindEyeInputs, response.trust_mind_eye);
+    setBaselineRadioValue(afterFirstSessionClosedEyesInputs, response.closed_eyes);
+    setBaselineRadioValue(afterFirstSessionAnythingShowedInputs, response.anything_showed);
+    setBaselineRadioValue(afterFirstSessionPerceivedColorInputs, response.perceived_color);
+    if (afterFirstSessionColorWhereInput) {
+      afterFirstSessionColorWhereInput.value = String(response.color_where || "");
+    }
+    setBaselineRadioValue(afterFirstSessionAttentionMagnetCountInputs, response.attention_magnet_count);
+    setBaselineRadioValue(afterFirstSessionArrangementInputs, response.arrangement);
+    setBaselineRadioValue(afterFirstSessionShapePersistenceInputs, response.shape_persistence);
+    setBaselineRadioValue(afterFirstSessionRememberShapeInputs, response.remember_shape);
+    setBaselineRadioValue(afterFirstSessionNamedAnythingInputs, response.named_anything);
+    if (afterFirstSessionNameAccurateInput) {
+      afterFirstSessionNameAccurateInput.value = String(response.name_accurate || "");
+    }
+  }
+
+  function collectAfterFirstSessionQuestionsFormResponse() {
+    return {
+      trial_start: String(afterFirstSessionTrialStartInput?.value || "").trim(),
+      trial_end: String(afterFirstSessionTrialEndInput?.value || "").trim(),
+      trials_as_receiver: String(afterFirstSessionTrialsReceiverInput?.value || "").trim(),
+      trials_as_sender: String(afterFirstSessionTrialsSenderInput?.value || "").trim(),
+      look_mind_eye: getBaselineRadioValue(afterFirstSessionLookMindEyeInputs),
+      trust_mind_eye: getBaselineRadioValue(afterFirstSessionTrustMindEyeInputs),
+      closed_eyes: getBaselineRadioValue(afterFirstSessionClosedEyesInputs),
+      anything_showed: getBaselineRadioValue(afterFirstSessionAnythingShowedInputs),
+      perceived_color: getBaselineRadioValue(afterFirstSessionPerceivedColorInputs),
+      color_where: String(afterFirstSessionColorWhereInput?.value || "").trim(),
+      attention_magnet_count: getBaselineRadioValue(afterFirstSessionAttentionMagnetCountInputs),
+      arrangement: getBaselineRadioValue(afterFirstSessionArrangementInputs),
+      shape_persistence: getBaselineRadioValue(afterFirstSessionShapePersistenceInputs),
+      remember_shape: getBaselineRadioValue(afterFirstSessionRememberShapeInputs),
+      named_anything: getBaselineRadioValue(afterFirstSessionNamedAnythingInputs),
+      name_accurate: String(afterFirstSessionNameAccurateInput?.value || "").trim()
+    };
+  }
+
+  function renderAfterFirstSessionQuestionsView() {
+    const state = readLauncherState();
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const pairContext = getAfterFirstSessionPairContext(state);
+    const saved = readAfterFirstSessionQuestionsResponse(displayIdentifier, pairContext.receiver, pairContext.sender);
+    const displayDate = String(saved?.session_date || formatOnlineCourseDate()).trim();
+    if (afterFirstSessionDate) {
+      afterFirstSessionDate.textContent = displayDate;
+    }
+    if (afterFirstSessionReceiver) {
+      afterFirstSessionReceiver.textContent = pairContext.receiver || "Unknown";
+    }
+    if (afterFirstSessionSender) {
+      afterFirstSessionSender.textContent = pairContext.sender || "Unknown";
+    }
+    populateAfterFirstSessionQuestionsForm(saved);
+    if (afterFirstSessionStatus) {
+      afterFirstSessionStatus.textContent = saved?.saved_at
+        ? `After First Session Questions saved for ${displayIdentifier}.`
+        : "";
+    }
+  }
+
+  function saveAfterFirstSessionQuestions() {
+    const state = readLauncherState();
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const pairContext = getAfterFirstSessionPairContext(state);
+    const payload = {
+      session_date: formatOnlineCourseDate(),
+      identifier: displayIdentifier,
+      receiver: pairContext.receiver,
+      sender: pairContext.sender,
+      saved_at: new Date().toISOString(),
+      ...collectAfterFirstSessionQuestionsFormResponse()
+    };
+    writeAfterFirstSessionQuestionsResponse(displayIdentifier, pairContext.receiver, pairContext.sender, payload);
+    if (afterFirstSessionStatus) {
+      afterFirstSessionStatus.textContent = `After First Session Questions saved for ${displayIdentifier}.`;
+    }
+  }
+
   function formatOnlineCourseDate(date = new Date()) {
     try {
       return new Intl.DateTimeFormat("en-US", {
@@ -12365,10 +12736,123 @@ The best use of this material is not to read it once and forget it, but to let i
     }
   }
 
+  function escapeWordHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
+  function exportLearningCenterAsWordFile() {
+    const panel = onlineCourseView?.querySelector(".online-course-panel");
+    if (!panel) {
+      return;
+    }
+    const exportClone = panel.cloneNode(true);
+    exportClone.querySelectorAll("button").forEach((button) => button.remove());
+    const lessonList = exportClone.querySelector(".online-course-lesson-list");
+    if (lessonList) {
+      const lessonRows = Array.from(lessonList.querySelectorAll(".online-course-lesson-row"));
+      const lessonMarkup = lessonRows.map((row) => {
+        const title = row.querySelector(".online-course-lesson-title")?.textContent?.trim() || "";
+        const subcopy = row.querySelector(".online-course-lesson-subcopy")?.textContent?.trim() || "";
+        return `
+          <div class="word-lesson-block">
+            <p class="word-lesson-line">[ ] ${escapeWordHtml(title)}</p>
+            ${subcopy ? `<p class="word-lesson-subcopy">${escapeWordHtml(subcopy)}</p>` : ""}
+          </div>
+        `;
+      }).join("");
+      lessonList.innerHTML = lessonMarkup;
+    }
+    const styleBlock = `
+      body {
+        font-family: Calibri, Arial, sans-serif;
+        color: #111;
+        margin: 36px;
+        line-height: 1.45;
+      }
+      h1, h2, h3, p {
+        margin-top: 0;
+      }
+      .online-course-reference,
+      .online-course-lesson-list {
+        border: 1px solid #b7b7b7;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin: 18px 0;
+      }
+      .online-course-action-row,
+      .online-course-jump-links {
+        display: none;
+      }
+      .online-course-lesson-list,
+      .online-course-curriculum,
+      .online-course-lesson-main {
+        display: block;
+      }
+      .word-lesson-block {
+        margin: 18pt 0 0 0;
+        page-break-inside: avoid;
+      }
+      .word-lesson-block:first-child {
+        margin-top: 0;
+      }
+      .word-lesson-line,
+      .word-lesson-subcopy {
+        margin-left: 0;
+        text-align: left;
+      }
+      .word-lesson-line {
+        margin-top: 0;
+        margin-bottom: 4pt;
+        font-weight: 700;
+      }
+      .word-lesson-subcopy {
+        margin-top: 0;
+        margin-bottom: 0;
+        color: #333;
+      }
+      .about-section-copy,
+      .online-course-reference-meta,
+      .online-course-course-subheading {
+        white-space: pre-wrap;
+      }
+    `;
+    const displayDate = onlineCourseDate?.textContent?.trim() || formatOnlineCourseDate();
+    const displayIdentifier = onlineCourseName?.textContent?.trim() || getOnlineCourseDisplayIdentifier(readLauncherState());
+    const safeDate = displayDate.replace(/[\\/:\s]+/g, "-");
+    const fileName = `ESP-GYM-Learning-Center-${safeDate}.doc`;
+    const documentHtml = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>ESP GYM Learning Center</title>
+  <style>${styleBlock}</style>
+</head>
+<body>
+  <h1>ESP GYM Learning Center</h1>
+  <p><strong>Date:</strong> ${escapeWordHtml(displayDate)}<br><strong>Unique Name:</strong> ${escapeWordHtml(displayIdentifier)}</p>
+  ${exportClone.innerHTML}
+</body>
+</html>`;
+    const blob = new Blob([documentHtml], { type: "application/msword" });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+
   function renderOnlineCourseView() {
     const state = readLauncherState();
     const displayDate = formatOnlineCourseDate();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const savedBaseline = readBaselineQuestionsResponse(displayIdentifier);
     if (onlineCourseDate) {
       onlineCourseDate.textContent = displayDate;
     }
@@ -12376,18 +12860,22 @@ The best use of this material is not to read it once and forget it, but to let i
       onlineCourseName.textContent = displayIdentifier;
     }
     if (onlineCourseCheckpointDate) {
-      onlineCourseCheckpointDate.textContent = `Completed ${displayDate}`;
+      onlineCourseCheckpointDate.textContent = savedBaseline?.saved_at
+        ? `Completed ${String(savedBaseline.baseline_date || displayDate).trim()}`
+        : "";
     }
   }
 
   function showOnlineCourseView(options = {}) {
     clearReportPanelOffset();
     onlineCourseReturnTarget = {
-      view: String(options.view || "aids").trim() || "aids",
+      view: String(options.view || "options").trim() || "options",
       role: String(options.role || "").trim()
     };
     renderOnlineCourseView();
     onlineCourseView?.classList.remove("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
+    afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -12449,7 +12937,7 @@ The best use of this material is not to read it once and forget it, but to let i
   }
 
   function closeOnlineCourseView() {
-    const targetView = String(onlineCourseReturnTarget?.view || "aids").trim();
+    const targetView = String(onlineCourseReturnTarget?.view || "options").trim();
     const targetRole = String(onlineCourseReturnTarget?.role || "").trim();
     if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
       showRoleCourseTarget(targetRole);
@@ -12463,16 +12951,22 @@ The best use of this material is not to read it once and forget it, but to let i
       showOptionsView();
       return;
     }
-    showAidsView();
+    showOptionsView();
   }
 
-  function showAidsView() {
+  function showBaselineQuestionsView(options = {}) {
     clearReportPanelOffset();
-    aidsView?.classList.remove("beginner-view-hidden");
+    baselineQuestionsReturnTarget = {
+      view: String(options.view || "online-course").trim() || "online-course",
+      role: String(options.role || "").trim()
+    };
+    renderBaselineQuestionsView();
+    baselineQuestionsView?.classList.remove("beginner-view-hidden");
+    afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
-    readingsVideosView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
     caseStudiesListView?.classList.add("beginner-view-hidden");
@@ -12488,8 +12982,6 @@ The best use of this material is not to read it once and forget it, but to let i
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
-    subscriptionManagementView?.classList.add("beginner-view-hidden");
-    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
@@ -12506,8 +12998,90 @@ The best use of this material is not to read it once and forget it, but to let i
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeBaselineQuestionsView() {
+    const targetView = String(baselineQuestionsReturnTarget?.view || "online-course").trim();
+    const targetRole = String(baselineQuestionsReturnTarget?.role || "").trim();
+    if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
+      showRoleCourseTarget(targetRole);
+      return;
+    }
+    if (targetView === "options") {
+      showOptionsView();
+      return;
+    }
+    showOnlineCourseView({ view: "options" });
+  }
+
+  function showAfterFirstSessionQuestionsView(options = {}) {
+    clearReportPanelOffset();
+    afterFirstSessionQuestionsReturnTarget = {
+      view: String(options.view || "online-course").trim() || "online-course",
+      role: String(options.role || "").trim()
+    };
+    renderAfterFirstSessionQuestionsView();
+    afterFirstSessionQuestionsView?.classList.remove("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learnMoreView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeAfterFirstSessionQuestionsView() {
+    const targetView = String(afterFirstSessionQuestionsReturnTarget?.view || "online-course").trim();
+    const targetRole = String(afterFirstSessionQuestionsReturnTarget?.role || "").trim();
+    if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
+      showRoleCourseTarget(targetRole);
+      return;
+    }
+    if (targetView === "options") {
+      showOptionsView();
+      return;
+    }
+    showOnlineCourseView({ view: "options" });
+  }
+
+  function showAidsView() {
+    showOnlineCourseView({ view: "options" });
   }
 
   function showGeneralInformationView() {
@@ -12515,6 +13089,7 @@ The best use of this material is not to read it once and forget it, but to let i
     generalInformationView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
@@ -12559,6 +13134,7 @@ The best use of this material is not to read it once and forget it, but to let i
     rewireView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
@@ -12603,6 +13179,7 @@ The best use of this material is not to read it once and forget it, but to let i
     readingsVideosView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     websitesEventsListView?.classList.add("beginner-view-hidden");
@@ -12646,6 +13223,7 @@ The best use of this material is not to read it once and forget it, but to let i
     websitesEventsListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
@@ -12690,6 +13268,7 @@ The best use of this material is not to read it once and forget it, but to let i
     userCommentsListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
@@ -12734,6 +13313,7 @@ The best use of this material is not to read it once and forget it, but to let i
     caseStudiesListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
@@ -12778,6 +13358,7 @@ The best use of this material is not to read it once and forget it, but to let i
     peerReviewedListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
     readingsVideosView?.classList.add("beginner-view-hidden");
@@ -15158,6 +15739,14 @@ The best use of this material is not to read it once and forget it, but to let i
         showGoProView();
         return;
       }
+      if (requestedView === "baseline-questions") {
+        showBaselineQuestionsView({ view: "online-course" });
+        return;
+      }
+      if (requestedView === "after-first-session-questions") {
+        showAfterFirstSessionQuestionsView({ view: "online-course" });
+        return;
+      }
       if (stripeReturnState === "success") {
         scheduleMainUserTypeRefresh(0);
         return;
@@ -15371,38 +15960,6 @@ The best use of this material is not to read it once and forget it, but to let i
     otherSettingsView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     behaviorsView?.classList.add("beginner-view-hidden");
-    colorSchemeView?.classList.add("beginner-view-hidden");
-    blinkBehaviorView?.classList.add("beginner-view-hidden");
-    confidenceBehaviorView?.classList.add("beginner-view-hidden");
-    contactView?.classList.add("beginner-view-hidden");
-    aboutView?.classList.add("beginner-view-hidden");
-    reportDefinitionView?.classList.add("beginner-view-hidden");
-    reportView?.classList.add("beginner-view-hidden");
-    visualizationView?.classList.add("beginner-view-hidden");
-    analyzerView?.classList.add("beginner-view-hidden");
-    difficultyView?.classList.add("beginner-view-hidden");
-    settingsView?.classList.add("beginner-view-hidden");
-    adminView?.classList.add("beginner-view-hidden");
-    userTypeAdminView?.classList.add("beginner-view-hidden");
-    handleUpdateAdminView?.classList.add("beginner-view-hidden");
-    imagePairAdminView?.classList.add("beginner-view-hidden");
-    adminUserListView?.classList.add("beginner-view-hidden");
-    closeReportPairMenu();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function showBehaviorsView() {
-    clearReportPanelOffset();
-    behaviorsView?.classList.remove("beginner-view-hidden");
-    otherSettingsView?.classList.add("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
-    learnMoreView?.classList.add("beginner-view-hidden");
-    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
-    optionsView?.classList.add("beginner-view-hidden");
-    helpView?.classList.add("beginner-view-hidden");
-    aidsView?.classList.add("beginner-view-hidden");
-    toolsView?.classList.add("beginner-view-hidden");
-    goProView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
@@ -16462,9 +17019,27 @@ The best use of this material is not to read it once and forget it, but to let i
       showOnlineCourseView({ view: returnView, role });
     });
   });
+  openBaselineQuestionsButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      showBaselineQuestionsView({ view: "online-course" });
+    });
+  });
+  openAfterFirstSessionQuestionsButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      showAfterFirstSessionQuestionsView({ view: "online-course" });
+    });
+  });
   onlineCourseTargetButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const target = String(button.dataset.onlineCourseTarget || "").trim();
+      if (target === "baseline") {
+        showBaselineQuestionsView({ view: "online-course" });
+        return;
+      }
+      if (target === "after-first-session") {
+        showAfterFirstSessionQuestionsView({ view: "online-course" });
+        return;
+      }
       if (target === "performance") {
         showReportDefinitionView();
         return;
@@ -16497,6 +17072,7 @@ The best use of this material is not to read it once and forget it, but to let i
     updateLearnMorePreview(clairvoyanceLearnMorePreview, clairvoyanceLearnMoreTextInput.value);
   });
   openHelpButton?.addEventListener("click", showHelpView);
+  openTelepathyPracticeButton?.addEventListener("click", showLauncherView);
   openUserGuideButton?.addEventListener("click", () => {
     if (getUserGuideTargetType() === "pro") {
       showProUserManualView();
@@ -16523,7 +17099,6 @@ The best use of this material is not to read it once and forget it, but to let i
     showClairvoyanceViewingView();
   });
   openSubscriptionManagementButton?.addEventListener("click", showSubscriptionManagementView);
-  openBehaviorsButton?.addEventListener("click", showBehaviorsView);
   openLocationPickerSettingsButton?.addEventListener("click", () => {
     void showLocationPicker(activeLauncherRole || "sender", {
       sourceTimestamp: Number(readLauncherState().deviceLocation?.timestamp || 0)
@@ -16567,6 +17142,9 @@ The best use of this material is not to read it once and forget it, but to let i
   closeTemporaryHomePageButton?.addEventListener("click", showOptionsView);
   closeAidsButton?.addEventListener("click", showOptionsView);
   closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
+  saveOnlineCourseWordButton?.addEventListener("click", exportLearningCenterAsWordFile);
+  closeBaselineQuestionsButton?.addEventListener("click", closeBaselineQuestionsView);
+  closeAfterFirstSessionQuestionsButton?.addEventListener("click", closeAfterFirstSessionQuestionsView);
   closeGeneralInformationButton?.addEventListener("click", showAidsView);
   closeRewireButton?.addEventListener("click", showAidsView);
   closeReadingsVideosButton?.addEventListener("click", showAidsView);
@@ -16592,6 +17170,14 @@ The best use of this material is not to read it once and forget it, but to let i
   closeSubscriptionEmailAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
   closeAdminEmailListButton?.addEventListener("click", showAdminView);
+  baselineBeliefTelepathyInput?.addEventListener("input", () => {
+    updateBaselineScaleDisplay(baselineBeliefTelepathyInput, baselineBeliefTelepathyValue);
+  });
+  baselineBeliefPersonalInput?.addEventListener("input", () => {
+    updateBaselineScaleDisplay(baselineBeliefPersonalInput, baselineBeliefPersonalValue);
+  });
+  baselineSaveButton?.addEventListener("click", saveBaselineQuestions);
+  afterFirstSessionSaveButton?.addEventListener("click", saveAfterFirstSessionQuestions);
   temporaryHomePageContinueButton?.addEventListener("click", () => {
     void continueFromLandingPage();
   });
@@ -16913,10 +17499,9 @@ The best use of this material is not to read it once and forget it, but to let i
       }
     }
   });
-  closeColorSchemeButton?.addEventListener("click", showOtherSettingsView);
-  closeBehaviorsButton?.addEventListener("click", showOtherSettingsView);
-  closeBlinkBehaviorButton?.addEventListener("click", showBehaviorsView);
-  closeConfidenceBehaviorButton?.addEventListener("click", showBehaviorsView);
+  closeColorSchemeButton?.addEventListener("click", showAdminView);
+  closeBlinkBehaviorButton?.addEventListener("click", showAdminView);
+  closeConfidenceBehaviorButton?.addEventListener("click", showOtherSettingsView);
   cancelProButton?.addEventListener("click", () => {
     window.alert("Cancel PRO will be added here later.");
   });
