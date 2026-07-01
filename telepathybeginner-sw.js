@@ -1,5 +1,5 @@
-﻿const CACHE_NAME = "telepathybeginner-v20260630k";
-const APP_VERSION = "20260630k";
+const CACHE_NAME = "telepathybeginner-v20260630s";
+const APP_VERSION = "20260630s";
 const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
   "./",
@@ -183,6 +183,13 @@ self.addEventListener("notificationclick", (event) => {
     await self.clients.openWindow(targetUrl);
   })());
 });
+
+
+
+
+
+
+
 
 
 

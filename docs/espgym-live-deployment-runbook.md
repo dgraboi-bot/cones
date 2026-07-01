@@ -155,9 +155,11 @@ When a build version is changed, search for both:
 1. the new version string to confirm it appears everywhere needed
 2. the immediately previous version string to confirm it is gone from the files being deployed
 
-## Files That Commonly Need Version Updates
+## Authoritative Version Surface Inventory
 
-This list must be checked on every deployment.
+This is the authoritative list of files and patterns that can carry stale build references.
+
+This list must be checked on every deployment. Do not rely on memory.
 
 Core launcher/runtime:
 
@@ -176,6 +178,10 @@ Frequently versioned asset references inside `telepathybeginner.html`:
 - JS URLs
 - visible version label text
 - special admin/help/test links that include `?v=...`
+- questionnaire jump links that include `?v=...`
+- vendor asset references such as Leaflet CSS/JS
+- any inline `window.location.href=...v=...` links
+- any visible prose that accidentally embeds a build number
 
 Frequently versioned asset references inside `sender.html` and `receiver.html`:
 
@@ -189,14 +195,92 @@ Potentially relevant additional files depending on the change:
 - `telepathybeginner.css`
 - `telepathybeginner.webmanifest`
 - `telepathybeginner-sw.js`
+- `telepathybeginner-email-test.js`
 - `api.php`
+- `globe/index.html`
 - `globe/globe.js`
+- `globe/globe-config.js`
 - `globe/globe-data.js`
 - `globe/globe-ui.js`
 
 Rule:
 
 If a file can influence browser caching, launch routing, service worker behavior, asset loading, or visible build identity, inspect it before deployment.
+
+### Exact version-bearing surfaces currently known
+
+The following exact surfaces are known to require inspection and, when applicable, version updates:
+
+#### `telepathybeginner.html`
+
+- `<link rel="manifest" href="telepathybeginner.webmanifest?v=...">`
+- icon URLs with `?v=...`
+- `telepathybeginner.css?v=...`
+- `vendor/leaflet/leaflet.css?v=...`
+- visible top-line version label `ver. ...`
+- questionnaire links such as:
+  - `telepathybeginner.html?v=...&open=baseline-questions`
+  - `telepathybeginner.html?v=...&open=after-first-session-questions`
+- admin/help/test links such as:
+  - `BeginnerUserManual_preserved_*.html?v=...`
+  - `telepathybeginner-email-test.html?v=...`
+- script tags such as:
+  - `vendor/leaflet/leaflet.js?v=...`
+  - `telepathybeginner.js?v=...`
+
+#### `telepathybeginner.js`
+
+- `const launcherBuildVersion = "...";`
+- any generated URLs that append `?v=${launcherBuildVersion}`
+- service worker registration URL
+- image-pair manifest fetch URL
+- any diagnostics/report text that prints app version
+
+#### `telepathy.js`
+
+- `const runtimeBuildVersion = "...";`
+- any generated URLs that append `?v=${runtimeBuildVersion}`
+
+#### `sender.html` and `receiver.html`
+
+- `telepathy.css?v=...`
+- home link to `telepathybeginner.html?v=...&open=launcher`
+- `telepathy.js?v=...`
+
+#### `telepathybeginner.webmanifest`
+
+- `start_url`
+- icon `src` values with `?v=...`
+
+#### `telepathybeginner-sw.js`
+
+- `const CACHE_NAME = "...";`
+- `const APP_VERSION = "...";`
+- `APP_LAUNCH_URL`
+- every `APP_ASSETS` entry that includes a versioned URL
+- any legacy cached assets whose build tags may now be stale
+
+#### `telepathybeginner-email-test.html`
+
+- `telepathybeginner.css?v=...`
+- `telepathybeginner-email-test.js?v=...`
+
+#### Globe sub-app
+
+- `globe/index.html`
+  - `globe.css?v=...`
+  - visible `ver. ...`
+  - `globe-config.js?v=...`
+  - `globe-data.js?v=...`
+  - `globe-ui.js?v=...`
+  - `globe.js?v=...`
+- `globe/globe.js`
+  - fallback home URL version, if hardcoded
+
+#### Other version-sensitive routing/content surfaces
+
+- `api.php` host/routing fallbacks when they encode launcher/home URLs
+- any docs, preserved HTML pages, or helper pages that are intentionally linked from the app and carry `?v=...`
 
 PWA-specific rule:
 
@@ -229,11 +313,20 @@ rg -n "20260629j" C:\xampp\htdocs\telepathyexperiment\cones
 ```
 
 ```powershell
+rg -n "\?v=20|ver\. 20|BuildVersion|APP_VERSION|CACHE_NAME|start_url" C:\xampp\htdocs\telepathyexperiment\cones
+```
+
+```powershell
 rg -n "20260629i" C:\xampp\htdocs\telepathyexperiment\cones\telepathy.js `
   C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.js `
   C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.html `
   C:\xampp\htdocs\telepathyexperiment\cones\sender.html `
-  C:\xampp\htdocs\telepathyexperiment\cones\receiver.html
+  C:\xampp\htdocs\telepathyexperiment\cones\receiver.html `
+  C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner-sw.js `
+  C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.webmanifest `
+  C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner-email-test.html `
+  C:\xampp\htdocs\telepathyexperiment\cones\globe\index.html `
+  C:\xampp\htdocs\telepathyexperiment\cones\globe\globe.js
 ```
 
 ## Required Server-Side Backup Step

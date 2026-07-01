@@ -1166,29 +1166,13 @@ body {
   overflow-y: auto;
 }
 
-.esp-lesson-detail-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.esp-lesson-detail-heading {
-  margin: 0;
-}
-
-.esp-lesson-detail-back {
-  flex: 0 0 auto;
-  align-self: flex-start;
-}
-
 .esp-lesson-detail-preview,
 .esp-lesson-detail-body {
   white-space: pre-wrap;
 }
 
 .esp-lesson-detail-preview {
+  margin-top: 0;
   margin-bottom: 6px;
 }
 
@@ -2609,6 +2593,95 @@ body {
   min-width: min(100%, 1120px);
 }
 
+.lesson-index-admin-panel {
+  min-width: min(100%, 1180px);
+}
+
+.lesson-index-admin-table-wrap {
+  min-height: 420px;
+}
+
+.lesson-index-admin-table {
+  min-width: 1120px;
+}
+
+.lesson-index-admin-cell-input,
+.lesson-index-admin-cell-textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid rgba(188, 188, 188, 0.58);
+  border-radius: 10px;
+  background: rgba(8, 8, 8, 0.42);
+  color: rgba(246, 239, 233, 0.96);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  padding: 8px 10px;
+}
+
+.lesson-index-admin-cell-input:focus-visible,
+.lesson-index-admin-cell-textarea:focus-visible {
+  outline: none;
+  border-color: var(--brand-top-hover);
+  box-shadow: 0 0 0 3px var(--brand-focus);
+}
+
+.lesson-index-admin-cell-input[readonly] {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(244, 236, 228, 0.88);
+}
+
+.lesson-index-admin-cell-textarea {
+  min-height: 72px;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+.lesson-index-admin-cell-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(250, 244, 238, 0.9);
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+
+.lesson-index-admin-cell-yes {
+  color: rgba(191, 255, 204, 0.95);
+}
+
+.lesson-index-admin-cell-no {
+  color: rgba(255, 219, 187, 0.95);
+}
+
+.lesson-index-admin-delete-button {
+  min-height: 42px;
+  min-width: 110px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 168, 168, 0.42);
+  border-radius: 14px;
+  background: rgba(92, 14, 14, 0.34);
+  color: rgba(255, 232, 232, 0.96);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.lesson-index-admin-delete-button:hover,
+.lesson-index-admin-delete-button:focus-visible {
+  outline: none;
+  filter: brightness(1.08);
+}
+
+.lesson-index-admin-delete-button[disabled] {
+  opacity: 0.45;
+  cursor: default;
+  filter: none;
+}
+
 .admin-user-list-output {
   flex: 1 1 auto;
   min-height: 0;
@@ -3279,6 +3352,50 @@ body {
   width: min(100%, 760px);
 }
 
+.online-course-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 20px;
+}
+
+.online-course-tab-button {
+  min-height: 42px;
+  padding: 0.72rem 1.05rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(248, 240, 232, 0.88);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.online-course-tab-button:hover,
+.online-course-tab-button:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: rgba(248, 240, 232, 0.98);
+  outline: none;
+}
+
+.online-course-tab-button-active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.34);
+  color: rgba(248, 240, 232, 0.98);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.online-course-tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.online-course-tab-panel-hidden {
+  display: none;
+}
+
 .online-course-jump-links {
   display: flex;
   justify-content: center;
@@ -3392,9 +3509,10 @@ body {
 }
 
 .online-course-lesson-row-restored {
-  outline: 1px solid rgba(255, 255, 255, 0.88);
+  outline: 2px solid rgba(255, 255, 255, 0.96);
   outline-offset: 6px;
   border-radius: 12px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
 }
 
 .online-course-lesson-checkbox {
@@ -3610,6 +3728,15 @@ body {
 }
 
 @media (max-width: 760px) {
+  .online-course-tabs {
+    gap: 8px;
+  }
+
+  .online-course-tab-button {
+    min-height: 40px;
+    padding-inline: 0.95rem;
+  }
+
   .report-definition-panel,
   .report-panel {
     min-width: 0;

@@ -37,6 +37,7 @@ $backupDir = $privateRoot . DIRECTORY_SEPARATOR . 'backup';
 $logsDir = $privateRoot . DIRECTORY_SEPARATOR . 'logs';
 $configDir = $privateRoot . DIRECTORY_SEPARATOR . 'config';
 $contentDir = $privateRoot . DIRECTORY_SEPARATOR . 'content';
+$questionnaireResponsesDir = $contentDir . DIRECTORY_SEPARATOR . 'questionnaires';
 $learningCenterLessonsDir = $contentDir . DIRECTORY_SEPARATOR . 'learning-center-lessons';
 $learningCenterOutlineFile = $contentDir . DIRECTORY_SEPARATOR . 'learning-center-outline.json';
 $contentRepoDir = __DIR__ . DIRECTORY_SEPARATOR . 'content_repo';
@@ -288,7 +289,7 @@ $defaultLearningCenterOutline = [
     ]
 ];
 
-foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $contentDir, $learningCenterLessonsDir, $contentRepoDir, $contentRepoLessonsDir, $pairsDir, $publicImagePairsDir] as $directory) {
+foreach ([$privateRoot, $stateDir, $backupDir, $logsDir, $configDir, $contentDir, $questionnaireResponsesDir, $learningCenterLessonsDir, $contentRepoDir, $contentRepoLessonsDir, $pairsDir, $publicImagePairsDir] as $directory) {
     if (!is_dir($directory)) {
         mkdir($directory, 0777, true);
     }
@@ -1267,6 +1268,89 @@ function copy_file_if_missing(string $sourcePath, string $destinationPath): void
     }
     ensure_parent_directory($destinationPath);
     @copy($sourcePath, $destinationPath);
+}
+
+function normalize_questionnaire_type($value): string
+{
+    $type = strtolower(trim((string) $value));
+    return in_array($type, ['baseline', 'after-first-session'], true) ? $type : '';
+}
+
+function normalize_questionnaire_identifier_value($value): string
+{
+    return trim((string) $value);
+}
+
+function build_questionnaire_response_path(string $type, string $identifier, string $receiver = '', string $sender = ''): string
+{
+    global $questionnaireResponsesDir;
+
+    $normalizedType = normalize_questionnaire_type($type);
+    $normalizedIdentifier = normalize_questionnaire_identifier_value($identifier);
+    $normalizedReceiver = normalize_questionnaire_identifier_value($receiver);
+    $normalizedSender = normalize_questionnaire_identifier_value($sender);
+
+    if ($normalizedType === '' || $normalizedIdentifier === '') {
+        return '';
+    }
+
+    $keyPayload = [
+        'type' => $normalizedType,
+        'identifier' => mb_strtolower($normalizedIdentifier, 'UTF-8'),
+        'receiver' => mb_strtolower($normalizedReceiver, 'UTF-8'),
+        'sender' => mb_strtolower($normalizedSender, 'UTF-8')
+    ];
+    $hash = sha1(json_encode($keyPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    if ($hash === '') {
+        return '';
+    }
+
+    if (!is_dir($questionnaireResponsesDir)) {
+        @mkdir($questionnaireResponsesDir, 0775, true);
+    }
+
+    return $questionnaireResponsesDir . DIRECTORY_SEPARATOR . $normalizedType . '__' . $hash . '.json';
+}
+
+function read_questionnaire_response_file(string $path): array
+{
+    if ($path === '' || !is_file($path)) {
+        return [
+            'available' => false,
+            'response' => null,
+            'path' => $path
+        ];
+    }
+
+    $raw = file_get_contents($path);
+    if (!is_string($raw) || trim($raw) === '') {
+        return [
+            'available' => true,
+            'response' => null,
+            'path' => $path
+        ];
+    }
+
+    $parsed = json_decode($raw, true);
+    if (!is_array($parsed)) {
+        throw new RuntimeException('Stored questionnaire response is not valid JSON.');
+    }
+
+    return [
+        'available' => true,
+        'response' => $parsed,
+        'path' => $path
+    ];
+}
+
+function write_questionnaire_response_file(string $path, array $payload): void
+{
+    ensure_parent_directory($path);
+    $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($encoded) || $encoded === '') {
+        throw new RuntimeException('Unable to encode questionnaire response.');
+    }
+    file_put_contents($path, $encoded);
 }
 
 function normalize_learning_center_outline_id($value): string
@@ -8553,6 +8637,91 @@ if ($action === 'get_learn_more_content') {
     exit;
 }
 
+if ($action === 'get_questionnaire_response') {
+    try {
+        require_allowed_keys($input, ['action', 'questionnaire_type', 'identifier', 'receiver', 'sender'], 'request');
+        $questionnaireType = normalize_questionnaire_type($input['questionnaire_type'] ?? '');
+        $identifier = normalize_questionnaire_identifier_value($input['identifier'] ?? '');
+        $receiver = normalize_questionnaire_identifier_value($input['receiver'] ?? '');
+        $sender = normalize_questionnaire_identifier_value($input['sender'] ?? '');
+        $path = build_questionnaire_response_path($questionnaireType, $identifier, $receiver, $sender);
+        if ($questionnaireType === '' || $identifier === '' || $path === '') {
+            throw new RuntimeException('Questionnaire request is invalid.');
+        }
+        $record = read_questionnaire_response_file($path);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'questionnaire_response' => [
+            'questionnaire_type' => $questionnaireType,
+            'identifier' => $identifier,
+            'receiver' => $receiver,
+            'sender' => $sender,
+            'available' => !empty($record['available']),
+            'response' => is_array($record['response'] ?? null) ? $record['response'] : null,
+            'path' => (string) ($record['path'] ?? '')
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'save_questionnaire_response') {
+    try {
+        require_allowed_keys($input, ['action', 'questionnaire_type', 'identifier', 'receiver', 'sender', 'response'], 'request');
+        $questionnaireType = normalize_questionnaire_type($input['questionnaire_type'] ?? '');
+        $identifier = normalize_questionnaire_identifier_value($input['identifier'] ?? '');
+        $receiver = normalize_questionnaire_identifier_value($input['receiver'] ?? '');
+        $sender = normalize_questionnaire_identifier_value($input['sender'] ?? '');
+        $payload = $input['response'] ?? null;
+        $path = build_questionnaire_response_path($questionnaireType, $identifier, $receiver, $sender);
+        if ($questionnaireType === '' || $identifier === '' || $path === '') {
+            throw new RuntimeException('Questionnaire request is invalid.');
+        }
+        if (!is_array($payload)) {
+            throw new RuntimeException('Questionnaire response payload is invalid.');
+        }
+        write_questionnaire_response_file($path, $payload);
+        $record = read_questionnaire_response_file($path);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'questionnaire_response' => [
+            'questionnaire_type' => $questionnaireType,
+            'identifier' => $identifier,
+            'receiver' => $receiver,
+            'sender' => $sender,
+            'available' => !empty($record['available']),
+            'response' => is_array($record['response'] ?? null) ? $record['response'] : null,
+            'path' => (string) ($record['path'] ?? '')
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'list_learning_center_lessons') {
     try {
         require_allowed_keys($input, ['action'], 'request');
@@ -8630,6 +8799,49 @@ if ($action === 'save_learn_more_content') {
             'content' => (string) ($contentRecord['content'] ?? ''),
             'path' => (string) ($contentRecord['path'] ?? '')
         ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'delete_learn_more_content') {
+    if (!$hasAdminAccess) {
+        fail_request($handle, $nowMs, 'Administrative access is required.', 403);
+    }
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key'], 'request');
+        $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
+        $path = get_learn_more_content_path($contentKey);
+        $mirrorPath = get_learn_more_repo_content_path($contentKey);
+        if (!preg_match('/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/', $contentKey)) {
+            throw new RuntimeException('Only lesson-page content can be deleted from this control.');
+        }
+        if ($contentKey === '' || $path === '' || $mirrorPath === '') {
+            throw new RuntimeException('Learn More content key is invalid.');
+        }
+        $deleted = false;
+        if (is_file($path)) {
+            $deleted = @unlink($path) || $deleted;
+        }
+        if ($mirrorPath !== '' && is_file($mirrorPath)) {
+            $deleted = @unlink($mirrorPath) || $deleted;
+        }
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'content_key' => $contentKey,
+        'deleted' => $deleted,
         'server_now_ms' => $nowMs
     ];
 

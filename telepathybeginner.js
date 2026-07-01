@@ -1,7 +1,7 @@
-﻿(() => {
+(() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260630k";
+  const launcherBuildVersion = "20260630s";
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
@@ -45,6 +45,7 @@
   const subscriptionEmailAdminView = document.querySelector('[data-view="subscription-email-admin"]');
   const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
   const adminEmailListView = document.querySelector('[data-view="admin-email-list"]');
+  const lessonIndexAdminView = document.querySelector('[data-view="lesson-index-admin"]');
   const onlineCourseView = document.querySelector('[data-view="online-course"]');
   const baselineQuestionsView = document.querySelector('[data-view="baseline-questions"]');
   const afterFirstSessionQuestionsView = document.querySelector('[data-view="after-first-session-questions"]');
@@ -107,6 +108,7 @@
   const openHandleUpdateAdminButton = document.querySelector("[data-open-handle-update-admin]");
   const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
+  const openLessonIndexAdminButton = document.querySelector("[data-open-lesson-index-admin]");
   const adminEmailListButton = document.querySelector("[data-admin-email-list]");
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
   const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
@@ -122,6 +124,8 @@
   const closeOnlineCourseButton = document.querySelector("[data-close-online-course]");
   const saveOnlineCourseWordButton = document.querySelector("[data-save-online-course-word]");
   const onlineCourseLessonList = document.querySelector(".online-course-lesson-list");
+  const onlineCourseTabButtons = Array.from(document.querySelectorAll("[data-online-course-tab]"));
+  const onlineCourseTabPanels = Array.from(document.querySelectorAll("[data-online-course-panel]"));
   const closeBaselineQuestionsButton = document.querySelector("[data-close-baseline-questions]");
   const closeAfterFirstSessionQuestionsButton = document.querySelector("[data-close-after-first-session-questions]");
   const closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
@@ -196,6 +200,7 @@
   const closeSubscriptionEmailAdminButton = document.querySelector("[data-close-subscription-email-admin]");
   const closeAdminUserListButton = document.querySelector("[data-close-admin-user-list]");
   const closeAdminEmailListButton = document.querySelector("[data-close-admin-email-list]");
+  const closeLessonIndexAdminButton = document.querySelector("[data-close-lesson-index-admin]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const temporaryHomePageContinueButton = document.querySelector("[data-temporary-home-continue]");
   const temporaryHomePageInvitationCodeInput = document.querySelector("[data-temporary-home-invitation-code]");
@@ -297,6 +302,11 @@
   const adminEmailListSummary = document.querySelector("[data-admin-email-list-summary]");
   const adminEmailListStatus = document.querySelector("[data-admin-email-list-status]");
   const adminEmailListOutput = document.querySelector("[data-admin-email-list-output]");
+  const lessonIndexAdminSummary = document.querySelector("[data-lesson-index-admin-summary]");
+  const lessonIndexAdminStatus = document.querySelector("[data-lesson-index-admin-status]");
+  const lessonIndexAdminBody = document.querySelector("[data-lesson-index-admin-body]");
+  const lessonIndexAdminRefreshButton = document.querySelector("[data-lesson-index-admin-refresh]");
+  const lessonIndexAdminSaveButton = document.querySelector("[data-lesson-index-admin-save]");
   const featureSetupIdentifier = document.querySelector("[data-feature-setup-identifier]");
   const featureSetupSummary = document.querySelector("[data-feature-setup-summary]");
   const featureSetupInstallStatus = document.querySelector("[data-feature-setup-install-status]");
@@ -626,6 +636,8 @@ This is an alternate test message to show now.`;
   let activeEspLessonMode = "role";
   let activeLearningCenterLessonId = "";
   let activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
+  let pendingOnlineCourseRestoreFocusId = "";
+  let activeOnlineCourseTab = "welcome";
   let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
   let learningCenterLessonIndex = [];
   let suppressLauncherAutoCollapseUntil = 0;
@@ -655,7 +667,8 @@ This is an alternate test message to show now.`;
       user_trial_summary_meta: null,
       email_list: null,
       email_list_meta: null,
-      disk_usage_analysis: null
+      disk_usage_analysis: null,
+      lesson_index: null
     };
   const defaultThemeColor = "#3160b0";
   const preciseLocationAccuracyThresholdMeters = 120;
@@ -1578,12 +1591,12 @@ This is an alternate test message to show now.`;
       activeLearningCenterLessonId = "";
       activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
       espLessonDetailView?.classList.add("beginner-view-hidden");
+      pendingOnlineCourseRestoreFocusId = returnFocusId;
       showOnlineCourseView({
         view: targetView || "online-course",
         role: "",
         scrollY: returnScrollY
       });
-      restoreOnlineCourseLaunchFocus(returnFocusId);
       return;
     }
     const returnRole = activeEspLessonRole;
@@ -2747,6 +2760,19 @@ This is an alternate test message to show now.`;
     return response?.learn_more_content || null;
   }
 
+  async function deleteEditableContentFromServer(contentKey) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    if (!/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
+      throw new Error("Lesson content key is invalid.");
+    }
+    return postInfrastructureContentRequest("delete_learn_more_content", {
+      content_key: normalizedKey,
+      secret_candidate: launcherAdminSecret
+    }, {
+      mirrorToLocalWhenAvailable: true
+    });
+  }
+
   async function fetchLearningCenterLessonIndex() {
     const response = await postInfrastructureContentRequest("list_learning_center_lessons", {}, {
       allowLocalFallback: true,
@@ -3494,6 +3520,7 @@ This is an alternate test message to show now.`;
     const lines = normalized.split("\n");
     const metadata = {};
     let bodyStartIndex = lines.length;
+    let bareLessonId = "";
     for (let index = 0; index < lines.length; index += 1) {
       const line = String(lines[index] || "");
       const trimmed = line.trim();
@@ -3503,13 +3530,18 @@ This is an alternate test message to show now.`;
       }
       const match = trimmed.match(/^([a-z][a-z0-9_-]*)\s*=\s*(.+)\s*$/i);
       if (!match) {
-        bodyStartIndex = index;
+        if (index === 0 && /^[a-z0-9-]{1,80}$/i.test(trimmed)) {
+          bareLessonId = trimmed;
+          bodyStartIndex = index + 1;
+        } else {
+          bodyStartIndex = index;
+        }
         break;
       }
       metadata[String(match[1] || "").trim().toLowerCase()] = String(match[2] || "").trim();
     }
     const legacyNumber = String(metadata.lesson || "").trim();
-    const lessonId = normalizeLearningCenterLessonId(metadata["lesson-id"] || metadata.lesson_id || "");
+    const lessonId = normalizeLearningCenterLessonId(metadata["lesson-id"] || metadata.lesson_id || bareLessonId || "");
     const displayNumber = normalizeLearningCenterDisplayNumber(metadata.number || legacyNumber || "");
     const title = String(metadata.title || "").trim();
     const subcopy = String(metadata.subcopy || "").trim();
@@ -4821,8 +4853,8 @@ This is an alternate test message to show now.`;
       return `
         <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"} ${isUnread ? "is-unread" : ""}" data-message-id="${escapeHtml(messageId)}">
           <div class="role-message-meta-row">
-            <span class="role-message-meta">${isUnread ? `<span class="role-message-unread-dot" aria-hidden="true"></span>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` Â· ${escapeHtml(createdLabel)}` : ""}</span>
-            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">ðŸ—‘</button>
+            <span class="role-message-meta">${isUnread ? `<span class="role-message-unread-dot" aria-hidden="true"></span>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` - ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">&#128465;</button>
           </div>
           <div>${escapeHtml(String(message?.text || ""))}</div>
         </div>
@@ -4919,7 +4951,7 @@ This is an alternate test message to show now.`;
       return;
     }
     if (pushSetupStatus) {
-      pushSetupStatus.textContent = "Checking this deviceâ€¦";
+      pushSetupStatus.textContent = "Checking this device...";
     }
     pushSetupOverlay?.classList.remove("beginner-view-hidden");
     void refreshPushSetupOverlay();
@@ -5618,7 +5650,7 @@ This is an alternate test message to show now.`;
     }
     pushSetupInFlight = true;
     if (pushSetupStatus) {
-      pushSetupStatus.textContent = "Enabling partner messagingâ€¦";
+      pushSetupStatus.textContent = "Enabling partner messaging...";
     }
     try {
       if (!isRunningAsInstalledApp()) {
@@ -6423,8 +6455,8 @@ This is an alternate test message to show now.`;
       return `
         <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"}" data-message-id="${escapeHtml(messageId)}">
           <div class="role-message-meta-row">
-            <span class="role-message-meta">${isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` Â· ${escapeHtml(createdLabel)}` : ""}</span>
-            <button class="role-message-trash" type="button" data-role-message-delete="${escapeHtml(role)}" data-message-id="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">ðŸ—‘</button>
+            <span class="role-message-meta">${isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` - ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-role-message-delete="${escapeHtml(role)}" data-message-id="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">&#128465;</button>
           </div>
           <div>${escapeHtml(String(message?.text || ""))}</div>
         </div>
@@ -12968,9 +13000,59 @@ This is an alternate test message to show now.`;
     }
     try {
       if (directive) {
-        const currentOutlineRecord = directive.lessonId
+        let currentOutlineRecord = directive.lessonId
           ? getLearningCenterLessonRecordById(directive.lessonId)
           : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber);
+        if (!currentOutlineRecord && (directive.lessonId || directive.displayNumber)) {
+          try {
+            const liveIndex = await fetchLearningCenterLessonIndex();
+            if (Array.isArray(liveIndex) && liveIndex.length) {
+              learningCenterLessonIndex = liveIndex;
+              currentOutlineRecord = directive.lessonId
+                ? getLearningCenterLessonRecordById(directive.lessonId, liveIndex)
+                : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber, liveIndex);
+            }
+          } catch (error) {
+            // Keep going with the in-memory index if the live refresh fails.
+          }
+        }
+        const isDirectiveOnly = isDirectiveOnlyLessonEditorText(nextValue);
+        if (isDirectiveOnly && currentOutlineRecord && (directive.lessonId || directive.displayNumber)) {
+          const lessonId = normalizeLearningCenterLessonId(currentOutlineRecord.lesson_id || directive.lessonId || "");
+          const displayNumber = normalizeLearningCenterDisplayNumber(currentOutlineRecord.display_number || directive.displayNumber || "");
+          const title = String(currentOutlineRecord.title || "").trim();
+          const subcopy = String(currentOutlineRecord.subcopy || "").trim();
+          const type = String(currentOutlineRecord.type || "lesson-page").trim() || "lesson-page";
+          const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
+          if (type === "lesson-page" && lessonKey) {
+            const existing = await fetchEditableContentFromServer(lessonKey);
+            if (existing?.available) {
+              applyMainLessonEditorContent(lessonKey, String(existing.content || ""), {
+                status: `Loaded LESSON ${displayNumber} into the editor.`,
+                displayNumber,
+                title,
+                subcopy,
+                type
+              });
+              return;
+            }
+          }
+          const starterContent = buildStarterLessonContent({
+            lesson_id: lessonId,
+            display_number: displayNumber,
+            title,
+            subcopy,
+            type
+          });
+          applyMainLessonEditorContent(type === "lesson-page" ? lessonKey : "main", starterContent, {
+            status: `Loaded LESSON ${displayNumber} metadata into the editor.`,
+            displayNumber,
+            title,
+            subcopy,
+            type
+          });
+          return;
+        }
         const lessonId = normalizeLearningCenterLessonId(directive.lessonId || currentOutlineRecord?.lesson_id || "");
         const displayNumber = normalizeLearningCenterDisplayNumber(directive.displayNumber || currentOutlineRecord?.display_number || "");
         const title = String(directive.title || currentOutlineRecord?.title || "").trim();
@@ -12988,7 +13070,7 @@ This is an alternate test message to show now.`;
           available: type !== "lesson-page" ? true : Boolean(currentOutlineRecord?.available)
         };
         const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
-        if (isDirectiveOnlyLessonEditorText(nextValue)) {
+        if (isDirectiveOnly) {
           if (type === "lesson-page") {
             const existing = await fetchEditableContentFromServer(lessonKey);
             if (existing?.available) {
@@ -13105,7 +13187,7 @@ This is an alternate test message to show now.`;
     return `cones-baseline-questions-v1-${normalizedIdentifier}`;
   }
 
-  function readBaselineQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier()) {
+  function readLegacyBaselineQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier()) {
     try {
       const raw = localStorage.getItem(getBaselineQuestionsStorageKey(identifier));
       return raw ? JSON.parse(raw) : null;
@@ -13114,7 +13196,7 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function writeBaselineQuestionsResponse(identifier, payload) {
+  function writeLegacyBaselineQuestionsResponse(identifier, payload) {
     localStorage.setItem(
       getBaselineQuestionsStorageKey(identifier),
       JSON.stringify(payload)
@@ -13189,16 +13271,108 @@ This is an alternate test message to show now.`;
     };
   }
 
-  function renderBaselineQuestionsView() {
+  function getAfterFirstSessionQuestionsStorageKey(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
+    const normalizedIdentifier = normalizeIdentifierForStorage(identifier) || "anonymous";
+    const normalizedReceiver = normalizeIdentifierForStorage(receiver) || "unknown-receiver";
+    const normalizedSender = normalizeIdentifierForStorage(sender) || "unknown-sender";
+    return `cones-after-first-session-questions-v1-${normalizedIdentifier}-${normalizedReceiver}-${normalizedSender}`;
+  }
+
+  function readLegacyAfterFirstSessionQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
+    try {
+      const raw = localStorage.getItem(getAfterFirstSessionQuestionsStorageKey(identifier, receiver, sender));
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeLegacyAfterFirstSessionQuestionsResponse(identifier, receiver, sender, payload) {
+    localStorage.setItem(
+      getAfterFirstSessionQuestionsStorageKey(identifier, receiver, sender),
+      JSON.stringify(payload)
+    );
+  }
+
+  async function fetchQuestionnaireResponseFromServer(questionnaireType, identifier, receiver = "", sender = "") {
+    const response = await postInfrastructureContentRequest(
+      "get_questionnaire_response",
+      {
+        questionnaire_type: questionnaireType,
+        identifier,
+        receiver,
+        sender
+      },
+      {
+        allowLocalFallback: true
+      }
+    );
+    return response?.questionnaire_response || null;
+  }
+
+  async function saveQuestionnaireResponseToServer(questionnaireType, identifier, receiver = "", sender = "", payload = {}) {
+    const response = await postInfrastructureContentRequest(
+      "save_questionnaire_response",
+      {
+        questionnaire_type: questionnaireType,
+        identifier,
+        receiver,
+        sender,
+        response: payload || {}
+      },
+      {
+        allowLocalFallback: true
+      }
+    );
+    return response?.questionnaire_response || null;
+  }
+
+  async function readBaselineQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier()) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    const legacy = readLegacyBaselineQuestionsResponse(normalizedIdentifier);
+    try {
+      const record = await fetchQuestionnaireResponseFromServer("baseline", normalizedIdentifier);
+      if (record?.available && record?.response && typeof record.response === "object") {
+        writeLegacyBaselineQuestionsResponse(normalizedIdentifier, record.response);
+        return record.response;
+      }
+      if (legacy && typeof legacy === "object") {
+        await saveQuestionnaireResponseToServer("baseline", normalizedIdentifier, "", "", legacy);
+        return legacy;
+      }
+      return null;
+    } catch (error) {
+      return legacy && typeof legacy === "object" ? legacy : null;
+    }
+  }
+
+  async function writeBaselineQuestionsResponse(identifier, payload) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    writeLegacyBaselineQuestionsResponse(normalizedIdentifier, payload);
+    try {
+      const record = await saveQuestionnaireResponseToServer("baseline", normalizedIdentifier, "", "", payload);
+      return record?.response && typeof record.response === "object" ? record.response : payload;
+    } catch (error) {
+      return payload;
+    }
+  }
+
+  async function renderBaselineQuestionsView() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
-    const saved = readBaselineQuestionsResponse(displayIdentifier);
-    const displayDate = String(saved?.baseline_date || formatOnlineCourseDate()).trim();
     if (baselineDate) {
-      baselineDate.textContent = displayDate;
+      baselineDate.textContent = formatOnlineCourseDate();
     }
     if (baselineName) {
       baselineName.textContent = displayIdentifier;
+    }
+    if (baselineStatus) {
+      baselineStatus.textContent = "Loading baseline questions...";
+    }
+    const saved = await readBaselineQuestionsResponse(displayIdentifier);
+    const displayDate = String(saved?.baseline_date || formatOnlineCourseDate()).trim();
+    if (baselineDate) {
+      baselineDate.textContent = displayDate;
     }
     populateBaselineQuestionsForm(saved);
     if (baselineStatus) {
@@ -13208,7 +13382,7 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function saveBaselineQuestions() {
+  async function saveBaselineQuestions() {
     const displayIdentifier = getOnlineCourseDisplayIdentifier(readLauncherState());
     const displayDate = formatOnlineCourseDate();
     const payload = {
@@ -13217,18 +13391,14 @@ This is an alternate test message to show now.`;
       saved_at: new Date().toISOString(),
       ...collectBaselineQuestionsFormResponse()
     };
-    writeBaselineQuestionsResponse(displayIdentifier, payload);
+    if (baselineStatus) {
+      baselineStatus.textContent = `Saving baseline questions for ${displayIdentifier}...`;
+    }
+    await writeBaselineQuestionsResponse(displayIdentifier, payload);
     if (baselineStatus) {
       baselineStatus.textContent = `Baseline questions saved for ${displayIdentifier}.`;
     }
     closeBaselineQuestionsView();
-  }
-
-  function getAfterFirstSessionQuestionsStorageKey(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
-    const normalizedIdentifier = normalizeIdentifierForStorage(identifier) || "anonymous";
-    const normalizedReceiver = normalizeIdentifierForStorage(receiver) || "unknown-receiver";
-    const normalizedSender = normalizeIdentifierForStorage(sender) || "unknown-sender";
-    return `cones-after-first-session-questions-v1-${normalizedIdentifier}-${normalizedReceiver}-${normalizedSender}`;
   }
 
   function getAfterFirstSessionPairContext(state = readLauncherState()) {
@@ -13256,20 +13426,38 @@ This is an alternate test message to show now.`;
     };
   }
 
-  function readAfterFirstSessionQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
+  async function readAfterFirstSessionQuestionsResponse(identifier = getOnlineCourseDisplayIdentifier(), receiver = "", sender = "") {
+    const normalizedIdentifier = String(identifier || "").trim();
+    const normalizedReceiver = String(receiver || "").trim();
+    const normalizedSender = String(sender || "").trim();
+    const legacy = readLegacyAfterFirstSessionQuestionsResponse(normalizedIdentifier, normalizedReceiver, normalizedSender);
     try {
-      const raw = localStorage.getItem(getAfterFirstSessionQuestionsStorageKey(identifier, receiver, sender));
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
+      const record = await fetchQuestionnaireResponseFromServer("after-first-session", normalizedIdentifier, normalizedReceiver, normalizedSender);
+      if (record?.available && record?.response && typeof record.response === "object") {
+        writeLegacyAfterFirstSessionQuestionsResponse(normalizedIdentifier, normalizedReceiver, normalizedSender, record.response);
+        return record.response;
+      }
+      if (legacy && typeof legacy === "object") {
+        await saveQuestionnaireResponseToServer("after-first-session", normalizedIdentifier, normalizedReceiver, normalizedSender, legacy);
+        return legacy;
+      }
       return null;
+    } catch (error) {
+      return legacy && typeof legacy === "object" ? legacy : null;
     }
   }
 
-  function writeAfterFirstSessionQuestionsResponse(identifier, receiver, sender, payload) {
-    localStorage.setItem(
-      getAfterFirstSessionQuestionsStorageKey(identifier, receiver, sender),
-      JSON.stringify(payload)
-    );
+  async function writeAfterFirstSessionQuestionsResponse(identifier, receiver, sender, payload) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    const normalizedReceiver = String(receiver || "").trim();
+    const normalizedSender = String(sender || "").trim();
+    writeLegacyAfterFirstSessionQuestionsResponse(normalizedIdentifier, normalizedReceiver, normalizedSender, payload);
+    try {
+      const record = await saveQuestionnaireResponseToServer("after-first-session", normalizedIdentifier, normalizedReceiver, normalizedSender, payload);
+      return record?.response && typeof record.response === "object" ? record.response : payload;
+    } catch (error) {
+      return payload;
+    }
   }
 
   function populateAfterFirstSessionQuestionsForm(saved = null) {
@@ -13325,20 +13513,26 @@ This is an alternate test message to show now.`;
     };
   }
 
-  function renderAfterFirstSessionQuestionsView() {
+  async function renderAfterFirstSessionQuestionsView() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
     const pairContext = getAfterFirstSessionPairContext(state);
-    const saved = readAfterFirstSessionQuestionsResponse(displayIdentifier, pairContext.receiver, pairContext.sender);
-    const displayDate = String(saved?.session_date || formatOnlineCourseDate()).trim();
     if (afterFirstSessionDate) {
-      afterFirstSessionDate.textContent = displayDate;
+      afterFirstSessionDate.textContent = formatOnlineCourseDate();
     }
     if (afterFirstSessionReceiver) {
       afterFirstSessionReceiver.textContent = pairContext.receiver || "Unknown";
     }
     if (afterFirstSessionSender) {
       afterFirstSessionSender.textContent = pairContext.sender || "Unknown";
+    }
+    if (afterFirstSessionStatus) {
+      afterFirstSessionStatus.textContent = "Loading After First Session Questions...";
+    }
+    const saved = await readAfterFirstSessionQuestionsResponse(displayIdentifier, pairContext.receiver, pairContext.sender);
+    const displayDate = String(saved?.session_date || formatOnlineCourseDate()).trim();
+    if (afterFirstSessionDate) {
+      afterFirstSessionDate.textContent = displayDate;
     }
     populateAfterFirstSessionQuestionsForm(saved);
     if (afterFirstSessionStatus) {
@@ -13348,7 +13542,7 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function saveAfterFirstSessionQuestions() {
+  async function saveAfterFirstSessionQuestions() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
     const pairContext = getAfterFirstSessionPairContext(state);
@@ -13360,7 +13554,10 @@ This is an alternate test message to show now.`;
       saved_at: new Date().toISOString(),
       ...collectAfterFirstSessionQuestionsFormResponse()
     };
-    writeAfterFirstSessionQuestionsResponse(displayIdentifier, pairContext.receiver, pairContext.sender, payload);
+    if (afterFirstSessionStatus) {
+      afterFirstSessionStatus.textContent = `Saving After First Session Questions for ${displayIdentifier}...`;
+    }
+    await writeAfterFirstSessionQuestionsResponse(displayIdentifier, pairContext.receiver, pairContext.sender, payload);
     if (afterFirstSessionStatus) {
       afterFirstSessionStatus.textContent = `After First Session Questions saved for ${displayIdentifier}.`;
     }
@@ -13393,7 +13590,12 @@ This is an alternate test message to show now.`;
       return;
     }
     const exportClone = panel.cloneNode(true);
+    exportClone.querySelector(".online-course-tabs")?.remove();
     exportClone.querySelectorAll("button").forEach((button) => button.remove());
+    exportClone.querySelectorAll("[data-online-course-panel]").forEach((tabPanel) => {
+      tabPanel.hidden = false;
+      tabPanel.classList.remove("online-course-tab-panel-hidden");
+    });
     const lessonList = exportClone.querySelector(".online-course-lesson-list");
     if (lessonList) {
       const lessonRows = Array.from(lessonList.querySelectorAll(".online-course-lesson-row"));
@@ -13554,6 +13756,41 @@ This is an alternate test message to show now.`;
     });
   }
 
+  function normalizeOnlineCourseTabId(tabId = "") {
+    const normalizedTabId = String(tabId || "").trim().toLowerCase();
+    if (normalizedTabId === "course-structure") {
+      return "course-structure";
+    }
+    if (normalizedTabId === "tab-3") {
+      return "tab-3";
+    }
+    if (normalizedTabId === "tab-4") {
+      return "tab-4";
+    }
+    if (normalizedTabId === "tab-5") {
+      return "tab-5";
+    }
+    return "welcome";
+  }
+
+  function setOnlineCourseTab(tabId = "welcome") {
+    const normalizedTabId = normalizeOnlineCourseTabId(tabId);
+    activeOnlineCourseTab = normalizedTabId;
+    onlineCourseTabButtons.forEach((button) => {
+      const buttonTabId = normalizeOnlineCourseTabId(button.dataset.onlineCourseTab || "");
+      const isActive = buttonTabId === normalizedTabId;
+      button.classList.toggle("online-course-tab-button-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+      button.tabIndex = isActive ? 0 : -1;
+    });
+    onlineCourseTabPanels.forEach((panel) => {
+      const panelTabId = normalizeOnlineCourseTabId(panel.dataset.onlineCoursePanel || "");
+      const isActive = panelTabId === normalizedTabId;
+      panel.classList.toggle("online-course-tab-panel-hidden", !isActive);
+      panel.hidden = !isActive;
+    });
+  }
+
   function openLearningCenterRowTarget(row) {
     if (!(row instanceof Element)) {
       return false;
@@ -13600,13 +13837,21 @@ This is an alternate test message to show now.`;
       learningCenterLessonIndex = [];
     }
     renderLearningCenterLessonLinks(learningCenterLessonIndex);
+    if (pendingOnlineCourseRestoreFocusId) {
+      const focusId = pendingOnlineCourseRestoreFocusId;
+      pendingOnlineCourseRestoreFocusId = "";
+      if (document.getElementById(focusId)?.classList.contains("online-course-lesson-row")) {
+        setOnlineCourseTab("course-structure");
+      }
+      restoreOnlineCourseLaunchFocus(focusId);
+    }
   }
 
-  function renderOnlineCourseView() {
+  async function renderOnlineCourseView() {
     const state = readLauncherState();
     const displayDate = formatOnlineCourseDate();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
-    const savedBaseline = readBaselineQuestionsResponse(displayIdentifier);
+    const savedBaseline = await readBaselineQuestionsResponse(displayIdentifier);
     if (onlineCourseDate) {
       onlineCourseDate.textContent = displayDate;
     }
@@ -13629,6 +13874,12 @@ This is an alternate test message to show now.`;
       role: String(options.role || "").trim(),
       scrollY: targetScrollY
     };
+    const requestedTab = String(options.tab || "").trim();
+    if (requestedTab) {
+      setOnlineCourseTab(requestedTab);
+    } else {
+      setOnlineCourseTab(activeOnlineCourseTab || "welcome");
+    }
     renderOnlineCourseView();
     void refreshLearningCenterLessonIndex();
     onlineCourseView?.classList.remove("beginner-view-hidden");
@@ -13696,12 +13947,9 @@ This is an alternate test message to show now.`;
         target.focus();
       }
       row.classList.add("online-course-lesson-row-restored");
-      const clearRestoredState = () => {
+      window.setTimeout(() => {
         row.classList.remove("online-course-lesson-row-restored");
-        target.removeEventListener("blur", clearRestoredState);
-      };
-      target.addEventListener("blur", clearRestoredState);
-      window.setTimeout(clearRestoredState, 3000);
+      }, 2500);
     };
     window.requestAnimationFrame(() => attemptRestore());
   }
@@ -13863,12 +14111,12 @@ This is an alternate test message to show now.`;
       showOptionsView();
       return;
     }
+    pendingOnlineCourseRestoreFocusId = targetFocusId;
     showOnlineCourseView({
       view: targetView || "online-course",
       role: targetRole,
       scrollY: targetScrollY
     });
-    restoreOnlineCourseLaunchFocus(targetFocusId);
   }
 
   function showAfterFirstSessionQuestionsView(options = {}) {
@@ -13917,6 +14165,7 @@ This is an alternate test message to show now.`;
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
@@ -13939,12 +14188,12 @@ This is an alternate test message to show now.`;
       showOptionsView();
       return;
     }
+    pendingOnlineCourseRestoreFocusId = targetFocusId;
     showOnlineCourseView({
       view: targetView || "online-course",
       role: targetRole,
       scrollY: targetScrollY
     });
-    restoreOnlineCourseLaunchFocus(targetFocusId);
   }
 
   function showAidsView() {
@@ -13988,6 +14237,7 @@ This is an alternate test message to show now.`;
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
@@ -14033,6 +14283,7 @@ This is an alternate test message to show now.`;
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
@@ -14693,6 +14944,131 @@ This is an alternate test message to show now.`;
       }
     }
 
+    function renderLessonIndexAdminView() {
+      const rows = Array.isArray(launcherAdminState.lesson_index) ? launcherAdminState.lesson_index : [];
+
+      if (lessonIndexAdminSummary) {
+        lessonIndexAdminSummary.textContent = `${rows.length} lesson row${rows.length === 1 ? "" : "s"} found. Lesson ids, numbers, titles, and subcopy can be edited here.`;
+      }
+      if (lessonIndexAdminStatus && !String(lessonIndexAdminStatus.textContent || "").trim()) {
+        lessonIndexAdminStatus.textContent = rows.length ? "" : "No lesson-index rows are available right now.";
+      }
+      if (!lessonIndexAdminBody) {
+        return;
+      }
+
+      if (!rows.length) {
+        lessonIndexAdminBody.innerHTML = `<tr><td colspan="6">No lesson-index rows are available right now.</td></tr>`;
+        return;
+      }
+
+      lessonIndexAdminBody.innerHTML = rows.map((row) => {
+        const lessonId = String(row?.lesson_id || "").trim();
+        const displayNumber = String(row?.display_number || "").trim();
+        const title = String(row?.title || "").trim();
+        const subcopy = String(row?.subcopy || "").trim();
+        const type = String(row?.type || "").trim();
+        const available = !!row?.available;
+        const lessonIdReadonly = type !== "lesson-page" ? "readonly" : "";
+        return `
+          <tr data-lesson-index-row="${escapeHtml(lessonId)}" data-lesson-index-original-id="${escapeHtml(lessonId)}">
+            <td><input class="lesson-index-admin-cell-input" type="text" value="${escapeHtml(lessonId)}" data-lesson-index-field="lesson_id" ${lessonIdReadonly}></td>
+            <td><input class="lesson-index-admin-cell-input" type="text" value="${escapeHtml(displayNumber)}" data-lesson-index-field="display_number"></td>
+            <td><input class="lesson-index-admin-cell-input" type="text" value="${escapeHtml(title)}" data-lesson-index-field="title"></td>
+            <td><textarea class="lesson-index-admin-cell-textarea" data-lesson-index-field="subcopy">${escapeHtml(subcopy)}</textarea></td>
+            <td><span class="lesson-index-admin-cell-pill">${escapeHtml(type)}</span></td>
+            <td><span class="lesson-index-admin-cell-pill ${available ? "lesson-index-admin-cell-yes" : "lesson-index-admin-cell-no"}">${available ? "Yes" : "No"}</span></td>
+            <td><button class="lesson-index-admin-delete-button" type="button" data-lesson-index-delete="${escapeHtml(lessonId)}" ${type === "lesson-page" ? "" : "disabled"}>${type === "lesson-page" ? "Delete" : "Protected"}</button></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function collectLessonIndexAdminRows() {
+      if (!lessonIndexAdminBody) {
+        return [];
+      }
+      return Array.from(lessonIndexAdminBody.querySelectorAll("[data-lesson-index-row]")).map((rowElement) => {
+        const originalLessonId = String(rowElement.getAttribute("data-lesson-index-original-id") || rowElement.getAttribute("data-lesson-index-row") || "").trim();
+        const lessonId = String(rowElement.querySelector('[data-lesson-index-field="lesson_id"]')?.value || originalLessonId).trim();
+        const normalizedOriginalLessonId = normalizeLearningCenterLessonId(originalLessonId);
+        const existingRecord = getLearningCenterLessonRecordById(normalizedOriginalLessonId, launcherAdminState.lesson_index || learningCenterLessonIndex) || {};
+        const displayNumber = String(rowElement.querySelector('[data-lesson-index-field="display_number"]')?.value || "").trim();
+        const title = String(rowElement.querySelector('[data-lesson-index-field="title"]')?.value || "").trim();
+        const subcopy = String(rowElement.querySelector('[data-lesson-index-field="subcopy"]')?.value || "").trim();
+        return {
+          original_lesson_id: normalizedOriginalLessonId,
+          lesson_id: lessonId,
+          display_number: displayNumber,
+          title,
+          subcopy,
+          type: String(existingRecord.type || "lesson-page").trim() || "lesson-page",
+          available: existingRecord.type !== "lesson-page" ? true : !!existingRecord.available
+        };
+      });
+    }
+
+    async function applyLearningCenterLessonIdChanges(rows) {
+      const normalizedRows = (Array.isArray(rows) ? rows : [])
+        .map((record) => {
+          const normalizedLessonId = normalizeLearningCenterLessonId(record?.lesson_id || "");
+          const normalizedOriginalLessonId = normalizeLearningCenterLessonId(record?.original_lesson_id || record?.lesson_id || "");
+          return normalizedLessonId ? {
+            ...record,
+            lesson_id: normalizedLessonId,
+            original_lesson_id: normalizedOriginalLessonId
+          } : null;
+        })
+        .filter(Boolean);
+      const renameRows = normalizedRows.filter((row) => row.type === "lesson-page" && row.original_lesson_id && row.lesson_id && row.original_lesson_id !== row.lesson_id);
+      if (!renameRows.length) {
+        return normalizedRows;
+      }
+      const contentByOldKey = new Map();
+      for (const row of renameRows) {
+        const oldKey = buildLearningCenterLessonContentKey(row.original_lesson_id);
+        if (!oldKey || contentByOldKey.has(oldKey)) {
+          continue;
+        }
+        const existing = await fetchEditableContentFromServer(oldKey);
+        contentByOldKey.set(oldKey, typeof existing?.content === "string" ? existing.content : "");
+      }
+      for (const row of renameRows) {
+        const oldKey = buildLearningCenterLessonContentKey(row.original_lesson_id);
+        const newKey = buildLearningCenterLessonContentKey(row.lesson_id);
+        if (!oldKey || !newKey || oldKey === newKey) {
+          continue;
+        }
+        await saveEditableContentToServer(newKey, contentByOldKey.get(oldKey) || "");
+      }
+      return normalizedRows;
+    }
+
+    async function cleanupRenamedLearningCenterLessonContent(rows) {
+      const normalizedRows = (Array.isArray(rows) ? rows : [])
+        .map((record) => ({
+          original_lesson_id: normalizeLearningCenterLessonId(record?.original_lesson_id || record?.lesson_id || ""),
+          lesson_id: normalizeLearningCenterLessonId(record?.lesson_id || ""),
+          type: String(record?.type || "").trim()
+        }))
+        .filter((record) => record.type === "lesson-page" && record.original_lesson_id && record.lesson_id && record.original_lesson_id !== record.lesson_id);
+      if (!normalizedRows.length) {
+        return;
+      }
+      const finalKeys = new Set(
+        normalizedRows
+          .map((row) => buildLearningCenterLessonContentKey(row.lesson_id))
+          .filter(Boolean)
+      );
+      for (const row of normalizedRows) {
+        const oldKey = buildLearningCenterLessonContentKey(row.original_lesson_id);
+        if (!oldKey || finalKeys.has(oldKey)) {
+          continue;
+        }
+        await deleteEditableContentFromServer(oldKey);
+      }
+    }
+
     function renderAdminView() {
       if (adminDebugEnabledCheckbox) {
         adminDebugEnabledCheckbox.checked = !!launcherAdminState.debug_enabled;
@@ -14834,6 +15210,18 @@ This is an alternate test message to show now.`;
       localStorage.removeItem("cones-settings-v2-receiver");
       localStorage.removeItem("cones-settings-v2-remote-viewer");
       localStorage.removeItem("cones-receiver-skip-two-choice-instructions");
+      const questionnairePrefixes = [
+        "cones-baseline-questions-v1-",
+        "cones-after-first-session-questions-v1-"
+      ];
+      const keysToRemove = [];
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = String(localStorage.key(index) || "");
+        if (questionnairePrefixes.some((prefix) => key.startsWith(prefix))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
     } catch (error) {
       // Ignore local cleanup failures.
     }
@@ -14860,6 +15248,7 @@ This is an alternate test message to show now.`;
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
@@ -14891,6 +15280,7 @@ This is an alternate test message to show now.`;
     adminUserListView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
@@ -14920,6 +15310,7 @@ This is an alternate test message to show now.`;
     adminEmailListView?.classList.remove("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
@@ -14943,6 +15334,50 @@ This is an alternate test message to show now.`;
     closeReportPairMenu();
     renderAdminEmailListView();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showLessonIndexAdminView() {
+    lessonIndexAdminView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderLessonIndexAdminView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function refreshLessonIndexAdminView(options = {}) {
+    const preserveStatus = !!options.preserveStatus;
+    if (lessonIndexAdminStatus && !preserveStatus) {
+      lessonIndexAdminStatus.textContent = "Loading lesson index...";
+    }
+    const rows = await fetchLearningCenterLessonIndex();
+    launcherAdminState.lesson_index = Array.isArray(rows) ? rows : [];
+    learningCenterLessonIndex = Array.isArray(rows) ? rows : learningCenterLessonIndex;
+    renderLessonIndexAdminView();
+    if (lessonIndexAdminStatus) {
+      lessonIndexAdminStatus.textContent = rows.length ? "" : "No lesson-index rows are available right now.";
+    }
   }
 
   function renderUserTypeAdminState(options = {}) {
@@ -17887,6 +18322,11 @@ This is an alternate test message to show now.`;
       showOnlineCourseView({ view: returnView, role });
     });
   });
+  onlineCourseTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setOnlineCourseTab(button.dataset.onlineCourseTab || "welcome");
+    });
+  });
   openBaselineQuestionsButtons.forEach((button) => {
     button.addEventListener("click", () => {
       if (button.closest(".online-course-lesson-row")) {
@@ -18059,6 +18499,25 @@ This is an alternate test message to show now.`;
   openHandleUpdateAdminButton?.addEventListener("click", showHandleUpdateAdminView);
   openImagePairAdminButton?.addEventListener("click", showImagePairAdminView);
   openSubscriptionEmailAdminButton?.addEventListener("click", showSubscriptionEmailAdminView);
+  openLessonIndexAdminButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      if (adminStatus) {
+        adminStatus.textContent = "Loading lesson index...";
+      }
+      await refreshLessonIndexAdminView();
+      if (adminStatus) {
+        adminStatus.textContent = "";
+      }
+      showLessonIndexAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to load the lesson index right now.";
+      }
+    }
+  });
   openHandleButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -18107,6 +18566,7 @@ This is an alternate test message to show now.`;
   closeSubscriptionEmailAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
   closeAdminEmailListButton?.addEventListener("click", showAdminView);
+  closeLessonIndexAdminButton?.addEventListener("click", showAdminView);
   baselineBeliefTelepathyInput?.addEventListener("input", () => {
     updateBaselineScaleDisplay(baselineBeliefTelepathyInput, baselineBeliefTelepathyValue);
   });
@@ -18181,7 +18641,7 @@ This is an alternate test message to show now.`;
     }
     pushSetupInFlight = true;
     if (pushSetupStatus) {
-      pushSetupStatus.textContent = "Sending a test notification to this deviceâ€¦";
+      pushSetupStatus.textContent = "Sending a test notification to this device...";
     }
     void triggerPartnerMessagingTestNotification()
       .then(() => {
@@ -18407,7 +18867,7 @@ This is an alternate test message to show now.`;
     button.addEventListener("click", () => {
       insertTextIntoRoleMessage(
         String(button.dataset.roleMessageEmoji || ""),
-        String(button.dataset.emojiValue || button.textContent || "").trim() || "ðŸ‘"
+        String(button.dataset.emojiValue || button.textContent || "").trim() || "\u{1F44D}"
       );
     });
   });
@@ -18923,6 +19383,79 @@ This is an alternate test message to show now.`;
       }
     }
   });
+  lessonIndexAdminRefreshButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      await refreshLessonIndexAdminView();
+    } catch (error) {
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = "Unable to refresh the lesson index right now.";
+      }
+    }
+  });
+  lessonIndexAdminSaveButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = "Saving lesson index...";
+      }
+      const rows = collectLessonIndexAdminRows();
+      const migratedRows = await applyLearningCenterLessonIdChanges(rows);
+      learningCenterLessonIndex = await saveLearningCenterOutlineToServer(migratedRows);
+      await cleanupRenamedLearningCenterLessonContent(migratedRows);
+      launcherAdminState.lesson_index = Array.isArray(learningCenterLessonIndex) ? learningCenterLessonIndex : [];
+      renderLearningCenterLessonLinks(learningCenterLessonIndex);
+      renderLessonIndexAdminView();
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = "Lesson index saved to the server.";
+      }
+    } catch (error) {
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = String(error?.message || "Unable to save the lesson index right now.");
+      }
+    }
+  });
+  lessonIndexAdminBody?.addEventListener("click", async (event) => {
+    const button = event.target instanceof Element ? event.target.closest("[data-lesson-index-delete]") : null;
+    if (!button || !hasLauncherAdminAccess()) {
+      return;
+    }
+    const lessonId = String(button.getAttribute("data-lesson-index-delete") || "").trim();
+    if (!lessonId) {
+      return;
+    }
+    const existingRecord = getLearningCenterLessonRecordById(lessonId, launcherAdminState.lesson_index || learningCenterLessonIndex);
+    const displayNumber = String(existingRecord?.display_number || "").trim();
+    const title = String(existingRecord?.title || "").trim();
+    const confirmed = window.confirm(`Delete LESSON ${displayNumber || "?"} ${title ? `- ${title}` : ""}?\n\nThis removes the lesson from the Learning Center outline and deletes its saved lesson page content.`);
+    if (!confirmed) {
+      return;
+    }
+    try {
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = `Deleting LESSON ${displayNumber || lessonId}...`;
+      }
+      const remainingRows = (Array.isArray(launcherAdminState.lesson_index) ? launcherAdminState.lesson_index : learningCenterLessonIndex)
+        .filter((row) => normalizeLearningCenterLessonId(row?.lesson_id) !== normalizeLearningCenterLessonId(lessonId));
+      await saveLearningCenterOutlineToServer(remainingRows);
+      await deleteEditableContentFromServer(buildLearningCenterLessonContentKey(lessonId));
+      learningCenterLessonIndex = await fetchLearningCenterLessonIndex();
+      launcherAdminState.lesson_index = Array.isArray(learningCenterLessonIndex) ? learningCenterLessonIndex : [];
+      renderLearningCenterLessonLinks(learningCenterLessonIndex);
+      renderLessonIndexAdminView();
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = `LESSON ${displayNumber || lessonId} deleted from the server.`;
+      }
+    } catch (error) {
+      if (lessonIndexAdminStatus) {
+        lessonIndexAdminStatus.textContent = String(error?.message || "Unable to delete that lesson right now.");
+      }
+    }
+  });
   adminAnalyzeDiskButton?.addEventListener("click", async () => {
       if (!hasLauncherAdminAccess()) {
         return;
@@ -19192,6 +19725,13 @@ This is an alternate test message to show now.`;
     }
   }
 })();
+
+
+
+
+
+
+
 
 
 
