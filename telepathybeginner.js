@@ -4662,7 +4662,7 @@ This is an alternate test message to show now.`;
       launchWrap.classList.toggle("is-role-message-disabled", disabledForRobot);
       if (disabledForRobot) {
         launchWrap.setAttribute("title", reason);
-      } else if (!isProLockedButton(button)) {
+      } else {
         launchWrap.removeAttribute("title");
       }
     }
@@ -4678,8 +4678,8 @@ This is an alternate test message to show now.`;
     } else if (!isProLockedButton(button)) {
       button.removeAttribute("aria-disabled");
       button.removeAttribute("title");
-    } else if (button.dataset.proLockMessage) {
-      button.setAttribute("title", button.dataset.proLockMessage);
+    } else {
+      button.removeAttribute("title");
     }
     return disabledForRobot;
   }
@@ -6891,10 +6891,8 @@ This is an alternate test message to show now.`;
     element.classList.toggle("is-pro-locked", !!locked);
     if (locked && cleanMessage) {
       element.setAttribute("data-pro-lock-message", cleanMessage);
-      element.setAttribute("title", cleanMessage);
     } else {
       element.removeAttribute("data-pro-lock-message");
-      element.removeAttribute("title");
     }
   }
 
@@ -6906,12 +6904,10 @@ This is an alternate test message to show now.`;
     button.classList.toggle("is-pro-locked-button", !!locked);
     if (locked && cleanMessage) {
       button.setAttribute("aria-disabled", "true");
-      button.setAttribute("title", cleanMessage);
       button.dataset.proLocked = "true";
       button.dataset.proLockMessage = cleanMessage;
     } else {
       button.removeAttribute("aria-disabled");
-      button.removeAttribute("title");
       delete button.dataset.proLocked;
       delete button.dataset.proLockMessage;
     }

@@ -65,6 +65,28 @@ Primary local app path:
 
 `C:\xampp\htdocs\telepathyexperiment\cones`
 
+Required local mirror path:
+
+`C:\xampp\htdocs\cones`
+
+Local mirror rule:
+
+1. `C:\xampp\htdocs\telepathyexperiment\cones` is the authoritative working tree for edits, git, and live deployment
+2. `C:\xampp\htdocs\cones` must be kept synchronized as the local mirror copy
+3. after any meaningful code change set, re-sync the authoritative tree into the mirror tree before claiming the local app is up to date
+4. when checking local browser behavior, be explicit about which local URL is being tested:
+   - `http://localhost/telepathyexperiment/cones/...`
+   - `http://localhost/cones/...`
+5. if those two local trees drift apart, stop and re-sync them before continuing normal testing or deployment claims
+
+Recommended local re-sync command:
+
+```powershell
+robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /XD .git /R:1 /W:1
+```
+
+If the mirror tree contains intentional local-only folders that should survive, exclude them explicitly from the command instead of silently allowing drift.
+
 Primary live app path:
 
 `/var/www/telepathyexperiment/cones`
