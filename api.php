@@ -5650,7 +5650,7 @@ function validate_selected_pair_payload($value, string $field = 'selected_pair')
         throw new RuntimeException($field . ' must be an object.');
     }
 
-    require_allowed_keys($value, ['receiver_name', 'sender_name', 'session_code', 'source'], $field);
+    require_allowed_keys($value, ['receiver_name', 'sender_name', 'session_code', 'source', 'alias_receiver_names', 'alias_sender_names'], $field);
 
     $source = trim((string) ($value['source'] ?? ''));
     if ($source !== '' && $source !== 'real' && $source !== 'simulation') {
@@ -5661,7 +5661,13 @@ function validate_selected_pair_payload($value, string $field = 'selected_pair')
         'receiver_name' => validate_participant_identifier_string($value['receiver_name'] ?? '', $field . '.receiver_name', true),
         'sender_name' => validate_participant_identifier_string($value['sender_name'] ?? '', $field . '.sender_name', true),
         'session_code' => validate_session_code_value($value['session_code'] ?? '', $field . '.session_code', false),
-        'source' => $source !== '' ? $source : 'real'
+        'source' => $source !== '' ? $source : 'real',
+        'alias_receiver_names' => isset($value['alias_receiver_names']) && is_array($value['alias_receiver_names'])
+            ? validate_identifier_list($value['alias_receiver_names'], $field . '.alias_receiver_names', 200)
+            : [],
+        'alias_sender_names' => isset($value['alias_sender_names']) && is_array($value['alias_sender_names'])
+            ? validate_identifier_list($value['alias_sender_names'], $field . '.alias_sender_names', 200)
+            : []
     ];
 }
 
@@ -6370,17 +6376,50 @@ function read_pair_trial_records_for_pair(string $pairsDir, array $pairInfo): ar
     $receiverName = trim((string) ($pairInfo['receiver_name'] ?? ''));
     $senderName = trim((string) ($pairInfo['sender_name'] ?? ''));
     $sessionCode = trim((string) ($pairInfo['session_code'] ?? ''));
+    $receiverAliases = isset($pairInfo['alias_receiver_names']) && is_array($pairInfo['alias_receiver_names'])
+        ? array_values(array_unique(array_filter(array_map(static fn($value): string => trim((string) $value), $pairInfo['alias_receiver_names']), static fn(string $value): bool => $value !== '')))
+        : [];
+    $senderAliases = isset($pairInfo['alias_sender_names']) && is_array($pairInfo['alias_sender_names'])
+        ? array_values(array_unique(array_filter(array_map(static fn($value): string => trim((string) $value), $pairInfo['alias_sender_names']), static fn(string $value): bool => $value !== '')))
+        : [];
 
     if ($receiverName === '' || $senderName === '') {
         return [];
     }
 
-    $path = resolve_pair_trial_csv_path($pairsDir, $receiverName, $senderName, $sessionCode);
-    if (!is_file($path)) {
-        return [];
+    if ($receiverAliases === []) {
+        $receiverAliases = [$receiverName];
+    }
+    if (!in_array($receiverName, $receiverAliases, true)) {
+        $receiverAliases[] = $receiverName;
+    }
+    if ($senderAliases === []) {
+        $senderAliases = [$senderName];
+    }
+    if (!in_array($senderName, $senderAliases, true)) {
+        $senderAliases[] = $senderName;
     }
 
-    return read_csv_records($path);
+    $records = [];
+    $seen = [];
+    foreach ($receiverAliases as $receiverCandidate) {
+        foreach ($senderAliases as $senderCandidate) {
+            $path = resolve_pair_trial_csv_path($pairsDir, $receiverCandidate, $senderCandidate, $sessionCode);
+            if (!is_file($path)) {
+                continue;
+            }
+            foreach (read_csv_records($path) as $record) {
+                $recordKey = md5(json_encode($record));
+                if (isset($seen[$recordKey])) {
+                    continue;
+                }
+                $seen[$recordKey] = true;
+                $records[] = $record;
+            }
+        }
+    }
+
+    return $records;
 }
 
 function parse_location_visualization_value($rawValue): ?array
@@ -7116,9 +7155,99 @@ function is_completed_trial_record(array $record): bool
     return !$trialAborted && !$trialTimedOut && $choiceOneRaw !== '';
 }
 
-function map_pair_source_to_admin_type(string $source, string $receiverName, string $senderName): string
+function is_formally_claimed_unique_name(array $state, string $identifier): bool
+{
+    $cleanIdentifier = trim($identifier);
+    if ($cleanIdentifier === '') {
+        return false;
+    }
+    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+    $canonicalKey = get_canonical_identifier_key($state, $cleanIdentifier);
+    return (
+        ($canonicalKey !== '' && isset(($state['unique_handles'] ?? [])[$canonicalKey]) && is_array(($state['unique_handles'] ?? [])[$canonicalKey]))
+        || ($lookup !== '' && isset(($state['identifier_aliases'] ?? [])[$lookup]) && is_string(($state['identifier_aliases'] ?? [])[$lookup]))
+        || ($canonicalKey !== '' && isset(($state['retired_handles'] ?? [])[$canonicalKey]) && is_array(($state['retired_handles'] ?? [])[$canonicalKey]))
+    );
+}
+
+function is_temporary_name_identifier(array $state, string $identifier): bool
+{
+    $cleanIdentifier = trim($identifier);
+    if ($cleanIdentifier === '') {
+        return false;
+    }
+    if (is_internal_visitor_simulation_identifier($cleanIdentifier)) {
+        return true;
+    }
+    if (is_robot_simulation_identifier($cleanIdentifier)) {
+        return false;
+    }
+    if (filter_var($cleanIdentifier, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+    if ($lookup !== '' && is_array($state['invitees'] ?? null) && isset($state['invitees'][$lookup]) && is_array($state['invitees'][$lookup])) {
+        return false;
+    }
+    return !is_formally_claimed_unique_name($state, $cleanIdentifier);
+}
+
+function find_temp_display_name_for_internal_visitor(array $state, string $role, string $partnerIdentifier = 'Robot'): string
+{
+    $normalizedRole = $role === 'sender' ? 'sender' : 'receiver';
+    $normalizedPartner = normalize_identifier_for_lookup($partnerIdentifier);
+    $bestIdentifier = '';
+    $bestUpdatedMs = -1;
+    foreach ((array) ($state['launcher_profiles'] ?? []) as $profileSet) {
+        if (!is_array($profileSet)) {
+            continue;
+        }
+        $profile = is_array($profileSet[$normalizedRole] ?? null) ? $profileSet[$normalizedRole] : null;
+        if (!$profile) {
+            continue;
+        }
+        $ownIdentifier = trim((string) ($profile['own_email'] ?? ''));
+        $currentPartner = trim((string) ($profile['current_partner'] ?? ''));
+        $updatedMs = isset($profile['updated_ms']) && is_numeric($profile['updated_ms']) ? (int) $profile['updated_ms'] : 0;
+        if (!is_temporary_name_identifier($state, $ownIdentifier)) {
+            continue;
+        }
+        if ($normalizedPartner !== '' && normalize_identifier_for_lookup($currentPartner) !== $normalizedPartner) {
+            continue;
+        }
+        if ($updatedMs >= $bestUpdatedMs) {
+            $bestUpdatedMs = $updatedMs;
+            $bestIdentifier = $ownIdentifier;
+        }
+    }
+    return $bestIdentifier;
+}
+
+function resolve_admin_report_display_identifier(array $state, string $identifier, string $role, string $partnerIdentifier = ''): string
+{
+    $cleanIdentifier = trim($identifier);
+    if ($cleanIdentifier === '') {
+        return '';
+    }
+    if (is_internal_visitor_simulation_identifier($cleanIdentifier)) {
+        $mapped = find_temp_display_name_for_internal_visitor($state, $role, $partnerIdentifier);
+        return $mapped !== '' ? $mapped : $cleanIdentifier;
+    }
+    $status = get_identifier_status($state, $cleanIdentifier);
+    return trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+}
+
+function map_pair_source_to_admin_type(array $state, string $source, string $receiverName, string $senderName): string
 {
     $normalizedSource = strtolower(trim($source));
+    if ($normalizedSource === 'simulation' && (
+        is_internal_visitor_simulation_identifier($receiverName)
+        || is_internal_visitor_simulation_identifier($senderName)
+        || is_temporary_name_identifier($state, $receiverName)
+        || is_temporary_name_identifier($state, $senderName)
+    )) {
+        return 'Temp';
+    }
     if ($normalizedSource === 'simulation') {
         return 'Simulation';
     }
@@ -7133,7 +7262,8 @@ function get_pair_type_sort_order(string $type): int
     return match (strtolower(trim($type))) {
         'human' => 0,
         'simulation' => 1,
-        'demo' => 2,
+        'temp' => 2,
+        'demo' => 3,
         default => 9
     };
 }
@@ -7174,6 +7304,9 @@ function detect_identity_kind(array $state, string $identifier): string
     if (is_array($state['invitees'] ?? null) && isset($state['invitees'][$lookup]) && is_array($state['invitees'][$lookup])) {
         return 'Invitee';
     }
+    if (is_temporary_name_identifier($state, $cleanIdentifier)) {
+        return 'Temp Name';
+    }
     return 'Unique Name';
 }
 
@@ -7194,17 +7327,8 @@ function build_all_pairs_summary(array $state, array $records): array
         if ($receiverRaw === '' || $senderRaw === '') {
             continue;
         }
-        if (
-            is_internal_visitor_simulation_identifier($receiverRaw)
-            || is_internal_visitor_simulation_identifier($senderRaw)
-        ) {
-            continue;
-        }
-
-        $receiverStatus = get_identifier_status($state, $receiverRaw);
-        $senderStatus = get_identifier_status($state, $senderRaw);
-        $receiverName = trim((string) ($receiverStatus['preferred_identifier'] ?? $receiverRaw));
-        $senderName = trim((string) ($senderStatus['preferred_identifier'] ?? $senderRaw));
+        $receiverName = resolve_admin_report_display_identifier($state, $receiverRaw, 'receiver', $senderRaw);
+        $senderName = resolve_admin_report_display_identifier($state, $senderRaw, 'sender', $receiverRaw);
         if ($receiverName === '' || $senderName === '') {
             continue;
         }
@@ -7212,8 +7336,16 @@ function build_all_pairs_summary(array $state, array $records): array
         $source = strtolower(trim((string) ($record['_report_source'] ?? 'real'))) === 'simulation'
             ? 'simulation'
             : 'real';
-        $type = map_pair_source_to_admin_type($source, $receiverName, $senderName);
-        $pairKey = build_pair_match_key($receiverName, $senderName) . '|||' . strtolower($type);
+        $type = map_pair_source_to_admin_type($state, $source, $receiverRaw, $senderRaw);
+        $receiverGroupKey = get_canonical_identifier_key($state, $receiverName);
+        if ($receiverGroupKey === '') {
+            $receiverGroupKey = normalize_identifier_for_lookup($receiverName !== '' ? $receiverName : $receiverRaw);
+        }
+        $senderGroupKey = get_canonical_identifier_key($state, $senderName);
+        if ($senderGroupKey === '') {
+            $senderGroupKey = normalize_identifier_for_lookup($senderName !== '' ? $senderName : $senderRaw);
+        }
+        $pairKey = $receiverGroupKey . '|||' . $senderGroupKey . '|||' . strtolower($type);
         $localDate = trim((string) ($record['local date'] ?? ''));
         $utcTime = trim((string) ($record['utc time'] ?? ''));
         $sortKey = $utcTime !== '' ? $utcTime : $localDate;
@@ -7224,9 +7356,13 @@ function build_all_pairs_summary(array $state, array $records): array
             $summary[$pairKey] = [
                 'receiver_name' => $receiverName,
                 'sender_name' => $senderName,
+                'display_receiver_name' => $receiverName,
+                'display_sender_name' => $senderName,
                 'type' => $type,
                 'trial_count' => 0,
                 'levels_used' => [],
+                'alias_receiver_names' => [],
+                'alias_sender_names' => [],
                 'first_date' => $dateLabel,
                 'last_date' => $dateLabel,
                 '_first_sort_key' => $sortKey,
@@ -7234,12 +7370,20 @@ function build_all_pairs_summary(array $state, array $records): array
                 'selected_pair' => [
                     'receiver_name' => $receiverName,
                     'sender_name' => $senderName,
+                    'display_receiver_name' => $receiverName,
+                    'display_sender_name' => $senderName,
+                    'alias_receiver_names' => [],
+                    'alias_sender_names' => [],
                     'source' => $source === 'simulation' ? 'simulation' : 'real'
                 ]
             ];
         }
 
         $summary[$pairKey]['trial_count'] += 1;
+        $summary[$pairKey]['alias_receiver_names'][$receiverRaw] = true;
+        $summary[$pairKey]['alias_sender_names'][$senderRaw] = true;
+        $summary[$pairKey]['selected_pair']['alias_receiver_names'][$receiverRaw] = true;
+        $summary[$pairKey]['selected_pair']['alias_sender_names'][$senderRaw] = true;
         if ($levelValue !== '') {
             $summary[$pairKey]['levels_used'][$levelValue] = true;
         }
@@ -7256,8 +7400,10 @@ function build_all_pairs_summary(array $state, array $records): array
     $rows = [];
     foreach ($summary as $row) {
         $levelsUsed = array_keys((array) ($row['levels_used'] ?? []));
+        $row['selected_pair']['alias_receiver_names'] = array_values(array_keys((array) ($row['selected_pair']['alias_receiver_names'] ?? [])));
+        $row['selected_pair']['alias_sender_names'] = array_values(array_keys((array) ($row['selected_pair']['alias_sender_names'] ?? [])));
         $row['levels'] = format_levels_used_for_summary($levelsUsed);
-        unset($row['levels_used'], $row['_first_sort_key']);
+        unset($row['levels_used'], $row['_first_sort_key'], $row['alias_receiver_names'], $row['alias_sender_names']);
         $rows[] = $row;
     }
 
@@ -7289,17 +7435,18 @@ function build_all_pairs_summary(array $state, array $records): array
 function build_all_identities_summary(array $state, array $records): array
 {
     $summary = [];
+    $demoSummary = [];
 
     $ensureIdentity = static function (string $identifier) use (&$summary, $state): void {
         $cleanIdentifier = trim($identifier);
         if ($cleanIdentifier === '') {
             return;
         }
-        if (is_internal_visitor_simulation_identifier($cleanIdentifier)) {
-            return;
-        }
+        $displayIdentifier = is_internal_visitor_simulation_identifier($cleanIdentifier)
+            ? resolve_admin_report_display_identifier($state, $cleanIdentifier, 'receiver', 'Robot')
+            : $cleanIdentifier;
         $status = get_identifier_status($state, $cleanIdentifier);
-        $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+        $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $displayIdentifier));
         if ($preferredIdentifier === '') {
             return;
         }
@@ -7360,17 +7507,37 @@ function build_all_identities_summary(array $state, array $records): array
         if ($receiverRaw === '' || $senderRaw === '') {
             continue;
         }
-        if (
-            is_internal_visitor_simulation_identifier($receiverRaw)
-            || is_internal_visitor_simulation_identifier($senderRaw)
-        ) {
+        if (is_demo_report_pair($receiverRaw, $senderRaw)) {
+            $demoKey = build_pair_match_key($receiverRaw, $senderRaw);
+            if ($demoKey === '') {
+                continue;
+            }
+            if (!isset($demoSummary[$demoKey])) {
+                $demoSummary[$demoKey] = [
+                    'identity' => $receiverRaw . ' - ' . $senderRaw,
+                    'kind' => 'Demo',
+                    'subscription' => 'Demo',
+                    'completed_trials' => 0,
+                    'distinct_partners' => 1,
+                    'first_activity' => $dateLabel,
+                    'last_activity' => $dateLabel,
+                    '_first_sort_key' => $sortKey,
+                    '_last_sort_key' => $sortKey
+                ];
+            }
+            $demoSummary[$demoKey]['completed_trials'] += 1;
+            if ($sortKey !== '' && (($demoSummary[$demoKey]['_first_sort_key'] ?? '') === '' || strcmp($sortKey, (string) $demoSummary[$demoKey]['_first_sort_key']) <= 0)) {
+                $demoSummary[$demoKey]['_first_sort_key'] = $sortKey;
+                $demoSummary[$demoKey]['first_activity'] = $dateLabel;
+            }
+            if ($sortKey !== '' && strcmp($sortKey, (string) ($demoSummary[$demoKey]['_last_sort_key'] ?? '')) >= 0) {
+                $demoSummary[$demoKey]['_last_sort_key'] = $sortKey;
+                $demoSummary[$demoKey]['last_activity'] = $dateLabel;
+            }
             continue;
         }
-
-        $receiverStatus = get_identifier_status($state, $receiverRaw);
-        $senderStatus = get_identifier_status($state, $senderRaw);
-        $receiverName = trim((string) ($receiverStatus['preferred_identifier'] ?? $receiverRaw));
-        $senderName = trim((string) ($senderStatus['preferred_identifier'] ?? $senderRaw));
+        $receiverName = resolve_admin_report_display_identifier($state, $receiverRaw, 'receiver', $senderRaw);
+        $senderName = resolve_admin_report_display_identifier($state, $senderRaw, 'sender', $receiverRaw);
         $ensureIdentity($receiverName);
         $ensureIdentity($senderName);
 
@@ -7409,6 +7576,10 @@ function build_all_identities_summary(array $state, array $records): array
     $rows = [];
     foreach ($summary as $row) {
         $row['distinct_partners'] = count((array) ($row['distinct_partners'] ?? []));
+        unset($row['_first_sort_key'], $row['_last_sort_key']);
+        $rows[] = $row;
+    }
+    foreach ($demoSummary as $row) {
         unset($row['_first_sort_key'], $row['_last_sort_key']);
         $rows[] = $row;
     }
@@ -11154,7 +11325,7 @@ if ($action === 'list_all_pairs' && $hasAdminAccess) {
         read_all_pair_trial_records_with_source($simulationPairsDir, 'simulation')
     );
     $response['pair_summary'] = build_all_pairs_summary($state, $allRecords);
-    $countsByType = ['Human' => 0, 'Simulation' => 0, 'Demo' => 0];
+    $countsByType = ['Human' => 0, 'Simulation' => 0, 'Temp' => 0, 'Demo' => 0];
     foreach ($response['pair_summary'] as $row) {
         $type = (string) ($row['type'] ?? '');
         if (isset($countsByType[$type])) {
@@ -11270,10 +11441,17 @@ if ($action === 'report_pair_csv_data') {
 
     $selectedReceiver = trim((string) ($selectedPair['receiver_name'] ?? ''));
     $selectedSender = trim((string) ($selectedPair['sender_name'] ?? ''));
+    $selectedReceiverAliases = isset($selectedPair['alias_receiver_names']) && is_array($selectedPair['alias_receiver_names'])
+        ? array_values(array_filter(array_map(static fn($value): string => trim((string) $value), $selectedPair['alias_receiver_names']), static fn(string $value): bool => $value !== ''))
+        : [];
+    $selectedSenderAliases = isset($selectedPair['alias_sender_names']) && is_array($selectedPair['alias_sender_names'])
+        ? array_values(array_filter(array_map(static fn($value): string => trim((string) $value), $selectedPair['alias_sender_names']), static fn(string $value): bool => $value !== ''))
+        : [];
+    $isMergedAliasPair = count(array_unique($selectedReceiverAliases)) > 1 || count(array_unique($selectedSenderAliases)) > 1;
 
     $response['report_csv'] = [
         'available' => count($pairRecords) > 0,
-        'path' => ($selectedReceiver !== '' && $selectedSender !== '')
+        'path' => (!$isMergedAliasPair && $selectedReceiver !== '' && $selectedSender !== '')
             ? resolve_pair_trial_csv_path($selectedPairsDir, $selectedReceiver, $selectedSender, trim((string) ($selectedPair['session_code'] ?? '')))
             : $selectedPairsDir,
         'records' => $pairRecords,

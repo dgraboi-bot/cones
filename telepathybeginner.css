@@ -629,8 +629,10 @@ body {
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="about"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="baseline-questions"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="pro-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="lesson-index-admin"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="admin-user-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="admin-identity-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="admin-email-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child {
@@ -650,8 +652,10 @@ body {
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="about"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="baseline-questions"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="pro-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="lesson-index-admin"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="admin-user-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="admin-identity-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="admin-email-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before {
@@ -669,8 +673,10 @@ body {
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="about"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="baseline-questions"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="pro-user-manual"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="lesson-index-admin"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="admin-user-list"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="admin-identity-list"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="admin-email-list"]:not(.beginner-view-hidden) .beginner-title {
@@ -1301,7 +1307,9 @@ body {
 }
 
 .feature-setup-action {
-  width: min(100%, 220px);
+  width: 220px;
+  max-width: 100%;
+  justify-self: end;
   margin: 0;
 }
 
@@ -1355,6 +1363,7 @@ body {
 
   .feature-setup-action {
     width: 100%;
+    justify-self: stretch;
   }
 }
 
@@ -2495,8 +2504,9 @@ body {
   width: min(100%, 1280px);
   margin: 34px auto 0;
   padding: 26px 24px 24px;
-  height: 94vh;
-  min-height: 980px;
+  height: calc(100vh - 250px);
+  min-height: 520px;
+  max-height: calc(100vh - 250px);
   min-width: 960px;
   overflow: hidden;
   border: 1px solid var(--brand-surface-border);
@@ -2988,10 +2998,10 @@ body {
   width: 100%;
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 680px;
+  min-height: 0;
   overflow: auto;
   height: auto;
-  max-height: none;
+  max-height: 100%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   background: rgba(14, 11, 10, 0.5);

@@ -36,9 +36,10 @@
   const roundLifetimeMs = 300000;
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
   const settingsStorageKey = `cones-settings-v2-${role}`;
+  const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260702v";
+  const runtimeBuildVersion = "20260703ae";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -47,6 +48,7 @@
     }
   })();
   const runtimeMode = String(runtimeQuery.get("runtime_mode") || "").trim().toLowerCase();
+  const launchedVisitorDisplayName = String(runtimeQuery.get("visitor_display_name") || "").trim();
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
     ? String(runtimeQuery.get("include_confidence") || "").trim() === "1"
@@ -197,6 +199,7 @@
   const minimumWaitingOnlineDisplayMs = 3000;
   let currentUiModeEnteredAtMs = 0;
   let robotLevelFourPairsPromise = null;
+  let senderTrialBackSuppressed = false;
 
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
@@ -204,6 +207,145 @@
   const localTrialRecordsKey = `cones-local-trials-v2-${role}`;
   const levelOneTargetLayoutNumbers = [1, 6, 7, 8, 9];
   const levelOneManyLayoutNumbers = [6, 7, 8, 9];
+
+  function isInternalVisitorIdentifier(name) {
+    return /^visitor [a-z0-9]{4}$/i.test(String(name || "").trim());
+  }
+
+  function readLauncherVisitorDisplayName(preferredRole = role) {
+    try {
+      const raw = localStorage.getItem(launcherStorageKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const visitorDisplayNames = parsed && typeof parsed.visitorDisplayNames === "object" && parsed.visitorDisplayNames
+        ? parsed.visitorDisplayNames
+        : {};
+      const candidates = [
+        String(parsed?.visitorLockedName || "").trim(),
+        String(visitorDisplayNames?.[preferredRole] || "").trim(),
+        String(visitorDisplayNames?.sender || "").trim(),
+        String(visitorDisplayNames?.receiver || "").trim()
+      ];
+      return candidates.find((candidate) => candidate && !isInternalVisitorIdentifier(candidate)) || "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function getPreferredVisitorDisplayName(preferredRole = role) {
+    if (launchedVisitorDisplayName && !isInternalVisitorIdentifier(launchedVisitorDisplayName)) {
+      return launchedVisitorDisplayName;
+    }
+    const settings = readSettings();
+    const settingsName = String(settings.visitor_display_name || "").trim();
+    if (settingsName && !isInternalVisitorIdentifier(settingsName)) {
+      return settingsName;
+    }
+    const launcherName = readLauncherVisitorDisplayName(preferredRole);
+    if (launcherName) {
+      return launcherName;
+    }
+    return settingsName || String(settings.own_email || "").trim();
+  }
+
+  function buildLauncherRobotDifficultyKey(roleName, identifier) {
+    const normalizedRole = String(roleName || "").trim() === "sender" ? "sender" : "receiver";
+    const normalizedIdentifier = normalizeIdentifierForSession(identifier);
+    return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}::robot` : `${normalizedRole}::::robot`;
+  }
+
+  async function syncLauncherReturnStateFromRuntime(reason = "") {
+    try {
+      const settings = readSettings();
+      const raw = localStorage.getItem(launcherStorageKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const returnRole = role === "sender" ? "sender" : "receiver";
+      const visitorDisplayName = getPreferredVisitorDisplayName(returnRole);
+      const internalIdentifier = String(settings.own_email || "").trim();
+      const shouldReturnAsVisitor = !!visitorDisplayName && isInternalVisitorIdentifier(internalIdentifier);
+      const returnDifficulty = normalizeDifficultyLevel(currentPairDifficultyLevel || settings.difficulty_level || "1");
+
+      parsed.roleDifficultyLevels = parsed && typeof parsed.roleDifficultyLevels === "object" && parsed.roleDifficultyLevels
+        ? parsed.roleDifficultyLevels
+        : {};
+      parsed.currentPartners = parsed && typeof parsed.currentPartners === "object" && parsed.currentPartners
+        ? parsed.currentPartners
+        : {};
+      parsed.visitorDisplayNames = parsed && typeof parsed.visitorDisplayNames === "object" && parsed.visitorDisplayNames
+        ? parsed.visitorDisplayNames
+        : {};
+      parsed.robotSimulationDifficultyLevels = parsed && typeof parsed.robotSimulationDifficultyLevels === "object" && parsed.robotSimulationDifficultyLevels
+        ? parsed.robotSimulationDifficultyLevels
+        : {};
+
+      parsed.difficultyLevel = returnDifficulty;
+      parsed.roleDifficultyLevels[returnRole] = returnDifficulty;
+
+      if (isRobotSimulationMode) {
+        parsed.currentPartners[returnRole] = robotSimulationIdentifier;
+      }
+
+      if (shouldReturnAsVisitor) {
+        parsed.entryMode = "visitor";
+        parsed.visitorLockedName = visitorDisplayName;
+        parsed.visitorDisplayNames[returnRole] = visitorDisplayName;
+        if (!parsed.visitorDisplayNames.sender) {
+          parsed.visitorDisplayNames.sender = visitorDisplayName;
+        }
+        if (!parsed.visitorDisplayNames.receiver) {
+          parsed.visitorDisplayNames.receiver = visitorDisplayName;
+        }
+
+        if (isRobotSimulationMode) {
+          parsed.robotSimulationDifficultyLevels[buildLauncherRobotDifficultyKey(returnRole, visitorDisplayName)] = returnDifficulty;
+        }
+      } else if (internalIdentifier) {
+        parsed.entryMode = "";
+        parsed.visitorLockedName = "";
+      }
+
+      if (isRobotSimulationMode && internalIdentifier) {
+        parsed.robotSimulationDifficultyLevels[buildLauncherRobotDifficultyKey(returnRole, internalIdentifier)] = returnDifficulty;
+      }
+
+      localStorage.setItem(launcherStorageKey, JSON.stringify(parsed));
+
+      if (typeof logDebugEvent === "function") {
+        await logDebugEvent("launcher_return_state_synced", {
+          reason,
+          role: returnRole,
+          runtime_own_email: internalIdentifier,
+          visitor_display_name: visitorDisplayName,
+          difficulty_level: returnDifficulty,
+          robot_mode: isRobotSimulationMode
+        });
+      }
+    } catch (_) {
+      // Ignore launcher sync failures so the runtime can still return home.
+    }
+  }
+
+  function lockVisitorLauncherName(name) {
+    const lockedName = String(name || "").trim();
+    if (!lockedName) {
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(launcherStorageKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const visitorDisplayNames = parsed && typeof parsed.visitorDisplayNames === "object" && parsed.visitorDisplayNames
+        ? parsed.visitorDisplayNames
+        : {};
+      parsed.visitorLockedName = lockedName;
+      parsed.visitorDisplayNames = {
+        ...visitorDisplayNames,
+        sender: lockedName,
+        receiver: lockedName
+      };
+      localStorage.setItem(launcherStorageKey, JSON.stringify(parsed));
+    } catch (error) {
+      // Ignore launcher-state sync failures in the runtime page.
+    }
+  }
 
   function isLevelFourDifficulty() {
     return normalizeDifficultyLevel(currentPairDifficultyLevel) === "4" && !isRemoteViewerMode && !isRemoteDisplayMode;
@@ -380,17 +522,21 @@
     }
 
     const shouldShow = false;
+    const senderReadyBackAllowed = !(currentUiMode === "sender-ready" && senderTrialBackSuppressed);
     const shouldShowWaitingBack = [
       "sender-waiting-online",
       "receiver-waiting-online",
       "sender-waiting-ready",
-      "sender-ready",
       "receiver-ready"
     ].includes(currentUiMode);
+    const finalShouldShowWaitingBack = (
+      shouldShowWaitingBack &&
+      !(role === "sender" && senderTrialBackSuppressed)
+    ) || (currentUiMode === "sender-ready" && senderReadyBackAllowed);
 
     settingsGear?.classList.toggle("hidden", !shouldShow);
     homeLink?.classList.toggle("hidden", !shouldShow);
-    waitingBackButton?.classList.toggle("hidden", !shouldShowWaitingBack);
+    waitingBackButton?.classList.toggle("hidden", !finalShouldShowWaitingBack);
   }
 
   function readSettings() {
@@ -635,7 +781,7 @@
 
   function buildRobotParticipantProfiles() {
     const settings = readSettings();
-    const ownName = String(settings.visitor_display_name || settings.own_email || "").trim();
+    const ownName = getPreferredVisitorDisplayName(role);
     const partnerLocation = "";
     const ownProfile = {
       name: ownName,
@@ -2098,11 +2244,16 @@
     if (requestedOpen) {
       params.set("open", requestedOpen);
     }
-    if (options.directOpen) {
+    const shouldDirectOpen = options.directOpen === true || (
+      options.directOpen !== false &&
+      ["sender", "receiver", "remote-viewer"].includes(requestedOpen)
+    );
+    if (shouldDirectOpen) {
       params.set("direct_open", "1");
     }
 
     const settings = readSettings();
+    const internalIdentifier = String(settings.own_email || "").trim();
     if (settings.own_email || settings.partner_email) {
       params.set("prefill", "1");
       if (settings.own_email) {
@@ -2112,20 +2263,36 @@
         params.set("partner_email", settings.partner_email);
       }
     }
+    const visitorDisplayName = isInternalVisitorIdentifier(internalIdentifier)
+      ? String(settings.visitor_display_name || getPreferredVisitorDisplayName(getLauncherReturnRole()) || "").trim()
+      : "";
+    if (visitorDisplayName) {
+      params.set("visitor_display_name", visitorDisplayName);
+    }
     params.set("difficulty_level", normalizeDifficultyLevel(currentPairDifficultyLevel || settings.difficulty_level || "1"));
-    params.set("v", "20260702v");
+    params.set("v", runtimeBuildVersion);
 
     return `telepathybeginner.html?${params.toString()}`;
   }
 
   function navigateToBeginnerFrontPage(options = {}) {
-    window.location.href = buildLauncherReturnUrl(options);
+    const returnUrl = buildLauncherReturnUrl(options);
+    void logDebugEvent("runtime_return_to_launcher", {
+      role,
+      open: String(options.open || getLauncherReturnRole()).trim().toLowerCase(),
+      runtime_mode: runtimeMode,
+      visitor_display_name: getPreferredVisitorDisplayName(getLauncherReturnRole()),
+      difficulty_level: normalizeDifficultyLevel(currentPairDifficultyLevel || readSettings().difficulty_level || "1"),
+      return_url: returnUrl
+    });
+    window.location.href = returnUrl;
   }
 
   function showExitedState() {
     appExited = true;
     currentUiMode = "exited";
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     receiverMirrorPhase = "idle";
     localRoundRunning = false;
@@ -2137,11 +2304,14 @@
     hideDecisionPanel();
     hideMessagePanel();
     updateSettingsGearVisibility();
-    navigateToBeginnerFrontPage();
+    void syncLauncherReturnStateFromRuntime("showExitedState").finally(() => {
+      navigateToBeginnerFrontPage();
+    });
   }
 
   function showTimeoutState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     receiverMirrorPhase = "idle";
     localRoundRunning = false;
@@ -2159,6 +2329,7 @@
 
   function showPartnerAbortState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2184,6 +2355,7 @@
 
   function showSessionLimitState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2209,6 +2381,7 @@
 
   function showAuthorizationEndState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2234,6 +2407,7 @@
 
   function showPartnerDisconnectState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2259,6 +2433,7 @@
 
   function showPartnerFinishedState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2288,6 +2463,7 @@
 
   function showRoleConflictState(message) {
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     awaitingReceiverDone = false;
     receiverChoiceOpen = false;
@@ -2332,6 +2508,7 @@
     }
     returningToLauncher = true;
     senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
     receiverReady = false;
     receiverMirrorPhase = "idle";
     localRoundRunning = false;
@@ -2349,9 +2526,11 @@
     countdownNumber.style.lineHeight = "1.22";
     updateSettingsGearVisibility();
     window.setTimeout(() => {
-      navigateToBeginnerFrontPage({
-        open: getLauncherReturnRole(),
-        directOpen: true
+      void syncLauncherReturnStateFromRuntime("showSettingsRequiredState").finally(() => {
+        navigateToBeginnerFrontPage({
+          open: getLauncherReturnRole(),
+          directOpen: true
+        });
       });
     }, 25);
   }
@@ -4001,6 +4180,12 @@
       const appendResult = response?.trial_record_append || null;
 
       if (appendResult?.appended || appendResult?.duplicate) {
+        if (isRobotSimulationMode) {
+          const visitorDisplayName = getPreferredVisitorDisplayName(role);
+          if (visitorDisplayName) {
+            lockVisitorLauncherName(visitorDisplayName);
+          }
+        }
         persistLastLoggedRoundId(round.id);
       }
 
@@ -4282,6 +4467,10 @@
     updateSettingsGearVisibility();
   }
 
+  function hideSenderConfidenceMirror() {
+    senderConfidencePanel?.classList.remove("visible");
+  }
+
   function showSenderChoiceMirror(actualArrangementCode, selectedLayoutNumbers, revealActual = false) {
     if (isLevelOneDifficulty()) {
       const actualLayoutNumber = revealActual
@@ -4399,11 +4588,14 @@
       getResolvedActualArrangementCode(activeRound);
     const lockedAt = Number(receiverView.confidence_locked_at_ms) || 0;
     const holdConfidence = lockedAt > 0 && (serverNowMs - lockedAt) < 50;
+    const includeConfidence = getIncludeConfidenceEnabled();
 
-    if (phase === "confidence" || holdConfidence) {
+    if (includeConfidence && (phase === "confidence" || holdConfidence)) {
       showSenderConfidenceMirror(confidenceValueNumber);
       return true;
     }
+
+    hideSenderConfidenceMirror();
 
     if (phase === "choices") {
       if (isLevelFourDifficulty()) {
@@ -4619,6 +4811,9 @@
       round_id: activeRound?.id ?? ""
     });
     postRoundClearPending = true;
+    if (mode === "continue") {
+      senderTrialBackSuppressed = false;
+    }
 
     if (isRobotSimulationMode) {
       currentPairDifficultyLevel = getRequestedDifficultyLevel();
@@ -5120,6 +5315,7 @@
     }
 
     localRoundRunning = true;
+    senderTrialBackSuppressed = true;
     senderHoldingResult = false;
     countdownBox.classList.remove("interactive");
     countdownNumber.textContent = "";

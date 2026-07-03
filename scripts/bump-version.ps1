@@ -81,7 +81,8 @@ $replacements = @{
   )
   (Join-Path $root "telepathybeginner-sw.js") = @(
     @{ Pattern = 'const CACHE_NAME = "telepathybeginner-v[^"]+";'; Replacement = "const CACHE_NAME = `"telepathybeginner-v$Version`";" },
-    @{ Pattern = 'const APP_VERSION = "[^"]+";'; Replacement = "const APP_VERSION = `"$Version`";" }
+    @{ Pattern = 'const APP_VERSION = "[^"]+";'; Replacement = "const APP_VERSION = `"$Version`";" },
+    @{ Pattern = 'BeginnerUserManual\.html\?v=[^"''`\s]+'; Replacement = "BeginnerUserManual.html?v=$Version" }
   )
   (Join-Path $root "telepathybeginner.webmanifest") = @(
     @{ Pattern = '"start_url": "\./telepathybeginner\.html\?v=[^"]+"'; Replacement = "`"start_url`": `"./telepathybeginner.html?v=$Version`"" },

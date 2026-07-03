@@ -1,7 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260702v";
+  const launcherBuildVersion = "20260703ae";
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
@@ -320,14 +320,17 @@
   const lessonIndexAdminSaveButton = document.querySelector("[data-lesson-index-admin-save]");
   const featureSetupIdentifier = document.querySelector("[data-feature-setup-identifier]");
   const featureSetupSummary = document.querySelector("[data-feature-setup-summary]");
+  const featureSetupClaimStatus = document.querySelector("[data-feature-setup-claim-status]");
   const featureSetupInstallStatus = document.querySelector("[data-feature-setup-install-status]");
   const featureSetupLocationStatus = document.querySelector("[data-feature-setup-location-status]");
   const featureSetupMessagingStatus = document.querySelector("[data-feature-setup-messaging-status]");
   const featureSetupProtectionStatus = document.querySelector("[data-feature-setup-protection-status]");
+  const featureSetupClaimActionButton = document.querySelector("[data-feature-setup-claim-action]");
   const featureSetupInstallActionButton = document.querySelector("[data-feature-setup-install-action]");
   const featureSetupLocationActionButton = document.querySelector("[data-feature-setup-location-action]");
   const featureSetupMessagingActionButton = document.querySelector("[data-feature-setup-messaging-action]");
   const featureSetupProtectionActionButton = document.querySelector("[data-feature-setup-protection-action]");
+  const featureSetupClaimItem = document.querySelector('[data-feature-setup-item="claim-name"]');
   const featureSetupMessagingItem = document.querySelector('[data-feature-setup-item="messaging"]');
   const featureSetupProtectionItem = document.querySelector('[data-feature-setup-item="protection"]');
   const espLessonDetailTitle = document.querySelector("[data-esp-lesson-detail-title]");
@@ -511,6 +514,7 @@
   let featureSetupReturnRole = "";
   let featureSetupReturnScrollY = 0;
   let featureSetupOwnIdentifier = "";
+  let featureSetupPendingHandleFlow = "";
   let installGuideReturnView = "feature-setup";
   let messagingRefreshToken = 0;
   let activeMessagesRole = "";
@@ -542,6 +546,8 @@
   let hasAttemptedUnreadMessagesAutoOpen = false;
   let activeDifficultyContext = null;
   let difficultyLabelToken = 0;
+  let lastDirectLauncherOpenMeta = null;
+  let pendingDirectLauncherOutsideClickIgnore = false;
   let selectedReportPair = null;
   const partnerMessagePollIntervalMs = 6000;
   let partnerMessagePollTimer = 0;
@@ -835,6 +841,7 @@ This is an alternate test message to show now.`;
       return {
         ownNames: typeof parsed?.ownNames === "object" && parsed.ownNames ? parsed.ownNames : {},
         visitorDisplayNames: typeof parsed?.visitorDisplayNames === "object" && parsed.visitorDisplayNames ? parsed.visitorDisplayNames : {},
+        visitorLockedName: typeof parsed?.visitorLockedName === "string" ? parsed.visitorLockedName.trim() : "",
         currentPartners: typeof parsed?.currentPartners === "object" && parsed.currentPartners ? parsed.currentPartners : {},
         deletedPartners: typeof parsed?.deletedPartners === "object" && parsed.deletedPartners ? parsed.deletedPartners : {},
         deviceLocation: typeof parsed?.deviceLocation === "object" && parsed.deviceLocation ? parsed.deviceLocation : null,
@@ -891,6 +898,7 @@ This is an alternate test message to show now.`;
       return {
         ownNames: {},
         visitorDisplayNames: {},
+        visitorLockedName: "",
         currentPartners: {},
         deletedPartners: {},
         deviceLocation: null,
@@ -929,6 +937,14 @@ This is an alternate test message to show now.`;
 
   function writeLauncherState(state) {
     localStorage.setItem(launcherKey, JSON.stringify(state));
+  }
+
+  function getVisitorLockedName(state = readLauncherState()) {
+    return String(state?.visitorLockedName || "").trim();
+  }
+
+  function isVisitorNameLocked(state = readLauncherState()) {
+    return getVisitorLockedName(state) !== "";
   }
 
   function normalizeStoredLearnMoreText(value) {
@@ -1053,6 +1069,8 @@ This is an alternate test message to show now.`;
         receiver: cleanIdentifier,
         "remote-viewer": cleanIdentifier
       } : {},
+      visitorDisplayNames: {},
+      visitorLockedName: "",
       currentPartners: {},
       deletedPartners: {},
       deviceLocation: baseState?.deviceLocation || null,
@@ -1105,6 +1123,18 @@ This is an alternate test message to show now.`;
 
   function getLearnMoreText(state = readLauncherState()) {
     return normalizeStoredLearnMoreText(state?.learnMoreText);
+  }
+
+  function getPreferredVisitorDisplayNameForRole(role, state = readLauncherState(), fallback = "") {
+    const normalizedRole = String(role || "").trim();
+    const candidates = [
+      String(fallback || "").trim(),
+      String(state?.visitorLockedName || "").trim(),
+      normalizedRole ? String(state?.visitorDisplayNames?.[normalizedRole] || "").trim() : "",
+      String(state?.visitorDisplayNames?.sender || "").trim(),
+      String(state?.visitorDisplayNames?.receiver || "").trim()
+    ];
+    return candidates.find((candidate) => candidate && !isInternalVisitorSimulationName(candidate)) || "";
   }
 
   function getEspLessonsSourceText() {
@@ -2087,6 +2117,7 @@ This is an alternate test message to show now.`;
     return {
       ownNames: cloneJsonValue(state?.ownNames || {}, {}),
       visitorDisplayNames: cloneJsonValue(state?.visitorDisplayNames || {}, {}),
+      visitorLockedName: String(state?.visitorLockedName || "").trim(),
       currentPartners: cloneJsonValue(state?.currentPartners || {}, {}),
       partnerHistory: cloneJsonValue(state?.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(state?.deletedPartners || {}, {}),
@@ -2112,6 +2143,7 @@ This is an alternate test message to show now.`;
       ...baseState,
       ownNames: cloneJsonValue(source.ownNames || {}, {}),
       visitorDisplayNames: cloneJsonValue(source.visitorDisplayNames || {}, {}),
+      visitorLockedName: String(source.visitorLockedName || "").trim(),
       currentPartners: cloneJsonValue(source.currentPartners || {}, {}),
       partnerHistory: cloneJsonValue(source.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(source.deletedPartners || {}, {}),
@@ -2225,8 +2257,9 @@ This is an alternate test message to show now.`;
       action: "report_csv_data"
     };
 
-    if (launcherAdminSecret) {
-      payload.secret_candidate = launcherAdminSecret;
+    const adminSecretCandidate = getLauncherAdminSecretCandidate();
+    if (adminSecretCandidate) {
+      payload.secret_candidate = adminSecretCandidate;
       payload.include_all = true;
       return payload;
     }
@@ -2275,7 +2308,7 @@ This is an alternate test message to show now.`;
       body: JSON.stringify({
         action: "report_pair_csv_data",
         selected_pair: selectedPair,
-        secret_candidate: launcherAdminSecret || ""
+        secret_candidate: getLauncherAdminSecretCandidate()
       })
     });
 
@@ -2363,6 +2396,13 @@ This is an alternate test message to show now.`;
     return requestedView === "fresh-launcher" || requestedView === "visitor-launcher";
   }
 
+  function shouldStartInVisitorGuestMode() {
+    if (shouldStartInFreshLauncherMode()) {
+      return true;
+    }
+    return isVisitorLauncherEntry();
+  }
+
   function buildGlobeVisualizationUrl(pairState, options = {}) {
     const returnUrl = buildAbsoluteModuleUrl("telepathybeginner.html", {
       v: launcherBuildVersion,
@@ -2407,6 +2447,9 @@ This is an alternate test message to show now.`;
   }
 
   async function fetchLauncherProfile(role, ownEmail) {
+    if (isInternalVisitorSimulationName(ownEmail)) {
+      return null;
+    }
     const payload = sanitizeLauncherProfileForServer(role, ownEmail, {
       currentPartner: "",
       partnerHistory: [],
@@ -2601,7 +2644,7 @@ This is an alternate test message to show now.`;
         action: "set_user_type",
         user_identifier: cleanHandle,
         user_type: normalizedType,
-        secret_candidate: launcherAdminSecret
+        secret_candidate: getLauncherAdminSecretCandidate()
       })
     });
 
@@ -2631,7 +2674,7 @@ This is an alternate test message to show now.`;
         action: "admin_update_handle",
         previous_handle: cleanPreviousHandle,
         new_handle: cleanNewHandle,
-        secret_candidate: launcherAdminSecret
+        secret_candidate: getLauncherAdminSecretCandidate()
       })
     });
 
@@ -2656,7 +2699,7 @@ This is an alternate test message to show now.`;
       body: JSON.stringify({
         action: "get_handle_admin_summary",
         handle: cleanHandle,
-        secret_candidate: launcherAdminSecret
+        secret_candidate: getLauncherAdminSecretCandidate()
       })
     });
 
@@ -2796,6 +2839,7 @@ This is an alternate test message to show now.`;
     };
     nextState.visitorAlias = "";
     nextState.visitorDisplayNames = {};
+    nextState.visitorLockedName = "";
     nextState.loadedInviteeIdentity = null;
     nextState.pendingInviteeOnboarding = null;
     nextState.exploreTrial = null;
@@ -2913,7 +2957,7 @@ This is an alternate test message to show now.`;
     const response = await postInfrastructureContentRequest("save_learn_more_content", {
       content_key: normalizedKey,
       content: typeof content === "string" ? content : "",
-      secret_candidate: launcherAdminSecret
+      secret_candidate: getLauncherAdminSecretCandidate()
     }, {
       mirrorToLocalWhenAvailable: true
     });
@@ -2927,7 +2971,7 @@ This is an alternate test message to show now.`;
     }
     return postInfrastructureContentRequest("delete_learn_more_content", {
       content_key: normalizedKey,
-      secret_candidate: launcherAdminSecret
+      secret_candidate: getLauncherAdminSecretCandidate()
     }, {
       mirrorToLocalWhenAvailable: true
     });
@@ -3083,6 +3127,9 @@ This is an alternate test message to show now.`;
   }
 
   async function saveLauncherProfile(role, ownEmail, profileState) {
+    if (isInternalVisitorSimulationName(ownEmail)) {
+      return null;
+    }
     const payload = sanitizeLauncherProfileForServer(role, ownEmail, profileState);
     const response = await fetch("api.php", {
       method: "POST",
@@ -3405,11 +3452,27 @@ This is an alternate test message to show now.`;
   }
 
   function sanitizePairInfoForServer(pairInfo, fieldName = "selected pair") {
+    const aliasReceiverNames = Array.isArray(pairInfo?.aliasReceiverNames)
+      ? pairInfo.aliasReceiverNames
+      : Array.isArray(pairInfo?.alias_receiver_names)
+        ? pairInfo.alias_receiver_names
+        : [];
+    const aliasSenderNames = Array.isArray(pairInfo?.aliasSenderNames)
+      ? pairInfo.aliasSenderNames
+      : Array.isArray(pairInfo?.alias_sender_names)
+        ? pairInfo.alias_sender_names
+        : [];
     return {
       receiver_name: assertValidParticipantIdentifier(pairInfo?.receiverName, `${fieldName} receiver identifier`),
       sender_name: assertValidParticipantIdentifier(pairInfo?.senderName, `${fieldName} sender identifier`),
       session_code: assertValidSessionCode(pairInfo?.sessionCode, `${fieldName} session code`),
-      source: String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real"
+      source: String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real",
+      alias_receiver_names: aliasReceiverNames
+        .map((value) => assertValidParticipantIdentifier(value, `${fieldName} alias receiver identifier`))
+        .filter(Boolean),
+      alias_sender_names: aliasSenderNames
+        .map((value) => assertValidParticipantIdentifier(value, `${fieldName} alias sender identifier`))
+        .filter(Boolean)
     };
   }
 
@@ -4307,8 +4370,20 @@ This is an alternate test message to show now.`;
     return parseApiResponse(response, `Admin access mode request failed with status ${response.status}`);
   }
 
+  function getLauncherAdminSecretCandidate() {
+    const explicitSecret = String(launcherAdminSecret || "").trim();
+    if (explicitSecret) {
+      return explicitSecret;
+    }
+    return String(launcherAdminDevicePrefs.cached_secret || "").trim();
+  }
+
   function hasLauncherAdminAccess() {
-    return !!launcherAdminSecret || (!!launcherAdminState.easy_admin_enabled && !!launcherAdminDevicePrefs.cached_secret);
+    return !!getLauncherAdminSecretCandidate() || !!launcherAdminState.easy_admin_enabled;
+  }
+
+  function hasExplicitLauncherAdminSecret() {
+    return !!String(launcherAdminSecret || "").trim();
   }
 
   async function launcherAdminApi(action, payload = {}) {
@@ -4319,7 +4394,7 @@ This is an alternate test message to show now.`;
       },
       body: JSON.stringify({
         action,
-        secret_candidate: launcherAdminSecret,
+        secret_candidate: getLauncherAdminSecretCandidate(),
         ...payload
       })
     });
@@ -4366,7 +4441,7 @@ This is an alternate test message to show now.`;
   }
 
   function logUserTypeAdminDebug(label, extraDetails = []) {
-    if (!launcherAdminSecret) {
+    if (!hasLauncherAdminAccess()) {
       return;
     }
     const details = Array.isArray(extraDetails) ? extraDetails.slice(0) : [];
@@ -4374,6 +4449,18 @@ This is an alternate test message to show now.`;
     void launcherAdminApi("log_debug", {
       label: `user_type_admin:${label}`,
       details
+    }).catch(() => {
+      // Ignore debug logging failures.
+    });
+  }
+
+  function logLauncherDirectOpenDebug(label, details = {}) {
+    if (!hasLauncherAdminAccess() || !launcherAdminState.debug_enabled) {
+      return;
+    }
+    void launcherAdminApi("log_debug", {
+      label: `launcher_direct_open:${label}`,
+      details: [details]
     }).catch(() => {
       // Ignore debug logging failures.
     });
@@ -4639,6 +4726,7 @@ This is an alternate test message to show now.`;
     const returnRole = handleOverlayReturnRole;
     activeHandleRole = "";
     handleOverlayReturnRole = "";
+    featureSetupPendingHandleFlow = "";
     handleOverlay?.classList.add("beginner-view-hidden");
     if (handleStatus) {
       handleStatus.textContent = "";
@@ -4675,6 +4763,7 @@ This is an alternate test message to show now.`;
       const completedRole = activeHandleRole;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+      const postClaimFlow = featureSetupPendingHandleFlow;
       const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
       if (result?.status) {
@@ -4698,21 +4787,11 @@ This is an alternate test message to show now.`;
       }
       if (isVisitorLauncherEntry() && acceptedHandle) {
         const latestState = readLauncherState();
-        latestState.entryMode = "";
-        latestState.temporaryIdentity = null;
-        latestState.exploreTrial = null;
-        latestState.ownNames = {
-          sender: acceptedHandle,
-          receiver: acceptedHandle,
-          "remote-viewer": acceptedHandle
-        };
-        latestState.currentPartners = latestState.currentPartners && typeof latestState.currentPartners === "object"
-          ? latestState.currentPartners
-          : {};
-        latestState.currentPartners.sender = String(document.querySelector('[data-role-form="sender"] input[name="partnerName"]')?.value || "").trim();
-        latestState.currentPartners.receiver = String(document.querySelector('[data-role-form="receiver"] input[name="partnerName"]')?.value || "").trim();
-        latestState.resolvedMainUserType = String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
-        writeLauncherState(latestState);
+        const normalizedUserType = String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+        const nextIdentityState = buildLauncherIdentityState(latestState, acceptedHandle, normalizedUserType, {
+          entryMode: ""
+        });
+        writeLauncherState(nextIdentityState);
         setLauncherGuestEntryActive(false);
         applyIdentityStateToLauncherInputs();
       }
@@ -4726,6 +4805,7 @@ This is an alternate test message to show now.`;
       await new Promise((resolve) => window.setTimeout(resolve, 2600));
       activeHandleRole = "";
       handleOverlayReturnRole = "";
+      featureSetupPendingHandleFlow = "";
       handleOverlay?.classList.add("beginner-view-hidden");
       if (handleStatus) {
         handleStatus.textContent = "";
@@ -4737,6 +4817,10 @@ This is an alternate test message to show now.`;
         submitHandleButton.disabled = false;
       }
       if (acceptedHandle && completedRole) {
+        if (postClaimFlow === "install-gate") {
+          showInstallGuideView({ returnView: "feature-setup" });
+          return;
+        }
         showFeatureSetupView({
           role: completedRole,
           returnView: completedRole === "remote-viewer" ? "remote-viewer" : "card",
@@ -5301,6 +5385,21 @@ This is an alternate test message to show now.`;
     };
   }
 
+  function getFeatureSetupHandleRole() {
+    const preferred = String(featureSetupReturnRole || activeLauncherRole || "sender").trim();
+    if (preferred === "sender" || preferred === "receiver" || preferred === "remote-viewer") {
+      return preferred;
+    }
+    return "sender";
+  }
+
+  function openFeatureSetupHandleFlow(flow = "claim") {
+    featureSetupPendingHandleFlow = String(flow || "claim").trim().toLowerCase() === "install-gate"
+      ? "install-gate"
+      : "claim";
+    openHandleOverlay(getFeatureSetupHandleRole());
+  }
+
   async function refreshFeatureSetupView() {
     if (!featureSetupView || featureSetupView.classList.contains("beginner-view-hidden")) {
       return;
@@ -5313,7 +5412,19 @@ This is an alternate test message to show now.`;
     if (featureSetupIdentifier) {
       featureSetupIdentifier.textContent = featureSetupOwnIdentifier
         ? `Current Unique Name: ${featureSetupOwnIdentifier}`
-        : "Current Unique Name: no accepted unique name is currently loaded on this screen.";
+        : "Current Unique Name: no unique name currently exists for this user.";
+    }
+
+    const recognizedUser = !!featureSetupOwnIdentifier;
+    const visitorMode = isVisitorLauncherEntry();
+    if (featureSetupClaimStatus) {
+      featureSetupClaimStatus.textContent = recognizedUser
+        ? `Current unique name: ${featureSetupOwnIdentifier}`
+        : "No unique name exists for this user yet.";
+    }
+    if (featureSetupClaimActionButton) {
+      featureSetupClaimActionButton.textContent = recognizedUser ? "CHANGE UNIQUE NAME" : "CLAIM UNIQUE NAME";
+      featureSetupClaimActionButton.disabled = false;
     }
 
     const installConfirmationState = getInstallConfirmationState();
@@ -5321,9 +5432,11 @@ This is an alternate test message to show now.`;
     if (featureSetupInstallStatus) {
       featureSetupInstallStatus.textContent = installed
         ? "Installed as an app on this device."
-        : installConfirmationState === "temporary-shell"
-          ? "ESP GYM is open in app mode temporarily, but it is not yet confirmed as permanently installed on this device."
-          : "Not installed as an app on this device yet.";
+        : visitorMode && !recognizedUser
+          ? "You must first claim a unique name before installing the app for full Telepathy Beginner use."
+          : installConfirmationState === "temporary-shell"
+            ? "ESP GYM is open in app mode temporarily, but it is not yet confirmed as permanently installed on this device."
+            : "Not installed as an app on this device yet.";
     }
     if (featureSetupInstallActionButton) {
       featureSetupInstallActionButton.textContent = installed ? "INSTALL HELP" : "INSTALL APP";
@@ -5397,6 +5510,7 @@ This is an alternate test message to show now.`;
     }
 
     const missingCount = [
+      visitorMode && !recognizedUser,
       !installed,
       !locationSummary.ready,
       isEffectiveLauncherUserPro() ? !messagingReady : false
@@ -7211,11 +7325,11 @@ This is an alternate test message to show now.`;
     applyProLockToButton(reportGlobeButton, !isPro, beginnerGlobeMessage);
 
     featureSetupMessagingItem?.classList.toggle("is-pro-locked-zone", !isPro);
-    applyProLockPresentation(featureSetupMessagingItem, !isPro, beginnerMessagingMessage);
+    applyProLockPresentation(featureSetupMessagingItem, false, "");
     applyProLockToButton(featureSetupMessagingActionButton, !isPro, beginnerMessagingMessage);
 
     featureSetupProtectionItem?.classList.toggle("is-pro-locked-zone", !isPro);
-    applyProLockPresentation(featureSetupProtectionItem, !isPro, beginnerProtectionMessage);
+    applyProLockPresentation(featureSetupProtectionItem, false, "");
     applyProLockToButton(featureSetupProtectionActionButton, !isPro, beginnerProtectionMessage);
   }
 
@@ -7623,6 +7737,11 @@ This is an alternate test message to show now.`;
       "1"
     );
     if (!context) {
+      setRoleDifficultyLabel(normalizedRole, localFallbackLevel);
+      return localFallbackLevel;
+    }
+
+    if (isRobotSimulationIdentifier(context.partnerName)) {
       setRoleDifficultyLabel(normalizedRole, localFallbackLevel);
       return localFallbackLevel;
     }
@@ -8095,6 +8214,7 @@ This is an alternate test message to show now.`;
     const candidates = [];
     const seen = new Set();
     const state = readLauncherState();
+    const visitorMode = isVisitorLauncherEntry(state);
 
     const addCandidate = (receiverName, senderName) => {
       const receiver = getPreferredIdentifier(String(receiverName || "").trim(), state);
@@ -8153,6 +8273,18 @@ This is an alternate test message to show now.`;
       addCandidate(currentParticipants.receiverName, currentParticipants.senderName);
     }
 
+    if (visitorMode) {
+      const visitorAlias = String(state.visitorAlias || "").trim();
+      if (visitorAlias) {
+        if (receiverForm.ownName && isRobotSimulationIdentifier(receiverForm.partnerName)) {
+          addCandidate(visitorAlias, "Robot");
+        }
+        if (senderForm.ownName && isRobotSimulationIdentifier(senderForm.partnerName)) {
+          addCandidate("Robot", visitorAlias);
+        }
+      }
+    }
+
     return candidates;
   }
 
@@ -8198,6 +8330,9 @@ This is an alternate test message to show now.`;
       return rawName;
     }
     const state = readLauncherState();
+    if (!isVisitorLauncherEntry(state)) {
+      return rawName;
+    }
     const mapped = role === "receiver"
       ? String(state.visitorDisplayNames?.receiver || "").trim()
       : String(state.visitorDisplayNames?.sender || "").trim();
@@ -8210,9 +8345,7 @@ This is an alternate test message to show now.`;
       readRoleFormValues("sender").ownName,
       readRoleFormValues("receiver").ownName,
       readRoleSettings("sender").ownName,
-      readRoleSettings("receiver").ownName,
-      String(state.ownNames?.sender || "").trim(),
-      String(state.ownNames?.receiver || "").trim()
+      readRoleSettings("receiver").ownName
     ];
     const fallback = fallbackCandidates.find((candidate) =>
       candidate && !isInternalVisitorSimulationName(candidate)
@@ -8246,7 +8379,8 @@ This is an alternate test message to show now.`;
   }
 
   function getAvailableReportPairs(records = reportCsvRecordsCache) {
-    const includeAllPairs = !!launcherAdminSecret;
+    const includeAllPairs = hasLauncherAdminAccess();
+    const state = readLauncherState();
     const ownNames = new Set(collectReportOwnNames().map((name) => normalizePersonNameForPairMatch(name)));
     const candidatePairs = collectReportCandidatePairs();
     const candidateKeys = new Set(candidatePairs.map((pair) => pair.baseKey || buildPairMatchKey(pair.receiverName, pair.senderName)));
@@ -8264,24 +8398,21 @@ This is an alternate test message to show now.`;
           sessionCode: pairInfo.sessionCode,
           source: String(pairInfo.source || "real"),
           latestUtcMillis: Number.NEGATIVE_INFINITY,
-          recordCount: 0
+          recordCount: 0,
+          aliasReceiverNames: Array.isArray(pairInfo.aliasReceiverNames) ? pairInfo.aliasReceiverNames.slice(0) : [],
+          aliasSenderNames: Array.isArray(pairInfo.aliasSenderNames) ? pairInfo.aliasSenderNames.slice(0) : []
         });
       });
     }
 
     records.forEach((record) => {
-      const receiverName = String(record?.["rx name"] || "").trim();
-      const senderName = String(record?.["tx name"] || "").trim();
-      if (!receiverName || !senderName) {
+      const receiverNameRaw = String(record?.["rx name"] || "").trim();
+      const senderNameRaw = String(record?.["tx name"] || "").trim();
+      if (!receiverNameRaw || !senderNameRaw) {
         return;
       }
-      if (
-        isInternalVisitorSimulationName(receiverName) ||
-        isInternalVisitorSimulationName(senderName)
-      ) {
-        return;
-      }
-
+      const receiverName = getPreferredIdentifier(receiverNameRaw, state);
+      const senderName = getPreferredIdentifier(senderNameRaw, state);
       const pairKey = buildPairMatchKey(receiverName, senderName);
       const source = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
         ? "simulation"
@@ -8295,9 +8426,6 @@ This is an alternate test message to show now.`;
         : senderName;
 
       if (!includeAllPairs) {
-        if (source === "simulation") {
-          // Always expose Robot/simulation pairs in the report picker.
-        } else {
         const candidateMatch = candidateKeys.size ? candidateKeys.has(pairKey) : false;
         const associatedMatch = ownNames.size
           ? (
@@ -8309,7 +8437,6 @@ This is an alternate test message to show now.`;
 
         if ((candidateKeys.size || ownNames.size) && !candidateMatch && !associatedMatch && !demoMatch) {
           return;
-        }
         }
       }
 
@@ -8327,10 +8454,14 @@ This is an alternate test message to show now.`;
           sessionCode: getRecordSessionCode(record),
           source,
           latestUtcMillis: currentMillis,
-          recordCount: (existing?.recordCount || 0) + 1
+          recordCount: (existing?.recordCount || 0) + 1,
+          aliasReceiverNames: Array.from(new Set([...(existing?.aliasReceiverNames || []), receiverNameRaw, receiverName])),
+          aliasSenderNames: Array.from(new Set([...(existing?.aliasSenderNames || []), senderNameRaw, senderName]))
         });
       } else if (existing) {
         existing.recordCount += 1;
+        existing.aliasReceiverNames = Array.from(new Set([...(existing.aliasReceiverNames || []), receiverNameRaw, receiverName]));
+        existing.aliasSenderNames = Array.from(new Set([...(existing.aliasSenderNames || []), senderNameRaw, senderName]));
       }
     });
 
@@ -8399,7 +8530,7 @@ This is an alternate test message to show now.`;
       optionButton.innerHTML = `
         <span class="report-pair-option-value">${escapeHtml(getPairInfoReceiverLabel(pairInfo))}</span>
         <span class="report-pair-option-value">${escapeHtml(getPairInfoSenderLabel(pairInfo))}</span>
-        <span class="report-pair-option-value">${pairInfo.source === "simulation" ? "Sim" : "Human"} ${escapeHtml(String(pairInfo.recordCount || 0))}</span>
+        <span class="report-pair-option-value">${isDemoPairInfo(pairInfo) ? "Demo" : (pairInfo.source === "simulation" ? "Sim" : "Human")} ${escapeHtml(String(pairInfo.recordCount || 0))}</span>
       `;
       optionButton.addEventListener("click", () => {
         setSelectedReportPair(pairInfo);
@@ -8438,7 +8569,11 @@ This is an alternate test message to show now.`;
         (!pendingOpenReportPair.sessionCode || String(pairInfo.sessionCode || "").trim() === pendingOpenReportPair.sessionCode)
       );
       if (matchedPair) {
-        setSelectedReportPair(matchedPair);
+        setSelectedReportPair({
+          ...matchedPair,
+          aliasReceiverNames: Array.isArray(pendingOpenReportPair.aliasReceiverNames) ? pendingOpenReportPair.aliasReceiverNames.slice(0) : (matchedPair.aliasReceiverNames || []),
+          aliasSenderNames: Array.isArray(pendingOpenReportPair.aliasSenderNames) ? pendingOpenReportPair.aliasSenderNames.slice(0) : (matchedPair.aliasSenderNames || [])
+        });
       }
       pendingOpenReportPair = null;
     }
@@ -8490,18 +8625,34 @@ This is an alternate test message to show now.`;
       return [];
     }
 
-    const targetKey = buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName);
+    const state = readLauncherState();
+    const targetReceiverAliases = new Set(
+      [pairInfo.receiverName, ...(Array.isArray(pairInfo.aliasReceiverNames) ? pairInfo.aliasReceiverNames : [])]
+        .map((value) => getPreferredIdentifier(String(value || "").trim(), state))
+        .filter(Boolean)
+        .map((value) => normalizePersonNameForPairMatch(value))
+    );
+    const targetSenderAliases = new Set(
+      [pairInfo.senderName, ...(Array.isArray(pairInfo.aliasSenderNames) ? pairInfo.aliasSenderNames : [])]
+        .map((value) => getPreferredIdentifier(String(value || "").trim(), state))
+        .filter(Boolean)
+        .map((value) => normalizePersonNameForPairMatch(value))
+    );
     const targetSource = String(pairInfo?.source || "real").trim().toLowerCase() === "simulation"
       ? "simulation"
       : "real";
     return (Array.isArray(records) ? records : [])
       .filter((record) => {
-        const receiverName = String(record?.["rx name"] || "").trim();
-        const senderName = String(record?.["tx name"] || "").trim();
+        const receiverName = getPreferredIdentifier(String(record?.["rx name"] || "").trim(), state);
+        const senderName = getPreferredIdentifier(String(record?.["tx name"] || "").trim(), state);
         const recordSource = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
           ? "simulation"
           : "real";
-        return buildPairMatchKey(receiverName, senderName) === targetKey && recordSource === targetSource;
+        return (
+          targetReceiverAliases.has(normalizePersonNameForPairMatch(receiverName)) &&
+          targetSenderAliases.has(normalizePersonNameForPairMatch(senderName)) &&
+          recordSource === targetSource
+        );
       })
       .sort((left, right) => parseUtcMillis(left) - parseUtcMillis(right));
   }
@@ -10814,7 +10965,12 @@ This is an alternate test message to show now.`;
     if (launcherGuestEntryActive) {
       ["sender", "receiver", "remote-viewer"].forEach((role) => {
         const launcherState = readLauncherState();
+        const context = getPairContextForRole(role);
+        const robotFallbackLevel = context && isRobotSimulationIdentifier(context.partnerName)
+          ? getRobotSimulationDifficulty(role, context.ownName, launcherState)
+          : "";
         const localFallbackLevel = normalizeDifficultyLevel(
+          robotFallbackLevel ||
           launcherState.roleDifficultyLevels?.[role] ||
           readRoleSettings(role).difficultyLevel ||
           launcherState.difficultyLevel ||
@@ -11005,7 +11161,14 @@ This is an alternate test message to show now.`;
     params.set("blink_image_off_seconds", blinkSettings.offSeconds);
     const confidenceSettings = getConfidenceBehaviorSettings(state);
     params.set("include_confidence", confidenceSettings.include ? "1" : "0");
-    params.set("difficulty_level", normalizeDifficultyLevel(getDifficultyLocalLevel(role)));
+    params.set(
+      "difficulty_level",
+      normalizeDifficultyLevel(
+        typeof options.difficultyLevel === "string" || typeof options.difficultyLevel === "number"
+          ? String(options.difficultyLevel)
+          : String(getDifficultyLocalLevel(role))
+      )
+    );
     if (typeof options.visitorDisplayName === "string" && options.visitorDisplayName.trim()) {
       params.set("visitor_display_name", options.visitorDisplayName.trim());
     }
@@ -11041,8 +11204,38 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function finishDirectLauncherOpen() {
-    document.documentElement.classList.remove("launcher-direct-open-pending");
+  function alignLauncherCardNearTop(card, offset = 20) {
+    if (!card || typeof card.getBoundingClientRect !== "function") {
+      return;
+    }
+    const rect = card.getBoundingClientRect();
+    const absoluteTop = Math.max(
+      0,
+      Math.round((window.scrollY || window.pageYOffset || 0) + rect.top - offset)
+    );
+    window.scrollTo({
+      top: absoluteTop,
+      left: 0,
+      behavior: "auto"
+    });
+  }
+
+  let finishDirectLauncherOpenHandle = null;
+
+  function finishDirectLauncherOpen(delayMs = 0) {
+    if (finishDirectLauncherOpenHandle !== null) {
+      window.clearTimeout(finishDirectLauncherOpenHandle);
+      finishDirectLauncherOpenHandle = null;
+    }
+    const applyFinish = () => {
+      finishDirectLauncherOpenHandle = null;
+      document.documentElement.classList.remove("launcher-direct-open-pending");
+    };
+    if (delayMs > 0) {
+      finishDirectLauncherOpenHandle = window.setTimeout(applyFinish, delayMs);
+      return;
+    }
+    applyFinish();
   }
 
   function getSavedDeviceLocation(state = readLauncherState()) {
@@ -11907,6 +12100,9 @@ This is an alternate test message to show now.`;
   }
 
   async function persistLauncherProfileForForm(role, form, overrideState = null) {
+    if (launcherGuestEntryActive && isVisitorLauncherEntry(overrideState || readLauncherState())) {
+      return;
+    }
     const ownInput = form.querySelector('input[name="ownName"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const ownIdentifierRaw = String(ownInput?.value || "").trim();
@@ -11954,6 +12150,10 @@ This is an alternate test message to show now.`;
   }
 
   async function hydrateLauncherProfileForForm(role, form) {
+    if (launcherGuestEntryActive && isVisitorLauncherEntry()) {
+      applyPartnerHistory(role, form, readLauncherState(), "");
+      return;
+    }
     const ownInput = form.querySelector('input[name="ownName"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const ownIdentifier = String(ownInput?.value || "").trim();
@@ -12283,6 +12483,36 @@ This is an alternate test message to show now.`;
     });
   }
 
+  function showVisitorNameLockedMessage() {
+    window.alert("Please continue to use the current name for this visit.");
+  }
+
+  function applyVisitorOwnInputLock(ownInput, lockedName, visitorMode) {
+    if (!ownInput) {
+      return;
+    }
+    const isLocked = visitorMode && String(lockedName || "").trim() !== "";
+    if (isLocked) {
+      ownInput.value = String(lockedName || "").trim();
+    }
+    ownInput.readOnly = isLocked;
+    ownInput.setAttribute("aria-readonly", isLocked ? "true" : "false");
+    ownInput.title = isLocked ? "Please continue to use the current name for this visit." : "";
+  }
+
+  function applyVisitorPartnerInputLock(partnerInput, visitorMode) {
+    if (!partnerInput) {
+      return;
+    }
+    const isLocked = !!visitorMode;
+    if (isLocked) {
+      partnerInput.value = "Robot";
+    }
+    partnerInput.readOnly = isLocked;
+    partnerInput.setAttribute("aria-readonly", isLocked ? "true" : "false");
+    partnerInput.title = isLocked ? 'Visitors work only with "Robot".' : "";
+  }
+
   function populateCard(card) {
     const role = card.dataset.roleCard;
     const state = readLauncherState();
@@ -12298,10 +12528,11 @@ This is an alternate test message to show now.`;
     const select = form.querySelector('select[name="partnerHistory"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const roleSettings = readRoleSettings(role);
-    const guestEntryActive = launcherGuestEntryActive;
-    const visitorMode = guestEntryActive && isVisitorLauncherEntry();
+    const visitorMode = isVisitorLauncherEntry(state);
+    const guestEntryActive = launcherGuestEntryActive || visitorMode;
+    const lockedVisitorName = visitorMode ? getVisitorLockedName(state) : "";
     const savedOwn = guestEntryActive
-      ? String(state.visitorDisplayNames?.[role] || "").trim()
+      ? (lockedVisitorName || getPreferredVisitorDisplayNameForRole(role, state))
       : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
     const profileState = guestEntryActive ? null : readLauncherProfileState(role, savedOwn, state);
     const savedPartner = guestEntryActive
@@ -12310,8 +12541,10 @@ This is an alternate test message to show now.`;
 
     ownInput.value = savedOwn;
     ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
+    applyVisitorOwnInputLock(ownInput, lockedVisitorName, visitorMode);
     partnerInput.value = savedPartner;
     partnerInput.placeholder = "name@example.com or unique handle";
+    applyVisitorPartnerInputLock(partnerInput, visitorMode);
     const robotSimulationDifficulty = isRobotSimulationIdentifier(savedPartner)
       ? getRobotSimulationDifficulty(role, savedOwn, state)
       : "";
@@ -12356,13 +12589,25 @@ This is an alternate test message to show now.`;
     });
 
     ownInput.addEventListener("input", () => {
-      if (guestEntryActive && visitorMode) {
+      if (visitorMode) {
         const latestState = readLauncherState();
         latestState.visitorDisplayNames = latestState.visitorDisplayNames || {};
-        latestState.visitorDisplayNames[role] = String(ownInput.value || "").trim();
+        const sharedVisitorName = String(ownInput.value || "").trim();
+        latestState.visitorDisplayNames.sender = sharedVisitorName;
+        latestState.visitorDisplayNames.receiver = sharedVisitorName;
         writeLauncherState(latestState);
+        roleCards.forEach((otherCard) => {
+          const otherRole = String(otherCard.dataset.roleCard || "").trim();
+          if (!otherRole || otherRole === role || otherRole === "remote-viewer") {
+            return;
+          }
+          const otherForm = otherCard.querySelector("[data-role-form]");
+          const otherOwnInput = otherForm?.querySelector('input[name="ownName"]');
+          if (otherOwnInput) {
+            otherOwnInput.value = sharedVisitorName;
+          }
+        });
       }
-      setRoleDifficultyLabel(role, "1");
       applyPartnerHistory(role, form, readLauncherState(), ownInput.value.trim());
       applyRoleIdentifierPresentation(role, {
         ownUsesHandle: isValidUniqueHandle(ownInput.value.trim()) && !isValidEmailAddress(ownInput.value.trim()),
@@ -12372,6 +12617,28 @@ This is an alternate test message to show now.`;
       setRoleMessageStatus(role, "");
     });
     ownInput.addEventListener("keydown", suppressIdentifierEnter);
+    ownInput.addEventListener("keydown", (event) => {
+      if (!visitorMode || !isVisitorNameLocked()) {
+        return;
+      }
+      const isEditingKey =
+        event.key === "Backspace" ||
+        event.key === "Delete" ||
+        (event.key && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey);
+      if (!isEditingKey) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      showVisitorNameLockedMessage();
+    });
+    ownInput.addEventListener("paste", (event) => {
+      if (!visitorMode || !isVisitorNameLocked()) {
+        return;
+      }
+      event.preventDefault();
+      showVisitorNameLockedMessage();
+    });
     ownInput.addEventListener("change", () => {
       void hydrateLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
@@ -12384,7 +12651,10 @@ This is an alternate test message to show now.`;
     });
 
     partnerInput.addEventListener("input", () => {
-      setRoleDifficultyLabel(role, "1");
+      if (visitorMode) {
+        partnerInput.value = "Robot";
+        return;
+      }
       applyRoleIdentifierPresentation(role, {
         ownUsesHandle: isValidUniqueHandle(ownInput.value.trim()) && !isValidEmailAddress(ownInput.value.trim()),
         partnerUsesHandle: isValidUniqueHandle(partnerInput.value.trim()) && !isValidEmailAddress(partnerInput.value.trim())
@@ -12392,12 +12662,38 @@ This is an alternate test message to show now.`;
       setRoleMessageStatus(role, "");
     });
     partnerInput.addEventListener("keydown", suppressIdentifierEnter);
+    partnerInput.addEventListener("keydown", (event) => {
+      if (!visitorMode) {
+        return;
+      }
+      const isEditingKey =
+        event.key === "Backspace" ||
+        event.key === "Delete" ||
+        (event.key && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey);
+      if (!isEditingKey) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    partnerInput.addEventListener("paste", (event) => {
+      if (!visitorMode) {
+        return;
+      }
+      event.preventDefault();
+    });
     partnerInput.addEventListener("change", () => {
+      if (visitorMode) {
+        partnerInput.value = "Robot";
+      }
       void persistLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
       void syncDifficultyLabelForRole(role);
     });
     partnerInput.addEventListener("blur", () => {
+      if (visitorMode) {
+        partnerInput.value = "Robot";
+      }
       void syncRoleIdentifierPresentation(role, form);
       void syncDifficultyLabelForRole(role);
     });
@@ -12409,17 +12705,21 @@ This is an alternate test message to show now.`;
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      let ownName = ownInput.value.trim();
-      const submittedOwnDisplayName = ownName;
+      const submittedOwnDisplayName = ownInput.value.trim();
+      let ownName = submittedOwnDisplayName;
       let exactPartnerName = partnerInput.value.trim();
       const robotSimulationPartner = isRobotSimulationIdentifier(exactPartnerName);
       const visitorRobotSession = isVisitorLauncherEntry() && robotSimulationPartner;
 
-      if ((!ownName && !visitorRobotSession) || !exactPartnerName) {
-        if (!ownName) {
-          ownInput.focus();
+      if (!submittedOwnDisplayName || !exactPartnerName) {
+        if (!submittedOwnDisplayName) {
+          window.requestAnimationFrame(() => {
+            ownInput.focus();
+          });
         } else {
-          partnerInput.focus();
+          window.requestAnimationFrame(() => {
+            partnerInput.focus();
+          });
         }
         return;
       }
@@ -12481,13 +12781,15 @@ This is an alternate test message to show now.`;
       const canonicalOwnName = getPreferredIdentifier(ownName, latest);
       const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
       const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
+      let selectedDifficultyLevel = String(getDifficultyLocalLevel(role));
 
       if (robotSimulationPartner) {
-        const simulationLevel = Number(normalizeDifficultyLevel(getDifficultyLocalLevel(role)));
+        const simulationLevel = Number(normalizeDifficultyLevel(selectedDifficultyLevel));
         if (simulationLevel > 4) {
           window.alert("Robot simulation currently supports Levels 1 through 4 only.");
           return;
         }
+        selectedDifficultyLevel = String(simulationLevel);
       } else {
         try {
           const authorization = await fetchPairAuthorizationForLauncherRole(
@@ -12533,6 +12835,7 @@ This is an alternate test message to show now.`;
       });
 
       const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName, {
+        difficultyLevel: selectedDifficultyLevel,
         visitorDisplayName: visitorRobotSession ? submittedOwnDisplayName : "",
         runtimeMode: robotSimulationPartner
           ? (role === "sender" ? "robot-receiver" : "robot-sender")
@@ -12740,6 +13043,7 @@ This is an alternate test message to show now.`;
 
   function resetLauncherWorkingHomeForFreshEntry() {
     const visitorMode = isVisitorLauncherEntry();
+    const state = readLauncherState();
     setLauncherGuestEntryActive(true);
     activeLauncherRole = "";
     roleCards.forEach((card) => {
@@ -12760,8 +13064,9 @@ This is an alternate test message to show now.`;
       const ownInput = form.querySelector('input[name="ownName"]');
       const partnerInput = form.querySelector('input[name="partnerName"]');
       if (ownInput) {
-        ownInput.value = "";
+        ownInput.value = visitorMode ? getVisitorLockedName() : "";
         ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
+        applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName() : "", visitorMode);
       }
       if (partnerInput) {
         partnerInput.value = visitorMode ? "Robot" : "";
@@ -12771,7 +13076,22 @@ This is an alternate test message to show now.`;
         ownUsesHandle: false,
         partnerUsesHandle: false
       });
-      setRoleDifficultyLabel(role, "1");
+      const visitorOwnName = visitorMode
+        ? (getVisitorLockedName(state) || getPreferredVisitorDisplayNameForRole(role, state))
+        : "";
+      const visitorLevel = visitorMode
+        ? getRobotSimulationDifficulty(role, visitorOwnName || String(state.visitorAlias || "").trim(), state)
+        : "";
+      setRoleDifficultyLabel(
+        role,
+        normalizeDifficultyLevel(
+          visitorLevel ||
+          state.roleDifficultyLevels?.[role] ||
+          readRoleSettings(role).difficultyLevel ||
+          state.difficultyLevel ||
+          "1"
+        )
+      );
       setRoleMessageStatus(role, "");
       void refreshRoleMessaging(role);
     });
@@ -12787,7 +13107,15 @@ This is an alternate test message to show now.`;
       remoteViewerDisplayDeviceCheckbox.checked = false;
     }
     renderRemoteViewerLabels(false);
-    setRoleDifficultyLabel("remote-viewer", "1");
+    setRoleDifficultyLabel(
+      "remote-viewer",
+      normalizeDifficultyLevel(
+        state.roleDifficultyLevels?.["remote-viewer"] ||
+        readRoleSettings("remote-viewer").difficultyLevel ||
+        state.difficultyLevel ||
+        "1"
+      )
+    );
     renderMainTitle("standard", { persist: false });
   }
 
@@ -12825,6 +13153,7 @@ This is an alternate test message to show now.`;
       renderMainTitle(readLauncherState().resolvedMainUserType || "standard", { persist: false });
     }
     showLauncherView();
+    applyIdentityStateToLauncherInputs();
     if (normalizedMode !== "resume") {
       applyFreshEntryRoleNotes();
     }
@@ -15353,7 +15682,12 @@ This is an alternate test message to show now.`;
       }
       return "Human";
     }
-
+    function isDemoPairInfo(pairInfo) {
+      return isDemoReportPair(
+        String(pairInfo?.receiverName || "").trim(),
+        String(pairInfo?.senderName || "").trim()
+      );
+    }
     function getFilteredAdminPairSummaryRows() {
       const rows = Array.isArray(launcherAdminState.pair_summary) ? launcherAdminState.pair_summary : [];
       if (activeAdminPairsFilter === "all") {
@@ -15385,8 +15719,8 @@ This is an alternate test message to show now.`;
             tr.dataset.selectedPair = JSON.stringify(selectedPair);
           }
           const cells = [
-            row?.receiver_name || "",
-            row?.sender_name || "",
+            row?.display_receiver_name || row?.receiver_name || "",
+            row?.display_sender_name || row?.sender_name || "",
             row?.type || "",
             String(row?.trial_count ?? 0),
             row?.levels || "",
@@ -16332,7 +16666,7 @@ This is an alternate test message to show now.`;
     if (temporaryHomePageContinueButton) {
       temporaryHomePageContinueButton.textContent = hasMatchingActiveExploreTrial
         ? "CONTINUE into your active ESP PRO exploration"
-        : "CONTINUE into the ESP GYM training environment";
+        : "CONTINUE into the ESP GYM";
     }
 
     if (hasMatchingActiveExploreTrial) {
@@ -16606,15 +16940,19 @@ This is an alternate test message to show now.`;
         return;
       }
       const roleSettings = readRoleSettings(role);
-      const savedOwn = visitorMode ? "" : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
+      const savedOwn = visitorMode
+        ? String(getPreferredVisitorDisplayNameForRole(role, state) || "").trim()
+        : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
       const profileState = visitorMode ? null : (savedOwn ? readLauncherProfileState(role, savedOwn, state) : null);
       const savedPartner = visitorMode
         ? "Robot"
         : profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
       ownInput.value = savedOwn;
       ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
+      applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName(state) : "", visitorMode);
       partnerInput.value = savedPartner;
       partnerInput.placeholder = "name@example.com or unique handle";
+      applyVisitorPartnerInputLock(partnerInput, visitorMode);
       applyPartnerHistory(role, form, state, savedOwn);
       applyRoleIdentifierPresentation(role, {
         ownUsesHandle: isValidUniqueHandle(savedOwn) && !isValidEmailAddress(savedOwn),
@@ -17698,6 +18036,7 @@ This is an alternate test message to show now.`;
         const requestedDifficultyLevel = normalizeDifficultyLevel(params.get("difficulty_level") || "");
         const requestedOwnIdentifier = String(params.get("own_email") || "").trim();
         const requestedPartnerIdentifier = String(params.get("partner_email") || "").trim();
+        const requestedVisitorDisplayName = String(params.get("visitor_display_name") || "").trim();
         const directOpen = params.get("direct_open") === "1";
       const stripeReturnState = String(params.get("stripe") || "").trim().toLowerCase();
       const requestedReportReceiver = String(params.get("report_receiver") || "").trim();
@@ -17708,6 +18047,15 @@ This is an alternate test message to show now.`;
         const messagePartner = String(params.get("message_partner") || "").trim();
         const messageFocus = params.get("message_focus") === "1";
         const launcherState = readLauncherState();
+        if (
+          requestedVisitorDisplayName &&
+          ["sender", "receiver"].includes(requestedView) &&
+          isVisitorLauncherEntry(launcherState)
+        ) {
+          launcherState.visitorDisplayNames = launcherState.visitorDisplayNames || {};
+          launcherState.visitorDisplayNames[requestedView] = requestedVisitorDisplayName;
+          writeLauncherState(launcherState);
+        }
         if (requestedDifficultyLevel) {
           launcherState.difficultyLevel = requestedDifficultyLevel;
           launcherState.roleDifficultyLevels = launcherState.roleDifficultyLevels || {};
@@ -17719,7 +18067,16 @@ This is an alternate test message to show now.`;
             requestedOwnIdentifier &&
             isRobotSimulationIdentifier(requestedPartnerIdentifier)
           ) {
-            persistRobotSimulationDifficulty(requestedView, requestedOwnIdentifier, requestedDifficultyLevel);
+            const preferredVisitorName = getPreferredVisitorDisplayNameForRole(
+              requestedView,
+              launcherState,
+              requestedVisitorDisplayName
+            );
+            persistRobotSimulationDifficulty(
+              requestedView,
+              preferredVisitorName || requestedOwnIdentifier,
+              requestedDifficultyLevel
+            );
           }
           ["sender", "receiver", "remote-viewer"].forEach((role) => {
             setRoleDifficultyLabel(role, requestedDifficultyLevel);
@@ -17734,6 +18091,14 @@ This is an alternate test message to show now.`;
         return;
       }
       if (requestedView === "visitor-launcher") {
+        if (!isVisitorLauncherEntry(launcherState)) {
+          if (hasKnownLauncherIdentity(launcherState)) {
+            enterWorkingHomeFromLanding("resume");
+            return;
+          }
+          launcherState = buildVisitorLauncherState(launcherState);
+          writeLauncherState(launcherState);
+        }
         enterWorkingHomeFromLanding("visitor");
         return;
       }
@@ -17802,6 +18167,26 @@ This is an alternate test message to show now.`;
         }
         const matchingCard = findRoleCard(requestedView);
         if (matchingCard) {
+          if (requestedView !== "remote-viewer") {
+            const form = matchingCard.querySelector("[data-role-form]");
+            const ownInput = form?.elements?.ownName || null;
+            const partnerInput = form?.elements?.partnerName || null;
+            if (ownInput && partnerInput) {
+              const latestState = readLauncherState();
+              const visitorMode = isVisitorLauncherEntry(latestState);
+              const visibleOwnIdentifier = visitorMode && requestedVisitorDisplayName
+                ? requestedVisitorDisplayName
+                : requestedOwnIdentifier;
+              if (visibleOwnIdentifier) {
+                ownInput.value = visibleOwnIdentifier;
+              }
+              if (requestedPartnerIdentifier) {
+                partnerInput.value = requestedPartnerIdentifier;
+              }
+              applyVisitorOwnInputLock(ownInput, getVisitorLockedName(latestState), visitorMode);
+              void syncRoleIdentifierPresentation(requestedView, form);
+            }
+          }
           if (messageOwner || messagePartner) {
             if (requestedView === "remote-viewer") {
               if (messageOwner && remoteViewerOwnInput) {
@@ -17825,8 +18210,31 @@ This is an alternate test message to show now.`;
             }
           }
           if (directOpen) {
+            suppressLauncherAutoCollapseUntil = Date.now() + 1200;
+            lastLauncherPointerDownInsideActiveCard = true;
+            pendingDirectLauncherOutsideClickIgnore = true;
+            lastDirectLauncherOpenMeta = {
+              role: requestedView,
+              openedAt: Date.now(),
+              ownIdentifier: requestedOwnIdentifier,
+              partnerIdentifier: requestedPartnerIdentifier,
+              visitorDisplayName: requestedVisitorDisplayName,
+              difficultyLevel: requestedDifficultyLevel || ""
+            };
+            logLauncherDirectOpenDebug("apply", lastDirectLauncherOpenMeta);
             window.scrollTo({ top: 0, left: 0, behavior: "auto" });
             ensureCardExpanded(matchingCard, { scrollIntoView: false });
+            window.requestAnimationFrame(() => {
+              if (!matchingCard.classList.contains("active")) {
+                return;
+              }
+              alignLauncherCardNearTop(matchingCard, 18);
+              window.setTimeout(() => {
+                if (matchingCard.classList.contains("active")) {
+                  alignLauncherCardNearTop(matchingCard, 18);
+                }
+              }, 80);
+            });
           } else {
             ensureCardExpanded(matchingCard, { scrollIntoView: true });
           }
@@ -17841,7 +18249,26 @@ This is an alternate test message to show now.`;
     } catch (error) {
       // Ignore malformed launcher open requests.
     } finally {
-      finishDirectLauncherOpen();
+      const directOpenInfo = (function () {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          return {
+            requested: params.get("direct_open") === "1",
+            role: String(params.get("open") || "").trim().toLowerCase()
+          };
+        } catch (error) {
+          return {
+            requested: false,
+            role: ""
+          };
+        }
+      })();
+      const directOpenDelayMs = directOpenInfo.requested
+        ? directOpenInfo.role === "sender"
+          ? 700
+          : 140
+        : 0;
+      finishDirectLauncherOpen(directOpenDelayMs);
     }
   }
 
@@ -19406,13 +19833,21 @@ This is an alternate test message to show now.`;
       const receiverName = String(selectedPair?.receiver_name || "").trim();
       const senderName = String(selectedPair?.sender_name || "").trim();
       const source = String(selectedPair?.source || "real").trim().toLowerCase() === "simulation" ? "simulation" : "real";
+      const aliasReceiverNames = Array.isArray(selectedPair?.alias_receiver_names)
+        ? selectedPair.alias_receiver_names.map((value) => String(value || "").trim()).filter(Boolean)
+        : [];
+      const aliasSenderNames = Array.isArray(selectedPair?.alias_sender_names)
+        ? selectedPair.alias_sender_names.map((value) => String(value || "").trim()).filter(Boolean)
+        : [];
       if (!receiverName || !senderName) {
         return;
       }
       pendingOpenReportPair = {
         receiverName,
         senderName,
-        source
+        source,
+        aliasReceiverNames,
+        aliasSenderNames
       };
       showReportDefinitionView();
     } catch (error) {
@@ -19590,7 +20025,20 @@ This is an alternate test message to show now.`;
     event.stopPropagation();
     closeInstallGuideView();
   });
+  featureSetupClaimActionButton?.addEventListener("click", () => {
+    openFeatureSetupHandleFlow("claim");
+  });
   featureSetupInstallActionButton?.addEventListener("click", () => {
+    if (isVisitorLauncherEntry() && !featureSetupOwnIdentifier) {
+      const proceed = window.confirm(
+        "You are currently a visitor to ESP GYM. To access the full feature set of Telepathy Beginner, including practicing telepathy with human partners and saved performance history, please claim a unique name for yourself as a user."
+      );
+      if (!proceed) {
+        return;
+      }
+      openFeatureSetupHandleFlow("install-gate");
+      return;
+    }
     showInstallGuideView({ returnView: "feature-setup" });
   });
   installGuidePrimaryButton?.addEventListener("click", () => {
@@ -20413,7 +20861,7 @@ This is an alternate test message to show now.`;
   adminRunRemindersTestButton?.addEventListener("click", async () => {
     await runSubscriptionReminderScan(true);
   });
-  setLauncherGuestEntryActive(shouldStartInFreshLauncherMode());
+  setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
   if (launcherGuestEntryActive) {
     resetLauncherWorkingHomeForFreshEntry();
     applyFreshEntryRoleNotes();
@@ -20477,8 +20925,11 @@ This is an alternate test message to show now.`;
   window.setTimeout(() => {
     void refreshDifficultyLabels();
   }, 0);
-  if (launcherGuestEntryActive) {
+  if (shouldStartInFreshLauncherMode()) {
     window.setTimeout(() => {
+      if (!isVisitorLauncherEntry(readLauncherState())) {
+        return;
+      }
       resetLauncherWorkingHomeForFreshEntry();
       applyFreshEntryRoleNotes();
     }, 0);
@@ -20568,6 +21019,9 @@ This is an alternate test message to show now.`;
       return;
     }
     lastLauncherPointerDownInsideActiveCard = eventPathIncludesNode(event, activeCard);
+    if (lastLauncherPointerDownInsideActiveCard) {
+      pendingDirectLauncherOutsideClickIgnore = false;
+    }
   }, true);
 
   document.addEventListener("click", (event) => {
@@ -20584,10 +21038,35 @@ This is an alternate test message to show now.`;
     if (
       launcherVisible &&
       activeCard &&
+      pendingDirectLauncherOutsideClickIgnore &&
       !lastLauncherPointerDownInsideActiveCard &&
       !eventPathIncludesNode(event, activeCard) &&
       !eventPathIncludesNode(event, openOptionsButton)
     ) {
+      pendingDirectLauncherOutsideClickIgnore = false;
+      if (lastDirectLauncherOpenMeta) {
+        logLauncherDirectOpenDebug("ignored_first_outside_click", {
+          ...lastDirectLauncherOpenMeta,
+          ignoredAt: Date.now(),
+          activeRole: String(activeCard?.dataset.roleCard || "").trim()
+        });
+      }
+      return;
+    }
+    if (
+      launcherVisible &&
+      activeCard &&
+      !lastLauncherPointerDownInsideActiveCard &&
+      !eventPathIncludesNode(event, activeCard) &&
+      !eventPathIncludesNode(event, openOptionsButton)
+    ) {
+      if (lastDirectLauncherOpenMeta && Date.now() - Number(lastDirectLauncherOpenMeta.openedAt || 0) < 2500) {
+        logLauncherDirectOpenDebug("collapsed_soon_after_open", {
+          ...lastDirectLauncherOpenMeta,
+          collapsedAt: Date.now(),
+          activeRole: String(activeCard?.dataset.roleCard || "").trim()
+        });
+      }
       collapseActiveLauncherCard();
     }
   });
@@ -20644,41 +21123,6 @@ This is an alternate test message to show now.`;
     }
   }
 })();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
