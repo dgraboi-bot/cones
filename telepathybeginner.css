@@ -612,6 +612,71 @@ body {
   text-align: center;
 }
 
+.beginner-view-sticky-top > .beginner-top-row:first-child,
+.beginner-view-sticky-top > .learn-more-top-row:first-child,
+.beginner-view-sticky-top > .online-course-top-row:first-child,
+.beginner-view-sticky-top > .clairvoyance-top-row:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  padding: 4px 0 10px;
+  background:
+    linear-gradient(180deg, rgba(8, 8, 8, 0.985) 0%, rgba(8, 8, 8, 0.965) 78%, rgba(8, 8, 8, 0) 100%);
+  backdrop-filter: blur(4px);
+}
+
+.beginner-view[data-view="online-course"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="about"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="pro-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="admin-user-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="admin-identity-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="admin-email-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child {
+  position: fixed !important;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(94vw - 72px), 808px);
+  z-index: 120;
+  padding: 4px 0 10px;
+  background:
+    linear-gradient(180deg, rgba(8, 8, 8, 0.994) 0%, rgba(8, 8, 8, 0.978) 82%, rgba(8, 8, 8, 0) 100%);
+  backdrop-filter: blur(6px);
+}
+
+.beginner-view[data-view="online-course"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="about"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="pro-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="admin-user-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="admin-identity-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="admin-email-list"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 40px;
+  background: rgba(8, 8, 8, 0.996);
+  pointer-events: none;
+}
+
+.beginner-view[data-view="online-course"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="visualization"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="about"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="pro-user-manual"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="admin-user-list"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="admin-identity-list"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="admin-email-list"]:not(.beginner-view-hidden) .beginner-title {
+  margin-top: 74px;
+}
+
 .options-top-row .beginner-top-home-button {
   justify-self: start;
 }
@@ -1088,6 +1153,11 @@ body {
   font-size: 0.95rem;
   line-height: 1.35;
   white-space: pre-line;
+}
+
+.role-note-recommended {
+  color: #ffd36f;
+  font-weight: 700;
 }
 
 .role-email-note p + p {
@@ -1950,6 +2020,11 @@ body {
   font-style: italic;
 }
 
+[data-own-identifier-label],
+[data-remote-viewer-own-label] {
+  margin-bottom: -4px;
+}
+
 .role-field-partner {
   grid-column: 1 / -1;
 }
@@ -2132,15 +2207,16 @@ body {
 .location-picker-top-actions {
   margin-left: auto;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .location-picker-action-button {
   width: auto;
-  min-width: 138px;
+  min-width: 128px;
   min-height: 42px;
   padding: 8px 16px;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .location-picker-status {
@@ -2591,6 +2667,42 @@ body {
 
 .admin-user-list-panel {
   min-width: min(100%, 1120px);
+  height: calc(100vh - 250px);
+  min-height: 420px;
+  max-height: calc(100vh - 250px);
+}
+
+.admin-report-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0 16px;
+}
+
+.admin-report-filter-row .online-course-jump-link.is-selected {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.admin-report-table {
+  min-width: 980px;
+}
+
+.beginner-view[data-view="admin-user-list"] .report-table-wrap,
+.beginner-view[data-view="admin-identity-list"] .report-table-wrap,
+.beginner-view[data-view="admin-email-list"] .report-table-wrap {
+  min-height: 0;
+  max-height: calc(100vh - 430px);
+}
+
+.admin-report-row-clickable {
+  cursor: pointer;
+}
+
+.admin-report-row-clickable:hover td,
+.admin-report-row-clickable:focus-within td {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .lesson-index-admin-panel {

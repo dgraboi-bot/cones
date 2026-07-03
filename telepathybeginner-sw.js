@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260630s";
-const APP_VERSION = "20260630s";
+const CACHE_NAME = "telepathybeginner-v20260702v";
+const APP_VERSION = "20260702v";
 const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
   "./",
@@ -23,7 +23,7 @@ const APP_ASSETS = [
   "./tb-test-icon-3.png",
   "./tb-test-icon-4.png",
   "./BeginnerUserManual.html",
-  "./BeginnerUserManual.html?v=20260503a",
+  "./BeginnerUserManual.html?v=20260702v",
   "./minds-connected-uncropped.png",
   "./rewire.png",
   "./RV1.png",
@@ -183,6 +183,12 @@ self.addEventListener("notificationclick", (event) => {
     await self.clients.openWindow(targetUrl);
   })());
 });
+
+
+
+
+
+
 
 
 

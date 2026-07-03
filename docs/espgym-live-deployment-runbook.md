@@ -8,6 +8,10 @@ It is written to prevent three recurring problems:
 2. deploying only some of the changed files
 3. leaving mixed version strings in HTML, JS, CSS, manifest, or runtime entry points and causing cache fighting
 
+There is a fourth practical cache trap to watch for:
+
+4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
+
 The process below is the required deployment sequence unless the user explicitly asks for a different one.
 
 ## GitHub Checkpoint Rule
@@ -98,9 +102,27 @@ Primary SSH transport:
 Primary file push pattern:
 
 ```powershell
-(Get-Content -Raw 'C:\xampp\htdocs\telepathyexperiment\cones\somefile.ext') |
-  plink -batch -load 'DG Putty Settings' "cat > /var/www/telepathyexperiment/cones/somefile.ext"
+cmd /c type "C:\xampp\htdocs\telepathyexperiment\cones\somefile.ext" |
+  plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/somefile.ext"
 ```
+
+Important:
+
+Do not rely on the older PowerShell `Get-Content -Raw | plink ...` pattern for routine live pushes. In practice it can appear to succeed while leaving the live file unchanged. The `cmd /c type ... | plink "cat > ..."` pattern is the reliable default and should be treated as authoritative unless a better-tested transfer method replaces it later.
+
+PowerShell quoting rule:
+
+- do not inline many `cmd /c type ... | plink ...` commands directly in one PowerShell command string unless the quoting has just been proven in the current shell
+- the safest operational pattern is:
+  1. create a short temporary `.cmd` deploy script
+  2. put one `type ... | plink ... "cat > ..."` line per file in that `.cmd`
+  3. run the `.cmd`
+  4. delete the `.cmd`
+
+Reason:
+
+- PowerShell can misinterpret Unix-style remote command fragments, `%` format tokens, or nested quotes, which can make a deployment appear to run while actually mangling the command
+- the temporary `.cmd` wrapper preserves the exact known-good Windows command syntax
 
 ## GitHub Verification Procedure
 
@@ -164,6 +186,21 @@ Every live deployment must do all of the following:
 6. verify the live files contain the new version markers and key code changes
 7. provide the user a clean cache-busted test URL
 
+## Required Local Mirror Confirmation
+
+After any meaningful code change set and again after any build bump, re-sync:
+
+- `C:\xampp\htdocs\telepathyexperiment\cones`
+- into `C:\xampp\htdocs\cones`
+
+using:
+
+```powershell
+robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /XD .git /R:1 /W:1
+```
+
+Do not merely run the mirror. Also explicitly note in the work log or user update that the mirror step was completed.
+
 ## Build Version Rule
 
 Use a monotonically increasing build marker such as:
@@ -177,6 +214,12 @@ When a build version is changed, search for both:
 1. the new version string to confirm it appears everywhere needed
 2. the immediately previous version string to confirm it is gone from the files being deployed
 
+Required tool rule:
+
+- always run `scripts\bump-version.ps1 -Version <build>` from the repo root workflow before deployment
+- if the script reports stale version markers remain, stop and fix them before deploying
+- do not hand-wave partial version updates
+
 ## Authoritative Version Surface Inventory
 
 This is the authoritative list of files and patterns that can carry stale build references.
@@ -185,6 +228,8 @@ This list must be checked on every deployment. Do not rely on memory.
 
 Core launcher/runtime:
 
+- `.htaccess`
+- `index.html`
 - `telepathybeginner.js`
 - `telepathy.js`
 - `telepathybeginner.html`
@@ -218,6 +263,54 @@ Potentially relevant additional files depending on the change:
 - `telepathybeginner.webmanifest`
 - `telepathybeginner-sw.js`
 - `telepathybeginner-email-test.js`
+
+## Cache-Hardening Rules
+
+To avoid requiring `Ctrl-F5` after a normal deployment, do all of the following whenever launcher/runtime navigation behavior is touched:
+
+1. ensure launcher-facing assets are versioned with `?v=<build>`
+2. ensure return/navigation paths back into `telepathybeginner.html` include the current `v=<build>` parameter
+3. ensure the launcher HTML normalizes itself to the current build version if loaded without `v=<build>`
+4. ensure the service worker is registered with the current `?v=<build>` URL
+5. ensure the launcher runtime forces a one-time reload on `serviceWorker.controllerchange` so a newly activated worker takes control visibly
+6. ensure the runtime calls `registration.update()` after registration so the browser checks for a newer worker promptly
+7. ensure root entry redirects do not embed the build version in the redirect target
+
+Important root-entry rule:
+
+- `https://espgym.com/` and `https://espgym.com/index.html` should redirect to:
+  - `https://espgym.com/telepathybeginner.html?open=landing`
+- not to:
+  - `https://espgym.com/telepathybeginner.html?v=<build>&open=landing`
+
+Reason:
+
+- browsers can keep reusing an old cached `302` redirect target
+- if that target contains `v=<oldbuild>`, typing `https://espgym.com/` can still land on the old build until the user forces a fresh network fetch with `Ctrl+F5`
+- the launcher page already knows how to normalize itself to the current build, so the root redirect should stay unversioned
+
+Required header rule for that redirect:
+
+- the root/index redirect response should also send:
+  - `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+  - `Pragma: no-cache`
+  - `Expires: 0`
+
+Without those headers, some browsers may still reuse the old `302` target even when the target is now unversioned.
+
+Current concrete cache-transition surfaces that must be checked:
+
+- `.htaccess`
+- `index.html`
+- `telepathybeginner.html`
+- `telepathybeginner.js`
+- `telepathybeginner-sw.js`
+- `telepathybeginner.webmanifest`
+- `telepathy.js`
+- `sender.html`
+- `receiver.html`
+
+If a stale-behavior report appears after a deploy, inspect unversioned launcher-entry or launcher-return URLs before assuming the problem is only browser cache.
 - `api.php`
 - `globe/index.html`
 - `globe/globe.js`
@@ -232,6 +325,17 @@ If a file can influence browser caching, launch routing, service worker behavior
 ### Exact version-bearing surfaces currently known
 
 The following exact surfaces are known to require inspection and, when applicable, version updates:
+
+#### `.htaccess`
+
+- root redirect to `telepathybeginner.html?open=landing` when present
+- any `index.html` redirect to the canonical launcher URL
+- any old-origin canonical redirects involving `telepathybeginner.html`
+
+#### `index.html`
+
+- any fallback/meta-refresh target for launcher entry
+- any launcher link that should stay unversioned for root entry and use `telepathybeginner.html?open=landing`
 
 #### `telepathybeginner.html`
 
@@ -391,36 +495,65 @@ If a file is about to be overwritten live, its prior live copy must first be cop
 
 ## Standard File Push Procedure
 
-After backup, push each changed local file with the standard pipe-to-`cat` pattern.
+After backup, push each changed local file with the standard direct single-file pipe-to-`cat` pattern.
+
+Important:
+
+1. Use one explicit command per file.
+2. Do not rely on a PowerShell loop or higher-level wrapper that pipelines multiple files through `plink` in one script block unless that exact pattern has been verified again in the current environment.
+3. The proven safe pattern is:
+   - run one `Get-Content -Raw ... | plink ... "cat > ..."` command
+   - immediately verify that file on the server
+   - then continue to the next file
+4. If a batched transfer method appears to succeed but the live file contents do not change, stop using that method immediately and fall back to the explicit one-file-at-a-time pattern.
 
 Examples:
 
-```powershell
-(Get-Content -Raw 'C:\xampp\htdocs\telepathyexperiment\cones\telepathy.js') |
-  plink -batch -load 'DG Putty Settings' "cat > /var/www/telepathyexperiment/cones/telepathy.js"
+```cmd
+type "C:\xampp\htdocs\telepathyexperiment\cones\telepathy.js" | plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/telepathy.js"
 ```
 
-```powershell
-(Get-Content -Raw 'C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.js') |
-  plink -batch -load 'DG Putty Settings' "cat > /var/www/telepathyexperiment/cones/telepathybeginner.js"
+```cmd
+type "C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.js" | plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/telepathybeginner.js"
 ```
 
-```powershell
-(Get-Content -Raw 'C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.html') |
-  plink -batch -load 'DG Putty Settings' "cat > /var/www/telepathyexperiment/cones/telepathybeginner.html"
+```cmd
+type "C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.html" | plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/telepathybeginner.html"
 ```
 
-```powershell
-(Get-Content -Raw 'C:\xampp\htdocs\telepathyexperiment\cones\sender.html') |
-  plink -batch -load 'DG Putty Settings' "cat > /var/www/telepathyexperiment/cones/sender.html"
+```cmd
+type "C:\xampp\htdocs\telepathyexperiment\cones\sender.html" | plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/sender.html"
 ```
 
-```powershell
-(Get-Content -Raw 'C:\xampp\htdocs\telepathyexperiment\cones\receiver.html') |
-  plink -batch -load 'DG Putty Settings' "cat > /var/www/telepathyexperiment/cones/receiver.html"
+```cmd
+type "C:\xampp\htdocs\telepathyexperiment\cones\receiver.html" | plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/receiver.html"
 ```
 
 Push CSS, manifest, service worker, API, and globe files the same way when they are part of the release.
+
+If the live target directory does not already exist, create it first. In particular, support folders such as:
+
+- `/var/www/telepathyexperiment/cones/docs`
+- `/var/www/telepathyexperiment/cones/scripts`
+
+may not exist yet on the live server because they are operational/repo-support folders rather than runtime app folders.
+
+Create missing directories explicitly before pushing files into them:
+
+```powershell
+plink -batch -load 'DG Putty Settings' "mkdir -p /var/www/telepathyexperiment/cones/docs /var/www/telepathyexperiment/cones/scripts"
+```
+
+Recommended deployment wrapper pattern:
+
+```powershell
+$cmdPath = "C:\path\to\temporary-deploy.cmd"
+# write one `type ... | plink ... "cat > ..."` line per file
+cmd /c $cmdPath
+Remove-Item -LiteralPath $cmdPath
+```
+
+This is currently the safest known deployment wrapper for this project.
 
 ## Post-Deployment Verification
 
@@ -449,6 +582,11 @@ When relevant, verify:
 - the service worker cache/version constant
 - the visible version label text
 - any new CSS class or function name introduced by the fix
+
+Practical verification rule:
+
+- Do not assume a multi-file deploy succeeded just because `plink` returned exit code `0`.
+- Open or grep the actual live files that matter most for the release and confirm the expected new text is present.
 
 ## Live Test URL Rule
 

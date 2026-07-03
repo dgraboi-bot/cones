@@ -1,7 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260630s";
+  const launcherBuildVersion = "20260702v";
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
@@ -44,8 +44,11 @@
   const imagePairAdminView = document.querySelector('[data-view="image-pair-admin"]');
   const subscriptionEmailAdminView = document.querySelector('[data-view="subscription-email-admin"]');
   const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
+  const adminIdentityListView = document.querySelector('[data-view="admin-identity-list"]');
   const adminEmailListView = document.querySelector('[data-view="admin-email-list"]');
   const lessonIndexAdminView = document.querySelector('[data-view="lesson-index-admin"]');
+  const savedLinksAdminView = document.querySelector('[data-view="saved-links-admin"]');
+  const savedLinksAdminActionButtons = Array.from((savedLinksAdminView && savedLinksAdminView.querySelectorAll("button")) || []);
   const onlineCourseView = document.querySelector('[data-view="online-course"]');
   const baselineQuestionsView = document.querySelector('[data-view="baseline-questions"]');
   const afterFirstSessionQuestionsView = document.querySelector('[data-view="after-first-session-questions"]');
@@ -92,6 +95,7 @@
   const openPeerReviewedListButton = document.querySelector("[data-open-peer-reviewed-list]");
   const openUserCommentsListButton = document.querySelector("[data-open-user-comments-list]");
   const openGoProButton = document.querySelector("[data-open-go-pro]");
+  const openVisitorProFeatureButtons = Array.from(document.querySelectorAll("[data-open-visitor-pro-features]"));
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
@@ -109,7 +113,9 @@
   const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
   const openLessonIndexAdminButton = document.querySelector("[data-open-lesson-index-admin]");
+  const openSavedLinksAdminButton = document.querySelector("[data-open-saved-links-admin]");
   const adminEmailListButton = document.querySelector("[data-admin-email-list]");
+  const adminListIdentitiesButton = document.querySelector("[data-admin-list-identities]");
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
   const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
   const adminOpenAnalyzerButton = document.querySelector("[data-admin-open-analyzer]");
@@ -135,6 +141,7 @@
   const closeCaseStudiesListButton = document.querySelector("[data-close-case-studies-list]");
   const closePeerReviewedListButton = document.querySelector("[data-close-peer-reviewed-list]");
   const closeUserCommentsListButton = document.querySelector("[data-close-user-comments-list]");
+  const closeSavedLinksAdminButton = document.querySelector("[data-close-saved-links-admin]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
   const closeGoProButton = document.querySelector("[data-close-go-pro]");
   const goProMonthlyButton = document.querySelector("[data-go-pro-monthly]");
@@ -199,6 +206,7 @@
   const closeImagePairAdminButton = document.querySelector("[data-close-image-pair-admin]");
   const closeSubscriptionEmailAdminButton = document.querySelector("[data-close-subscription-email-admin]");
   const closeAdminUserListButton = document.querySelector("[data-close-admin-user-list]");
+  const closeAdminIdentityListButton = document.querySelector("[data-close-admin-identity-list]");
   const closeAdminEmailListButton = document.querySelector("[data-close-admin-email-list]");
   const closeLessonIndexAdminButton = document.querySelector("[data-close-lesson-index-admin]");
   const openContactButton = document.querySelector("[data-open-contact]");
@@ -247,7 +255,10 @@
   let contactReturnView = "help";
   let contactFromLineRequestToken = 0;
   let goProReturnView = "subscription-management";
+  let goProReturnRole = "";
+  let goProReturnScrollY = 0;
   let launcherGuestEntryActive = false;
+  const visitorSimulationIdentifierPrefix = "Visitor";
   const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
   const reportTableWrap = document.querySelector("[data-report-table-wrap]");
   const reportTable = document.querySelector("[data-report-table]");
@@ -398,6 +409,8 @@
   const adminEasyAdminEnabledCheckbox = document.querySelector("[data-admin-easy-admin-enabled]");
   const adminLearnMoreSaveEnabledCheckbox = document.querySelector("[data-admin-learn-more-save-enabled]");
   const adminExploreProTestDurationInput = document.querySelector("[data-admin-explore-pro-test-duration]");
+  const adminTrialModePublicEnabledCheckbox = document.querySelector("[data-admin-trial-mode-public-enabled]");
+  const adminOpen14DayTrialButton = document.querySelector("[data-admin-open-14-day-trial]");
   const userTypeHandleInput = document.querySelector("[data-user-type-handle]");
   const userTypeStatus = document.querySelector("[data-user-type-status]");
   const userTypeOptionsWrap = document.querySelector("[data-user-type-options-wrap]");
@@ -441,15 +454,21 @@
   const adminDiskUsage = document.querySelector("[data-admin-disk-usage]");
   const adminUserListSummary = document.querySelector("[data-admin-user-list-summary]");
   const adminUserListStatus = document.querySelector("[data-admin-user-list-status]");
-  const adminUserListOutput = document.querySelector("[data-admin-user-list-output]");
+  const adminUserListBody = document.querySelector("[data-admin-user-list-body]");
+  const adminPairsFilterButtons = Array.from(document.querySelectorAll("[data-admin-pairs-filter]"));
+  const adminIdentityListSummary = document.querySelector("[data-admin-identity-list-summary]");
+  const adminIdentityListStatus = document.querySelector("[data-admin-identity-list-status]");
+  const adminIdentityListBody = document.querySelector("[data-admin-identity-list-body]");
+  const adminIdentityFilterButtons = Array.from(document.querySelectorAll("[data-admin-identity-filter]"));
   const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
   const exactLocationButtons = Array.from(document.querySelectorAll("[data-open-exact-location]"));
-  const retryLocationButtons = Array.from(document.querySelectorAll("[data-retry-location]"));
   const locationPickerOverlay = document.querySelector("[data-location-picker-overlay]");
   const locationPickerDialog = locationPickerOverlay?.querySelector(".location-picker-dialog") || null;
   const locationPickerStatus = document.querySelector("[data-location-picker-status]");
   const locationPickerMapNode = document.querySelector("[data-location-picker-map]");
   const locationPickerSaveButton = document.querySelector("[data-location-picker-save]");
+  const locationPickerUseBrowserButton = document.querySelector("[data-location-picker-use-browser]");
+  const locationPickerRefreshBrowserButton = document.querySelector("[data-location-picker-refresh-browser]");
   const locationPickerCancelButton = document.querySelector("[data-location-picker-cancel]");
   const locationPickerZoomInButton = document.querySelector("[data-location-picker-zoom-in]");
   const locationPickerZoomOutButton = document.querySelector("[data-location-picker-zoom-out]");
@@ -471,6 +490,7 @@
   let locationPickerMap = null;
   let locationPickerMarker = null;
   let locationPickerSelection = null;
+  let locationPickerBrowserEstimate = null;
   let locationPickerOpening = false;
   let locationPickerClosing = false;
   let locationPickerReturnRole = "";
@@ -538,7 +558,51 @@
   ]);
   let activeReportResize = null;
   let activeReportViewPan = null;
-  let launcherAdminSecret = "";
+  const launcherAdminDevicePrefsKey = "cones-admin-device-prefs-v1";
+  function readLauncherAdminDevicePrefs() {
+    try {
+      const raw = localStorage.getItem(launcherAdminDevicePrefsKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return {
+        debug_enabled: !!parsed?.debug_enabled,
+        easy_admin_enabled: !!parsed?.easy_admin_enabled,
+        learn_more_save_enabled: !!parsed?.learn_more_save_enabled,
+        cached_secret: typeof parsed?.cached_secret === "string" ? parsed.cached_secret.trim() : ""
+      };
+    } catch (error) {
+      return {
+        debug_enabled: false,
+        easy_admin_enabled: false,
+        learn_more_save_enabled: false,
+        cached_secret: ""
+      };
+    }
+  }
+
+  function writeLauncherAdminDevicePrefs(updates = {}) {
+    const next = {
+      ...launcherAdminDevicePrefs,
+      ...updates
+    };
+    if (!next.easy_admin_enabled && !next.learn_more_save_enabled) {
+      next.cached_secret = "";
+    }
+    launcherAdminDevicePrefs = {
+      debug_enabled: !!next.debug_enabled,
+      easy_admin_enabled: !!next.easy_admin_enabled,
+      learn_more_save_enabled: !!next.learn_more_save_enabled,
+      cached_secret: typeof next.cached_secret === "string" ? next.cached_secret.trim() : ""
+    };
+    try {
+      localStorage.setItem(launcherAdminDevicePrefsKey, JSON.stringify(launcherAdminDevicePrefs));
+    } catch (error) {
+      // Ignore local persistence failures.
+    }
+    return launcherAdminDevicePrefs;
+  }
+
+  let launcherAdminDevicePrefs = readLauncherAdminDevicePrefs();
+  let launcherAdminSecret = launcherAdminDevicePrefs.cached_secret || "";
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
@@ -653,23 +717,42 @@ This is an alternate test message to show now.`;
   let activeSubscriptionEmailTemplateKey = "welcome";
   const stripeReturnIdentifierStorageKey = "cones-stripe-return-identifier-v1";
   let launcherAdminState = {
-      debug_enabled: false,
+      debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
       subscription_emails_enabled: false,
       subscription_reminders_enabled: false,
-      easy_admin_enabled: false,
-      learn_more_save_enabled: false,
+      easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+      learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
       explore_pro_test_duration_seconds: 0,
+      trial_mode_public_enabled: false,
       storage: null,
       debug_log: null,
       subscription_email_log: null,
       subscription_email_templates: null,
-      user_trial_summary: null,
-      user_trial_summary_meta: null,
+      pair_summary: null,
+      pair_summary_meta: null,
+      identity_summary: null,
+      identity_summary_meta: null,
       email_list: null,
       email_list_meta: null,
       disk_usage_analysis: null,
       lesson_index: null
     };
+  let activeAdminPairsFilter = "all";
+  let activeAdminIdentityFilter = "all";
+
+  function syncLauncherAdminStateFromDevicePrefs() {
+    launcherAdminState.debug_enabled = !!launcherAdminDevicePrefs.debug_enabled;
+    launcherAdminState.easy_admin_enabled = !!launcherAdminDevicePrefs.easy_admin_enabled;
+    launcherAdminState.learn_more_save_enabled = !!launcherAdminDevicePrefs.learn_more_save_enabled;
+    launcherAdminSecret = typeof launcherAdminDevicePrefs.cached_secret === "string"
+      ? launcherAdminDevicePrefs.cached_secret.trim()
+      : "";
+  }
+
+  function updateLauncherAdminDevicePrefs(updates = {}) {
+    writeLauncherAdminDevicePrefs(updates);
+    syncLauncherAdminStateFromDevicePrefs();
+  }
   const defaultThemeColor = "#3160b0";
   const preciseLocationAccuracyThresholdMeters = 120;
   const defaultBlinkSettings = Object.freeze({
@@ -678,7 +761,7 @@ This is an alternate test message to show now.`;
     offSeconds: "0.8"
   });
   const defaultConfidenceSettings = Object.freeze({
-    include: true
+    include: false
   });
   const defaultInstallState = Object.freeze({
     confirmed: false,
@@ -751,6 +834,7 @@ This is an alternate test message to show now.`;
       const parsed = raw ? JSON.parse(raw) : {};
       return {
         ownNames: typeof parsed?.ownNames === "object" && parsed.ownNames ? parsed.ownNames : {},
+        visitorDisplayNames: typeof parsed?.visitorDisplayNames === "object" && parsed.visitorDisplayNames ? parsed.visitorDisplayNames : {},
         currentPartners: typeof parsed?.currentPartners === "object" && parsed.currentPartners ? parsed.currentPartners : {},
         deletedPartners: typeof parsed?.deletedPartners === "object" && parsed.deletedPartners ? parsed.deletedPartners : {},
         deviceLocation: typeof parsed?.deviceLocation === "object" && parsed.deviceLocation ? parsed.deviceLocation : null,
@@ -777,6 +861,8 @@ This is an alternate test message to show now.`;
         includeConfidence: typeof parsed?.includeConfidence === "boolean" ? parsed.includeConfidence : defaultConfidenceSettings.include,
         installState: normalizeInstallState(parsed?.installState),
         resolvedMainUserType: String(parsed?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+        entryMode: String(parsed?.entryMode || "").trim().toLowerCase() === "visitor" ? "visitor" : "",
+        visitorAlias: typeof parsed?.visitorAlias === "string" ? parsed.visitorAlias.trim() : "",
         loadedInviteeIdentity: parsed?.loadedInviteeIdentity && typeof parsed.loadedInviteeIdentity === "object"
           ? parsed.loadedInviteeIdentity
           : null,
@@ -804,6 +890,7 @@ This is an alternate test message to show now.`;
     } catch (error) {
       return {
         ownNames: {},
+        visitorDisplayNames: {},
         currentPartners: {},
         deletedPartners: {},
         deviceLocation: null,
@@ -830,6 +917,8 @@ This is an alternate test message to show now.`;
         includeConfidence: defaultConfidenceSettings.include,
         installState: { ...defaultInstallState },
         resolvedMainUserType: "standard",
+        entryMode: "",
+        visitorAlias: "",
         loadedInviteeIdentity: null,
         pendingInviteeOnboarding: null,
         exploreTrial: null,
@@ -870,6 +959,40 @@ This is an alternate test message to show now.`;
 
   function getInstallState(state = readLauncherState()) {
     return normalizeInstallState(state?.installState);
+  }
+
+  function normalizeLauncherEntryMode(value) {
+    return String(value || "").trim().toLowerCase() === "visitor" ? "visitor" : "";
+  }
+
+  function getLauncherEntryMode(state = readLauncherState()) {
+    return normalizeLauncherEntryMode(state?.entryMode);
+  }
+
+  function isVisitorLauncherEntry(state = readLauncherState()) {
+    return getLauncherEntryMode(state) === "visitor";
+  }
+
+  function getOrCreateVisitorSimulationIdentifier(state = readLauncherState()) {
+    const existing = String(state?.visitorAlias || "").trim();
+    if (existing) {
+      return existing;
+    }
+    let suffix = "";
+    try {
+      const bytes = new Uint8Array(2);
+      window.crypto.getRandomValues(bytes);
+      suffix = Array.from(bytes, (value) => value.toString(36).padStart(2, "0")).join("").slice(0, 4);
+    } catch (error) {
+      suffix = Math.random().toString(36).slice(2, 6);
+    }
+    const visitorAlias = `${visitorSimulationIdentifierPrefix} ${suffix || "demo"}`.trim();
+    const nextState = {
+      ...state,
+      visitorAlias
+    };
+    writeLauncherState(nextState);
+    return visitorAlias;
   }
 
   function getTemporaryIdentityState(state = readLauncherState()) {
@@ -956,6 +1079,8 @@ This is an alternate test message to show now.`;
       includeConfidence: typeof baseState?.includeConfidence === "boolean" ? baseState.includeConfidence : defaultConfidenceSettings.include,
       installState: normalizeInstallState(baseState?.installState),
       resolvedMainUserType: normalizedUserType,
+      entryMode: normalizeLauncherEntryMode(options.entryMode),
+      visitorAlias: typeof baseState?.visitorAlias === "string" ? baseState.visitorAlias.trim() : "",
       loadedInviteeIdentity: baseState?.loadedInviteeIdentity && typeof baseState.loadedInviteeIdentity === "object" ? baseState.loadedInviteeIdentity : null,
       pendingInviteeOnboarding: baseState?.pendingInviteeOnboarding && typeof baseState.pendingInviteeOnboarding === "object" ? baseState.pendingInviteeOnboarding : null,
       exploreTrial: options.exploreTrial && cleanIdentifier
@@ -1511,6 +1636,7 @@ This is an alternate test message to show now.`;
       imagePairAdminView?.classList.add("beginner-view-hidden");
       subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
       adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
       contactView?.classList.add("beginner-view-hidden");
       aboutView?.classList.add("beginner-view-hidden");
       reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -1570,6 +1696,7 @@ This is an alternate test message to show now.`;
     imagePairAdminView?.classList.add("beginner-view-hidden");
     subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -1959,6 +2086,7 @@ This is an alternate test message to show now.`;
   function snapshotDeviceIdentityState(state = readLauncherState()) {
     return {
       ownNames: cloneJsonValue(state?.ownNames || {}, {}),
+      visitorDisplayNames: cloneJsonValue(state?.visitorDisplayNames || {}, {}),
       currentPartners: cloneJsonValue(state?.currentPartners || {}, {}),
       partnerHistory: cloneJsonValue(state?.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(state?.deletedPartners || {}, {}),
@@ -1983,6 +2111,7 @@ This is an alternate test message to show now.`;
     return {
       ...baseState,
       ownNames: cloneJsonValue(source.ownNames || {}, {}),
+      visitorDisplayNames: cloneJsonValue(source.visitorDisplayNames || {}, {}),
       currentPartners: cloneJsonValue(source.currentPartners || {}, {}),
       partnerHistory: cloneJsonValue(source.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(source.deletedPartners || {}, {}),
@@ -2170,8 +2299,8 @@ This is an alternate test message to show now.`;
       pairKey: selectedReportPair.key || buildPairMatchKey(selectedReportPair.receiverName, selectedReportPair.senderName),
       receiverId: String(selectedReportPair.receiverName || "").trim(),
       senderId: String(selectedReportPair.senderName || "").trim(),
-      receiverLabel: String(selectedReportPair.receiverName || "").trim(),
-      senderLabel: String(selectedReportPair.senderName || "").trim(),
+      receiverLabel: getPairInfoReceiverLabel(selectedReportPair),
+      senderLabel: getPairInfoSenderLabel(selectedReportPair),
       sessionCode: String(selectedReportPair.sessionCode || "").trim(),
       source: String(selectedReportPair.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real"
     };
@@ -2230,7 +2359,8 @@ This is an alternate test message to show now.`;
   }
 
   function shouldStartInFreshLauncherMode() {
-    return readRequestedLauncherView() === "fresh-launcher";
+    const requestedView = readRequestedLauncherView();
+    return requestedView === "fresh-launcher" || requestedView === "visitor-launcher";
   }
 
   function buildGlobeVisualizationUrl(pairState, options = {}) {
@@ -2575,6 +2705,19 @@ This is an alternate test message to show now.`;
     return parseApiResponse(response, `Temporary identity request failed with status ${response.status}`);
   }
 
+  async function fetchPublicTrialModeState() {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_public_trial_mode"
+      })
+    });
+    return parseApiResponse(response, `Public trial mode request failed with status ${response.status}`);
+  }
+
   async function sendExploreProVerificationCode(email) {
     const cleanEmail = String(email || "").trim();
     if (!isValidEmailAddress(cleanEmail)) {
@@ -2641,6 +2784,23 @@ This is an alternate test message to show now.`;
       identifierStatus: data?.identifier_status || null,
       userType: String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard"
     };
+  }
+
+  function buildVisitorLauncherState(baseState = readLauncherState()) {
+    const nextState = buildLauncherIdentityState(baseState, "", "standard", {
+      entryMode: "visitor"
+    });
+    nextState.currentPartners = {
+      sender: "Robot",
+      receiver: "Robot"
+    };
+    nextState.visitorAlias = "";
+    nextState.visitorDisplayNames = {};
+    nextState.loadedInviteeIdentity = null;
+    nextState.pendingInviteeOnboarding = null;
+    nextState.exploreTrial = null;
+    nextState.temporaryIdentity = null;
+    return nextState;
   }
 
   function isLocalInfrastructureHost() {
@@ -4148,7 +4308,7 @@ This is an alternate test message to show now.`;
   }
 
   function hasLauncherAdminAccess() {
-    return !!launcherAdminSecret || !!launcherAdminState.easy_admin_enabled;
+    return !!launcherAdminSecret || (!!launcherAdminState.easy_admin_enabled && !!launcherAdminDevicePrefs.cached_secret);
   }
 
   async function launcherAdminApi(action, payload = {}) {
@@ -4248,6 +4408,10 @@ This is an alternate test message to show now.`;
     return document.querySelector(`[data-role-handle-wrap="${role}"]`);
   }
 
+  function getRoleVisitorProWrap(role) {
+    return document.querySelector(`[data-role-visitor-pro-wrap="${role}"]`);
+  }
+
   function getRoleHandleButton(role) {
     return document.querySelector(`[data-open-handle-control="${role}"]`);
   }
@@ -4280,6 +4444,9 @@ This is an alternate test message to show now.`;
     const normalizedRole = String(role || "").trim();
     if (!normalizedRole) {
       return false;
+    }
+    if (isVisitorLauncherEntry() && (normalizedRole === "sender" || normalizedRole === "receiver")) {
+      return true;
     }
     let ownValue = "";
     if (normalizedRole === "remote-viewer") {
@@ -4350,6 +4517,7 @@ This is an alternate test message to show now.`;
     const { ownLabel, partnerLabel } = getRoleLabelElements(role);
     const handleWrap = getRoleHandleWrap(role);
     const handleButton = getRoleHandleButton(role);
+    const isVisitorRole = isVisitorLauncherEntry() && (role === "sender" || role === "receiver");
     const temporaryIdentity = getTemporaryIdentityState();
     const formValues = readRoleFormValues(role);
     const ownIdentifier = String(formValues?.ownName || "").trim();
@@ -4364,22 +4532,26 @@ This is an alternate test message to show now.`;
       partnerLabel.textContent = getPartnerIdentifierDisplayLabel(role);
     }
     setRoleMessagePresentation(role, "default");
-    setRoleDefaultNoteText(
-      role,
-      usesTemporaryIdentity
-        ? buildTemporaryIdentityNote(temporaryIdentity.identifier)
-        : ownUsesHandle
-        ? ""
-        : buildDefaultEmailIdentityNote(role)
-    );
+    if (usesTemporaryIdentity) {
+      setRoleDefaultNoteText(role, buildTemporaryIdentityNote(temporaryIdentity.identifier));
+    } else if (isVisitorRole) {
+      setRoleDefaultNoteHtml(role, buildVisitorRoleNoteHtml(role), buildVisitorRoleNote(role));
+    } else if (ownUsesHandle) {
+      setRoleDefaultNoteText(role, "");
+    } else {
+      setRoleDefaultNoteHtml(role, buildDefaultEmailIdentityNoteHtml(role), buildDefaultEmailIdentityNote(role));
+    }
     if (handleWrap) {
-      handleWrap.hidden = usesTemporaryIdentity ? false : ownUsesHandle;
+      handleWrap.hidden = usesTemporaryIdentity ? false : (isVisitorRole ? true : ownUsesHandle);
     }
     if (handleButton) {
-      handleButton.textContent = usesTemporaryIdentity
+      handleButton.textContent = isVisitorRole
+        ? "here"
+        : usesTemporaryIdentity
         ? getTemporaryIdentityLinkText(temporaryIdentity.identifier)
         : "Choose unique name instead of email address";
     }
+    setRoleVisitorProPrompt(role, false);
     setRoleFeatureSetupPrompt(role, !usesTemporaryIdentity && ownUsesHandle && setupPromptVisible);
     if (shouldShowEspLessonForRole(role)) {
       void refreshRoleEspLesson(role);
@@ -4523,6 +4695,26 @@ This is an alternate test message to show now.`;
           await syncRoleIdentifierPresentation(activeHandleRole, form);
         }
         void persistLauncherProfileForForm(activeHandleRole, form);
+      }
+      if (isVisitorLauncherEntry() && acceptedHandle) {
+        const latestState = readLauncherState();
+        latestState.entryMode = "";
+        latestState.temporaryIdentity = null;
+        latestState.exploreTrial = null;
+        latestState.ownNames = {
+          sender: acceptedHandle,
+          receiver: acceptedHandle,
+          "remote-viewer": acceptedHandle
+        };
+        latestState.currentPartners = latestState.currentPartners && typeof latestState.currentPartners === "object"
+          ? latestState.currentPartners
+          : {};
+        latestState.currentPartners.sender = String(document.querySelector('[data-role-form="sender"] input[name="partnerName"]')?.value || "").trim();
+        latestState.currentPartners.receiver = String(document.querySelector('[data-role-form="receiver"] input[name="partnerName"]')?.value || "").trim();
+        latestState.resolvedMainUserType = String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+        writeLauncherState(latestState);
+        setLauncherGuestEntryActive(false);
+        applyIdentityStateToLauncherInputs();
       }
       void refreshMainUserType();
       if (handleStatus) {
@@ -5074,31 +5266,38 @@ This is an alternate test message to show now.`;
         actionLabel: "REVIEW LOCATION"
       };
     }
-    if (savedLocation && (permission === "granted" || permission === "manual")) {
+    if (savedLocation?.source === "manual-map" && (permission === "granted" || permission === "manual")) {
       return {
         ready: true,
-        statusText: "Exact location is set up on this device.",
+        statusText: "A manually adjusted location is set on this device.",
         actionLabel: "REVIEW LOCATION"
       };
     }
-    if (permission === "granted" || permission === "manual" || savedLocation) {
+    if (savedLocation) {
+      return {
+        ready: true,
+        statusText: "A browser-estimated location is available on this device.",
+        actionLabel: "REVIEW LOCATION"
+      };
+    }
+    if (permission === "granted" || permission === "manual") {
       return {
         ready: false,
-        statusText: "Location is partly available, but exact location has not been saved yet.",
-        actionLabel: "SET LOCATION"
+        statusText: "Location permission is available, but no device location has been stored yet.",
+        actionLabel: "REVIEW LOCATION"
       };
     }
     if (permission === "error") {
       return {
         ready: false,
-        statusText: "Browser location was not available yet. You can still set the exact location manually.",
-        actionLabel: "SET LOCATION"
+        statusText: "Browser location was not available yet. You can still review location options manually.",
+        actionLabel: "REVIEW LOCATION"
       };
     }
     return {
       ready: false,
       statusText: "Location is not set up yet.",
-      actionLabel: "SET LOCATION"
+      actionLabel: "REVIEW LOCATION"
     };
   }
 
@@ -5831,6 +6030,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
   }
@@ -6521,6 +6721,7 @@ This is an alternate test message to show now.`;
   function setRoleMessagePresentation(role, mode = "default") {
     const note = getRoleNoteElement(role);
     const handleWrap = getRoleHandleWrap(role);
+    const visitorProWrap = getRoleVisitorProWrap(role);
     const setupWrap = getRoleSetupWrap(role);
     const contactWrap = getRoleNoteContactWrap(role);
     const messageArea = getRoleMessageArea(role);
@@ -6537,6 +6738,9 @@ This is an alternate test message to show now.`;
     }
     if (handleWrap) {
       handleWrap.hidden = mode !== "default" || shouldHideHandleLink(role);
+    }
+    if (visitorProWrap) {
+      visitorProWrap.hidden = mode !== "default" || visitorProWrap.dataset.available !== "true";
     }
     if (setupWrap) {
       setupWrap.hidden = mode !== "default" || setupWrap.dataset.available !== "true";
@@ -6563,7 +6767,31 @@ This is an alternate test message to show now.`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return "These email addresses are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use the same spellings for each other. Please verify the spellings carefully.\n\nYou don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.";
+    return "The email addresses below are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use identical identification spellings for each other. Please verify the spellings carefully. You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.";
+  }
+
+  function buildDefaultEmailIdentityNoteHtml(role) {
+    const text = buildDefaultEmailIdentityNote(role);
+    if (!text) {
+      return "";
+    }
+    return escapeHtml(text).replace("Recommended:", '<span class="role-note-recommended">Recommended:</span>');
+  }
+
+  function buildVisitorRoleNote(role) {
+    const normalizedRole = String(role || "").trim();
+    if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
+      return "";
+    }
+    return 'As a visitor, you can experience what it is like to use this tool as a telepathic receiver or a sender, but your partner will not be an actual human being, but will be a simulation. To unlock these unique tools and practice telepathy with actual human partners that you choose, click "here" below to propose a unique identification name for yourself and use the free Telepathy Beginner app. You should then give this name to others to identify you when practicing telepathy with them. "PRO features" are unlocked by subscribing for $2.99 / month.';
+  }
+
+  function buildVisitorRoleNoteHtml(role) {
+    const normalizedRole = String(role || "").trim();
+    if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
+      return "";
+    }
+    return 'As a visitor, you can experience what it is like to use this tool as a telepathic receiver or a sender, but your partner will not be an actual human being, but will be a simulation. To unlock these unique tools and practice telepathy with actual human partners that you choose, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to propose a unique identification name for yourself and use the free Telepathy Beginner app. You should then give this name to others to identify you when practicing telepathy with them. <button class="role-note-link role-note-inline-link" type="button" data-inline-open-visitor-pro="' + normalizedRole + '">PRO features</button> are unlocked by subscribing for $2.99 / month.';
   }
 
   function getHandleExplanation(role) {
@@ -6584,6 +6812,7 @@ This is an alternate test message to show now.`;
       return;
     }
     const normalizedText = String(text || "").trim();
+    delete note.dataset.defaultHtml;
     note.dataset.defaultText = normalizedText;
     if (note.dataset.previewActive !== "true") {
       note.textContent = normalizedText;
@@ -6592,6 +6821,32 @@ This is an alternate test message to show now.`;
     if (contactWrap && !contactWrap.dataset.previewActive) {
       contactWrap.hidden = true;
     }
+  }
+
+  function setRoleDefaultNoteHtml(role, html, fallbackText = "") {
+    const note = getRoleNoteElement(role);
+    if (!note) {
+      return;
+    }
+    const normalizedHtml = String(html || "").trim();
+    note.dataset.defaultHtml = normalizedHtml;
+    note.dataset.defaultText = String(fallbackText || note.textContent || "").trim();
+    if (note.dataset.previewActive !== "true") {
+      note.innerHTML = normalizedHtml || escapeHtml(note.dataset.defaultText);
+    }
+    const contactWrap = getRoleNoteContactWrap(role);
+    if (contactWrap && !contactWrap.dataset.previewActive) {
+      contactWrap.hidden = true;
+    }
+  }
+
+  function setRoleVisitorProPrompt(role, visible) {
+    const visitorProWrap = getRoleVisitorProWrap(role);
+    if (!visitorProWrap) {
+      return;
+    }
+    visitorProWrap.dataset.available = visible ? "true" : "false";
+    visitorProWrap.hidden = !visible;
   }
 
   function ensureRoleDefaultNoteInitialized(role) {
@@ -6616,6 +6871,22 @@ This is an alternate test message to show now.`;
       note.dataset.previewActive = "false";
     }
     return fallback;
+  }
+
+  function restoreRoleDefaultNote(role) {
+    const note = getRoleNoteElement(role);
+    if (!note) {
+      return "";
+    }
+    const defaultText = ensureRoleDefaultNoteInitialized(role);
+    const defaultHtml = String(note.dataset.defaultHtml || "").trim();
+    note.dataset.previewActive = "false";
+    if (defaultHtml) {
+      note.innerHTML = defaultHtml;
+    } else {
+      note.textContent = defaultText;
+    }
+    return defaultText;
   }
 
   function showRoleLevelExplanation(role, level) {
@@ -6647,9 +6918,7 @@ This is an alternate test message to show now.`;
     if (isDifficultyExplanationLocked(role)) {
       return;
     }
-    const defaultText = ensureRoleDefaultNoteInitialized(role);
-    note.dataset.previewActive = "false";
-    note.textContent = defaultText;
+    const defaultText = restoreRoleDefaultNote(role);
     panel.classList.remove("is-level-preview");
     if (contactWrap) {
       contactWrap.hidden = true;
@@ -7645,6 +7914,7 @@ This is an alternate test message to show now.`;
         ? getTemporaryIdentityLinkText(temporaryIdentity.identifier)
         : "Choose unique name instead of email address";
     }
+    setRoleVisitorProPrompt("remote-viewer", false);
     setRoleDefaultNoteText(
       "remote-viewer",
       usesTemporaryIdentity
@@ -7845,11 +8115,19 @@ This is an alternate test message to show now.`;
         return;
       }
       seen.add(sourceKey);
+      const displayReceiverName = source === "simulation"
+        ? getSimulationReportDisplayName(receiver, "receiver")
+        : receiver;
+      const displaySenderName = source === "simulation"
+        ? getSimulationReportDisplayName(sender, "sender")
+        : sender;
       candidates.push({
         key: sourceKey,
         baseKey: key,
         receiverName: receiver,
         senderName: sender,
+        displayReceiverName,
+        displaySenderName,
         sessionCode: getRecordSessionCode({
           "rx name": receiver,
           "tx name": sender
@@ -7901,6 +8179,55 @@ This is an alternate test message to show now.`;
     return available[0] || null;
   }
 
+  function isInternalVisitorSimulationName(value) {
+    const normalized = String(value || "").trim();
+    if (!normalized) {
+      return false;
+    }
+    const state = readLauncherState();
+    const currentAlias = String(state?.visitorAlias || "").trim();
+    if (currentAlias && normalized.toLowerCase() === currentAlias.toLowerCase()) {
+      return true;
+    }
+    return /^visitor (?:[a-z0-9]{4}|demo)$/i.test(normalized);
+  }
+
+  function getSimulationReportDisplayName(name, role) {
+    const rawName = String(name || "").trim();
+    if (!isInternalVisitorSimulationName(rawName)) {
+      return rawName;
+    }
+    const state = readLauncherState();
+    const mapped = role === "receiver"
+      ? String(state.visitorDisplayNames?.receiver || "").trim()
+      : String(state.visitorDisplayNames?.sender || "").trim();
+    if (mapped && !isInternalVisitorSimulationName(mapped)) {
+      return mapped;
+    }
+    const fallbackCandidates = [
+      String(state.visitorDisplayNames?.sender || "").trim(),
+      String(state.visitorDisplayNames?.receiver || "").trim(),
+      readRoleFormValues("sender").ownName,
+      readRoleFormValues("receiver").ownName,
+      readRoleSettings("sender").ownName,
+      readRoleSettings("receiver").ownName,
+      String(state.ownNames?.sender || "").trim(),
+      String(state.ownNames?.receiver || "").trim()
+    ];
+    const fallback = fallbackCandidates.find((candidate) =>
+      candidate && !isInternalVisitorSimulationName(candidate)
+    );
+    return fallback || rawName;
+  }
+
+  function getPairInfoReceiverLabel(pairInfo) {
+    return String(pairInfo?.displayReceiverName || pairInfo?.receiverName || "").trim();
+  }
+
+  function getPairInfoSenderLabel(pairInfo) {
+    return String(pairInfo?.displaySenderName || pairInfo?.senderName || "").trim();
+  }
+
   function syncCurrentLauncherNamesToState() {
     const latest = readLauncherState();
     latest.ownNames = latest.ownNames || {};
@@ -7932,6 +8259,8 @@ This is an alternate test message to show now.`;
           baseKey: pairInfo.baseKey || buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName),
           receiverName: pairInfo.receiverName,
           senderName: pairInfo.senderName,
+          displayReceiverName: String(pairInfo.displayReceiverName || pairInfo.receiverName || "").trim(),
+          displaySenderName: String(pairInfo.displaySenderName || pairInfo.senderName || "").trim(),
           sessionCode: pairInfo.sessionCode,
           source: String(pairInfo.source || "real"),
           latestUtcMillis: Number.NEGATIVE_INFINITY,
@@ -7946,12 +8275,24 @@ This is an alternate test message to show now.`;
       if (!receiverName || !senderName) {
         return;
       }
+      if (
+        isInternalVisitorSimulationName(receiverName) ||
+        isInternalVisitorSimulationName(senderName)
+      ) {
+        return;
+      }
 
       const pairKey = buildPairMatchKey(receiverName, senderName);
       const source = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
         ? "simulation"
         : "real";
       const sourceKey = `${pairKey}|||${source}`;
+      const displayReceiverName = source === "simulation"
+        ? getSimulationReportDisplayName(receiverName, "receiver")
+        : receiverName;
+      const displaySenderName = source === "simulation"
+        ? getSimulationReportDisplayName(senderName, "sender")
+        : senderName;
 
       if (!includeAllPairs) {
         if (source === "simulation") {
@@ -7981,6 +8322,8 @@ This is an alternate test message to show now.`;
           baseKey: pairKey,
           receiverName,
           senderName,
+          displayReceiverName,
+          displaySenderName,
           sessionCode: getRecordSessionCode(record),
           source,
           latestUtcMillis: currentMillis,
@@ -8024,7 +8367,7 @@ This is an alternate test message to show now.`;
     selectedReportPair = pairInfo || null;
     if (reportPairTriggerText) {
       reportPairTriggerText.innerHTML = selectedReportPair
-        ? `${escapeHtml(selectedReportPair.receiverName)}&nbsp;&nbsp;${escapeHtml(selectedReportPair.senderName)}${selectedReportPair.source === "simulation" ? "&nbsp;&nbsp;(Simulation)" : ""}`
+        ? `${escapeHtml(getPairInfoReceiverLabel(selectedReportPair))}&nbsp;&nbsp;${escapeHtml(getPairInfoSenderLabel(selectedReportPair))}${selectedReportPair.source === "simulation" ? "&nbsp;&nbsp;(Simulation)" : ""}`
         : "Select receiver and sender";
     }
     if (reportGoButton) {
@@ -8054,8 +8397,8 @@ This is an alternate test message to show now.`;
         optionButton.classList.add("is-selected");
       }
       optionButton.innerHTML = `
-        <span class="report-pair-option-value">${escapeHtml(pairInfo.receiverName)}</span>
-        <span class="report-pair-option-value">${escapeHtml(pairInfo.senderName)}</span>
+        <span class="report-pair-option-value">${escapeHtml(getPairInfoReceiverLabel(pairInfo))}</span>
+        <span class="report-pair-option-value">${escapeHtml(getPairInfoSenderLabel(pairInfo))}</span>
         <span class="report-pair-option-value">${pairInfo.source === "simulation" ? "Sim" : "Human"} ${escapeHtml(String(pairInfo.recordCount || 0))}</span>
       `;
       optionButton.addEventListener("click", () => {
@@ -9944,7 +10287,7 @@ This is an alternate test message to show now.`;
 
     const firstLine = document.createElement("p");
     firstLine.className = "report-summary-line";
-    firstLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
+    firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
     visualizationSummary.append(firstLine);
 
     if (!series.length) {
@@ -10217,6 +10560,26 @@ This is an alternate test message to show now.`;
     beginnerPanel.style.transform = "";
   }
 
+  function syncReportTopRowPosition() {
+    if (!reportView) {
+      return;
+    }
+    const reportTopRow = reportView.querySelector(".beginner-top-row");
+    if (!(reportTopRow instanceof HTMLElement)) {
+      return;
+    }
+    if (reportView.classList.contains("beginner-view-hidden")) {
+      reportTopRow.style.transform = "";
+      return;
+    }
+
+    const viewRect = reportView.getBoundingClientRect();
+    const rowHeight = reportTopRow.offsetHeight || 0;
+    const maxOffset = Math.max((reportView.offsetHeight || 0) - rowHeight, 0);
+    const appliedOffset = Math.min(Math.max(-viewRect.top, 0), maxOffset);
+    reportTopRow.style.transform = appliedOffset ? `translateY(${appliedOffset}px)` : "";
+  }
+
   function beginReportViewPan(event) {
     if (!beginnerPanel || !reportPanel || activeReportResize) {
       return;
@@ -10306,7 +10669,7 @@ This is an alternate test message to show now.`;
       reportSummary.replaceChildren();
       const line = document.createElement("p");
       line.className = "report-summary-line";
-      line.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"} First trial: Local unknown`;
+      line.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"} First trial: Local unknown`;
       reportSummary.append(line);
       reportStatus.textContent = csvResult.available
         ? "No trial records found for the current receiver-sender selection."
@@ -10418,7 +10781,7 @@ This is an alternate test message to show now.`;
 
     const titleLine = document.createElement("p");
     titleLine.className = "report-summary-line";
-    titleLine.textContent = `Receiver-sender pair: ${pairInfo.receiverName || "unknown"} - ${pairInfo.senderName || "unknown"}.`;
+    titleLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
     analyzerSummary.append(titleLine);
 
     const headlineLine = document.createElement("p");
@@ -10643,6 +11006,9 @@ This is an alternate test message to show now.`;
     const confidenceSettings = getConfidenceBehaviorSettings(state);
     params.set("include_confidence", confidenceSettings.include ? "1" : "0");
     params.set("difficulty_level", normalizeDifficultyLevel(getDifficultyLocalLevel(role)));
+    if (typeof options.visitorDisplayName === "string" && options.visitorDisplayName.trim()) {
+      params.set("visitor_display_name", options.visitorDisplayName.trim());
+    }
     if (typeof options.runtimeMode === "string" && options.runtimeMode.trim()) {
       params.set("runtime_mode", options.runtimeMode.trim());
     }
@@ -10703,6 +11069,10 @@ This is an alternate test message to show now.`;
   function getLocationAccuracy(location) {
     const accuracy = Number(location?.accuracy);
     return Number.isFinite(accuracy) && accuracy > 0 ? accuracy : null;
+  }
+
+  function getLocationSourceLabel(location) {
+    return String(location?.source || "").trim() === "manual-map" ? "manually adjusted" : "browser-estimated";
   }
 
   function locationNeedsFineTune(location) {
@@ -10861,16 +11231,14 @@ This is an alternate test message to show now.`;
     if (locationRequestInFlight) {
       return {
         text: "Device location: checking...",
-        showRetry: false,
-        showExactButton: true
+        showLocationButton: true
       };
     }
 
     if (state.locationPermission === "denied") {
       return {
         text: "Device location: disabled in the browser. Location will not be used by this app on this device.",
-        showRetry: false,
-        showExactButton: true
+        showLocationButton: true
       };
     }
 
@@ -10878,38 +11246,27 @@ This is an alternate test message to show now.`;
     if (savedLocation) {
       if (savedLocation.source === "manual-map") {
         return {
-          text: "Device location: exact location chosen on map.",
-          showRetry: false,
-          showExactButton: false
+          text: "Device location: manually adjusted",
+          showLocationButton: true
         };
       }
       const accuracy = Math.round(Number(savedLocation.accuracy || 0));
-      if (locationNeedsFineTune(savedLocation)) {
-        return {
-          text: `Device location: approximate | Accuracy: about ${accuracy || "?"} meters. The app can open a map so you can fine-tune this location.`,
-          showRetry: false,
-          showExactButton: true
-        };
-      }
       return {
-        text: `Device location: confirmed | Accuracy: about ${accuracy || "?"} meters`,
-        showRetry: false,
-        showExactButton: false
+        text: `Device location: browser-estimated | Accuracy: about ${accuracy || "?"} meters`,
+        showLocationButton: true
       };
     }
 
     if (state.locationPermission === "error" && lastLocationAttemptAt) {
       return {
         text: "Device location: unavailable right now. Please try again.",
-        showRetry: true,
-        showExactButton: true
+        showLocationButton: true
       };
     }
 
     return {
-      text: "Device location: unknown",
-      showRetry: true,
-      showExactButton: true
+      text: "Device location: not set",
+      showLocationButton: true
     };
   }
 
@@ -10920,17 +11277,12 @@ This is an alternate test message to show now.`;
     locationStatusBlocks.forEach((block) => {
       const textNode = block.querySelector(".role-location-text");
       const exactButton = block.querySelector(".role-location-exact");
-      const retryButton = block.querySelector(".role-location-retry");
       if (textNode) {
         textNode.textContent = presentation.text;
       }
       if (exactButton) {
-        exactButton.hidden = !presentation.showExactButton;
+        exactButton.hidden = !presentation.showLocationButton;
         exactButton.disabled = locationRequestInFlight;
-      }
-      if (retryButton) {
-        retryButton.hidden = !presentation.showRetry;
-        retryButton.disabled = locationRequestInFlight;
       }
     });
   }
@@ -11041,7 +11393,16 @@ This is an alternate test message to show now.`;
 
   function setLocationPickerButtonsDisabled(disabled) {
     if (locationPickerSaveButton) {
-      locationPickerSaveButton.disabled = disabled || !locationPickerSelection;
+      locationPickerSaveButton.disabled =
+        disabled ||
+        !locationPickerSelection ||
+        String(locationPickerSelection.source || "").trim() !== "manual-map";
+    }
+    if (locationPickerUseBrowserButton) {
+      locationPickerUseBrowserButton.disabled = !!disabled || !locationPickerBrowserEstimate;
+    }
+    if (locationPickerRefreshBrowserButton) {
+      locationPickerRefreshBrowserButton.disabled = !!disabled;
     }
     if (locationPickerCancelButton) {
       locationPickerCancelButton.disabled = !!disabled;
@@ -11056,10 +11417,24 @@ This is an alternate test message to show now.`;
 
   function setLocationPickerStatus(text) {
     if (locationPickerStatus) {
-      const baseText = "If this device does not appear to have a precise GPS fix, you can drag the dot to your true location on this map and save it.";
-      const detailText = String(text || "").trim();
-      locationPickerStatus.textContent = detailText ? `${baseText} ${detailText}` : baseText;
+      locationPickerStatus.textContent = String(text || "").trim();
     }
+  }
+
+  function describeLocationPickerState() {
+    if (locationPickerSelection?.source === "manual-map") {
+      return "Current manually adjusted location.";
+    }
+    if (locationPickerBrowserEstimate) {
+      const accuracy = getLocationAccuracy(locationPickerBrowserEstimate);
+      return `Current browser-estimated location. Accuracy about ${accuracy ? Math.round(accuracy) : "?"} meters.`;
+    }
+    return "Current location is not set. Refresh browser location or drag the marker, then save.";
+  }
+
+  function refreshLocationPickerStatus() {
+    setLocationPickerStatus(describeLocationPickerState());
+    setLocationPickerButtonsDisabled(false);
   }
 
   function closeLocationPickerWithMessage(message, callback = null, delayMs = 5000) {
@@ -11104,7 +11479,7 @@ This is an alternate test message to show now.`;
           timestamp: Date.now(),
           source: "manual-map"
         };
-        setLocationPickerButtonsDisabled(false);
+        refreshLocationPickerStatus();
       });
     } else {
       locationPickerMarker.setLatLng(latlng);
@@ -11138,6 +11513,7 @@ This is an alternate test message to show now.`;
           source: "manual-map"
         };
         updateLocationPickerMarker(locationPickerSelection, { center: false });
+        refreshLocationPickerStatus();
       });
     }
     setTimeout(() => {
@@ -11177,6 +11553,7 @@ This is an alternate test message to show now.`;
       return;
     }
     locationPickerOverlay.classList.add("beginner-view-hidden");
+    locationPickerBrowserEstimate = null;
     locationPickerReturnRole = "";
     locationPickerPromptSourceTimestamp = 0;
     locationPickerOpening = false;
@@ -11291,6 +11668,7 @@ This is an alternate test message to show now.`;
     locationPickerReturnRole = role;
     locationPickerPromptSourceTimestamp = Number(options.sourceTimestamp || 0);
     locationPickerSelection = null;
+    locationPickerBrowserEstimate = null;
     locationPickerClosing = false;
     setLocationPickerButtonsDisabled(true);
     setLocationPickerStatus("Loading map...");
@@ -11305,25 +11683,29 @@ This is an alternate test message to show now.`;
 
       const savedLocation = getSavedDeviceLocation();
       if (savedLocation) {
+        if (savedLocation.source !== "manual-map") {
+          locationPickerBrowserEstimate = {
+            latitude: savedLocation.latitude,
+            longitude: savedLocation.longitude,
+            accuracy: savedLocation.accuracy,
+            timestamp: savedLocation.timestamp,
+            source: "device-geolocation"
+          };
+        }
         locationPickerSelection = {
           latitude: savedLocation.latitude,
           longitude: savedLocation.longitude,
-          accuracy: null,
-          timestamp: Date.now(),
-          source: "manual-map"
+          accuracy: savedLocation.accuracy,
+          timestamp: Number(savedLocation.timestamp || Date.now()),
+          source: String(savedLocation.source || "").trim() || "device-geolocation"
         };
         updateLocationPickerMarker(locationPickerSelection, {
           zoom: savedLocation.source === "manual-map" ? 16 : 14
         });
-        if (locationNeedsFineTune(savedLocation)) {
-          setLocationPickerStatus("Since this device does not appear to have a precise GPS fix, drag the dot to your true location on this map, then save.");
-        } else {
-          setLocationPickerStatus("Your saved device location is shown. Drag the dot if you want to fine-tune it, then save.");
-        }
       } else {
         locationPickerMap?.setView([20, 0], 2);
-        setLocationPickerStatus("Click the map or drag the dot to the exact device location, then save.");
       }
+      refreshLocationPickerStatus();
 
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
@@ -11339,27 +11721,23 @@ This is an alternate test message to show now.`;
               longitude: Number(position.coords.longitude),
               accuracy: Number.isFinite(Number(position.coords.accuracy)) ? Number(position.coords.accuracy) : null,
               timestamp: Date.now(),
-              source: "manual-map"
+              source: "device-geolocation"
             };
+            locationPickerBrowserEstimate = estimate;
             if (!locationPickerSelection) {
               locationPickerSelection = estimate;
               updateLocationPickerMarker(locationPickerSelection, { zoom: 15 });
             } else if (!savedLocation) {
               locationPickerMap?.setView([estimate.latitude, estimate.longitude], 15);
             }
-            const accuracyText = Number.isFinite(estimate.accuracy) ? `about ${Math.round(estimate.accuracy)} meters` : "an approximate area";
-            if (locationNeedsFineTune(estimate)) {
-              setLocationPickerStatus(`The browser found only ${accuracyText}. Since this device does not appear to have a precise GPS fix, drag the dot to your true location, then save.`);
-            } else {
-              setLocationPickerStatus(`The map opened near your current location with accuracy ${accuracyText}. Drag the dot if needed, then save.`);
-            }
+            refreshLocationPickerStatus();
             },
             () => {
               if (hiddenWarmup) {
                 return;
               }
               if (!savedLocation) {
-                setLocationPickerStatus("Browser location was unavailable. Click the map to set the exact device location, then save.");
+                setLocationPickerStatus("Browser location was unavailable. Drag the marker or click the map to set a location, then save.");
               }
           },
           {
@@ -11369,7 +11747,7 @@ This is an alternate test message to show now.`;
           }
         );
       } else if (!savedLocation) {
-        setLocationPickerStatus("Browser location is unavailable on this device. Click the map to set the exact device location, then save.");
+        setLocationPickerStatus("Browser location is unavailable on this device. Drag the marker or click the map to set a location, then save.");
       }
     } catch (error) {
       setLocationPickerStatus("Unable to load the map right now. Please check your connection and try again.");
@@ -11379,7 +11757,7 @@ This is an alternate test message to show now.`;
   }
 
   function saveExactLocationSelection() {
-    if (!locationPickerSelection) {
+    if (!locationPickerSelection || String(locationPickerSelection.source || "").trim() !== "manual-map") {
       return;
     }
     const latest = readLauncherState();
@@ -11397,6 +11775,67 @@ This is an alternate test message to show now.`;
     setLocationPickerStatus("Current location saved.");
     window.confirm("CURRENT LOCATION SAVED");
     setLocationPickerButtonsDisabled(false);
+  }
+
+  function useBrowserEstimatedLocation() {
+    if (!locationPickerBrowserEstimate) {
+      return;
+    }
+    const latest = readLauncherState();
+    latest.deviceLocation = {
+      latitude: Number(locationPickerBrowserEstimate.latitude),
+      longitude: Number(locationPickerBrowserEstimate.longitude),
+      accuracy: Number.isFinite(Number(locationPickerBrowserEstimate.accuracy)) ? Number(locationPickerBrowserEstimate.accuracy) : null,
+      timestamp: Date.now(),
+      source: "device-geolocation"
+    };
+    latest.locationPermission = "granted";
+    writeLauncherState(latest);
+    locationPickerSelection = {
+      latitude: Number(locationPickerBrowserEstimate.latitude),
+      longitude: Number(locationPickerBrowserEstimate.longitude),
+      accuracy: Number.isFinite(Number(locationPickerBrowserEstimate.accuracy)) ? Number(locationPickerBrowserEstimate.accuracy) : null,
+      timestamp: Date.now(),
+      source: "device-geolocation"
+    };
+    updateLocationPickerMarker(locationPickerSelection, { zoom: 15 });
+    renderLocationStatus();
+    refreshLocationPickerStatus();
+    window.alert("BROWSER LOCATION SELECTED");
+  }
+
+  function refreshBrowserEstimatedLocation() {
+    if (!navigator.geolocation) {
+      setLocationPickerStatus("Browser location is unavailable on this device. Drag the marker or click the map to set a location, then save.");
+      return;
+    }
+    setLocationPickerButtonsDisabled(true);
+    setLocationPickerStatus("Refreshing browser-estimated location...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        locationPickerBrowserEstimate = {
+          latitude: Number(position.coords.latitude),
+          longitude: Number(position.coords.longitude),
+          accuracy: Number.isFinite(Number(position.coords.accuracy)) ? Number(position.coords.accuracy) : null,
+          timestamp: Date.now(),
+          source: "device-geolocation"
+        };
+        if (!locationPickerSelection || String(locationPickerSelection.source || "").trim() !== "manual-map") {
+          locationPickerSelection = { ...locationPickerBrowserEstimate };
+          updateLocationPickerMarker(locationPickerSelection, { zoom: 15 });
+        }
+        refreshLocationPickerStatus();
+      },
+      () => {
+        setLocationPickerStatus("Browser location was unavailable. Drag the marker or click the map to set a location, then save.");
+        setLocationPickerButtonsDisabled(false);
+      },
+      {
+        enableHighAccuracy: false,
+        maximumAge: 0,
+        timeout: 8000
+      }
+    );
   }
 
   function getPartnerHistory(role, state = readLauncherState(), ownIdentifier = "") {
@@ -11420,6 +11859,7 @@ This is an alternate test message to show now.`;
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const emptyOptionLabel = role === "sender" ? "Select receiver" : "Select sender";
+    const visitorMode = isVisitorLauncherEntry(state) && (role === "sender" || role === "receiver");
     const history = getPartnerHistory(role, state, ownIdentifier);
 
     if (!select || !partnerInput) {
@@ -11434,9 +11874,9 @@ This is an alternate test message to show now.`;
       select.appendChild(option);
     });
 
-    select.hidden = history.length === 0;
+    select.hidden = visitorMode || history.length === 0;
     if (manageButton) {
-      manageButton.hidden = history.length === 0;
+      manageButton.hidden = visitorMode || history.length === 0;
     }
     select.value = "";
 
@@ -11859,16 +12299,19 @@ This is an alternate test message to show now.`;
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const roleSettings = readRoleSettings(role);
     const guestEntryActive = launcherGuestEntryActive;
+    const visitorMode = guestEntryActive && isVisitorLauncherEntry();
     const savedOwn = guestEntryActive
-      ? ""
+      ? String(state.visitorDisplayNames?.[role] || "").trim()
       : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
     const profileState = guestEntryActive ? null : readLauncherProfileState(role, savedOwn, state);
     const savedPartner = guestEntryActive
-      ? ""
+      ? (visitorMode ? "Robot" : "")
       : profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
 
     ownInput.value = savedOwn;
+    ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
     partnerInput.value = savedPartner;
+    partnerInput.placeholder = "name@example.com or unique handle";
     const robotSimulationDifficulty = isRobotSimulationIdentifier(savedPartner)
       ? getRobotSimulationDifficulty(role, savedOwn, state)
       : "";
@@ -11913,6 +12356,12 @@ This is an alternate test message to show now.`;
     });
 
     ownInput.addEventListener("input", () => {
+      if (guestEntryActive && visitorMode) {
+        const latestState = readLauncherState();
+        latestState.visitorDisplayNames = latestState.visitorDisplayNames || {};
+        latestState.visitorDisplayNames[role] = String(ownInput.value || "").trim();
+        writeLauncherState(latestState);
+      }
       setRoleDifficultyLabel(role, "1");
       applyPartnerHistory(role, form, readLauncherState(), ownInput.value.trim());
       applyRoleIdentifierPresentation(role, {
@@ -11961,10 +12410,12 @@ This is an alternate test message to show now.`;
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       let ownName = ownInput.value.trim();
+      const submittedOwnDisplayName = ownName;
       let exactPartnerName = partnerInput.value.trim();
       const robotSimulationPartner = isRobotSimulationIdentifier(exactPartnerName);
+      const visitorRobotSession = isVisitorLauncherEntry() && robotSimulationPartner;
 
-      if (!ownName || !exactPartnerName) {
+      if ((!ownName && !visitorRobotSession) || !exactPartnerName) {
         if (!ownName) {
           ownInput.focus();
         } else {
@@ -11974,7 +12425,9 @@ This is an alternate test message to show now.`;
       }
 
       try {
-        ownName = assertValidParticipantIdentifier(ownName, "Your identifier");
+        ownName = visitorRobotSession
+          ? getOrCreateVisitorSimulationIdentifier()
+          : assertValidParticipantIdentifier(ownName, "Your identifier");
         exactPartnerName = robotSimulationPartner
           ? "Robot"
           : assertValidParticipantIdentifier(exactPartnerName, role === "sender" ? "Receiver identifier" : "Sender identifier");
@@ -12005,7 +12458,9 @@ This is an alternate test message to show now.`;
       }
 
       try {
-        ownName = assertAcceptedLauncherIdentifier(ownName, ownStatus, "Your identifier");
+        ownName = visitorRobotSession
+          ? ownName
+          : assertAcceptedLauncherIdentifier(ownName, ownStatus, "Your identifier");
         if (!robotSimulationPartner) {
           exactPartnerName = assertAcceptedLauncherIdentifier(
             exactPartnerName,
@@ -12051,7 +12506,13 @@ This is an alternate test message to show now.`;
       }
 
       latest.ownNames = latest.ownNames || {};
-      latest.ownNames[role] = ownName;
+      latest.visitorDisplayNames = latest.visitorDisplayNames || {};
+      if (visitorRobotSession) {
+        latest.ownNames[role] = "";
+        latest.visitorDisplayNames[role] = submittedOwnDisplayName;
+      } else {
+        latest.ownNames[role] = ownName;
+      }
       writeLauncherState(latest);
       const existingProfile = readLauncherProfileState(role, canonicalOwnName, latest);
       const nextState = writeLauncherProfileState(role, ownName, {
@@ -12072,6 +12533,7 @@ This is an alternate test message to show now.`;
       });
 
       const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName, {
+        visitorDisplayName: visitorRobotSession ? submittedOwnDisplayName : "",
         runtimeMode: robotSimulationPartner
           ? (role === "sender" ? "robot-receiver" : "robot-sender")
           : ""
@@ -12277,6 +12739,7 @@ This is an alternate test message to show now.`;
   }
 
   function resetLauncherWorkingHomeForFreshEntry() {
+    const visitorMode = isVisitorLauncherEntry();
     setLauncherGuestEntryActive(true);
     activeLauncherRole = "";
     roleCards.forEach((card) => {
@@ -12298,9 +12761,10 @@ This is an alternate test message to show now.`;
       const partnerInput = form.querySelector('input[name="partnerName"]');
       if (ownInput) {
         ownInput.value = "";
+        ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
       }
       if (partnerInput) {
-        partnerInput.value = "";
+        partnerInput.value = visitorMode ? "Robot" : "";
       }
       hidePartnerHistoryControls(role, form);
       applyRoleIdentifierPresentation(role, {
@@ -12313,9 +12777,11 @@ This is an alternate test message to show now.`;
     });
     if (remoteViewerOwnInput) {
       remoteViewerOwnInput.value = "";
+      remoteViewerOwnInput.placeholder = "your unique handle";
     }
     if (remoteViewerPartnerInput) {
       remoteViewerPartnerInput.value = "";
+      remoteViewerPartnerInput.placeholder = "remote device handle";
     }
     if (remoteViewerDisplayDeviceCheckbox) {
       remoteViewerDisplayDeviceCheckbox.checked = false;
@@ -12328,35 +12794,38 @@ This is an alternate test message to show now.`;
   function applyFreshEntryRoleNotes(targetRole = "") {
     const roles = targetRole ? [String(targetRole).trim()] : ["sender", "receiver"];
     roles.forEach((role) => {
+      const visitorEntry = isVisitorLauncherEntry();
       if (role !== "sender" && role !== "receiver") {
         return;
       }
-      setRoleDefaultNoteText(
-        role,
-        buildDefaultEmailIdentityNote(role)
-      );
+      if (visitorEntry) {
+        setRoleDefaultNoteHtml(role, buildVisitorRoleNoteHtml(role), buildVisitorRoleNote(role));
+      } else {
+        setRoleDefaultNoteHtml(role, buildDefaultEmailIdentityNoteHtml(role), buildDefaultEmailIdentityNote(role));
+      }
       const note = getRoleNoteElement(role);
       if (note) {
         note.dataset.previewActive = "false";
       }
       const handleWrap = getRoleHandleWrap(role);
       if (handleWrap) {
-        handleWrap.hidden = false;
+        handleWrap.hidden = visitorEntry;
       }
+      setRoleVisitorProPrompt(role, false);
       setRoleFeatureSetupPrompt(role, false);
     });
   }
 
   function enterWorkingHomeFromLanding(mode = "resume") {
-    const normalizedMode = mode === "fresh" ? "fresh" : "resume";
-    setLauncherGuestEntryActive(normalizedMode === "fresh");
-    if (normalizedMode === "fresh") {
+    const normalizedMode = mode === "fresh" || mode === "visitor" ? mode : "resume";
+    setLauncherGuestEntryActive(normalizedMode !== "resume");
+    if (normalizedMode !== "resume") {
       resetLauncherWorkingHomeForFreshEntry();
     } else {
       renderMainTitle(readLauncherState().resolvedMainUserType || "standard", { persist: false });
     }
     showLauncherView();
-    if (normalizedMode === "fresh") {
+    if (normalizedMode !== "resume") {
       applyFreshEntryRoleNotes();
     }
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -12399,6 +12868,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
   }
 
@@ -12438,6 +12908,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     const remoteViewerCard = findRoleCard("remote-viewer");
     if (remoteViewerCard) {
       remoteViewerCard.hidden = false;
@@ -12489,6 +12960,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -12528,6 +13000,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     resetTemporaryHomeExploreButton();
     const loadedInvitee = getLoadedInviteeIdentity();
@@ -12573,6 +13046,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -12609,6 +13083,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     void renderReportDefinition();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -12642,6 +13117,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    syncReportTopRowPosition();
     void renderPerformanceReport(pairInfo);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -12778,6 +13254,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -12816,6 +13293,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -12852,6 +13330,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -13917,6 +14396,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: targetScrollY, behavior: "auto" });
   }
@@ -14038,6 +14518,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -14084,6 +14565,7 @@ This is an alternate test message to show now.`;
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
@@ -14166,6 +14648,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -14238,6 +14721,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14284,6 +14768,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14328,6 +14813,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14373,6 +14859,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14418,6 +14905,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14463,6 +14951,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14508,6 +14997,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -14809,6 +15299,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderSettingsView();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -14839,55 +15330,124 @@ This is an alternate test message to show now.`;
       return chunks.filter(Boolean).join("\n\n");
     }
 
-    function formatAdminUserTrialSummary(rows) {
-      const items = Array.isArray(rows) ? rows : [];
-      if (!items.length) {
-        return "The current server-side summary shows no users listed.";
-      }
-
-      const userWidth = Math.max("User".length, ...items.map((row) => String(row?.user_name || "").length));
-      const statusWidth = Math.max("Status".length, ...items.map((row) => String(row?.status || "").length));
-      const roleWidth = Math.max("Role".length, ...items.map((row) => String(row?.role || "").length));
-      const partnerWidth = Math.max("Partner".length, ...items.map((row) => String(row?.partner_name || "").length));
-      const firstDateWidth = Math.max("First Date".length, ...items.map((row) => String(row?.first_date || "").length));
-      const lastDateWidth = Math.max("Last Date".length, ...items.map((row) => String(row?.last_date || "").length));
-      const countWidth = Math.max("Trials".length, ...items.map((row) => String(row?.trial_count ?? "").length));
-      const pad = (value, width) => String(value ?? "").padEnd(width, " ");
-
-      const lines = [
-        `${pad("User", userWidth)}  ${pad("Status", statusWidth)}  ${pad("Role", roleWidth)}  ${pad("Partner", partnerWidth)}  ${pad("First Date", firstDateWidth)}  ${pad("Last Date", lastDateWidth)}  ${String("Trials").padStart(countWidth, " ")}`,
-        `${"-".repeat(userWidth)}  ${"-".repeat(statusWidth)}  ${"-".repeat(roleWidth)}  ${"-".repeat(partnerWidth)}  ${"-".repeat(firstDateWidth)}  ${"-".repeat(lastDateWidth)}  ${"-".repeat(countWidth)}`
-      ];
-
-      items.forEach((row) => {
-        lines.push(
-          `${pad(row?.user_name || "", userWidth)}  ${pad(row?.status || "", statusWidth)}  ${pad(row?.role || "", roleWidth)}  ${pad(row?.partner_name || "", partnerWidth)}  ${pad(row?.first_date || "", firstDateWidth)}  ${pad(row?.last_date || "", lastDateWidth)}  ${String(row?.trial_count ?? 0).padStart(countWidth, " ")}`
-        );
+    function setAdminFilterButtonState(buttons, activeValue) {
+      buttons.forEach((button) => {
+        const buttonValue = String(
+          button.dataset.adminPairsFilter ||
+          button.dataset.adminIdentityFilter ||
+          ""
+        ).trim().toLowerCase();
+        const isSelected = buttonValue === String(activeValue || "").trim().toLowerCase();
+        button.classList.toggle("is-selected", isSelected);
+        button.setAttribute("aria-pressed", isSelected ? "true" : "false");
       });
+    }
 
-      return lines.join("\n");
+    function normalizeAdminPairType(value) {
+      const lowered = String(value || "").trim().toLowerCase();
+      if (lowered === "simulation") {
+        return "Simulation";
+      }
+      if (lowered === "demo") {
+        return "Demo";
+      }
+      return "Human";
+    }
+
+    function getFilteredAdminPairSummaryRows() {
+      const rows = Array.isArray(launcherAdminState.pair_summary) ? launcherAdminState.pair_summary : [];
+      if (activeAdminPairsFilter === "all") {
+        return rows;
+      }
+      return rows.filter((row) => String(row?.type || "").trim().toLowerCase() === activeAdminPairsFilter);
     }
 
     function renderAdminUserListView() {
-      const userSummary = Array.isArray(launcherAdminState.user_trial_summary) ? launcherAdminState.user_trial_summary : [];
-      const meta = launcherAdminState.user_trial_summary_meta || {};
+      const pairSummary = getFilteredAdminPairSummaryRows();
+      const meta = launcherAdminState.pair_summary_meta || {};
       const reportDate = String(meta.report_date || "").trim() || "unknown";
-      const totalUsers = Number.isFinite(Number(meta.total_users)) ? Number(meta.total_users) : userSummary.length;
+      const totalPairs = Number.isFinite(Number(meta.total_pairs)) ? Number(meta.total_pairs) : pairSummary.length;
 
       if (adminUserListSummary) {
-        adminUserListSummary.textContent = `Report Date: ${reportDate}   Total Users: ${totalUsers}`;
+        adminUserListSummary.textContent = `Report Date: ${reportDate}   Total Pairs: ${totalPairs}`;
       }
       if (adminUserListStatus) {
-        adminUserListStatus.textContent = userSummary.length ? "" : "The current server-side summary shows no users listed.";
+        adminUserListStatus.textContent = pairSummary.length ? "" : "No completed pair histories are available.";
       }
-      if (adminUserListOutput) {
-        if (userSummary.length) {
-          adminUserListOutput.hidden = false;
-          adminUserListOutput.textContent = formatAdminUserTrialSummary(userSummary);
-        } else {
-          adminUserListOutput.hidden = true;
-          adminUserListOutput.textContent = "";
-        }
+      setAdminFilterButtonState(adminPairsFilterButtons, activeAdminPairsFilter);
+      if (adminUserListBody) {
+        adminUserListBody.replaceChildren();
+        pairSummary.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.className = "admin-report-row admin-report-row-clickable";
+          const selectedPair = row?.selected_pair && typeof row.selected_pair === "object" ? row.selected_pair : null;
+          if (selectedPair) {
+            tr.dataset.selectedPair = JSON.stringify(selectedPair);
+          }
+          const cells = [
+            row?.receiver_name || "",
+            row?.sender_name || "",
+            row?.type || "",
+            String(row?.trial_count ?? 0),
+            row?.levels || "",
+            row?.first_date || "",
+            row?.last_date || ""
+          ];
+          cells.forEach((value) => {
+            const td = document.createElement("td");
+            td.textContent = String(value || "");
+            tr.appendChild(td);
+          });
+          adminUserListBody.appendChild(tr);
+        });
+      }
+    }
+
+    function getFilteredAdminIdentitySummaryRows() {
+      const rows = Array.isArray(launcherAdminState.identity_summary) ? launcherAdminState.identity_summary : [];
+      if (activeAdminIdentityFilter === "all") {
+        return rows;
+      }
+      return rows.filter((row) => {
+        const subscription = String(row?.subscription || "").trim().toLowerCase();
+        const kind = String(row?.kind || "").trim().toLowerCase();
+        return subscription === activeAdminIdentityFilter || kind === activeAdminIdentityFilter;
+      });
+    }
+
+    function renderAdminIdentityListView() {
+      const rows = getFilteredAdminIdentitySummaryRows();
+      const meta = launcherAdminState.identity_summary_meta || {};
+      const reportDate = String(meta.report_date || "").trim() || "unknown";
+      const totalIdentities = Number.isFinite(Number(meta.total_identities)) ? Number(meta.total_identities) : rows.length;
+
+      if (adminIdentityListSummary) {
+        adminIdentityListSummary.textContent = `Report Date: ${reportDate}   Total Identities: ${totalIdentities}`;
+      }
+      if (adminIdentityListStatus) {
+        adminIdentityListStatus.textContent = rows.length ? "" : "No recognized identities are available right now.";
+      }
+      setAdminFilterButtonState(adminIdentityFilterButtons, activeAdminIdentityFilter);
+      if (adminIdentityListBody) {
+        adminIdentityListBody.replaceChildren();
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          const cells = [
+            row?.identity || "",
+            row?.kind || "",
+            row?.subscription || "",
+            String(row?.completed_trials ?? 0),
+            String(row?.distinct_partners ?? 0),
+            row?.first_activity || "",
+            row?.last_activity || ""
+          ];
+          cells.forEach((value) => {
+            const td = document.createElement("td");
+            td.textContent = String(value || "");
+            tr.appendChild(td);
+          });
+          adminIdentityListBody.appendChild(tr);
+        });
       }
     }
 
@@ -15085,6 +15645,9 @@ This is an alternate test message to show now.`;
         const seconds = Math.max(0, Number(launcherAdminState.explore_pro_test_duration_seconds || 0) || 0);
         adminExploreProTestDurationInput.value = seconds > 0 ? String(seconds) : "";
       }
+      if (adminTrialModePublicEnabledCheckbox) {
+        adminTrialModePublicEnabledCheckbox.checked = !!launcherAdminState.trial_mode_public_enabled;
+      }
       if (adminClearDebugLogButton) {
         const debugLog = launcherAdminState.debug_log;
         const sizeLabel = debugLog?.size_formatted ? debugLog.size_formatted : "0 B";
@@ -15109,7 +15672,7 @@ This is an alternate test message to show now.`;
   }
 
   async function refreshAdminView() {
-    if (!launcherAdminSecret && !launcherAdminState.easy_admin_enabled) {
+    if (!hasLauncherAdminAccess()) {
       if (adminStatus) {
         adminStatus.textContent = "Admin access is not active.";
       }
@@ -15121,18 +15684,21 @@ This is an alternate test message to show now.`;
     try {
       const data = await launcherAdminApi("heartbeat");
         launcherAdminState = {
-          debug_enabled: !!data?.debug_enabled,
+          debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
           subscription_emails_enabled: !!data?.subscription_emails_enabled,
           subscription_reminders_enabled: !!data?.subscription_reminders_enabled,
-          easy_admin_enabled: !!data?.easy_admin_enabled,
-          learn_more_save_enabled: !!data?.learn_more_save_enabled,
+          easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+          learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
           explore_pro_test_duration_seconds: Math.max(0, Number(data?.explore_pro_test_duration_seconds || 0) || 0),
+          trial_mode_public_enabled: !!data?.trial_mode_public_enabled,
           storage: data?.storage || null,
           debug_log: data?.debug_log || null,
           subscription_email_log: data?.subscription_email_log || null,
           subscription_email_templates: data?.subscription_email_templates || null,
-          user_trial_summary: data?.user_trial_summary || null,
-          user_trial_summary_meta: data?.user_trial_summary_meta || null,
+          pair_summary: data?.pair_summary || null,
+          pair_summary_meta: data?.pair_summary_meta || null,
+          identity_summary: data?.identity_summary || null,
+          identity_summary_meta: data?.identity_summary_meta || null,
           email_list: data?.email_list || null,
           email_list_meta: data?.email_list_meta || null,
           disk_usage_analysis: data?.disk_usage_analysis || null
@@ -15143,6 +15709,9 @@ This is an alternate test message to show now.`;
       renderAdminView();
       if (!adminUserListView?.classList.contains("beginner-view-hidden")) {
         renderAdminUserListView();
+      }
+      if (!adminIdentityListView?.classList.contains("beginner-view-hidden")) {
+        renderAdminIdentityListView();
       }
       if (!adminEmailListView?.classList.contains("beginner-view-hidden")) {
         renderAdminEmailListView();
@@ -15196,6 +15765,7 @@ This is an alternate test message to show now.`;
     try {
       localStorage.removeItem(launcherKey);
       localStorage.removeItem(analysisStorageKey);
+      localStorage.removeItem(launcherAdminDevicePrefsKey);
       localStorage.removeItem(stripeReturnIdentifierStorageKey);
       localStorage.removeItem("cones-local-trials-receiver");
       localStorage.removeItem("cones-local-trials-v2-sender");
@@ -15218,6 +15788,13 @@ This is an alternate test message to show now.`;
         }
       }
       keysToRemove.forEach((key) => localStorage.removeItem(key));
+      launcherAdminDevicePrefs = {
+        debug_enabled: false,
+        easy_admin_enabled: false,
+        learn_more_save_enabled: false,
+        cached_secret: ""
+      };
+      syncLauncherAdminStateFromDevicePrefs();
     } catch (error) {
       // Ignore local cleanup failures.
     }
@@ -15243,8 +15820,10 @@ This is an alternate test message to show now.`;
     featureSetupView?.classList.add("beginner-view-hidden");
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
@@ -15274,6 +15853,7 @@ This is an alternate test message to show now.`;
 
   function showAdminUserListView() {
     adminUserListView?.classList.remove("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     lessonIndexAdminView?.classList.add("beginner-view-hidden");
@@ -15302,9 +15882,42 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showAdminIdentityListView() {
+    adminIdentityListView?.classList.remove("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderAdminIdentityListView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showAdminEmailListView() {
     adminEmailListView?.classList.remove("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     lessonIndexAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
@@ -15332,10 +15945,43 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showSavedLinksAdminView() {
+    clearReportPanelOffset();
+    savedLinksAdminView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showLessonIndexAdminView() {
     lessonIndexAdminView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
@@ -15903,8 +16549,52 @@ This is an alternate test message to show now.`;
     temporaryHomePageExploreButton.textContent = "Explore";
   }
 
+  function startVisitorLandingEntry() {
+    const baseState = readLauncherState();
+    const nextState = buildVisitorLauncherState(baseState);
+    writeLauncherState(nextState);
+    window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
+  }
+
+  async function handleLandingExploreClick() {
+    if (!temporaryHomePageExploreButton) {
+      return;
+    }
+    temporaryHomePageExploreButton.disabled = true;
+    temporaryHomePageExploreButton.textContent = "Preparing...";
+    try {
+      const data = await fetchPublicTrialModeState();
+      if (!!data?.trial_mode_public_enabled) {
+        resetTemporaryHomeExploreButton();
+        openExploreProOverlay();
+        return;
+      }
+      startVisitorLandingEntry();
+    } catch (error) {
+      resetTemporaryHomeExploreButton();
+      setTemporaryHomeInvitationStatus(error instanceof Error ? error.message : "Unable to open that experience right now.", { isError: true });
+    }
+  }
+
+  async function resolveLandingExploreEntry() {
+    try {
+      const data = await fetchPublicTrialModeState();
+      if (!!data?.trial_mode_public_enabled) {
+        showTemporaryHomePageView();
+        openExploreProOverlay();
+        return;
+      }
+      startVisitorLandingEntry();
+    } catch (error) {
+      showTemporaryHomePageView();
+      resetTemporaryHomeExploreButton();
+      setTemporaryHomeInvitationStatus(error instanceof Error ? error.message : "Unable to open that experience right now.", { isError: true });
+    }
+  }
+
   function applyIdentityStateToLauncherInputs() {
     const state = readLauncherState();
+    const visitorMode = isVisitorLauncherEntry(state);
     ["sender", "receiver"].forEach((role) => {
       const form = document.querySelector(`[data-role-form="${role}"]`);
       if (!form) {
@@ -15916,11 +16606,15 @@ This is an alternate test message to show now.`;
         return;
       }
       const roleSettings = readRoleSettings(role);
-      const savedOwn = String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
-      const profileState = savedOwn ? readLauncherProfileState(role, savedOwn, state) : null;
-      const savedPartner = profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
+      const savedOwn = visitorMode ? "" : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
+      const profileState = visitorMode ? null : (savedOwn ? readLauncherProfileState(role, savedOwn, state) : null);
+      const savedPartner = visitorMode
+        ? "Robot"
+        : profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
       ownInput.value = savedOwn;
+      ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
       partnerInput.value = savedPartner;
+      partnerInput.placeholder = "name@example.com or unique handle";
       applyPartnerHistory(role, form, state, savedOwn);
       applyRoleIdentifierPresentation(role, {
         ownUsesHandle: isValidUniqueHandle(savedOwn) && !isValidEmailAddress(savedOwn),
@@ -16016,7 +16710,7 @@ This is an alternate test message to show now.`;
   async function continueFromLandingPage() {
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
     if (!invitationCode) {
-      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+      startVisitorLandingEntry();
       return;
     }
 
@@ -16658,6 +17352,7 @@ This is an alternate test message to show now.`;
     resetHandleUpdateAdminView();
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => {
       userTypeHandleInput?.focus();
@@ -16670,6 +17365,7 @@ This is an alternate test message to show now.`;
     inviteeAdminView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
@@ -16707,6 +17403,7 @@ This is an alternate test message to show now.`;
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -16803,6 +17500,7 @@ This is an alternate test message to show now.`;
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -16903,6 +17601,7 @@ This is an alternate test message to show now.`;
     userTypeAdminView?.classList.add("beginner-view-hidden");
     inviteeAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -17034,8 +17733,29 @@ This is an alternate test message to show now.`;
         enterWorkingHomeFromLanding("fresh");
         return;
       }
+      if (requestedView === "visitor-launcher") {
+        enterWorkingHomeFromLanding("visitor");
+        return;
+      }
       if (requestedView === "go-pro") {
         showGoProView();
+        return;
+      }
+      if (requestedView === "public-trial") {
+        showTemporaryHomePageView();
+        openExploreProOverlay();
+        return;
+      }
+      if (requestedView === "explore-entry") {
+        void resolveLandingExploreEntry();
+        return;
+      }
+      if (requestedView === "landing") {
+        if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
+          enterWorkingHomeFromLanding("resume");
+          return;
+        }
+        showTemporaryHomePageView();
         return;
       }
       if (requestedView === "baseline-questions") {
@@ -17053,7 +17773,7 @@ This is an alternate test message to show now.`;
       if (stripeReturnState === "cancel") {
         return;
       }
-      if (!requestedView && isStandaloneShell() && hasKnownLauncherIdentity(launcherState)) {
+      if (!requestedView && hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
         enterWorkingHomeFromLanding("resume");
         return;
       }
@@ -17164,7 +17884,15 @@ This is an alternate test message to show now.`;
   }
 
   function showGoProView(returnView = "subscription-management") {
-    goProReturnView = returnView;
+    const returnDescriptor = typeof returnView === "object" && returnView !== null
+      ? returnView
+      : { view: returnView };
+    goProReturnView = String(returnDescriptor.view || "subscription-management").trim() || "subscription-management";
+    goProReturnRole = String(returnDescriptor.role || activeLauncherRole || "").trim();
+    goProReturnScrollY = Math.max(
+      0,
+      Number(returnDescriptor.scrollY ?? window.scrollY ?? window.pageYOffset ?? 0) || 0
+    );
     clearReportPanelOffset();
     goProView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -17207,6 +17935,39 @@ This is an alternate test message to show now.`;
     }
     if (goProReturnView === "other-settings") {
       showOtherSettingsView();
+      return;
+    }
+    if (goProReturnView === "card") {
+      const returnRole = goProReturnRole || activeLauncherRole || "sender";
+      const returnScrollY = Math.max(0, Number(goProReturnScrollY || 0) || 0);
+      suppressLauncherAutoCollapseUntil = Date.now() + 800;
+      lastLauncherPointerDownInsideActiveCard = true;
+      showLauncherView();
+      const matchingCard = findRoleCard(returnRole);
+      if (matchingCard) {
+        const restoreExpandedCard = () => {
+          ensureCardExpanded(matchingCard, { scrollIntoView: false });
+        };
+        window.setTimeout(() => {
+          restoreExpandedCard();
+          const restoreScroll = () => {
+            window.scrollTo({ top: returnScrollY, left: 0, behavior: "auto" });
+          };
+          restoreScroll();
+          window.requestAnimationFrame(restoreScroll);
+          window.setTimeout(() => {
+            if (!matchingCard.classList.contains("active")) {
+              restoreExpandedCard();
+            }
+          }, 120);
+          window.setTimeout(restoreScroll, 120);
+          window.setTimeout(restoreScroll, 450);
+        }, 0);
+      }
+      return;
+    }
+    if (goProReturnView === "launcher") {
+      showLauncherView();
       return;
     }
     showOptionsView();
@@ -17275,6 +18036,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -17339,6 +18101,7 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderConfidenceBehaviorView();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -17533,6 +18296,11 @@ This is an alternate test message to show now.`;
         const matchedAdminSecret = await checkAdminSecret(desiredName);
         if (matchedAdminSecret) {
           launcherAdminSecret = desiredName;
+          if (launcherAdminDevicePrefs.easy_admin_enabled || launcherAdminDevicePrefs.learn_more_save_enabled) {
+            updateLauncherAdminDevicePrefs({
+              cached_secret: desiredName
+            });
+          }
           writeRuntimeSettings("receiver", {
             import_csv_filename: ""
           });
@@ -17549,9 +18317,7 @@ This is an alternate test message to show now.`;
       }
 
       if (!desiredName) {
-        const adminAccessMode = await fetchAdminAccessMode();
-        launcherAdminState.easy_admin_enabled = !!adminAccessMode?.easy_admin_enabled;
-        if (launcherAdminState.easy_admin_enabled) {
+        if (hasLauncherAdminAccess()) {
           if (settingsStatus) {
             settingsStatus.textContent = "";
             settingsStatus.dataset.persistedMessage = "";
@@ -18076,12 +18842,6 @@ This is an alternate test message to show now.`;
       closeEspLessonDetail();
     }, 0);
   });
-  retryLocationButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      void requestDeviceLocationIfNeeded(true);
-    });
-  });
   exactLocationButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -18103,6 +18863,12 @@ This is an alternate test message to show now.`;
   locationPickerSaveButton?.addEventListener("click", () => {
     saveExactLocationSelection();
   });
+  locationPickerUseBrowserButton?.addEventListener("click", () => {
+    useBrowserEstimatedLocation();
+  });
+  locationPickerRefreshBrowserButton?.addEventListener("click", () => {
+    refreshBrowserEstimatedLocation();
+  });
   locationPickerZoomInButton?.addEventListener("click", () => {
     locationPickerMap?.zoomIn();
   });
@@ -18119,7 +18885,7 @@ This is an alternate test message to show now.`;
     }
   });
   document.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target.closest("[data-location-picker-save], [data-location-picker-cancel], [data-open-exact-location]") : null;
+    const target = event.target instanceof Element ? event.target.closest("[data-location-picker-save], [data-location-picker-use-browser], [data-location-picker-refresh-browser], [data-location-picker-cancel], [data-open-exact-location]") : null;
     if (!target) {
       return;
     }
@@ -18127,6 +18893,18 @@ This is an alternate test message to show now.`;
       event.preventDefault();
       event.stopPropagation();
       saveExactLocationSelection();
+      return;
+    }
+    if (target.hasAttribute("data-location-picker-use-browser")) {
+      event.preventDefault();
+      event.stopPropagation();
+      useBrowserEstimatedLocation();
+      return;
+    }
+    if (target.hasAttribute("data-location-picker-refresh-browser")) {
+      event.preventDefault();
+      event.stopPropagation();
+      refreshBrowserEstimatedLocation();
       return;
     }
     if (target.hasAttribute("data-location-picker-cancel")) {
@@ -18458,6 +19236,12 @@ This is an alternate test message to show now.`;
   openGoProButton?.addEventListener("click", () => {
     showGoProView("subscription-management");
   });
+  openVisitorProFeatureButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showGoProView("launcher");
+    });
+  });
   goProMonthlyButton?.addEventListener("click", () => {
     void startTelepathyProCheckout("monthly");
   });
@@ -18514,12 +19298,45 @@ This is an alternate test message to show now.`;
       }
     }
   });
+  openSavedLinksAdminButton?.addEventListener("click", showSavedLinksAdminView);
+  closeSavedLinksAdminButton?.addEventListener("click", showAdminView);
+  savedLinksAdminActionButtons.forEach((button) => {
+    if (button === closeSavedLinksAdminButton) {
+      return;
+    }
+    button.addEventListener("click", () => {
+      savedLinksAdminView?.classList.add("beginner-view-hidden");
+    });
+  });
   openHandleButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       openHandleOverlay(String(button.dataset.openHandleControl || ""));
     });
   });
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+    const inlineHandle = target.closest("[data-inline-open-handle]");
+    if (inlineHandle instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      openHandleOverlay(String(inlineHandle.dataset.inlineOpenHandle || ""));
+      return;
+    }
+    const inlinePro = target.closest("[data-inline-open-visitor-pro]");
+    if (inlinePro instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      showGoProView({
+        view: "card",
+        role: String(inlinePro.dataset.inlineOpenVisitorPro || activeLauncherRole || "sender").trim() || "sender",
+        scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+      });
+    }
+  }, true);
   openMessagingSetupButton?.addEventListener("click", () => {
     showFeatureSetupView({
       role: activeLauncherRole || "sender",
@@ -18561,7 +19378,47 @@ This is an alternate test message to show now.`;
   closeImagePairAdminButton?.addEventListener("click", showAdminView);
   closeSubscriptionEmailAdminButton?.addEventListener("click", showAdminView);
   closeAdminUserListButton?.addEventListener("click", showAdminView);
+  closeAdminIdentityListButton?.addEventListener("click", showAdminView);
   closeAdminEmailListButton?.addEventListener("click", showAdminView);
+  adminPairsFilterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeAdminPairsFilter = String(button.dataset.adminPairsFilter || "all").trim().toLowerCase() || "all";
+      renderAdminUserListView();
+    });
+  });
+  adminIdentityFilterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      activeAdminIdentityFilter = String(button.dataset.adminIdentityFilter || "all").trim().toLowerCase() || "all";
+      renderAdminIdentityListView();
+    });
+  });
+  adminUserListBody?.addEventListener("click", (event) => {
+    const row = event.target instanceof Element ? event.target.closest(".admin-report-row-clickable") : null;
+    if (!row) {
+      return;
+    }
+    const selectedPairRaw = String(row.getAttribute("data-selected-pair") || "").trim();
+    if (!selectedPairRaw) {
+      return;
+    }
+    try {
+      const selectedPair = JSON.parse(selectedPairRaw);
+      const receiverName = String(selectedPair?.receiver_name || "").trim();
+      const senderName = String(selectedPair?.sender_name || "").trim();
+      const source = String(selectedPair?.source || "real").trim().toLowerCase() === "simulation" ? "simulation" : "real";
+      if (!receiverName || !senderName) {
+        return;
+      }
+      pendingOpenReportPair = {
+        receiverName,
+        senderName,
+        source
+      };
+      showReportDefinitionView();
+    } catch (error) {
+      // Ignore malformed row payloads.
+    }
+  });
   closeLessonIndexAdminButton?.addEventListener("click", showAdminView);
   baselineBeliefTelepathyInput?.addEventListener("input", () => {
     updateBaselineScaleDisplay(baselineBeliefTelepathyInput, baselineBeliefTelepathyValue);
@@ -18580,10 +19437,10 @@ This is an alternate test message to show now.`;
       void continueFromLandingPage();
     }
   });
-  temporaryHomePageFreshOpenButton?.addEventListener("click", () => {
-    window.location.href = buildCanonicalLauncherUrl({ open: "fresh-launcher" });
+  temporaryHomePageFreshOpenButton?.addEventListener("click", startVisitorLandingEntry);
+  temporaryHomePageExploreButton?.addEventListener("click", () => {
+    void handleLandingExploreClick();
   });
-  temporaryHomePageExploreButton?.addEventListener("click", openExploreProOverlay);
   temporaryHomePageClairvoyanceButton?.addEventListener("click", showClairvoyanceViewingView);
   temporaryHomePageContactButton?.addEventListener("click", () => {
     showContactView("temporary-home-page");
@@ -19175,22 +20032,15 @@ This is an alternate test message to show now.`;
       return;
     }
     if (adminStatus) {
-      adminStatus.textContent = "Saving debug setting...";
+      adminStatus.textContent = "Saving debug setting for this device...";
     }
-    try {
-        const data = await launcherAdminApi("set_debug_enabled", { enabled: adminDebugEnabledCheckbox.checked });
-        launcherAdminState.debug_enabled = !!data?.debug_enabled;
-        launcherAdminState.storage = data?.storage || launcherAdminState.storage;
-        launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
-        if (adminStatus) {
-          adminStatus.textContent = launcherAdminState.debug_enabled ? "Debugging is currently enabled." : "Debugging is currently disabled.";
-        }
-      renderAdminView();
-    } catch (error) {
-      if (adminStatus) {
-        adminStatus.textContent = "Unable to save debugging setting right now.";
-      }
+    updateLauncherAdminDevicePrefs({
+      debug_enabled: !!adminDebugEnabledCheckbox.checked
+    });
+    if (adminStatus) {
+      adminStatus.textContent = launcherAdminState.debug_enabled ? "Debugging is currently enabled on this device." : "Debugging is currently disabled on this device.";
     }
+    renderAdminView();
   });
   adminSubscriptionEmailsEnabledCheckbox?.addEventListener("change", async () => {
     if (!hasLauncherAdminAccess()) {
@@ -19237,48 +20087,42 @@ This is an alternate test message to show now.`;
     }
   });
   adminEasyAdminEnabledCheckbox?.addEventListener("change", async () => {
-    if (!launcherAdminSecret && !launcherAdminState.easy_admin_enabled) {
+    if (!launcherAdminSecret && !launcherAdminDevicePrefs.cached_secret) {
       return;
     }
     if (adminStatus) {
-      adminStatus.textContent = "Saving Easy Admin setting...";
+      adminStatus.textContent = "Saving Easy Admin setting for this device...";
     }
-    try {
-      const data = await launcherAdminApi("set_easy_admin_enabled", { enabled: adminEasyAdminEnabledCheckbox.checked });
-      launcherAdminState.easy_admin_enabled = !!data?.easy_admin_enabled;
-      if (adminStatus) {
-        adminStatus.textContent = launcherAdminState.easy_admin_enabled
-          ? "Easy Admin is currently enabled."
-          : "Easy Admin is currently disabled.";
-      }
-      renderAdminView();
-    } catch (error) {
-      if (adminStatus) {
-        adminStatus.textContent = "Unable to save the Easy Admin setting right now.";
-      }
+    updateLauncherAdminDevicePrefs({
+      easy_admin_enabled: !!adminEasyAdminEnabledCheckbox.checked,
+      cached_secret: adminEasyAdminEnabledCheckbox.checked ? String(launcherAdminSecret || launcherAdminDevicePrefs.cached_secret || "").trim() : ""
+    });
+    if (adminStatus) {
+      adminStatus.textContent = launcherAdminState.easy_admin_enabled
+        ? "Easy Admin is currently enabled on this device."
+        : "Easy Admin is currently disabled on this device.";
     }
+    renderAdminView();
   });
   adminLearnMoreSaveEnabledCheckbox?.addEventListener("change", async () => {
     if (!hasLauncherAdminAccess()) {
       return;
     }
-    try {
-      if (adminStatus) {
-        adminStatus.textContent = "Saving Learn More save setting...";
-      }
-      const data = await launcherAdminApi("set_learn_more_save_enabled", { enabled: adminLearnMoreSaveEnabledCheckbox.checked });
-      launcherAdminState.learn_more_save_enabled = !!data?.learn_more_save_enabled;
-      if (adminStatus) {
-        adminStatus.textContent = launcherAdminState.learn_more_save_enabled
-          ? "SAVE for Learn More text is currently enabled."
-          : "SAVE for Learn More text is currently disabled.";
-      }
-      renderAdminView();
-    } catch (error) {
-      if (adminStatus) {
-        adminStatus.textContent = "Unable to save the Learn More SAVE setting right now.";
-      }
+    if (adminStatus) {
+      adminStatus.textContent = "Saving Learn More SAVE setting for this device...";
     }
+    updateLauncherAdminDevicePrefs({
+      learn_more_save_enabled: !!adminLearnMoreSaveEnabledCheckbox.checked,
+      cached_secret: adminLearnMoreSaveEnabledCheckbox.checked
+        ? String(launcherAdminSecret || launcherAdminDevicePrefs.cached_secret || "").trim()
+        : (launcherAdminDevicePrefs.easy_admin_enabled ? String(launcherAdminSecret || launcherAdminDevicePrefs.cached_secret || "").trim() : "")
+    });
+    if (adminStatus) {
+      adminStatus.textContent = launcherAdminState.learn_more_save_enabled
+        ? "SAVE for Learn More text is currently enabled on this device."
+        : "SAVE for Learn More text is currently disabled on this device.";
+    }
+    renderAdminView();
   });
   adminExploreProTestDurationInput?.addEventListener("change", async () => {
     if (!hasLauncherAdminAccess()) {
@@ -19304,6 +20148,33 @@ This is an alternate test message to show now.`;
       }
     }
   });
+  adminTrialModePublicEnabledCheckbox?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      if (adminStatus) {
+        adminStatus.textContent = "Saving public 14-day Trial setting...";
+      }
+      const data = await launcherAdminApi("set_trial_mode_public_enabled", {
+        enabled: adminTrialModePublicEnabledCheckbox.checked
+      });
+      launcherAdminState.trial_mode_public_enabled = !!data?.trial_mode_public_enabled;
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.trial_mode_public_enabled
+          ? "Public 14-day Trial is currently enabled from the landing page."
+          : "Public 14-day Trial is currently disabled from the landing page.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the public 14-day Trial setting right now.";
+      }
+    }
+  });
+  adminOpen14DayTrialButton?.addEventListener("click", () => {
+    openExploreProOverlay();
+  });
   adminClearDebugLogButton?.addEventListener("click", async () => {
     if (!hasLauncherAdminAccess()) {
       return;
@@ -19325,34 +20196,58 @@ This is an alternate test message to show now.`;
       }
     }
   });
-      adminListUsersButton?.addEventListener("click", async () => {
-        if (!hasLauncherAdminAccess()) {
-          return;
-      }
+  adminListUsersButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Building pair summary...";
+    }
+    try {
+      const data = await launcherAdminApi("list_all_pairs");
+      launcherAdminState.storage = data?.storage || launcherAdminState.storage;
+      launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
+      launcherAdminState.pair_summary = Array.isArray(data?.pair_summary) ? data.pair_summary : [];
+      launcherAdminState.pair_summary_meta = data?.pair_summary_meta || null;
       if (adminStatus) {
-        adminStatus.textContent = "Building user summary...";
+        const count = launcherAdminState.pair_summary.length;
+        adminStatus.textContent = `Pair summary updated. ${count} line item${count === 1 ? "" : "s"} found.`;
       }
-      try {
-        const data = await launcherAdminApi("list_all_users");
-        launcherAdminState.storage = data?.storage || launcherAdminState.storage;
-        launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
-        launcherAdminState.user_trial_summary = Array.isArray(data?.user_trial_summary)
-          ? data.user_trial_summary
-          : [];
-        launcherAdminState.user_trial_summary_meta = data?.user_trial_summary_meta || null;
-        if (adminStatus) {
-          const count = launcherAdminState.user_trial_summary.length;
-          adminStatus.textContent = `User summary updated. ${count} line item${count === 1 ? "" : "s"} found.`;
-        }
-        renderAdminView();
-        renderAdminUserListView();
-        showAdminUserListView();
-      } catch (error) {
-        if (adminStatus) {
-          adminStatus.textContent = "Unable to build the user summary right now.";
-        }
+      renderAdminView();
+      renderAdminUserListView();
+      showAdminUserListView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to build the pair summary right now.";
       }
-    });
+    }
+  });
+  adminListIdentitiesButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Building identity summary...";
+    }
+    try {
+      const data = await launcherAdminApi("list_all_identities");
+      launcherAdminState.storage = data?.storage || launcherAdminState.storage;
+      launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
+      launcherAdminState.identity_summary = Array.isArray(data?.identity_summary) ? data.identity_summary : [];
+      launcherAdminState.identity_summary_meta = data?.identity_summary_meta || null;
+      if (adminStatus) {
+        const count = launcherAdminState.identity_summary.length;
+        adminStatus.textContent = `Identity summary updated. ${count} line item${count === 1 ? "" : "s"} found.`;
+      }
+      renderAdminView();
+      renderAdminIdentityListView();
+      showAdminIdentityListView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to build the identity summary right now.";
+      }
+    }
+  });
   adminEmailListButton?.addEventListener("click", async () => {
     if (!hasLauncherAdminAccess()) {
       return;
@@ -19488,8 +20383,10 @@ This is an alternate test message to show now.`;
       const data = await launcherAdminApi("fresh_start");
       launcherAdminState.storage = data?.storage || launcherAdminState.storage;
       launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
-      launcherAdminState.user_trial_summary = null;
-      launcherAdminState.user_trial_summary_meta = null;
+      launcherAdminState.pair_summary = null;
+      launcherAdminState.pair_summary_meta = null;
+      launcherAdminState.identity_summary = null;
+      launcherAdminState.identity_summary_meta = null;
       launcherAdminState.disk_usage_analysis = null;
       await clearLocalFreshStartState();
       launcherAdminSecret = "";
@@ -19653,10 +20550,14 @@ This is an alternate test message to show now.`;
 
   window.addEventListener("scroll", () => {
     const launcherVisible = launcherView && !launcherView.classList.contains("beginner-view-hidden");
-    if (!launcherVisible) {
-      return;
+    if (launcherVisible) {
+      lastKnownLauncherScrollY = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
     }
-    lastKnownLauncherScrollY = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
+    syncReportTopRowPosition();
+  }, { passive: true });
+
+  window.addEventListener("resize", () => {
+    syncReportTopRowPosition();
   }, { passive: true });
 
   document.addEventListener("pointerdown", (event) => {
@@ -19693,7 +20594,29 @@ This is an alternate test message to show now.`;
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
+      const serviceWorkerVersion = launcherBuildVersion;
+      const controllerReloadKey = `espgym-sw-reload-${serviceWorkerVersion}`;
+      let controllerReloadHandled = false;
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (controllerReloadHandled) {
+          return;
+        }
+        controllerReloadHandled = true;
+        try {
+          if (sessionStorage.getItem(controllerReloadKey) === "1") {
+            sessionStorage.removeItem(controllerReloadKey);
+            return;
+          }
+          sessionStorage.setItem(controllerReloadKey, "1");
+        } catch (error) {
+          // If sessionStorage is unavailable, still do a one-time reload for this event.
+        }
+        window.location.reload();
+      });
+
       navigator.serviceWorker.register(`./telepathybeginner-sw.js?v=${launcherBuildVersion}`)
+        .then((registration) => registration.update().catch(() => {}))
         .catch(() => {
           // Ignore service worker registration failures and fall back to browser guidance.
         });
@@ -19721,6 +20644,14 @@ This is an alternate test message to show now.`;
     }
   }
 })();
+
+
+
+
+
+
+
+
 
 
 

@@ -55,16 +55,30 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260630s">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260702v">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260630s">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260630s">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260630s">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260702v">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260702v">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260702v">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260630s">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260630s">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260630s">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260702v">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260702v">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260702v">
+  <script>
+    (function () {
+      var buildVersion = "20260702v";
+      try {
+        var currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.get("v") !== buildVersion) {
+          currentUrl.searchParams.set("v", buildVersion);
+          window.location.replace(currentUrl.toString());
+        }
+      } catch (error) {
+        // Leave the page alone if URL parsing fails.
+      }
+    })();
+  </script>
 </head>
 <body>
   <main class="beginner-shell">
@@ -114,99 +128,6 @@
         </div>
 
         <section class="role-panels" aria-label="Role selection">
-          <article class="role-card" data-role-card="sender">
-            <div class="role-card-header">
-              <button class="role-card-toggle" type="button" aria-expanded="false">
-                <span class="role-card-title" data-collapsed-title="I Will Be the Sender" data-expanded-title="Sender">I Will Be the Sender</span>
-              </button>
-              <div class="role-card-level-stack" data-role-difficulty-stack="sender">
-                            <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="sender" data-direction="up" aria-label="Increase sender pair difficulty">&#9650;</button>
-                <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
-                            <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="sender" data-direction="down" aria-label="Decrease sender pair difficulty">&#9660;</button>
-              </div>
-              <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Visual attention focus and sustained intention</span>
-              <button class="role-card-inline-back" type="button" data-collapse-role-card="sender">Back</button>
-            </div>
-            <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="sender" hidden></div>
-            <div class="role-card-body">
-              <form class="role-form" data-role-form="sender" autocomplete="off">
-                <div class="role-email-note" aria-label="Email entry guidance">
-                  <p data-role-identifier-note="sender">These email addresses are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use the same spellings for each other. Please verify the spellings carefully.
-
-You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.</p>
-                  <div class="role-lesson-wrap" data-role-lesson-wrap="sender" hidden>
-                    <div class="role-lesson-header">
-                      <span class="role-lesson-title" data-role-lesson-title="sender"></span>
-                    </div>
-                    <p class="role-lesson-preview" data-role-lesson-preview="sender"></p>
-                    <div class="role-lesson-actions">
-                      <button class="role-note-link" type="button" data-role-lesson-next="sender">NEXT</button>
-                      <button class="role-note-link" type="button" data-role-lesson-back="sender">BACK</button>
-                      <button class="role-note-link" type="button" data-role-lesson-dismiss="sender">NOT AGAIN</button>
-                    </div>
-                  </div>
-                  <p data-role-handle-wrap="sender"><button class="role-note-link" type="button" data-open-handle-control="sender">Choose unique name instead of email address</button></p>
-                  <p class="role-note-setup-wrap" data-role-setup-wrap="sender" hidden><button class="role-note-link" type="button" data-open-feature-setup="sender">Click here to set up optional features for Telepathy Beginner</button></p>
-                  <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
-                </div>
-                <label class="role-field">
-                  <span class="role-field-label" data-own-identifier-label="sender">You</span>
-                  <div class="role-own-row">
-                    <input
-                      class="role-input"
-                      type="text"
-                      name="ownName"
-                      autocomplete="off"
-                      placeholder="name@example.com or unique handle"
-                      spellcheck="false"
-                    >
-                    <div class="role-messaging-launch" data-role-messaging-launch="sender">
-                      <button class="role-message-open" type="button" data-open-role-messages="sender">
-                        <span>Messages</span>
-                        <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
-                      </button>
-                    </div>
-                    <div class="role-course-launch">
-                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="sender">Learning Center</button>
-                    </div>
-                  </div>
-                </label>
-                <label class="role-field role-field-partner">
-                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver - Enter "Robot" to experience a simulation of telepathy practice at this level.</span>
-                  <div class="role-partner-row">
-                    <input
-                      class="role-input"
-                      type="text"
-                      name="partnerName"
-                      autocomplete="off"
-                      placeholder="name@example.com or unique handle"
-                      spellcheck="false"
-                    >
-                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver handles" autocomplete="off" title="Press here to select a saved handle">
-                      <option value="">Select receiver</option>
-                    </select>
-                    <button
-                      class="role-manage"
-                      type="button"
-                      name="managePartnerNames"
-                      title="Edit dropdown list of receiver handles"
-                    >Manage saved receivers</button>
-                  </div>
-                </label>
-                <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
-                <div class="role-location-status" data-location-status="sender">
-                  <span class="role-location-text">Location: unknown</span>
-                  <div class="role-location-actions">
-                    <button class="role-location-exact" type="button" data-open-exact-location="sender">Set exact location</button>
-                    <button class="role-location-retry" type="button" data-retry-location="sender" hidden>Retry location</button>
-                  </div>
-                </div>
-                <div class="role-difficulty-status" data-role-difficulty-status="sender" hidden></div>
-                <button class="role-go" type="submit">GO</button>
-              </form>
-            </div>
-          </article>
-
           <article class="role-card" data-role-card="receiver">
             <div class="role-card-header">
               <button class="role-card-toggle" type="button" aria-expanded="false">
@@ -224,9 +145,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
             <div class="role-card-body">
               <form class="role-form" data-role-form="receiver" autocomplete="off">
                 <div class="role-email-note" aria-label="Email entry guidance">
-                  <p data-role-identifier-note="receiver">These email addresses are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use the same spellings for each other. Please verify the spellings carefully.
-
-You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.</p>
+                  <p data-role-identifier-note="receiver">The email addresses below are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use identical identification spellings for each other. Please verify the spellings carefully. You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. <span class="role-note-recommended">Recommended:</span> Click below to propose a unique name to use in this app.</p>
                   <div class="role-lesson-wrap" data-role-lesson-wrap="receiver" hidden>
                     <div class="role-lesson-header">
                       <span class="role-lesson-title" data-role-lesson-title="receiver"></span>
@@ -239,6 +158,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                     </div>
                   </div>
                   <p data-role-handle-wrap="receiver"><button class="role-note-link" type="button" data-open-handle-control="receiver">Choose unique name instead of email address</button></p>
+                  <p class="role-note-visitor-pro-wrap" data-role-visitor-pro-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-visitor-pro-features="receiver">PRO features</button></p>
                   <p class="role-note-setup-wrap" data-role-setup-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-feature-setup="receiver">Click here to set up optional features for Telepathy Beginner</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-contact-inline="receiver">ESP GYM</button></p>
                 </div>
@@ -275,7 +195,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                       placeholder="name@example.com or unique handle"
                       spellcheck="false"
                     >
-                    <select class="role-select" name="partnerHistory" aria-label="Saved sender handles" autocomplete="off" title="Press here to select a saved handle">
+                    <select class="role-select" name="partnerHistory" aria-label="Saved sender handles" autocomplete="off" title="Press here to select a saved handle" hidden>
                       <option value="">Select sender</option>
                     </select>
                     <button
@@ -283,6 +203,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                       type="button"
                       name="managePartnerNames"
                       title="Edit dropdown list of sender handles"
+                      hidden
                     >Manage saved senders</button>
                   </div>
                 </label>
@@ -290,11 +211,102 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                 <div class="role-location-status" data-location-status="receiver">
                   <span class="role-location-text">Location: unknown</span>
                   <div class="role-location-actions">
-                    <button class="role-location-exact" type="button" data-open-exact-location="receiver">Set exact location</button>
-                    <button class="role-location-retry" type="button" data-retry-location="receiver" hidden>Retry location</button>
+                    <button class="role-location-exact" type="button" data-open-exact-location="receiver">Review Location</button>
                   </div>
                 </div>
                 <div class="role-difficulty-status" data-role-difficulty-status="receiver" hidden></div>
+                <button class="role-go" type="submit">GO</button>
+              </form>
+            </div>
+          </article>
+
+          <article class="role-card" data-role-card="sender">
+            <div class="role-card-header">
+              <button class="role-card-toggle" type="button" aria-expanded="false">
+                <span class="role-card-title" data-collapsed-title="I Will Be the Sender" data-expanded-title="Sender">I Will Be the Sender</span>
+              </button>
+              <div class="role-card-level-stack" data-role-difficulty-stack="sender">
+                            <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="sender" data-direction="up" aria-label="Increase sender pair difficulty">&#9650;</button>
+                <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
+                            <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="sender" data-direction="down" aria-label="Decrease sender pair difficulty">&#9660;</button>
+              </div>
+              <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Attention focus and sustained intention</span>
+              <button class="role-card-inline-back" type="button" data-collapse-role-card="sender">Back</button>
+            </div>
+            <div class="role-difficulty-status role-difficulty-status-prominent" data-role-difficulty-status-prominent="sender" hidden></div>
+            <div class="role-card-body">
+              <form class="role-form" data-role-form="sender" autocomplete="off">
+                <div class="role-email-note" aria-label="Email entry guidance">
+                  <p data-role-identifier-note="sender">The email addresses below are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use identical identification spellings for each other. Please verify the spellings carefully. You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. <span class="role-note-recommended">Recommended:</span> Click below to propose a unique name to use in this app.</p>
+                  <div class="role-lesson-wrap" data-role-lesson-wrap="sender" hidden>
+                    <div class="role-lesson-header">
+                      <span class="role-lesson-title" data-role-lesson-title="sender"></span>
+                    </div>
+                    <p class="role-lesson-preview" data-role-lesson-preview="sender"></p>
+                    <div class="role-lesson-actions">
+                      <button class="role-note-link" type="button" data-role-lesson-next="sender">NEXT</button>
+                      <button class="role-note-link" type="button" data-role-lesson-back="sender">BACK</button>
+                      <button class="role-note-link" type="button" data-role-lesson-dismiss="sender">NOT AGAIN</button>
+                    </div>
+                  </div>
+                  <p data-role-handle-wrap="sender"><button class="role-note-link" type="button" data-open-handle-control="sender">Choose unique name instead of email address</button></p>
+                  <p class="role-note-visitor-pro-wrap" data-role-visitor-pro-wrap="sender" hidden><button class="role-note-link" type="button" data-open-visitor-pro-features="sender">PRO features</button></p>
+                  <p class="role-note-setup-wrap" data-role-setup-wrap="sender" hidden><button class="role-note-link" type="button" data-open-feature-setup="sender">Click here to set up optional features for Telepathy Beginner</button></p>
+                  <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
+                </div>
+                <label class="role-field">
+                  <span class="role-field-label" data-own-identifier-label="sender">You</span>
+                  <div class="role-own-row">
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="ownName"
+                      autocomplete="off"
+                      placeholder="name@example.com or unique handle"
+                      spellcheck="false"
+                    >
+                    <div class="role-messaging-launch" data-role-messaging-launch="sender">
+                      <button class="role-message-open" type="button" data-open-role-messages="sender">
+                        <span>Messages</span>
+                        <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
+                      </button>
+                    </div>
+                    <div class="role-course-launch">
+                      <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="sender">Learning Center</button>
+                    </div>
+                  </div>
+                </label>
+                <label class="role-field role-field-partner">
+                  <span class="role-field-label" data-partner-identifier-label="sender">Receiver - Enter "Robot" to experience a simulation of telepathy practice at this level.</span>
+                  <div class="role-partner-row">
+                    <input
+                      class="role-input"
+                      type="text"
+                      name="partnerName"
+                      autocomplete="off"
+                      placeholder="name@example.com or unique handle"
+                      spellcheck="false"
+                    >
+                    <select class="role-select" name="partnerHistory" aria-label="Saved receiver handles" autocomplete="off" title="Press here to select a saved handle" hidden>
+                      <option value="">Select receiver</option>
+                    </select>
+                    <button
+                      class="role-manage"
+                      type="button"
+                      name="managePartnerNames"
+                      title="Edit dropdown list of receiver handles"
+                      hidden
+                    >Manage saved receivers</button>
+                  </div>
+                </label>
+                <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
+                <div class="role-location-status" data-location-status="sender">
+                  <span class="role-location-text">Location: unknown</span>
+                  <div class="role-location-actions">
+                    <button class="role-location-exact" type="button" data-open-exact-location="sender">Review Location</button>
+                  </div>
+                </div>
+                <div class="role-difficulty-status" data-role-difficulty-status="sender" hidden></div>
                 <button class="role-go" type="submit">GO</button>
               </form>
             </div>
@@ -351,7 +363,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
         </section>
       </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="learn-more" aria-labelledby="learnMoreTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="learn-more" aria-labelledby="learnMoreTitle">
           <div class="beginner-top-row learn-more-top-row">
           <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-save-learn-more>SAVE</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -380,7 +392,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
         </section>
       </section>
 
-      <section class="beginner-view beginner-view-hidden" data-view="esp-lesson-detail" aria-labelledby="espLessonDetailTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="esp-lesson-detail" aria-labelledby="espLessonDetailTitle">
         <div class="beginner-top-row">
           <span class="beginner-top-spacer" aria-hidden="true"></span>
           <p class="beginner-kicker">ESP GYM</p>
@@ -401,7 +413,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
       <div class="handle-overlay beginner-view-hidden" data-handle-overlay>
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="handleDialogTitle">
           <h2 class="about-section-title" id="handleDialogTitle">Choose Unique Name</h2>
-          <p class="about-section-copy">Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen.</p>
+          <p class="about-section-copy">Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.</p>
           <label class="settings-view-field">
             <span class="settings-view-label">Proposed unique name:</span>
             <input class="settings-view-input" type="text" autocomplete="off" spellcheck="false" data-handle-input placeholder="your-handle">
@@ -488,9 +500,11 @@ You don't need to use your email to identify yourself uniquely in this app. You 
       <div class="location-picker-overlay beginner-view-hidden" data-location-picker-overlay>
         <div class="location-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="locationPickerTitle">
           <div class="location-picker-top-row">
-            <h2 class="about-section-title location-picker-title" id="locationPickerTitle">Fine-Tune Device Location</h2>
+            <h2 class="about-section-title location-picker-title" id="locationPickerTitle">Review Device Location</h2>
             <div class="contact-actions location-picker-top-actions">
-              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-save disabled>SAVE LOCATION</button>
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-save disabled>SAVE ADJUSTED LOCATION</button>
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-use-browser disabled>USE BROWSER LOCATION</button>
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-refresh-browser>REFRESH BROWSER LOCATION</button>
               <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-cancel>BACK</button>
             </div>
           </div>
@@ -516,7 +530,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260630s</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260702v</span>
           </div>
         </div>
 
@@ -650,7 +664,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </footer>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="online-course" aria-labelledby="onlineCourseTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="online-course" aria-labelledby="onlineCourseTitle">
           <div class="beginner-top-row online-course-top-row">
             <button class="beginner-top-button beginner-top-button-left beginner-top-pill" type="button" data-save-online-course-word>SAVE as WORD FILE</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -658,21 +672,6 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </div>
 
           <h1 class="beginner-title" id="onlineCourseTitle">Learning Center</h1>
-          <div class="online-course-jump-links" aria-label="Online course quick links">
-                  <button class="role-note-link online-course-jump-link" type="button" data-open-baseline-questions data-online-course-target="baseline" onclick="window.location.href='./telepathybeginner.html?v=20260630s&amp;open=baseline-questions'">Baseline Questions</button>
-                  <button class="role-note-link online-course-jump-link" type="button" data-open-after-first-session-questions onclick="window.location.href='./telepathybeginner.html?v=20260630s&amp;open=after-first-session-questions'">After First Session Questions</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="sender">Sender</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="receiver">Receiver</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="performance">Performance</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-general-information>General Information</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-rewire>Rewire</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-readings-videos>Readings and Videos</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-websites-events-list>Websites and Events</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-case-studies-list>Case Studies</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
-            <button class="role-note-link online-course-jump-link" type="button" data-open-user-comments-list>Comments, Suggestions & Testimonials from Users</button>
-          </div>
-
           <section class="settings-view-panel about-view-panel online-course-panel">
               <div class="online-course-tabs" role="tablist" aria-label="Learning Center sections">
                 <button class="online-course-tab-button online-course-tab-button-active" type="button" role="tab" aria-selected="true" aria-controls="onlineCourseTabWelcome" id="onlineCourseTabButtonWelcome" data-online-course-tab="welcome">Welcome</button>
@@ -684,14 +683,14 @@ You don't need to use your email to identify yourself uniquely in this app. You 
 
               <section class="online-course-tab-panel" id="onlineCourseTabWelcome" role="tabpanel" aria-labelledby="onlineCourseTabButtonWelcome" data-online-course-panel="welcome">
               <div class="about-section">
-                <p class="about-section-copy">Welcome to the Learning Center. This is where the structured steps of this online course are presented. To participate in this course as a course-taker, click on each line that starts with a checkbox below pretty much in order. They will take you on a structured tour of an area of perceptual sensitivity which is just now beginning to be explored seriously by modern science. As familiarity with your own telepathic perception increases, and with intention, your ability to perceive information telepathically and accurately may improve. There is no guarantee, because the extent to which a person can improve their telepathic ability through intention and practice is not known.</p>
+                <p class="about-section-copy">Welcome to the Learning Center. This is where the steps of this online course are presented. To participate in this course as a course-taker, click on each line below that starts with a checkbox. One by one, they will take you on a structured tour of an area of perceptual sensitivity which is just now beginning to be explored seriously by modern science. As familiarity with your own telepathic perception increases, your ability to perceive information telepathically and accurately may improve. There is no guarantee, because the extent to which a person can improve their telepathic ability through intention and practice is still unknown.</p>
                 <p class="about-section-copy"><strong>Goal:</strong> Become better able to tune in to information in telepathic form present "out there." Where exactly "out there" is remains to be seen. It is possibly outside of space itself.</p>
-                <p class="about-section-copy">This course starts by presenting information that leads to a deeper understanding of telepathy and what receivers and senders of telepathic information should expect. In order to be a receiver of telepathic information, it is essential to believe completely in the reality of telepathy. A sender of telepathic information does not need to believe in telepathy and can be a skeptic. To strengthen the belief of doubters who nevertheless have an open mind, we will examine a few documented case studies and look at examples of what a few exceptionally gifted people were able to do with telepathic sensitivity.</p>
-                <p class="about-section-copy">We will also look at our biology and get an understanding of how the mind's eye works. After that, we will be introduced to the simple Level 1 operation of the telepathy task, the need to find a partner or partners to work with, preparing for the practice trials, and how to schedule them spontaneously or not. Then we will start to do actual telepathy practice trials and look at performance reports, and examine introspectively what our minds were doing.</p>
-                <p class="about-section-copy">This is basically a course in learning how to be more sensitive to specifically the visual information that can manifest in your 'mind's eye.' Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become familiar with it.</p>
-                <p class="about-section-copy">The lessons have put together and condensed a wealth of information already known and understood about telepathy from diverse sources. Some of this information may be new even for those quite familiar with parapsychology.</p>
-                <p class="about-section-copy">The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is tracked, analyzed constantly for chance vs. better-than-chance performance, and can be viewed at any time by going to the Performance Reports menu item.</p>
-                <p class="about-section-copy">For those not interested in visiting ESP Gym for its courseware, but just to use its tools to explore and practice telepathy, they should simply go directly to the practice tools and start workouts with them: Practice Telepathy menu item.</p>
+                <p class="about-section-copy">The course starts by presenting information that leads to a deeper understanding of telepathy and what receivers and senders of telepathic information should expect. In order to be a receiver of telepathic information, it is essential to believe completely in the reality of telepathy. A sender of telepathic information does not need to believe in telepathy and can be a skeptic. To strengthen the belief of doubters who nevertheless have an open mind, we will examine documented case studies and look at examples of what a few exceptionally gifted individuals were able to do with telepathic sensitivity.</p>
+                <p class="about-section-copy">We will also probe the way human perception works to get a better understanding of how the mind's eye works. After that, we will be introduced to the Level 1 operation of the telepathy task, the reasons for that particular task to be used, the need to find a partner or partners to work with, prepation for the practice trials, and how to schedule them spontaneously (or not). Then we will start to do actual telepathy practice trials, look at the performance reports, and examine introspectively what our minds were doing.</p>
+                <p class="about-section-copy">This is basically a course in learning how to be more sensitive to specifically the visual telepathic information that does reliably manifest in your 'mind's eye' under the right conditions. Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become familiar with it.</p>
+                <p class="about-section-copy">The lessons have put together and condensed a wealth of information already known and understood about telepathy from diverse sources. Some of this information may be new even for those familiar with parapsychology.</p>
+                <p class="about-section-copy">The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is analyzed constantly for chance vs. better-than-chance performance and can be viewed at any time by going to the Performance Reports menu item.</p>
+                <p class="about-section-copy">For those not interested in visiting ESP Gym for its courseware, but just to use its tools to explore and practice telepathy, they should simply go directly to the Practice Telepathy tools and start working out with them.</p>
                 <p class="about-section-copy">First, to establish a baseline reference point, please answer the following questions:</p>
               </div>
               </section>
@@ -727,7 +726,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
             </section>
           </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="baseline-questions" aria-labelledby="baselineQuestionsTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="baseline-questions" aria-labelledby="baselineQuestionsTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-baseline-questions>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -743,32 +742,6 @@ You don't need to use your email to identify yourself uniquely in this app. You 
             </div>
 
             <form class="baseline-questions-form" data-baseline-form>
-              <div class="settings-view-field">
-                <label class="settings-view-label" for="baselineAgeGroup">1. Approximate age</label>
-                <select class="settings-view-input" id="baselineAgeGroup" data-baseline-age>
-                  <option value="">Select one</option>
-                  <option value="1-6">1-6</option>
-                  <option value="7-12">7-12</option>
-                  <option value="13-18">13-18</option>
-                  <option value="19-22">19-22</option>
-                  <option value="23-30">23-30</option>
-                  <option value="31-45">31-45</option>
-                  <option value="45-60">45-60</option>
-                  <option value="61-75">61-75</option>
-                  <option value="75+">75+</option>
-                  <option value="Rather not say">Rather not say</option>
-                </select>
-              </div>
-
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">2. Sex</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="F" data-baseline-sex> <span>F</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="M" data-baseline-sex> <span>M</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="Rather not say" data-baseline-sex> <span>Rather not say</span></label>
-                </div>
-              </fieldset>
-
               <div class="settings-view-field">
                 <label class="settings-view-label" for="baselineBeliefTelepathy">3. How strong is your current belief in the reality of telepathy?</label>
                 <div class="baseline-scale-wrap">
@@ -835,7 +808,34 @@ You don't need to use your email to identify yourself uniquely in this app. You 
               </fieldset>
 
               <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">9. If you do exceptionally well, would you be available to participate in further research?</legend>
+                <legend class="settings-view-label">9. Sex</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="F" data-baseline-sex> <span>F</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="M" data-baseline-sex> <span>M</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="baselineSex" value="Rather not say" data-baseline-sex> <span>Rather not say</span></label>
+                </div>
+              </fieldset>
+
+              <div class="settings-view-field">
+                <label class="settings-view-label" for="baselineAgeGroup">10. Approximate age</label>
+                <select class="settings-view-input" id="baselineAgeGroup" data-baseline-age>
+                  <option value="">Select one</option>
+                  <option value="1-6">1-6</option>
+                  <option value="7-12">7-12</option>
+                  <option value="13-18">13-18</option>
+                  <option value="19-22">19-22</option>
+                  <option value="23-30">23-30</option>
+                  <option value="31-45">31-45</option>
+                  <option value="45-60">45-60</option>
+                  <option value="61-75">61-75</option>
+                  <option value="75-90">75-90</option>
+                  <option value="91+">91+</option>
+                  <option value="Rather not say">Rather not say</option>
+                </select>
+              </div>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">11. If you do exceptionally well, would you be available to participate in further research?</legend>
                 <div class="baseline-choice-grid">
                   <label class="settings-view-checkbox"><input type="radio" name="baselineFurtherResearch" value="Yes" data-baseline-further-research> <span>Yes</span></label>
                   <label class="settings-view-checkbox"><input type="radio" name="baselineFurtherResearch" value="No" data-baseline-further-research> <span>No</span></label>
@@ -849,7 +849,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="after-first-session-questions" aria-labelledby="afterFirstSessionQuestionsTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="after-first-session-questions" aria-labelledby="afterFirstSessionQuestionsTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-after-first-session-questions>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -980,7 +980,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="general-information" aria-labelledby="generalInformationTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="general-information" aria-labelledby="generalInformationTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-general-information>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1013,7 +1013,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="rewire" aria-labelledby="rewireTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="rewire" aria-labelledby="rewireTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-rewire>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1029,7 +1029,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="readings-videos" aria-labelledby="readingsVideosTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="readings-videos" aria-labelledby="readingsVideosTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-readings-videos>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1051,7 +1051,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="websites-events-list" aria-labelledby="websitesEventsListTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="websites-events-list" aria-labelledby="websitesEventsListTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-websites-events-list>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1067,7 +1067,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="case-studies-list" aria-labelledby="caseStudiesListTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="case-studies-list" aria-labelledby="caseStudiesListTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-case-studies-list>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1095,7 +1095,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="peer-reviewed-list" aria-labelledby="peerReviewedListTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="peer-reviewed-list" aria-labelledby="peerReviewedListTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-peer-reviewed-list>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1111,7 +1111,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="user-comments-list" aria-labelledby="userCommentsListTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="user-comments-list" aria-labelledby="userCommentsListTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-user-comments-list>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1127,7 +1127,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="go-pro" aria-labelledby="goProTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="go-pro" aria-labelledby="goProTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-go-pro>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1181,7 +1181,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </div>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="clairvoyance-viewing" aria-labelledby="clairvoyanceViewingTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="clairvoyance-viewing" aria-labelledby="clairvoyanceViewingTitle">
           <div class="beginner-top-row clairvoyance-top-row">
             <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-clairvoyance-learn-more>LEARN MORE</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1270,8 +1270,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
                   <div class="role-location-status" data-location-status="remote-viewer">
                     <span class="role-location-text">Location: unknown</span>
                     <div class="role-location-actions">
-                      <button class="role-location-exact" type="button" data-open-exact-location="remote-viewer">Set exact location</button>
-                      <button class="role-location-retry" type="button" data-retry-location="remote-viewer" hidden>Retry location</button>
+                      <button class="role-location-exact" type="button" data-open-exact-location="remote-viewer">Review Location</button>
                     </div>
                   </div>
                   <div class="role-difficulty-status" data-role-difficulty-status="remote-viewer" hidden></div>
@@ -1282,7 +1281,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="clairvoyance-learn-more" aria-labelledby="clairvoyanceLearnMoreTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="clairvoyance-learn-more" aria-labelledby="clairvoyanceLearnMoreTitle">
           <div class="beginner-top-row clairvoyance-top-row">
             <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-save-clairvoyance-learn-more>SAVE</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1444,7 +1443,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="help" aria-labelledby="helpTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="help" aria-labelledby="helpTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-help>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1459,7 +1458,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </div>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="beginner-user-manual" aria-labelledby="beginnerUserManualTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="beginner-user-manual" aria-labelledby="beginnerUserManualTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-beginner-user-manual>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1476,7 +1475,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="pro-user-manual" aria-labelledby="proUserManualTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="pro-user-manual" aria-labelledby="proUserManualTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-pro-user-manual>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1493,7 +1492,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="feature-setup" aria-labelledby="featureSetupTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="feature-setup" aria-labelledby="featureSetupTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-feature-setup>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1546,7 +1545,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="install-guide" aria-labelledby="installGuideTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="install-guide" aria-labelledby="installGuideTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-install-guide>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1578,7 +1577,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="contact" aria-labelledby="contactTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="contact" aria-labelledby="contactTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-contact>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1629,7 +1628,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="rotating-messages-editor" aria-labelledby="rotatingMessagesEditorTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="rotating-messages-editor" aria-labelledby="rotatingMessagesEditorTitle">
           <div class="beginner-top-row">
             <span class="beginner-top-spacer" aria-hidden="true"></span>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1659,7 +1658,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="about" aria-labelledby="aboutTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="about" aria-labelledby="aboutTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-about>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1667,7 +1666,6 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </div>
 
           <h1 class="beginner-title" id="aboutTitle">About</h1>
-          <p class="beginner-subtitle">Background information about Telepathy Beginner and how ESP Gym handles your data.</p>
 
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
@@ -1685,7 +1683,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="settings" aria-labelledby="settingsTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="settings" aria-labelledby="settingsTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-settings>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1715,7 +1713,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
             </section>
           </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="admin" aria-labelledby="adminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="admin" aria-labelledby="adminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1760,13 +1758,18 @@ You don't need to use your email to identify yourself uniquely in this app. You 
               >
             </label>
             <p class="settings-view-hint">Test only. Leave blank or enter 0 to use the normal 14-day exploration period. A positive number shortens new Explore PRO trials to that many seconds.</p>
+            <label class="settings-view-checkbox">
+              <input type="checkbox" data-admin-trial-mode-public-enabled>
+              <span>Enable public 14-day Trial from landing page</span>
+            </label>
 
             <div class="settings-view-note" data-admin-storage-info></div>
             <div class="settings-view-status" data-admin-status></div>
 
             <div class="admin-button-grid">
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
-              <button class="options-button settings-view-save" type="button" data-admin-list-users>List all users</button>
+              <button class="options-button settings-view-save" type="button" data-admin-list-users>All Pairs</button>
+              <button class="options-button settings-view-save" type="button" data-admin-list-identities>All Identities</button>
               <button class="options-button settings-view-save" type="button" data-admin-analyze-disk>Analyze disk usage</button>
               <button class="options-button settings-view-save" type="button" data-open-color-scheme>Color Scheme Picker</button>
               <button class="options-button settings-view-save" type="button" data-open-blink-behavior>Blink Behavior</button>
@@ -1774,40 +1777,129 @@ You don't need to use your email to identify yourself uniquely in this app. You 
               <button class="options-button settings-view-save" type="button" data-open-invitee-admin-direct>Manage Invitees</button>
               <button class="options-button settings-view-save" type="button" data-open-handle-update-admin>Update a user handle</button>
               <button class="options-button settings-view-save" type="button" data-open-image-pair-admin>Add image pairs</button>
+              <button class="options-button settings-view-save" type="button" data-admin-open-14-day-trial>14-day Trial</button>
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
               <button class="options-button settings-view-save" type="button" data-open-rotating-messages-editor>Edit Rotating Messages</button>
               <button class="options-button settings-view-save" type="button" data-open-lesson-index-admin>Lesson Index</button>
+              <button class="options-button settings-view-save" type="button" data-open-saved-links-admin>Saved Links</button>
               <button class="options-button settings-view-save" type="button" data-admin-email-list>Email List</button>
               <button class="options-button settings-view-save" type="button" data-admin-open-analyzer>Analyze Results</button>
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='BeginnerUserManual_preserved_20260625.html?v=20260630s'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260630s'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260702v'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260702v'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
             </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="admin-user-list" aria-labelledby="adminUserListTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="saved-links-admin" aria-labelledby="savedLinksAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-saved-links-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="savedLinksAdminTitle">Saved Links</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="online-course-jump-links" aria-label="Saved links">
+              <button class="role-note-link online-course-jump-link" type="button" data-open-baseline-questions data-online-course-target="baseline">Baseline Questions</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-after-first-session-questions>After First Session Questions</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="sender">Sender</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="receiver">Receiver</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="performance">Performance</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-general-information>General Information</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-rewire>Rewire</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-readings-videos>Readings and Videos</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-websites-events-list>Websites and Events</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-case-studies-list>Case Studies</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-open-user-comments-list>Comments, Suggestions & Testimonials from Users</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="admin-user-list" aria-labelledby="adminUserListTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin-user-list>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="adminUserListTitle">All Users</h1>
+          <h1 class="beginner-title" id="adminUserListTitle">All Pairs</h1>
 
           <section class="report-panel admin-user-list-panel">
             <div class="report-summary" data-admin-user-list-summary></div>
             <div class="report-status" data-admin-user-list-status></div>
-            <pre class="report-definition-debug admin-user-list-output" data-admin-user-list-output hidden></pre>
+            <div class="admin-report-filter-row" data-admin-pairs-filters>
+              <button class="role-note-link online-course-jump-link is-selected" type="button" data-admin-pairs-filter="all" aria-pressed="true">All</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-pairs-filter="human" aria-pressed="false">Human</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-pairs-filter="simulation" aria-pressed="false">Simulation</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-pairs-filter="demo" aria-pressed="false">Demo</button>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table admin-report-table admin-pairs-table">
+                <thead>
+                  <tr>
+                    <th>Receiver</th>
+                    <th>Sender</th>
+                    <th>Type</th>
+                    <th>Trials</th>
+                    <th>Levels</th>
+                    <th>First</th>
+                    <th>Last</th>
+                  </tr>
+                </thead>
+                <tbody data-admin-user-list-body></tbody>
+              </table>
+            </div>
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="admin-email-list" aria-labelledby="adminEmailListTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="admin-identity-list" aria-labelledby="adminIdentityListTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin-identity-list>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="adminIdentityListTitle">All Identities</h1>
+
+          <section class="report-panel admin-user-list-panel">
+            <div class="report-summary" data-admin-identity-list-summary></div>
+            <div class="report-status" data-admin-identity-list-status></div>
+            <div class="admin-report-filter-row" data-admin-identity-filters>
+              <button class="role-note-link online-course-jump-link is-selected" type="button" data-admin-identity-filter="all" aria-pressed="true">All</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-identity-filter="pro" aria-pressed="false">PRO</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-identity-filter="std" aria-pressed="false">STD</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-identity-filter="unique name" aria-pressed="false">Unique Name</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-identity-filter="email" aria-pressed="false">Email</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-identity-filter="invitee" aria-pressed="false">Invitee</button>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table admin-report-table admin-identities-table">
+                <thead>
+                  <tr>
+                    <th>Identity</th>
+                    <th>Kind</th>
+                    <th>Subscription</th>
+                    <th>Completed Trials</th>
+                    <th>Distinct Partners</th>
+                    <th>First Activity</th>
+                    <th>Last Activity</th>
+                  </tr>
+                </thead>
+                <tbody data-admin-identity-list-body></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="admin-email-list" aria-labelledby="adminEmailListTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin-email-list>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1823,7 +1915,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="lesson-index-admin" aria-labelledby="lessonIndexAdminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="lesson-index-admin" aria-labelledby="lessonIndexAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-lesson-index-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1858,7 +1950,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="user-type-admin" aria-labelledby="userTypeAdminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="user-type-admin" aria-labelledby="userTypeAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-user-type-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1899,7 +1991,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="invitee-admin" aria-labelledby="inviteeAdminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="invitee-admin" aria-labelledby="inviteeAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-invitee-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -1986,7 +2078,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="handle-update-admin" aria-labelledby="handleUpdateAdminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="handle-update-admin" aria-labelledby="handleUpdateAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-handle-update-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -2031,7 +2123,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="image-pair-admin" aria-labelledby="imagePairAdminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="image-pair-admin" aria-labelledby="imagePairAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-image-pair-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -2069,7 +2161,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden" data-view="subscription-email-admin" aria-labelledby="subscriptionEmailAdminTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="subscription-email-admin" aria-labelledby="subscriptionEmailAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-subscription-email-admin>BACK</button>
             <p class="beginner-kicker">ESP GYM</p>
@@ -2116,7 +2208,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
           </section>
         </section>
  
-        <section class="beginner-view beginner-view-hidden" data-view="report-definition" aria-labelledby="reportDefinitionTitle">
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="report-definition" aria-labelledby="reportDefinitionTitle">
         <div class="beginner-top-row report-definition-top-row">
           <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-advanced>ADVANCED</button>
           <p class="beginner-kicker">ESP GYM</p>
@@ -2153,11 +2245,11 @@ You don't need to use your email to identify yourself uniquely in this app. You 
         </section>
       </section>
 
-      <section class="beginner-view beginner-view-hidden" data-view="report" aria-labelledby="reportTitle">
+      <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="report" aria-labelledby="reportTitle">
         <div class="beginner-top-row report-view-pan-handle" data-report-view-pan-handle>
-          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-report>BACK</button>
           <span class="beginner-top-spacer" aria-hidden="true"></span>
-          <span class="beginner-top-spacer" aria-hidden="true"></span>
+          <p class="beginner-kicker">ESP GYM</p>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-button-right beginner-top-pill" type="button" data-close-report>BACK</button>
         </div>
 
         <h1 class="beginner-title" id="reportTitle">Performance Reports</h1>
@@ -2173,11 +2265,11 @@ You don't need to use your email to identify yourself uniquely in this app. You 
         </section>
       </section>
 
-      <section class="beginner-view beginner-view-hidden" data-view="visualization" aria-labelledby="visualizationTitle">
+      <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="visualization" aria-labelledby="visualizationTitle">
         <div class="beginner-top-row">
-          <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-visualization>BACK</button>
-          <p class="beginner-kicker">ESP GYM</p>
           <span class="beginner-top-spacer" aria-hidden="true"></span>
+          <p class="beginner-kicker">ESP GYM</p>
+          <button class="beginner-top-button beginner-top-button-back beginner-top-button-right beginner-top-pill" type="button" data-close-visualization>BACK</button>
         </div>
 
         <h1 class="beginner-title" id="visualizationTitle">Performance Visualization</h1>
@@ -2199,7 +2291,7 @@ You don't need to use your email to identify yourself uniquely in this app. You 
         </section>
       </section>
 
-      <section class="beginner-view beginner-view-hidden" data-view="analyzer" aria-labelledby="analyzerTitle">
+      <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="analyzer" aria-labelledby="analyzerTitle">
         <div class="beginner-top-row">
           <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-analyzer>BACK</button>
           <p class="beginner-kicker">ESP GYM</p>
@@ -2241,10 +2333,17 @@ You don't need to use your email to identify yourself uniquely in this app. You 
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260630s"></script>
-<script src="telepathybeginner.js?v=20260630s"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260702v"></script>
+<script src="telepathybeginner.js?v=20260702v"></script>
 </body>
 </html>
+
+
+
+
+
+
+
 
 
 

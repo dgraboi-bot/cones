@@ -1,5 +1,20 @@
 RewriteEngine On
 
+# Canonical ESP GYM entry:
+# root and legacy index requests on espgym.com should land on the versioned launcher URL
+# explicitly, instead of depending on DirectoryIndex fallthrough.
+RewriteCond %{HTTP_HOST} ^(?:www\.)?espgym\.com$ [NC]
+RewriteRule ^$ https://espgym.com/telepathybeginner.html?open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
+
+RewriteCond %{HTTP_HOST} ^(?:www\.)?espgym\.com$ [NC]
+RewriteRule ^index\.html$ https://espgym.com/telepathybeginner.html?open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
+
+<IfModule mod_headers.c>
+Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0" env=ESPGYM_ROOT_REDIRECT
+Header always set Pragma "no-cache" env=ESPGYM_ROOT_REDIRECT
+Header always set Expires "0" env=ESPGYM_ROOT_REDIRECT
+</IfModule>
+
 # Keep the old public launcher URLs from existing as a second public copy of the app.
 # Runtime pages, API endpoints, and assets stay on the old origin for now so older
 # installed copies do not hard-break during the transition.
@@ -14,3 +29,5 @@ RewriteRule ^BeginnerUserManual(?:_preserved_20260625)?\.html$ https://espgym.co
 
 RewriteCond %{HTTP_HOST} ^(?:www\.)?telepathyexperiment\.com$ [NC]
 RewriteRule ^globe/index\.html$ https://espgym.com/globe/index.html [R=302,L,NE,QSA]
+
+

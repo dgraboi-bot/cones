@@ -38,7 +38,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260630s";
+  const runtimeBuildVersion = "20260702v";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -401,6 +401,7 @@
       return {
         own_email: typeof parsed?.own_email === "string" ? parsed.own_email : "",
         partner_email: typeof parsed?.partner_email === "string" ? parsed.partner_email : "",
+        visitor_display_name: typeof parsed?.visitor_display_name === "string" ? parsed.visitor_display_name : "",
         allow_second_choice: typeof parsed?.allow_second_choice === "boolean" ? parsed.allow_second_choice : false,
         export_email: typeof parsed?.export_email === "string" ? parsed.export_email : "",
         device_location: typeof parsed?.device_location === "string" ? parsed.device_location : "",
@@ -416,6 +417,7 @@
       return {
         own_email: "",
         partner_email: "",
+        visitor_display_name: "",
         allow_second_choice: false,
         export_email: "",
         device_location: "",
@@ -633,7 +635,7 @@
 
   function buildRobotParticipantProfiles() {
     const settings = readSettings();
-    const ownName = String(settings.own_email || "").trim();
+    const ownName = String(settings.visitor_display_name || settings.own_email || "").trim();
     const partnerLocation = "";
     const ownProfile = {
       name: ownName,
@@ -1048,6 +1050,7 @@
 
       const ownEmail = params.get("own_email") || "";
       const partnerEmail = params.get("partner_email") || "";
+      const visitorDisplayName = params.get("visitor_display_name") || "";
       const latitude = Number(params.get("loc_latitude"));
       const longitude = Number(params.get("loc_longitude"));
       const accuracy = Number(params.get("loc_accuracy"));
@@ -1065,6 +1068,7 @@
       const settings = readSettings();
       settings.own_email = ownEmail || settings.own_email || "";
       settings.partner_email = partnerEmail || settings.partner_email || "";
+      settings.visitor_display_name = visitorDisplayName || "";
       if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
         settings.device_location = JSON.stringify({
           latitude,
@@ -2109,6 +2113,7 @@
       }
     }
     params.set("difficulty_level", normalizeDifficultyLevel(currentPairDifficultyLevel || settings.difficulty_level || "1"));
+    params.set("v", "20260702v");
 
     return `telepathybeginner.html?${params.toString()}`;
   }
@@ -5676,6 +5681,12 @@
 
   void boot();
 })();
+
+
+
+
+
+
 
 
 

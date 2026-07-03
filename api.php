@@ -66,6 +66,7 @@ $completedRoundLifetimeMs = 300000;
 $timeoutNoticeLifetimeMs = 1800000;
 $timeoutExitLifetimeMs = 60000;
 $sessionRetentionMs = 3600000;
+$visitorSimulationRetentionMs = 2 * 24 * 60 * 60 * 1000;
 $debugLogMaxBytes = 307200;
 $safetyLogMaxBytes = 51200;
 $handleChangeCooldownMs = 7 * 24 * 60 * 60 * 1000;
@@ -1701,7 +1702,8 @@ function build_cron_status_counts(array $state): array
     return [
         'total_beginner_users' => count($knownIdentifiers),
         'total_launcher_visits' => max(0, (int) ($state['launcher_visit_count'] ?? 0)),
-        'total_pro_users' => $proUsers
+        'total_pro_users' => $proUsers,
+        'total_visitor_trials' => max(0, (int) ($state['visitor_trial_count'] ?? 0))
     ];
 }
 
@@ -1714,6 +1716,7 @@ function send_cron_status_email(array $state, string $subscriptionEmailLogFile, 
         'Total Beginner users: ' . (int) ($counts['total_beginner_users'] ?? 0),
         'Total launcher visits: ' . (int) ($counts['total_launcher_visits'] ?? 0),
         'Total PRO users: ' . (int) ($counts['total_pro_users'] ?? 0),
+        'Total Visitor trials: ' . (int) ($counts['total_visitor_trials'] ?? 0),
         '',
         'Annual reminder scan:',
         'Checked: ' . (int) ($scanResult['checked'] ?? 0),
@@ -4993,6 +4996,31 @@ function participant_identifier_exists(array $state, string $pairsDir, string $i
     return false;
 }
 
+function identifier_has_trial_history(string $identifier, string $pairsDir, string $simulationPairsDir): bool
+{
+    $cleanIdentifier = trim((string) $identifier);
+    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+    if ($lookup === '' || $lookup === 'robot') {
+        return false;
+    }
+
+    foreach ([$pairsDir, $simulationPairsDir] as $dir) {
+        foreach (read_all_pair_trial_records($dir, $dir === $simulationPairsDir) as $record) {
+            if (!is_array($record)) {
+                continue;
+            }
+            foreach (['rx name', 'tx name'] as $fieldKey) {
+                $valueLookup = normalize_identifier_for_lookup((string) ($record[$fieldKey] ?? ''));
+                if ($valueLookup !== '' && $valueLookup === $lookup) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 function assign_user_type_for_identifier(array &$state, string $identifier, string $userType, int $nowMs): array
 {
     $cleanIdentifier = validate_participant_identifier_string($identifier, 'user_identifier', true);
@@ -5103,6 +5131,20 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
 
     if (is_retired_handle($state, $handleKey) && $oldHandleKey !== $handleKey) {
         throw new RuntimeException('That unique handle was used previously and is no longer available.');
+    }
+
+    $realPairsDir = (string) ($GLOBALS['pairsDir'] ?? '');
+    $simulationPairsDir = (string) ($GLOBALS['simulationPairsDir'] ?? '');
+    $belongsToSameActiveOwner = is_array($existing)
+        && get_handle_owner_key((string) ($existing['owner_identifier'] ?? '')) === $ownerKey;
+    if (
+        !$belongsToSameActiveOwner
+        && $oldHandleKey !== $handleKey
+        && $realPairsDir !== ''
+        && $simulationPairsDir !== ''
+        && identifier_has_trial_history($handle, $realPairsDir, $simulationPairsDir)
+    ) {
+        throw new RuntimeException('That unique handle has already been used previously and is no longer available.');
     }
 
     $changeValidation = validate_handle_change_allowed($ownerRecord, $oldHandleKey, $handleKey, $nowMs);
@@ -5913,6 +5955,22 @@ function is_robot_simulation_identifier(string $value): bool
     return normalize_identifier_for_lookup($value) === 'robot';
 }
 
+function is_internal_visitor_simulation_identifier(string $value): bool
+{
+    $normalized = trim((string) $value);
+    if ($normalized === '') {
+        return false;
+    }
+    return preg_match('/^visitor (?:[a-z0-9]{4}|demo)$/i', $normalized) === 1;
+}
+
+function is_anonymous_visitor_simulation_trial_record(array $record): bool
+{
+    $receiverName = trim((string) ($record['rx name'] ?? ''));
+    $senderName = trim((string) ($record['tx name'] ?? ''));
+    return is_internal_visitor_simulation_identifier($receiverName) || is_internal_visitor_simulation_identifier($senderName);
+}
+
 function is_robot_simulation_trial_record(array $record): bool
 {
     $receiverName = trim((string) ($record['rx name'] ?? ''));
@@ -6028,6 +6086,58 @@ function write_pair_trial_records(string $path, array $records): void
         )) . PHP_EOL;
     }
     file_put_contents($path, $headerLine . $body, LOCK_EX);
+}
+
+function prune_anonymous_visitor_simulation_records(string $pairsDir, int $nowMs, int $retentionMs): int
+{
+    if (!is_dir($pairsDir)) {
+        return 0;
+    }
+
+    $prunedCount = 0;
+    $paths = glob($pairsDir . DIRECTORY_SEPARATOR . '*.csv');
+    if (!is_array($paths)) {
+        return 0;
+    }
+
+    foreach ($paths as $path) {
+        if (!is_string($path) || !is_file($path)) {
+            continue;
+        }
+
+        $records = read_csv_records($path);
+        if (!$records) {
+            continue;
+        }
+
+        $keptRecords = [];
+        $fileChanged = false;
+
+        foreach ($records as $record) {
+            if (!is_array($record) || !is_anonymous_visitor_simulation_trial_record($record)) {
+                $keptRecords[] = $record;
+                continue;
+            }
+
+            $recordUtc = trim((string) ($record['utc time'] ?? ''));
+            $recordMillis = $recordUtc !== '' ? strtotime($recordUtc) : false;
+            $recordAgeMs = $recordMillis !== false ? ($nowMs - ((int) $recordMillis * 1000)) : ($nowMs - ((int) @filemtime($path) * 1000));
+
+            if ($recordAgeMs > $retentionMs) {
+                $fileChanged = true;
+                $prunedCount++;
+                continue;
+            }
+
+            $keptRecords[] = $record;
+        }
+
+        if ($fileChanged) {
+            write_pair_trial_records($path, $keptRecords);
+        }
+    }
+
+    return $prunedCount;
 }
 
 function merge_pair_trial_records(array $existingRecords, array $incomingRecords): array
@@ -6838,6 +6948,26 @@ function format_trial_summary_date_label(string $utcTime, string $localDate): st
 function build_user_trial_summary(array $state, array $records): array
 {
     $summary = [];
+    $knownUsers = [];
+    $usersWithTrialRows = [];
+
+    $rememberKnownUser = static function (string $identifier) use (&$knownUsers, $state): void {
+        $cleanIdentifier = trim($identifier);
+        if ($cleanIdentifier === '') {
+            return;
+        }
+        $status = get_identifier_status($state, $cleanIdentifier);
+        $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+        if ($preferredIdentifier === '') {
+            return;
+        }
+        $canonicalKey = get_canonical_identifier_key($state, $preferredIdentifier);
+        $summaryKey = $canonicalKey !== '' ? $canonicalKey : strtolower($preferredIdentifier);
+        if ($summaryKey === '') {
+            return;
+        }
+        $knownUsers[$summaryKey] = $preferredIdentifier;
+    };
 
     foreach ($records as $record) {
         if (!is_array($record)) {
@@ -6862,6 +6992,8 @@ function build_user_trial_summary(array $state, array $records): array
             $receiverKey = ($receiverCanonical !== '' ? $receiverCanonical : strtolower($receiverName))
                 . '|receiver|'
                 . ($senderCanonical !== '' ? $senderCanonical : strtolower($senderName));
+            $usersWithTrialRows[$receiverCanonical !== '' ? $receiverCanonical : strtolower($receiverName)] = true;
+            $usersWithTrialRows[$senderCanonical !== '' ? $senderCanonical : strtolower($senderName)] = true;
             if (!isset($summary[$receiverKey])) {
                 $summary[$receiverKey] = [
                     'user_name' => $receiverName,
@@ -6913,6 +7045,42 @@ function build_user_trial_summary(array $state, array $records): array
         }
     }
 
+    $uniqueHandles = is_array($state['unique_handles'] ?? null) ? $state['unique_handles'] : [];
+    foreach ($uniqueHandles as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $rememberKnownUser((string) ($entry['handle'] ?? ''));
+        $rememberKnownUser((string) ($entry['owner_identifier'] ?? ''));
+    }
+
+    $userTypes = is_array($state['user_types'] ?? null) ? $state['user_types'] : [];
+    foreach (array_keys($userTypes) as $identifierKey) {
+        $rememberKnownUser((string) $identifierKey);
+    }
+
+    $launcherProfiles = is_array($state['launcher_profiles'] ?? null) ? $state['launcher_profiles'] : [];
+    foreach (array_keys($launcherProfiles) as $identifierKey) {
+        $rememberKnownUser((string) $identifierKey);
+    }
+
+    foreach ($knownUsers as $userKey => $preferredIdentifier) {
+        if (isset($usersWithTrialRows[$userKey])) {
+            continue;
+        }
+        $summary[$userKey . '|user|'] = [
+            'user_name' => $preferredIdentifier,
+            'role' => '',
+            'partner_name' => '',
+            'status' => get_user_type_for_identifier($state, $preferredIdentifier) === 'pro' ? 'PRO' : 'STD',
+            'trial_count' => 0,
+            'first_date' => '',
+            'last_date' => '',
+            '_first_sort_key' => '',
+            '_last_sort_key' => ''
+        ];
+    }
+
     $rows = array_map(static function (array $row): array {
         unset($row['_first_sort_key']);
         unset($row['_last_sort_key']);
@@ -6935,6 +7103,318 @@ function build_user_trial_summary(array $state, array $records): array
         }
 
         return (int) ($right['trial_count'] ?? 0) <=> (int) ($left['trial_count'] ?? 0);
+    });
+
+    return $rows;
+}
+
+function is_completed_trial_record(array $record): bool
+{
+    $trialAborted = strtolower(trim((string) ($record['trial aborted'] ?? ''))) === 'yes';
+    $trialTimedOut = strtolower(trim((string) ($record['trial timed out'] ?? ''))) === 'yes';
+    $choiceOneRaw = trim((string) ($record['rx choice1'] ?? ''));
+    return !$trialAborted && !$trialTimedOut && $choiceOneRaw !== '';
+}
+
+function map_pair_source_to_admin_type(string $source, string $receiverName, string $senderName): string
+{
+    $normalizedSource = strtolower(trim($source));
+    if ($normalizedSource === 'simulation') {
+        return 'Simulation';
+    }
+    if (is_demo_report_pair($receiverName, $senderName)) {
+        return 'Demo';
+    }
+    return 'Human';
+}
+
+function get_pair_type_sort_order(string $type): int
+{
+    return match (strtolower(trim($type))) {
+        'human' => 0,
+        'simulation' => 1,
+        'demo' => 2,
+        default => 9
+    };
+}
+
+function format_levels_used_for_summary(array $levelsUsed): string
+{
+    $levels = array_values(array_unique(array_filter(array_map(
+        static function ($value): string {
+            $trimmed = trim((string) $value);
+            if ($trimmed === '') {
+                return '';
+            }
+            return 'L' . preg_replace('/[^0-9.]/', '', $trimmed);
+        },
+        $levelsUsed
+    ), static fn(string $value): bool => $value !== '' )));
+    usort($levels, static function (string $left, string $right): int {
+        $leftNumber = (float) preg_replace('/[^0-9.]/', '', $left);
+        $rightNumber = (float) preg_replace('/[^0-9.]/', '', $right);
+        if ($leftNumber === $rightNumber) {
+            return strcmp($left, $right);
+        }
+        return $leftNumber <=> $rightNumber;
+    });
+    return implode(',', $levels);
+}
+
+function detect_identity_kind(array $state, string $identifier): string
+{
+    $cleanIdentifier = trim($identifier);
+    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+    if ($lookup === '') {
+        return 'Unique Name';
+    }
+    if (filter_var($cleanIdentifier, FILTER_VALIDATE_EMAIL)) {
+        return 'Email';
+    }
+    if (is_array($state['invitees'] ?? null) && isset($state['invitees'][$lookup]) && is_array($state['invitees'][$lookup])) {
+        return 'Invitee';
+    }
+    return 'Unique Name';
+}
+
+function build_all_pairs_summary(array $state, array $records): array
+{
+    $summary = [];
+
+    foreach ($records as $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        if (!is_completed_trial_record($record)) {
+            continue;
+        }
+
+        $receiverRaw = trim((string) ($record['rx name'] ?? ''));
+        $senderRaw = trim((string) ($record['tx name'] ?? ''));
+        if ($receiverRaw === '' || $senderRaw === '') {
+            continue;
+        }
+        if (
+            is_internal_visitor_simulation_identifier($receiverRaw)
+            || is_internal_visitor_simulation_identifier($senderRaw)
+        ) {
+            continue;
+        }
+
+        $receiverStatus = get_identifier_status($state, $receiverRaw);
+        $senderStatus = get_identifier_status($state, $senderRaw);
+        $receiverName = trim((string) ($receiverStatus['preferred_identifier'] ?? $receiverRaw));
+        $senderName = trim((string) ($senderStatus['preferred_identifier'] ?? $senderRaw));
+        if ($receiverName === '' || $senderName === '') {
+            continue;
+        }
+
+        $source = strtolower(trim((string) ($record['_report_source'] ?? 'real'))) === 'simulation'
+            ? 'simulation'
+            : 'real';
+        $type = map_pair_source_to_admin_type($source, $receiverName, $senderName);
+        $pairKey = build_pair_match_key($receiverName, $senderName) . '|||' . strtolower($type);
+        $localDate = trim((string) ($record['local date'] ?? ''));
+        $utcTime = trim((string) ($record['utc time'] ?? ''));
+        $sortKey = $utcTime !== '' ? $utcTime : $localDate;
+        $dateLabel = format_trial_summary_date_label($utcTime, $localDate);
+        $levelValue = trim((string) ($record['difficulty level'] ?? ''));
+
+        if (!isset($summary[$pairKey])) {
+            $summary[$pairKey] = [
+                'receiver_name' => $receiverName,
+                'sender_name' => $senderName,
+                'type' => $type,
+                'trial_count' => 0,
+                'levels_used' => [],
+                'first_date' => $dateLabel,
+                'last_date' => $dateLabel,
+                '_first_sort_key' => $sortKey,
+                '_last_sort_key' => $sortKey,
+                'selected_pair' => [
+                    'receiver_name' => $receiverName,
+                    'sender_name' => $senderName,
+                    'source' => $source === 'simulation' ? 'simulation' : 'real'
+                ]
+            ];
+        }
+
+        $summary[$pairKey]['trial_count'] += 1;
+        if ($levelValue !== '') {
+            $summary[$pairKey]['levels_used'][$levelValue] = true;
+        }
+        if ($sortKey !== '' && ((string) ($summary[$pairKey]['_first_sort_key'] ?? '') === '' || strcmp($sortKey, (string) ($summary[$pairKey]['_first_sort_key'] ?? '')) <= 0)) {
+            $summary[$pairKey]['_first_sort_key'] = $sortKey;
+            $summary[$pairKey]['first_date'] = $dateLabel;
+        }
+        if ($sortKey !== '' && strcmp($sortKey, (string) ($summary[$pairKey]['_last_sort_key'] ?? '')) >= 0) {
+            $summary[$pairKey]['_last_sort_key'] = $sortKey;
+            $summary[$pairKey]['last_date'] = $dateLabel;
+        }
+    }
+
+    $rows = [];
+    foreach ($summary as $row) {
+        $levelsUsed = array_keys((array) ($row['levels_used'] ?? []));
+        $row['levels'] = format_levels_used_for_summary($levelsUsed);
+        unset($row['levels_used'], $row['_first_sort_key']);
+        $rows[] = $row;
+    }
+
+    usort($rows, static function (array $left, array $right): int {
+        $typeCompare = get_pair_type_sort_order((string) ($left['type'] ?? '')) <=> get_pair_type_sort_order((string) ($right['type'] ?? ''));
+        if ($typeCompare !== 0) {
+            return $typeCompare;
+        }
+        $leftLast = (string) ($left['_last_sort_key'] ?? '');
+        $rightLast = (string) ($right['_last_sort_key'] ?? '');
+        if ($leftLast !== $rightLast) {
+            return strcmp($rightLast, $leftLast);
+        }
+        $receiverCompare = strcasecmp((string) ($left['receiver_name'] ?? ''), (string) ($right['receiver_name'] ?? ''));
+        if ($receiverCompare !== 0) {
+            return $receiverCompare;
+        }
+        return strcasecmp((string) ($left['sender_name'] ?? ''), (string) ($right['sender_name'] ?? ''));
+    });
+
+    foreach ($rows as &$row) {
+        unset($row['_last_sort_key']);
+    }
+    unset($row);
+
+    return $rows;
+}
+
+function build_all_identities_summary(array $state, array $records): array
+{
+    $summary = [];
+
+    $ensureIdentity = static function (string $identifier) use (&$summary, $state): void {
+        $cleanIdentifier = trim($identifier);
+        if ($cleanIdentifier === '') {
+            return;
+        }
+        if (is_internal_visitor_simulation_identifier($cleanIdentifier)) {
+            return;
+        }
+        $status = get_identifier_status($state, $cleanIdentifier);
+        $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+        if ($preferredIdentifier === '') {
+            return;
+        }
+        $canonicalKey = get_canonical_identifier_key($state, $preferredIdentifier);
+        $summaryKey = $canonicalKey !== '' ? $canonicalKey : normalize_identifier_for_lookup($preferredIdentifier);
+        if ($summaryKey === '') {
+            return;
+        }
+        if (!isset($summary[$summaryKey])) {
+            $summary[$summaryKey] = [
+                'identity' => $preferredIdentifier,
+                'kind' => detect_identity_kind($state, $preferredIdentifier),
+                'subscription' => get_user_type_for_identifier($state, $preferredIdentifier) === 'pro' ? 'PRO' : 'STD',
+                'completed_trials' => 0,
+                'distinct_partners' => [],
+                'first_activity' => '',
+                'last_activity' => '',
+                '_first_sort_key' => '',
+                '_last_sort_key' => ''
+            ];
+        }
+    };
+
+    foreach ((array) ($state['unique_handles'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $ensureIdentity((string) ($entry['handle'] ?? ''));
+        $ensureIdentity((string) ($entry['owner_identifier'] ?? ''));
+    }
+    foreach (array_keys((array) ($state['user_types'] ?? [])) as $identifierKey) {
+        $ensureIdentity((string) $identifierKey);
+    }
+    foreach (array_keys((array) ($state['launcher_profiles'] ?? [])) as $identifierKey) {
+        $ensureIdentity((string) $identifierKey);
+    }
+    foreach ((array) ($state['invitees'] ?? []) as $identifierKey => $entry) {
+        if (is_array($entry)) {
+            $ensureIdentity((string) $identifierKey);
+        }
+    }
+
+    foreach ($records as $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        if (!is_completed_trial_record($record)) {
+            continue;
+        }
+
+        $receiverRaw = trim((string) ($record['rx name'] ?? ''));
+        $senderRaw = trim((string) ($record['tx name'] ?? ''));
+        $localDate = trim((string) ($record['local date'] ?? ''));
+        $utcTime = trim((string) ($record['utc time'] ?? ''));
+        $sortKey = $utcTime !== '' ? $utcTime : $localDate;
+        $dateLabel = format_trial_summary_date_label($utcTime, $localDate);
+
+        if ($receiverRaw === '' || $senderRaw === '') {
+            continue;
+        }
+        if (
+            is_internal_visitor_simulation_identifier($receiverRaw)
+            || is_internal_visitor_simulation_identifier($senderRaw)
+        ) {
+            continue;
+        }
+
+        $receiverStatus = get_identifier_status($state, $receiverRaw);
+        $senderStatus = get_identifier_status($state, $senderRaw);
+        $receiverName = trim((string) ($receiverStatus['preferred_identifier'] ?? $receiverRaw));
+        $senderName = trim((string) ($senderStatus['preferred_identifier'] ?? $senderRaw));
+        $ensureIdentity($receiverName);
+        $ensureIdentity($senderName);
+
+        $receiverKey = get_canonical_identifier_key($state, $receiverName);
+        $receiverKey = $receiverKey !== '' ? $receiverKey : normalize_identifier_for_lookup($receiverName);
+        $senderKey = get_canonical_identifier_key($state, $senderName);
+        $senderKey = $senderKey !== '' ? $senderKey : normalize_identifier_for_lookup($senderName);
+
+        if ($receiverKey !== '' && isset($summary[$receiverKey])) {
+            $summary[$receiverKey]['completed_trials'] += 1;
+            $summary[$receiverKey]['distinct_partners'][normalize_identifier_for_lookup($senderName)] = $senderName;
+            if ($sortKey !== '' && (($summary[$receiverKey]['_first_sort_key'] ?? '') === '' || strcmp($sortKey, (string) $summary[$receiverKey]['_first_sort_key']) <= 0)) {
+                $summary[$receiverKey]['_first_sort_key'] = $sortKey;
+                $summary[$receiverKey]['first_activity'] = $dateLabel;
+            }
+            if ($sortKey !== '' && strcmp($sortKey, (string) ($summary[$receiverKey]['_last_sort_key'] ?? '')) >= 0) {
+                $summary[$receiverKey]['_last_sort_key'] = $sortKey;
+                $summary[$receiverKey]['last_activity'] = $dateLabel;
+            }
+        }
+
+        if ($senderKey !== '' && isset($summary[$senderKey])) {
+            $summary[$senderKey]['completed_trials'] += 1;
+            $summary[$senderKey]['distinct_partners'][normalize_identifier_for_lookup($receiverName)] = $receiverName;
+            if ($sortKey !== '' && (($summary[$senderKey]['_first_sort_key'] ?? '') === '' || strcmp($sortKey, (string) $summary[$senderKey]['_first_sort_key']) <= 0)) {
+                $summary[$senderKey]['_first_sort_key'] = $sortKey;
+                $summary[$senderKey]['first_activity'] = $dateLabel;
+            }
+            if ($sortKey !== '' && strcmp($sortKey, (string) ($summary[$senderKey]['_last_sort_key'] ?? '')) >= 0) {
+                $summary[$senderKey]['_last_sort_key'] = $sortKey;
+                $summary[$senderKey]['last_activity'] = $dateLabel;
+            }
+        }
+    }
+
+    $rows = [];
+    foreach ($summary as $row) {
+        $row['distinct_partners'] = count((array) ($row['distinct_partners'] ?? []));
+        unset($row['_first_sort_key'], $row['_last_sort_key']);
+        $rows[] = $row;
+    }
+
+    usort($rows, static function (array $left, array $right): int {
+        return strcasecmp((string) ($left['identity'] ?? ''), (string) ($right['identity'] ?? ''));
     });
 
     return $rows;
@@ -7923,6 +8403,7 @@ if (!is_array($state)) {
         'easy_admin_enabled' => false,
         'learn_more_save_enabled' => false,
         'explore_pro_test_duration_seconds' => 0,
+        'trial_mode_public_enabled' => false,
         'subscription_email_templates' => default_subscription_email_templates()
     ];
 }
@@ -7961,6 +8442,7 @@ if (!array_key_exists('sessions', $state)) {
         'easy_admin_enabled' => false,
         'learn_more_save_enabled' => false,
         'explore_pro_test_duration_seconds' => 0,
+        'trial_mode_public_enabled' => false,
         'subscription_email_templates' => default_subscription_email_templates()
     ];
 }
@@ -8022,6 +8504,9 @@ if (!array_key_exists('easy_admin_enabled', $state)) {
 }
 if (!array_key_exists('learn_more_save_enabled', $state)) {
     $state['learn_more_save_enabled'] = false;
+}
+if (!array_key_exists('trial_mode_public_enabled', $state)) {
+    $state['trial_mode_public_enabled'] = false;
 }
 ensure_subscription_email_state($state);
 ensure_invitee_state($state);
@@ -8165,6 +8650,7 @@ foreach ($state['retired_handles'] as $retiredKey => $entry) {
 $state['retired_handles'] = $normalizedRetiredHandles;
 
 prune_inactive_operational_state($state, $nowMs, $sessionRetentionMs);
+prune_anonymous_visitor_simulation_records($simulationPairsDir, $nowMs, $visitorSimulationRetentionMs);
 
 if (!array_key_exists($sessionCode, $state['sessions']) || !is_array($state['sessions'][$sessionCode])) {
     $state['sessions'][$sessionCode] = default_session_state();
@@ -8552,6 +9038,10 @@ if ($action === 'set_explore_pro_test_duration_seconds' && $hasAdminAccess) {
     $state['explore_pro_test_duration_seconds'] = $seconds;
 }
 
+if ($action === 'set_trial_mode_public_enabled' && $hasAdminAccess) {
+    $state['trial_mode_public_enabled'] = !empty($input['enabled']);
+}
+
 if ($action === 'record_launcher_visit') {
     $state['launcher_visit_count'] = max(0, (int) ($state['launcher_visit_count'] ?? 0)) + 1;
 }
@@ -8591,6 +9081,21 @@ if ($action === 'get_admin_access_mode') {
         'ok' => true,
         'easy_admin_enabled' => !empty($state['easy_admin_enabled']),
         'server_now_ms' => $nowMs
+    ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_public_trial_mode') {
+    $response = [
+        'ok' => true,
+        'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled'])
     ];
     rewind($handle);
     ftruncate($handle, 0);
@@ -10099,12 +10604,14 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $state['partner_message_reads'] = [];
     $state['esp_lessons'] = [];
     $state['launcher_visit_count'] = 0;
+    $state['visitor_trial_count'] = 0;
     $state['debug_enabled'] = false;
     $state['subscription_emails_enabled'] = false;
     $state['subscription_reminders_enabled'] = false;
     $state['easy_admin_enabled'] = false;
     $state['learn_more_save_enabled'] = false;
     $state['explore_pro_test_duration_seconds'] = 0;
+    $state['trial_mode_public_enabled'] = false;
     ensure_email_list_state($state);
     $state['subscription_email_templates'] = default_subscription_email_templates();
     clear_pair_trial_records($pairsDir);
@@ -10217,6 +10724,12 @@ if ($roleConflict === null && $action === 'append_trial_record') {
         : [];
     $simulationMode = trim((string) ($input['simulation_mode'] ?? ''));
     $trialRecordAppendResult = append_pair_trial_record($pairsDir, $trialRecord, $sessionCode, $simulationMode);
+    if (
+        ($trialRecordAppendResult['appended'] ?? false) &&
+        is_anonymous_visitor_simulation_trial_record($trialRecord)
+    ) {
+        $state['visitor_trial_count'] = max(0, (int) ($state['visitor_trial_count'] ?? 0)) + 1;
+    }
 }
 
 if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action === 'start_round' && $role === 'sender') {
@@ -10584,6 +11097,7 @@ $response = [
     'easy_admin_enabled' => !empty($state['easy_admin_enabled']),
     'learn_more_save_enabled' => !empty($state['learn_more_save_enabled']),
     'explore_pro_test_duration_seconds' => max(0, (int) ($state['explore_pro_test_duration_seconds'] ?? 0)),
+    'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled']),
     'pair_difficulty' => normalize_difficulty_level($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
     'role_conflict' => $roleConflict,
     'state' => [
@@ -10631,6 +11145,51 @@ if ($action === 'list_all_users' && $hasAdminAccess) {
     $response['user_trial_summary_meta'] = [
         'report_date' => gmdate('Y-m-d H:i') . ' UTC',
         'total_users' => count($response['user_trial_summary'])
+    ];
+}
+
+if ($action === 'list_all_pairs' && $hasAdminAccess) {
+    $allRecords = array_merge(
+        read_all_pair_trial_records_with_source($pairsDir, 'real'),
+        read_all_pair_trial_records_with_source($simulationPairsDir, 'simulation')
+    );
+    $response['pair_summary'] = build_all_pairs_summary($state, $allRecords);
+    $countsByType = ['Human' => 0, 'Simulation' => 0, 'Demo' => 0];
+    foreach ($response['pair_summary'] as $row) {
+        $type = (string) ($row['type'] ?? '');
+        if (isset($countsByType[$type])) {
+            $countsByType[$type] += 1;
+        }
+    }
+    $response['pair_summary_meta'] = [
+        'report_date' => gmdate('Y-m-d H:i') . ' UTC',
+        'total_pairs' => count($response['pair_summary']),
+        'human_pairs' => $countsByType['Human'],
+        'simulation_pairs' => $countsByType['Simulation'],
+        'demo_pairs' => $countsByType['Demo']
+    ];
+}
+
+if ($action === 'list_all_identities' && $hasAdminAccess) {
+    $allRecords = array_merge(
+        read_all_pair_trial_records_with_source($pairsDir, 'real'),
+        read_all_pair_trial_records_with_source($simulationPairsDir, 'simulation')
+    );
+    $response['identity_summary'] = build_all_identities_summary($state, $allRecords);
+    $proCount = 0;
+    $stdCount = 0;
+    foreach ($response['identity_summary'] as $row) {
+        if (strcasecmp((string) ($row['subscription'] ?? ''), 'PRO') === 0) {
+            $proCount += 1;
+        } else {
+            $stdCount += 1;
+        }
+    }
+    $response['identity_summary_meta'] = [
+        'report_date' => gmdate('Y-m-d H:i') . ' UTC',
+        'total_identities' => count($response['identity_summary']),
+        'pro_count' => $proCount,
+        'std_count' => $stdCount
     ];
 }
 
