@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260703ae">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260705g">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260703ae">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260703ae">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260703ae">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260705g">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260705g">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260705g">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260703ae">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260703ae">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260703ae">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260705g">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260705g">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260705g">
   <script>
     (function () {
-      var buildVersion = "20260703ae";
+      var buildVersion = "20260705g";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -85,7 +85,8 @@
     <section class="beginner-panel" aria-labelledby="beginnerTitle">
       <section class="beginner-view beginner-view-hidden" data-view="launcher">
         <div class="beginner-top-row launcher-top-row">
-          <button class="beginner-top-button beginner-top-pill beginner-top-button-left" type="button" data-open-learn-more>EDIT LESSONS</button>
+          <button class="beginner-top-button beginner-top-pill beginner-top-button-left beginner-top-arrow-button" type="button" data-open-landing-page aria-label="Return to landing page">&#8592;</button>
+          <button class="beginner-top-button beginner-top-pill beginner-top-button-left beginner-top-lessons-button" type="button" data-open-learn-more>EDIT LESSONS</button>
           <p class="beginner-kicker">ESP GYM</p>
           <button class="beginner-top-button beginner-top-pill beginner-top-menu-button" type="button" data-open-options aria-label="Open menu">
             <span>MENU</span>
@@ -170,7 +171,7 @@
                       type="text"
                       name="ownName"
                       autocomplete="off"
-                      placeholder="name@example.com or unique handle"
+                      placeholder="Enter unique name of sender"
                       spellcheck="false"
                     >
                     <div class="role-messaging-launch" data-role-messaging-launch="receiver">
@@ -192,7 +193,7 @@
                       type="text"
                       name="partnerName"
                       autocomplete="off"
-                      placeholder="name@example.com or unique handle"
+                      placeholder="Enter unique name of receiver"
                       spellcheck="false"
                     >
                     <select class="role-select" name="partnerHistory" aria-label="Saved sender handles" autocomplete="off" title="Press here to select a saved handle" hidden>
@@ -462,9 +463,9 @@
 
       <div class="handle-overlay beginner-view-hidden" data-explore-pro-overlay>
         <div class="handle-dialog push-setup-dialog explore-pro-dialog" role="dialog" aria-modal="true" aria-labelledby="exploreProDialogTitle">
-          <h2 class="about-section-title" id="exploreProDialogTitle">Explore ESP PRO</h2>
-          <p class="about-section-copy">Start your free 14-day ESP PRO exploration.</p>
-          <p class="about-section-copy">Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code.</p>
+          <h2 class="about-section-title" id="exploreProDialogTitle" data-explore-pro-title>Explore ESP PRO</h2>
+          <p class="about-section-copy" data-explore-pro-intro>Start your free 14-day ESP PRO exploration.</p>
+          <p class="about-section-copy" data-explore-pro-auth-copy>Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code.</p>
           <label class="settings-view-field">
             <span class="settings-view-label">Email address:</span>
             <input class="settings-view-input" type="email" autocomplete="email" spellcheck="false" data-explore-pro-email placeholder="name@example.com">
@@ -476,7 +477,7 @@
           </div>
           <label class="settings-view-field">
             <span class="settings-view-label">Verification code:</span>
-            <input class="settings-view-input explore-pro-code-input" type="text" autocomplete="one-time-code" spellcheck="false" maxlength="5" data-explore-pro-code placeholder="5-character code">
+            <input class="settings-view-input explore-pro-code-input" type="text" autocomplete="one-time-code" autocapitalize="characters" inputmode="text" spellcheck="false" maxlength="5" size="6" data-explore-pro-code placeholder="5-character code">
           </label>
           <div class="settings-view-status push-setup-status explore-pro-status" data-explore-pro-status></div>
           <div class="contact-actions push-setup-actions explore-pro-actions-row">
@@ -530,7 +531,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260703ae</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260705g</span>
           </div>
         </div>
 
@@ -563,7 +564,7 @@
             </div>
             <p class="beginner-subtitle temporary-home-subtitle">ESP GYM offers a structured way to explore telepathy and psi sensitivity through interactive training, immediate feedback, and thoughtful self-observation. Whether you are curious, skeptical, or experienced, these tools let you test, refine, and track your own extrasensory perception.</p>
             <p class="temporary-home-section-copy temporary-home-hero-copy">These exercises promote increased awareness of subtle impressions, strengthened ability to perceive delicate mental signals, improve memory for fleeting inner events, and potentially strengthen intuitive abilities. They promote greater open-mindedness by encouraging users to explore experiences they may once have thought impossible.</p>
-            <p class="temporary-home-install-note">ESP GYM can be installed as an app on many modern devices, including Windows PCs, iPhone and iPad, Android phones and tablets, and other devices with current browsers that support app installation.</p>
+            <p class="temporary-home-install-note">ESP GYM is a website that can optionally be installed as an app on Windows PCs, iPhone and iPad, Android phones and tablets, and other devices with current browsers that support app installation.</p>
           </section>
 
           <section class="temporary-home-band" aria-label="Invitation access">
@@ -599,7 +600,7 @@
               <article class="temporary-home-card" id="temporary-home-ongoing-research">
                 <h3 class="temporary-home-section-title">Ongoing Research</h3>
                 <p class="temporary-home-section-copy">Individuals who demonstrate talent in Telepathy Beginner are encouraged to participate in the ongoing research program.</p>
-                <button class="options-button temporary-home-card-button" type="button" data-temporary-home-help>Learn More</button>
+                <button class="options-button temporary-home-card-button" type="button" data-open-research-participation>Learn More</button>
               </article>
             </div>
           </section>
@@ -616,11 +617,11 @@
             </article>
             <article class="temporary-home-card">
               <h3 class="temporary-home-section-title">Performance Reports and Visualization</h3>
-              <p class="temporary-home-section-copy">Reporting, graphing, and interpretation tools help users see whether practice is producing improvement or merely reflecting chance performance.</p>
+              <p class="temporary-home-section-copy">Reporting, graphing, and interpretation tools help users see whether they are telepathic and whether practice is producing improvement or merely reflecting chance performance.</p>
             </article>
             <article class="temporary-home-card">
               <h3 class="temporary-home-section-title">Guided ESP Development</h3>
-              <p class="temporary-home-section-copy">ESP GYM also includes educational material, explanatory frameworks, and techniques that can help users understand and strengthen psi sensitivity.</p>
+              <p class="temporary-home-section-copy">ESP GYM includes a unique course in telepathy with explanatory frameworks and techniques that can help users understand and strengthen psi sensitivity.</p>
             </article>
             <article class="temporary-home-card">
               <h3 class="temporary-home-section-title">Experimental and Research-Oriented Tools</h3>
@@ -630,12 +631,12 @@
 
           <section class="temporary-home-copy-section" id="temporary-home-practice">
             <h2 class="temporary-home-section-heading">Why Practice Matters</h2>
-            <p class="temporary-home-section-copy">Like many human abilities, ESP may be influenced by attention, trust, consistency, and experience. Repeated, structured practice may help some people become more sensitive to subtle impressions that otherwise go unnoticed. Whether the effect is large, small, stable, or elusive, disciplined practice creates the opportunity to observe it more clearly and evaluate it more honestly.</p>
+            <p class="temporary-home-section-copy">Like many human skills and abilities, ESP may be influenced by attention, trust, consistency, and experience. Repeated, structured practice may help some people become more sensitive to subtle impressions that otherwise go unnoticed. Whether the effect is large, small, stable, or elusive, disciplined practice creates the opportunity to observe it more clearly and evaluate it honestly.</p>
           </section>
 
           <section class="temporary-home-copy-section" id="temporary-home-special">
             <h2 class="temporary-home-section-heading">Special Participation</h2>
-            <p class="temporary-home-section-copy">From time to time, ESP GYM may invite selected individuals into early-access programs, founder groups, special experiments, or guided experiences. If you have received an invitation code, you can use it above to gain user access to ESP PRO.</p>
+            <p class="temporary-home-section-copy">From time to time, ESP GYM may invite selected individuals into early-access programs, founder groups, or special experiments. If you have received an invitation code, you can use it above to gain user access to ESP PRO.</p>
           </section>
 
           <section class="temporary-home-copy-section" id="temporary-home-stay-connected">
@@ -649,15 +650,15 @@
 
           <footer class="temporary-home-footer" aria-label="ESP GYM footer links">
             <nav class="temporary-home-footer-links">
-              <a class="temporary-home-footer-link" href="#temporary-home-telepathy-beginner">Telepathy Beginner</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-esp-pro">ESP PRO</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-remote-viewing">Remote Viewing</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-beginner>Telepathy Beginner</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-pro>ESP PRO</a>
+              <a class="temporary-home-footer-link" href="clairvoyance_rv_page.jpg" data-footer-open-remote-viewing>Remote Viewing</a>
               <a class="temporary-home-footer-link" href="#temporary-home-learning-center">Learn</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-stay-connected">Help</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-stay-connected">Contact</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-what-is">Privacy</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-ongoing-research">Research</a>
-              <a class="temporary-home-footer-link" href="#temporary-home-what-is">About ESP GYM</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-help>Help</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-contact>Contact</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-privacy>Privacy</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-research>Research</a>
+              <a class="temporary-home-footer-link" href="#" data-footer-open-about>About ESP GYM</a>
             </nav>
             <p class="temporary-home-footer-brand">ESP GYM</p>
             <p class="temporary-home-footer-copy">Training tools for telepathy, remote viewing, and ESP development.</p>
@@ -666,7 +667,7 @@
 
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="online-course" aria-labelledby="onlineCourseTitle">
           <div class="beginner-top-row online-course-top-row">
-            <button class="beginner-top-button beginner-top-button-left beginner-top-pill" type="button" data-save-online-course-word>SAVE as WORD FILE</button>
+            <button class="beginner-top-button beginner-top-button-left beginner-top-pill" type="button" data-open-online-course-practice>Telepathy Practice</button>
             <p class="beginner-kicker">ESP GYM</p>
             <button class="beginner-top-button beginner-top-button-back beginner-top-button-right beginner-top-pill" type="button" data-close-online-course>BACK</button>
           </div>
@@ -1177,7 +1178,8 @@
             <button class="options-button" type="button" data-open-contact>Contact ESP Gym</button>
             <button class="options-button" type="button" data-open-clairvoyance-viewing data-pro-only-other-settings hidden>Clairvoyance / Remote Viewing</button>
             <button class="options-button" type="button" data-open-subscription-management>PRO Subscription</button>
-            <button class="options-button" type="button" data-open-confidence-behavior>Confidence</button>
+            <button class="options-button" type="button" data-open-confidence-behavior>Confidence and Reinforcement</button>
+            <button class="options-button" type="button" data-open-research-participation-pro data-pro-only-other-settings hidden>Research Participation</button>
           </div>
         </section>
 
@@ -1431,13 +1433,17 @@
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="confidenceBehaviorTitle">Confidence</h1>
-          <p class="beginner-subtitle">Choose whether the Receiver reports confidence before the target is revealed.</p>
+          <h1 class="beginner-title" id="confidenceBehaviorTitle">Confidence and Reinforcement</h1>
+          <p class="beginner-subtitle">Choose whether Receiver confidence is queried before the target is revealed and whether a positive reinforcement sound should play after a correct selection.</p>
 
-          <section class="settings-view-panel">
+          <section class="settings-view-panel settings-view-panel-wide">
             <div class="options-actions">
               <button class="options-button confidence-choice-button" type="button" data-confidence-mode="include">Include Confidence</button>
               <button class="options-button confidence-choice-button" type="button" data-confidence-mode="exclude">Don't Include Confidence</button>
+            </div>
+            <div class="options-actions">
+              <button class="options-button confidence-choice-button" type="button" data-reinforcement-mode="include">Include Positive Reinforcement</button>
+              <button class="options-button confidence-choice-button" type="button" data-reinforcement-mode="exclude">Don't Include Positive Reinforcement</button>
             </div>
             <div class="settings-view-status" data-confidence-status></div>
           </section>
@@ -1586,6 +1592,30 @@
           </section>
         </section>
 
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="unique-name-change" aria-labelledby="uniqueNameChangeTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-unique-name-change>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="uniqueNameChangeTitle">Changing a Unique Name</h1>
+
+          <section class="settings-view-panel feature-setup-panel">
+            <div class="about-section">
+              <p class="about-section-copy">A recognized user may keep the same unique name, make cosmetic edits to that name, or make a limited number of substantive changes over time.</p>
+              <p class="about-section-copy">Current rules: cosmetic edits such as capitalization or spacing changes are allowed. Substantive changes to a different name are limited, and a waiting period may apply before another substantive change is permitted.</p>
+            </div>
+
+            <div class="settings-view-note feature-setup-identifier" data-unique-name-change-current>Checking current unique name...</div>
+            <div class="settings-view-status" data-unique-name-change-status>Checking unique-name change eligibility...</div>
+
+            <div class="contact-actions install-guide-actions">
+              <button class="options-button contact-action-button" type="button" data-unique-name-change-continue>CONTINUE</button>
+            </div>
+          </section>
+        </section>
+
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="contact" aria-labelledby="contactTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-contact>BACK</button>
@@ -1692,6 +1722,130 @@
           </section>
         </section>
 
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="research-participation" aria-labelledby="researchParticipationTitle">
+          <div class="beginner-top-row">
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-research-participation>BACK</button>
+          </div>
+
+          <h1 class="beginner-title" id="researchParticipationTitle">Research Participation</h1>
+          <p class="beginner-subtitle">PRO FEATURE</p>
+
+          <section class="settings-view-panel about-view-panel">
+            <p class="about-section-copy">Individuals who demonstrate talent as demonstrated by performance with these tools are encouraged to participate in the ongoing ESP research program at CIHS, the California Institute for Human Science. In one ongoing experiment, you would participate as remote telepathic receiver with a sender you meet in a zoom meeting and who sends from within a room heavily shielded from outside radio waves and sound. Other experiments may involve travel to the CIHS laboratory in Southern California.</p>
+            <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please select the "Research Participation" button on the ESP PRO menu and fill out the form. The research team wil get back to you.</p>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="research-participation-pro" aria-labelledby="researchParticipationProTitle">
+          <div class="beginner-top-row">
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-research-participation-pro>BACK</button>
+          </div>
+
+          <h1 class="beginner-title" id="researchParticipationProTitle">Research Participation</h1>
+          <p class="beginner-subtitle">PRO FEATURE</p>
+
+          <section class="settings-view-panel about-view-panel">
+            <p class="about-section-copy">Individuals who demonstrate talent as demonstrated by performance with these tools are encouraged to participate in the ongoing ESP research program at CIHS, the California Institute for Human Science. In one ongoing experiment, you would participate as remote telepathic receiver with a sender you meet in a zoom meeting and who sends from within a room heavily shielded from outside radio waves and sound. Other experiments may involve travel to the CIHS laboratory in Southern California.</p>
+            <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please click on <button class="role-note-link role-note-inline-link" type="button" data-open-research-interest-form>This link</button> and fill out the form. The research team will get back to you.</p>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="research-interest-form" aria-labelledby="researchInterestFormTitle">
+          <div class="beginner-top-row">
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-research-interest-form>BACK</button>
+          </div>
+
+          <h1 class="beginner-title" id="researchInterestFormTitle">INTEREST IN PARTICIPATING IN AN ESP EXPERIMENT</h1>
+
+          <section class="settings-view-panel about-view-panel baseline-questions-panel">
+            <form class="baseline-questions-form" data-research-interest-form>
+              <div class="baseline-trial-summary-grid">
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestName">Name:</label>
+                  <input class="settings-view-input" id="researchInterestName" type="text" data-research-interest-name>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestUniqueName">ESP Gym Unique Name:</label>
+                  <input class="settings-view-input" id="researchInterestUniqueName" type="text" data-research-interest-unique-name readonly>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestEmail">Email:</label>
+                  <input class="settings-view-input" id="researchInterestEmail" type="email" autocomplete="email" data-research-interest-email>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestZip">Adress zip code:</label>
+                  <input class="settings-view-input" id="researchInterestZip" type="text" inputmode="text" data-research-interest-zip>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestAge">Age:</label>
+                  <input class="settings-view-input" id="researchInterestAge" type="text" inputmode="numeric" data-research-interest-age>
+                </div>
+              </div>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">1. Do you believe you have ESP/psychic ability?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestBelief" value="Yes" data-research-interest-belief> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestBelief" value="No" data-research-interest-belief> <span>No</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestBelief" value="Not sure" data-research-interest-belief> <span>Not sure</span></label>
+                </div>
+                <label class="settings-view-label" for="researchInterestBeliefWhy">If yes, why?</label>
+                <textarea class="settings-view-input settings-view-textarea" id="researchInterestBeliefWhy" rows="4" data-research-interest-belief-why></textarea>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">2. Have you had ESP spontaneous experiences?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestSpontaneous" value="No" data-research-interest-spontaneous> <span>No</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestSpontaneous" value="Occasionally" data-research-interest-spontaneous> <span>Occasionally</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestSpontaneous" value="Frequently" data-research-interest-spontaneous> <span>Frequently</span></label>
+                </div>
+                <label class="settings-view-label" for="researchInterestDescribe">If so, please describe:</label>
+                <textarea class="settings-view-input settings-view-textarea" id="researchInterestDescribe" rows="4" data-research-interest-describe></textarea>
+              </fieldset>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">3. Does ESP run in your family?</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestFamily" value="Yes" data-research-interest-family> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestFamily" value="No" data-research-interest-family> <span>No</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="researchInterestFamily" value="Not sure" data-research-interest-family> <span>Not sure</span></label>
+                </div>
+              </fieldset>
+
+              <div class="settings-view-field">
+                <label class="settings-view-checkbox">
+                  <input type="checkbox" data-research-interest-permission>
+                  <span>I give permission to the Research Team at CIHS to review my performance reports and questionnaires produced by Telepathy Beginner and ESP PRO as part of espgym.com.</span>
+                </label>
+              </div>
+
+              <div class="baseline-trial-summary-grid">
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestSigned">Signed:</label>
+                  <input class="settings-view-input" id="researchInterestSigned" type="text" data-research-interest-signed>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="researchInterestDate">Date:</label>
+                  <input class="settings-view-input" id="researchInterestDate" type="text" data-research-interest-date>
+                </div>
+              </div>
+            </form>
+
+            <p class="settings-view-status" data-research-interest-status></p>
+            <div class="options-actions">
+              <button class="options-button" type="button" data-save-research-interest>SUBMIT</button>
+              <button class="options-button" type="button" data-cancel-research-interest>CANCEL</button>
+            </div>
+          </section>
+        </section>
+
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="settings" aria-labelledby="settingsTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-settings>BACK</button>
@@ -1774,6 +1928,39 @@
 
             <div class="settings-view-note" data-admin-storage-info></div>
             <div class="settings-view-status" data-admin-status></div>
+            <div class="settings-view-note">
+              <strong>Fresh Start preserves checked categories.</strong> Infrastructure content is always preserved.
+            </div>
+            <div class="admin-fresh-start-options">
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-users checked>
+                <span>Preserve users</span>
+              </label>
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-invitees checked>
+                <span>Preserve invitees</span>
+              </label>
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-pairs checked>
+                <span>Preserve pairs</span>
+              </label>
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-simulation-pairs checked>
+                <span>Preserve simulation trial histories</span>
+              </label>
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-questionnaires checked>
+                <span>Preserve questionnaires</span>
+              </label>
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-messaging-history checked>
+                <span>Preserve messaging history</span>
+              </label>
+              <label class="settings-view-checkbox">
+                <input type="checkbox" data-admin-fresh-start-preserve-analytics-counters checked>
+                <span>Preserve analytics counters</span>
+              </label>
+            </div>
 
             <div class="admin-button-grid">
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
@@ -1786,6 +1973,7 @@
               <button class="options-button settings-view-save" type="button" data-open-invitee-admin-direct>Manage Invitees</button>
               <button class="options-button settings-view-save" type="button" data-open-handle-update-admin>Update a user handle</button>
               <button class="options-button settings-view-save" type="button" data-open-image-pair-admin>Add image pairs</button>
+              <button class="options-button settings-view-save" type="button" data-open-messaging-parms-admin>Messaging Parms</button>
               <button class="options-button settings-view-save" type="button" data-admin-open-14-day-trial>14-day Trial</button>
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
@@ -1797,8 +1985,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260703ae'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260703ae'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260705g'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260705g'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -1959,6 +2147,36 @@
           </section>
         </section>
 
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="messaging-parms-admin" aria-labelledby="messagingParmsAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-messaging-parms-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="messagingParmsAdminTitle">Messaging Parms</h1>
+
+          <section class="settings-view-panel">
+            <div class="settings-view-note">These limits control partner messaging across the app and are enforced by the server.</div>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Max messages per pair</span>
+              <input class="settings-view-input" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" data-messaging-parms-max-messages>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Max chars per message</span>
+              <input class="settings-view-input" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" data-messaging-parms-max-chars>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Max total chars per conversation</span>
+              <input class="settings-view-input" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" data-messaging-parms-max-total-chars>
+            </label>
+            <div class="settings-view-status" data-messaging-parms-status></div>
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-save-messaging-parms-admin>SAVE</button>
+            </div>
+          </section>
+        </section>
+
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="user-type-admin" aria-labelledby="userTypeAdminTitle">
           <div class="beginner-top-row">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-user-type-admin>BACK</button>
@@ -1992,8 +2210,21 @@
               </div>
             </div>
 
+            <label class="settings-view-field beginner-view-hidden" data-user-type-email-wrap hidden>
+              <span class="settings-view-label">Authentication email:</span>
+              <input
+                class="settings-view-input"
+                type="email"
+                autocomplete="email"
+                spellcheck="false"
+                data-user-type-email
+                placeholder="name@example.com"
+              >
+            </label>
+
             <div class="user-type-admin-actions">
               <button class="options-button settings-view-save beginner-view-hidden" type="button" data-user-type-save hidden>Set New Status</button>
+              <button class="options-button settings-view-save beginner-view-hidden" type="button" data-user-type-update-email hidden>Update Email</button>
               <button class="options-button settings-view-save beginner-view-hidden" type="button" data-open-invitee-admin hidden>Add as Invitee</button>
               <button class="options-button user-type-admin-clear" type="button" data-user-type-clear>Clear</button>
             </div>
@@ -2043,7 +2274,7 @@
                 autocomplete="off"
                 spellcheck="false"
                 data-invitee-email
-                placeholder="optional email"
+                placeholder="email"
               >
             </label>
 
@@ -2061,12 +2292,14 @@
             <div class="settings-view-status" data-invitee-status></div>
 
             <div class="user-type-admin-actions">
-              <button class="options-button settings-view-save" type="button" data-invitee-load>Load Invitee</button>
               <button class="options-button settings-view-save" type="button" data-invitee-save>Save Invitee</button>
               <button class="options-button user-type-admin-clear" type="button" data-invitee-delete>Delete Invitee</button>
               <button class="options-button user-type-admin-clear" type="button" data-invitee-clear>Clear</button>
             </div>
-            <button class="options-button invitee-admin-device-button" type="button" data-invitee-clear-device>Clear current loaded invitee</button>
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-test-new-device title="Temporarily makes this device behave like a brand-new device so you can test the Landing-page invitee flow without losing your current setup.">Test As New Device</button>
+              <button class="options-button invitee-admin-device-button" type="button" data-restore-my-device title="Ends test mode and restores the device identity, user state, and settings that were active before testing began.">Restore My Device</button>
+            </div>
 
             <div class="invitee-admin-list-wrap">
               <div class="settings-view-note">Saved invitees</div>
@@ -2342,8 +2575,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260703ae"></script>
-<script src="telepathybeginner.js?v=20260703ae"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260705g"></script>
+<script src="telepathybeginner.js?v=20260705g"></script>
 </body>
 </html>
 

@@ -39,7 +39,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260703ae";
+  const runtimeBuildVersion = "20260705g";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -52,6 +52,9 @@
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
     ? String(runtimeQuery.get("include_confidence") || "").trim() === "1"
+    : null;
+  const requestedIncludePositiveReinforcement = runtimeQuery.has("include_positive_reinforcement")
+    ? String(runtimeQuery.get("include_positive_reinforcement") || "").trim() === "1"
     : null;
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
@@ -115,6 +118,9 @@
   let audioContext = null;
   let activeOscillator = null;
   let activeGain = null;
+  let reinforcementAudioBuffer = null;
+  let reinforcementAudioElement = null;
+  let reinforcementAudioLoadPromise = null;
   let doneTimeoutHandle = null;
   let senderHoldingResult = false;
   let preloadedConeImage = null;
@@ -158,6 +164,7 @@
   let imageDisplayCaption = null;
   let imageBlinkTimeoutHandle = null;
   let imageBlinkVisible = true;
+  let lastPositiveReinforcementRoundId = "";
   let decisionPanel = null;
   let enoughButton = null;
   let anotherButton = null;
@@ -557,6 +564,7 @@
         blink_image_on_seconds: typeof parsed?.blink_image_on_seconds === "string" ? parsed.blink_image_on_seconds : "0.35",
         blink_image_off_seconds: typeof parsed?.blink_image_off_seconds === "string" ? parsed.blink_image_off_seconds : "0.8",
         include_confidence: typeof parsed?.include_confidence === "boolean" ? parsed.include_confidence : false,
+        include_positive_reinforcement: typeof parsed?.include_positive_reinforcement === "boolean" ? parsed.include_positive_reinforcement : false,
         difficulty_level: normalizeDifficultyLevel(parsed?.difficulty_level || "1")
       };
     } catch (error) {
@@ -573,6 +581,7 @@
         blink_image_on_seconds: "0.35",
         blink_image_off_seconds: "0.8",
         include_confidence: false,
+        include_positive_reinforcement: false,
         difficulty_level: "1"
       };
     }
@@ -1150,6 +1159,13 @@
     return readSettings().include_confidence !== false;
   }
 
+  function getPositiveReinforcementEnabled() {
+    if (typeof requestedIncludePositiveReinforcement === "boolean") {
+      return requestedIncludePositiveReinforcement;
+    }
+    return readSettings().include_positive_reinforcement === true;
+  }
+
   function clearImageBlinkCycle({ keepVisible = true } = {}) {
     if (imageBlinkTimeoutHandle) {
       window.clearTimeout(imageBlinkTimeoutHandle);
@@ -1205,6 +1221,7 @@
       const blinkOnSeconds = String(params.get("blink_image_on_seconds") || "").trim();
       const blinkOffSeconds = String(params.get("blink_image_off_seconds") || "").trim();
       const includeConfidence = String(params.get("include_confidence") || "").trim();
+      const includePositiveReinforcement = String(params.get("include_positive_reinforcement") || "").trim();
       const difficultyLevel = normalizeDifficultyLevel(params.get("difficulty_level") || currentPairDifficultyLevel || "1");
 
       if (!ownEmail && !partnerEmail) {
@@ -1234,6 +1251,9 @@
       }
       if (includeConfidence) {
         settings.include_confidence = includeConfidence === "1";
+      }
+      if (includePositiveReinforcement) {
+        settings.include_positive_reinforcement = includePositiveReinforcement === "1";
       }
       settings.difficulty_level = difficultyLevel;
       writeSettings(settings);
@@ -2593,6 +2613,7 @@
     receiverDoneReactionMs = null;
     receiverMirrorPhase = "idle";
     receiverConfidenceLockedAtMs = 0;
+    lastPositiveReinforcementRoundId = "";
     postRoundChoiceSubmitted = false;
     postRoundClearPending = false;
     appExited = false;
@@ -4358,6 +4379,36 @@
     }
   }
 
+  async function ensureReinforcementAudioLoaded() {
+    if (reinforcementAudioBuffer || reinforcementAudioLoadPromise) {
+      return reinforcementAudioLoadPromise || reinforcementAudioBuffer;
+    }
+
+    if (!audioContext) {
+      return null;
+    }
+
+    reinforcementAudioLoadPromise = (async () => {
+      try {
+        const response = await fetch(`tada.wav?v=${encodeURIComponent(runtimeBuildVersion)}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Unable to load reinforcement audio (${response.status}).`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        reinforcementAudioBuffer = decoded;
+        return decoded;
+      } catch (_error) {
+        reinforcementAudioBuffer = null;
+        return null;
+      } finally {
+        reinforcementAudioLoadPromise = null;
+      }
+    })();
+
+    return reinforcementAudioLoadPromise;
+  }
+
   function stopBeep() {
     if (activeOscillator) {
       try {
@@ -4404,6 +4455,39 @@
     oscillator.onended = () => {
       stopBeep();
     };
+  }
+
+  async function playPositiveReinforcementSound() {
+    if (!getPositiveReinforcementEnabled()) {
+      return;
+    }
+
+    try {
+      await ensureReceiverAudioUnlocked();
+      if (audioContext) {
+        const buffer = reinforcementAudioBuffer || await ensureReinforcementAudioLoaded();
+        if (buffer) {
+          const source = audioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(audioContext.destination);
+          source.start();
+          return;
+        }
+      }
+    } catch (_error) {
+      // Fall through to audio element fallback.
+    }
+
+    try {
+      if (!reinforcementAudioElement) {
+        reinforcementAudioElement = new Audio(`tada.wav?v=${encodeURIComponent(runtimeBuildVersion)}`);
+        reinforcementAudioElement.preload = "auto";
+      }
+      reinforcementAudioElement.currentTime = 0;
+      await reinforcementAudioElement.play();
+    } catch (_error) {
+      // Ignore reinforcement playback failures.
+    }
   }
 
   function showReceiverDoneButton() {
@@ -4565,6 +4649,53 @@
     showSenderArrangementFeedbackMirror(actualLayoutNumber, selectedLayoutNumbers);
   }
 
+  function getActualReceiverResultLayoutNumber(actualArrangementCode) {
+    if (isLevelFourDifficulty()) {
+      return Number(activeRound?.image_sent_index ?? 0) || null;
+    }
+    if (isLevelOneDifficulty()) {
+      return getLevelOneCountChoiceFromLayoutNumber(getLayoutNumberFromArrangementCode(actualArrangementCode));
+    }
+    return getLayoutNumberFromArrangementCode(actualArrangementCode);
+  }
+
+  function maybePlayPositiveReinforcement(actualArrangementCode, selectedLayoutNumbers) {
+    if (role !== "receiver" || !getPositiveReinforcementEnabled()) {
+      return;
+    }
+
+    const roundId = String(activeRound?.id || "").trim();
+    if (roundId && roundId === lastPositiveReinforcementRoundId) {
+      return;
+    }
+
+    const actualLayoutNumber = getActualReceiverResultLayoutNumber(actualArrangementCode);
+    if (!Number.isInteger(Number(actualLayoutNumber))) {
+      return;
+    }
+
+    const normalizedSelected = Array.isArray(selectedLayoutNumbers)
+      ? selectedLayoutNumbers.filter((value) => Number.isInteger(Number(value))).map(Number)
+      : [];
+    if (!normalizedSelected.includes(Number(actualLayoutNumber))) {
+      return;
+    }
+
+    if (roundId) {
+      lastPositiveReinforcementRoundId = roundId;
+    }
+    void playPositiveReinforcementSound();
+  }
+
+  function maybePlayPositiveReinforcementAtSelection(selectedLayoutNumbers) {
+    if (getIncludeConfidenceEnabled()) {
+      return;
+    }
+
+    const actualArrangementCode = getResolvedActualArrangementCode(activeRound);
+    maybePlayPositiveReinforcement(actualArrangementCode, selectedLayoutNumbers);
+  }
+
   function renderSenderMirror(remoteState, serverNowMs) {
     if (role !== "sender" || !senderHoldingResult) {
       return false;
@@ -4645,6 +4776,8 @@
   }
 
   function markReceiverResult(actualArrangementCode, selectedArrangementCodes) {
+    maybePlayPositiveReinforcement(actualArrangementCode, pendingGuessLayoutNumbers);
+
     if (isLevelFourDifficulty()) {
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
@@ -5078,6 +5211,7 @@
       node.disabled = true;
     });
     choiceInstructionShown = false;
+    maybePlayPositiveReinforcementAtSelection(pendingGuessLayoutNumbers);
     receiverTransitioningScreen = true;
     const transitionDelayMs = receiverSelectionLimit <= 1
       ? (isLevelOneDifficulty() ? 2000 : 3500)

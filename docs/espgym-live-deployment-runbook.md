@@ -14,6 +14,12 @@ There is a fourth practical cache trap to watch for:
 
 The process below is the required deployment sequence unless the user explicitly asks for a different one.
 
+Authoritative runbook path:
+
+- `C:\xampp\htdocs\telepathyexperiment\cones\docs\espgym-live-deployment-runbook.md`
+
+There should not be a second competing runbook copy elsewhere in the repo. If a backup copy is ever needed, it should be clearly marked as archival only and not treated as authoritative.
+
 ## GitHub Checkpoint Rule
 
 The current ESP GYM app **does** have its own git repository.
@@ -95,6 +101,12 @@ Primary live app path:
 
 `/var/www/telepathyexperiment/cones`
 
+Important:
+
+- this is the actual live app tree for `espgym.com`
+- `/var/www/espgym` may exist on the server, but it is not the authoritative live deployment target for the current app unless explicitly reconfigured later
+- before any deployment, verify the active tree by checking for `telepathybeginner.html` under `/var/www/telepathyexperiment/cones`
+
 Primary SSH transport:
 
 `plink -batch -load "DG Putty Settings"`
@@ -109,6 +121,28 @@ cmd /c type "C:\xampp\htdocs\telepathyexperiment\cones\somefile.ext" |
 Important:
 
 Do not rely on the older PowerShell `Get-Content -Raw | plink ...` pattern for routine live pushes. In practice it can appear to succeed while leaving the live file unchanged. The `cmd /c type ... | plink "cat > ..."` pattern is the reliable default and should be treated as authoritative unless a better-tested transfer method replaces it later.
+
+Large-file fallback:
+
+If a direct `type ... | plink "cat > ..."` push appears to succeed but the live file content does not actually change, switch immediately to the staged `pscp` method below instead of retrying blindly.
+
+1. upload the changed file(s) into a staging folder under `/home/ec2-user/`
+2. verify the staged file sizes on the server
+3. copy the staged files into `/var/www/telepathyexperiment/cones`
+4. verify the live file contents afterward
+
+Recommended staged upload pattern for large or flaky transfers:
+
+```powershell
+& "C:\Program Files\PuTTY\pscp.exe" -batch -load "DG Putty Settings" `
+  "C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.js" `
+  "ec2-user@13.57.83.174:/home/ec2-user/espgym_stage_<build>/telepathybeginner.js"
+
+plink -batch -load "DG Putty Settings" `
+  "cp /home/ec2-user/espgym_stage_<build>/telepathybeginner.js /var/www/telepathyexperiment/cones/telepathybeginner.js"
+```
+
+Do not assume a zero exit code alone proves the live file changed. Always verify the resulting live file content.
 
 PowerShell quoting rule:
 
@@ -185,6 +219,29 @@ Every live deployment must do all of the following:
 5. mirror the changed local files to the live server
 6. verify the live files contain the new version markers and key code changes
 7. provide the user a clean cache-busted test URL
+
+## Authoritative Deployment Helper
+
+The authoritative deployment helper is:
+
+- `C:\xampp\htdocs\telepathyexperiment\cones\scripts\deploy-live.ps1`
+
+Its job is to make the live deployment process procedural instead of memory-based. It performs the standard sequence:
+
+1. run `scripts\bump-version.ps1`
+2. sync the local mirror into `C:\xampp\htdocs\cones`
+3. create a server snapshot under `/home/ec2-user/espgym_live_snapshots`
+4. upload files by staged `pscp`
+5. copy the staged files into `/var/www/telepathyexperiment/cones`
+6. verify the deployed version markers live
+
+Preferred usage:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\deploy-live.ps1 -Version 20260705g
+```
+
+If the helper ever fails, fix the helper or the environment rather than reverting to an undocumented ad hoc deployment path.
 
 ## Required Local Mirror Confirmation
 

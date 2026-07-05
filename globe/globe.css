@@ -42,7 +42,7 @@ body {
 
 .globe-topbar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 16px;
   align-items: start;
 }
@@ -81,11 +81,8 @@ body {
   line-height: 1.45;
 }
 
-.globe-version {
+.globe-pill-back {
   justify-self: end;
-  color: rgba(216, 228, 252, 0.66);
-  font-size: 0.92rem;
-  padding-top: 6px;
 }
 
 .globe-pill,
@@ -264,11 +261,6 @@ body {
   }
 
   .globe-topbar {
-    grid-template-columns: 1fr;
-  }
-
-  .globe-version {
-    justify-self: start;
-    padding-top: 0;
+    grid-template-columns: 1fr auto;
   }
 }

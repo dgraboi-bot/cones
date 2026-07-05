@@ -707,6 +707,9 @@ function save_invitee_record(array &$state, string $identifier, string $fullName
         'updated_ms' => $nowMs
     ];
     $state['invitees'][$key] = $record;
+    if ($record['email'] !== '') {
+        set_handle_owner_auth_email($state, $cleanIdentifier, $record['email'], $nowMs);
+    }
 
     return $record;
 }
@@ -734,7 +737,7 @@ function delete_invitee_record(array &$state, string $pairsDir, string $identifi
                 $onlyInviteeArtifacts = false;
             }
         }
-        foreach (['user_types', 'launcher_profiles', 'handle_owners', 'identifier_aliases'] as $stateKey) {
+        foreach (['user_types', 'launcher_profiles', 'handle_owners', 'identifier_aliases', 'user_preferences'] as $stateKey) {
             if (isset($state[$stateKey][$key])) {
                 continue;
             }
@@ -790,6 +793,7 @@ function delete_invitee_record(array &$state, string $pairsDir, string $identifi
     unset($state['invitees'][$key]);
     unset($state['user_types'][$key]);
     unset($state['launcher_profiles'][$key]);
+    unset($state['user_preferences'][$key]);
     unset($state['identifier_aliases'][$key]);
     if (isset($state['unique_handles'][$key]) && is_array($state['unique_handles'][$key])) {
         $ownerIdentifier = trim((string) ($state['unique_handles'][$key]['owner_identifier'] ?? ''));
@@ -1047,6 +1051,300 @@ function send_explore_pro_verification_code(array &$state, string $email, int $n
         'email_masked' => mask_email_for_display($cleanEmail),
         'expires_ms' => $verification['expires_ms'],
         'send_count' => $verification['send_count']
+    ];
+}
+
+function get_identifier_recovery_email(array $state, string $identifier): string
+{
+    $status = get_identifier_status($state, $identifier);
+    $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $identifier));
+    $ownerIdentifier = trim((string) ($status['owner_identifier'] ?? $preferredIdentifier));
+
+    $candidates = [];
+    $ownerKey = get_handle_owner_key($ownerIdentifier);
+    $ownerRecord = $ownerKey !== '' && is_array($state['handle_owners'][$ownerKey] ?? null)
+        ? $state['handle_owners'][$ownerKey]
+        : null;
+    if (is_array($ownerRecord)) {
+        $candidates[] = trim((string) ($ownerRecord['auth_email'] ?? ''));
+    }
+    $candidates[] = $ownerIdentifier;
+    $candidates[] = $preferredIdentifier;
+    $storageKey = get_user_storage_key_for_identifier($state, $preferredIdentifier);
+    $stripeRecord = is_array($state['stripe_users'][$storageKey] ?? null) ? $state['stripe_users'][$storageKey] : null;
+    if (is_array($stripeRecord)) {
+        $candidates[] = trim((string) ($stripeRecord['subscriber_email'] ?? ''));
+    }
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+        if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+            return normalize_explore_pro_email($candidate);
+        }
+    }
+
+    return '';
+}
+
+function normalize_identifier_recovery_verification_record($value): array
+{
+    $record = is_array($value) ? $value : [];
+    return [
+        'identifier' => trim((string) ($record['identifier'] ?? '')),
+        'email' => normalize_explore_pro_email((string) ($record['email'] ?? '')),
+        'code' => strtoupper(trim((string) ($record['code'] ?? ''))),
+        'created_ms' => isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0,
+        'expires_ms' => isset($record['expires_ms']) && is_numeric($record['expires_ms']) ? (int) $record['expires_ms'] : 0,
+        'last_sent_ms' => isset($record['last_sent_ms']) && is_numeric($record['last_sent_ms']) ? (int) $record['last_sent_ms'] : 0,
+        'send_count' => isset($record['send_count']) && is_numeric($record['send_count']) ? (int) $record['send_count'] : 0
+    ];
+}
+
+function send_identifier_recovery_verification_code(array &$state, string $identifier, string $email, int $nowMs): array
+{
+    global $exploreProVerificationTtlMs, $exploreProResendCooldownMs;
+
+    $cleanIdentifier = validate_participant_identifier_string($identifier, 'identifier', true);
+    if (!participant_identifier_exists($state, (string) ($GLOBALS['pairsDir'] ?? ''), $cleanIdentifier)) {
+        throw new RuntimeException('That unique name is not recognized.');
+    }
+    $identifierStatus = get_identifier_status($state, $cleanIdentifier);
+
+    $preferredIdentifier = trim((string) ($identifierStatus['preferred_identifier'] ?? $cleanIdentifier));
+    $recoveryEmail = get_identifier_recovery_email($state, $preferredIdentifier);
+    if ($recoveryEmail === '') {
+        throw new RuntimeException('No authentication email is currently on file for this unique name.');
+    }
+
+    $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    if (normalize_explore_pro_email($cleanEmail) !== $recoveryEmail) {
+        throw new RuntimeException('That email does not match the authentication email on file for this unique name.');
+    }
+
+    if (!is_array($state['identifier_recovery_verifications'] ?? null)) {
+        $state['identifier_recovery_verifications'] = [];
+    }
+
+    $identifierKey = normalize_identifier_for_lookup($preferredIdentifier);
+    $existingVerification = is_array($state['identifier_recovery_verifications'][$identifierKey] ?? null)
+        ? normalize_identifier_recovery_verification_record($state['identifier_recovery_verifications'][$identifierKey])
+        : null;
+    if ($existingVerification && $existingVerification['last_sent_ms'] > 0 && ($nowMs - $existingVerification['last_sent_ms']) < $exploreProResendCooldownMs) {
+        throw new RuntimeException('Please wait a little before requesting another verification code.');
+    }
+
+    $code = generate_explore_pro_verification_code(5);
+    $verification = [
+        'identifier' => $preferredIdentifier,
+        'email' => $cleanEmail,
+        'code' => $code,
+        'created_ms' => $existingVerification['created_ms'] > 0 ? $existingVerification['created_ms'] : $nowMs,
+        'expires_ms' => $nowMs + $exploreProVerificationTtlMs,
+        'last_sent_ms' => $nowMs,
+        'send_count' => ($existingVerification['send_count'] ?? 0) + 1
+    ];
+
+    $subject = 'ESP GYM verification code';
+    $body =
+        "ESP GYM\r\n\r\n" .
+        "Your verification code for {$preferredIdentifier} is: {$code}\r\n\r\n" .
+        "Enter this 5-character code in ESP GYM to verify that you are {$preferredIdentifier} on this device.\r\n\r\n" .
+        "This code expires in 15 minutes.\r\n";
+
+    sendAppMail($cleanEmail, '', $subject, $body);
+    $state['identifier_recovery_verifications'][$identifierKey] = $verification;
+
+    return [
+        'identifier' => $preferredIdentifier,
+        'email' => $cleanEmail,
+        'email_masked' => mask_email_for_display($cleanEmail),
+        'expires_ms' => $verification['expires_ms'],
+        'send_count' => $verification['send_count']
+    ];
+}
+
+function verify_identifier_recovery_code(array &$state, string $identifier, string $email, string $code, int $nowMs): array
+{
+    $cleanIdentifier = validate_participant_identifier_string($identifier, 'identifier', true);
+    $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    if (!participant_identifier_exists($state, (string) ($GLOBALS['pairsDir'] ?? ''), $cleanIdentifier)) {
+        throw new RuntimeException('That unique name is not recognized.');
+    }
+    $identifierStatus = get_identifier_status($state, $cleanIdentifier);
+
+    if (!is_array($state['identifier_recovery_verifications'] ?? null)) {
+        $state['identifier_recovery_verifications'] = [];
+    }
+
+    $preferredIdentifier = trim((string) ($identifierStatus['preferred_identifier'] ?? $cleanIdentifier));
+    $identifierKey = normalize_identifier_for_lookup($preferredIdentifier);
+    $verification = is_array($state['identifier_recovery_verifications'][$identifierKey] ?? null)
+        ? normalize_identifier_recovery_verification_record($state['identifier_recovery_verifications'][$identifierKey])
+        : null;
+
+    if (!$verification || $verification['identifier'] === '') {
+        throw new RuntimeException('Please request a verification code first.');
+    }
+    if ($verification['expires_ms'] > 0 && $verification['expires_ms'] < $nowMs) {
+        unset($state['identifier_recovery_verifications'][$identifierKey]);
+        throw new RuntimeException('That verification code has expired. Please request a new code.');
+    }
+    if (normalize_explore_pro_email($cleanEmail) !== normalize_explore_pro_email($verification['email'])) {
+        throw new RuntimeException('That email does not match the authentication email on file for this unique name.');
+    }
+
+    $normalizedCode = strtoupper(trim((string) $code));
+    if ($normalizedCode === '' || preg_match('/^[A-Z2-9]{5}$/', $normalizedCode) !== 1) {
+        throw new RuntimeException('Please enter the 5-character verification code.');
+    }
+    if (!hash_equals($verification['code'], $normalizedCode)) {
+        throw new RuntimeException('That verification code is invalid. Please try again.');
+    }
+
+    unset($state['identifier_recovery_verifications'][$identifierKey]);
+
+    return [
+        'identifier' => $preferredIdentifier,
+        'identifier_status' => get_identifier_status($state, $preferredIdentifier),
+        'user_type' => get_user_type_for_identifier($state, $preferredIdentifier)
+    ];
+}
+
+function build_unique_name_claim_verification_key(string $currentIdentifier, string $proposedHandle): string
+{
+    return normalize_identifier_for_lookup($currentIdentifier) . '|' . canonicalize_handle($proposedHandle);
+}
+
+function normalize_unique_name_claim_verification_record($value): array
+{
+    $record = is_array($value) ? $value : [];
+    return [
+        'current_identifier' => trim((string) ($record['current_identifier'] ?? '')),
+        'proposed_handle' => trim((string) ($record['proposed_handle'] ?? '')),
+        'email' => normalize_explore_pro_email((string) ($record['email'] ?? '')),
+        'code' => strtoupper(trim((string) ($record['code'] ?? ''))),
+        'created_ms' => isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0,
+        'expires_ms' => isset($record['expires_ms']) && is_numeric($record['expires_ms']) ? (int) $record['expires_ms'] : 0,
+        'last_sent_ms' => isset($record['last_sent_ms']) && is_numeric($record['last_sent_ms']) ? (int) $record['last_sent_ms'] : 0,
+        'send_count' => isset($record['send_count']) && is_numeric($record['send_count']) ? (int) $record['send_count'] : 0
+    ];
+}
+
+function send_unique_name_claim_verification_code(array &$state, string $currentIdentifier, string $proposedHandle, string $email, int $nowMs): array
+{
+    global $exploreProVerificationTtlMs, $exploreProResendCooldownMs;
+
+    $cleanCurrentIdentifier = validate_participant_identifier_string($currentIdentifier, 'current_identifier', false);
+    $cleanProposedHandle = trim((string) $proposedHandle);
+    $cleanEmail = validate_email_identifier_string($email, 'email', true);
+
+    $probeState = $state;
+    try {
+        claim_unique_handle($probeState, $cleanCurrentIdentifier, $cleanProposedHandle, $nowMs);
+    } catch (RuntimeException $exception) {
+        $message = trim((string) $exception->getMessage());
+        if ($message === 'That unique handle is already in use.') {
+            $recoveryEmail = get_identifier_recovery_email($state, $cleanProposedHandle);
+            if ($recoveryEmail === '') {
+                throw new RuntimeException('Your email address cannot be validated. Please contact ESP Gym.');
+            }
+        }
+        throw $exception;
+    }
+
+    if (!is_array($state['unique_name_claim_verifications'] ?? null)) {
+        $state['unique_name_claim_verifications'] = [];
+    }
+
+    $verificationKey = build_unique_name_claim_verification_key($cleanCurrentIdentifier, $cleanProposedHandle);
+    $existingVerification = is_array($state['unique_name_claim_verifications'][$verificationKey] ?? null)
+        ? normalize_unique_name_claim_verification_record($state['unique_name_claim_verifications'][$verificationKey])
+        : null;
+    if ($existingVerification && $existingVerification['last_sent_ms'] > 0 && ($nowMs - $existingVerification['last_sent_ms']) < $exploreProResendCooldownMs) {
+        throw new RuntimeException('Please wait a little before requesting another verification code.');
+    }
+
+    $code = generate_explore_pro_verification_code(5);
+    $verification = [
+        'current_identifier' => $cleanCurrentIdentifier,
+        'proposed_handle' => $cleanProposedHandle,
+        'email' => $cleanEmail,
+        'code' => $code,
+        'created_ms' => $existingVerification['created_ms'] > 0 ? $existingVerification['created_ms'] : $nowMs,
+        'expires_ms' => $nowMs + $exploreProVerificationTtlMs,
+        'last_sent_ms' => $nowMs,
+        'send_count' => ($existingVerification['send_count'] ?? 0) + 1
+    ];
+
+    $subject = 'ESP GYM verification code';
+    $body =
+        "ESP GYM\r\n\r\n" .
+        "Your verification code to claim {$cleanProposedHandle} is: {$code}\r\n\r\n" .
+        "Enter this 5-character code in ESP GYM to finish claiming {$cleanProposedHandle} as your unique name.\r\n\r\n" .
+        "This code expires in 15 minutes.\r\n";
+
+    sendAppMail($cleanEmail, '', $subject, $body);
+    $state['unique_name_claim_verifications'][$verificationKey] = $verification;
+
+    return [
+        'proposed_handle' => $cleanProposedHandle,
+        'email' => $cleanEmail,
+        'email_masked' => mask_email_for_display($cleanEmail),
+        'expires_ms' => $verification['expires_ms'],
+        'send_count' => $verification['send_count']
+    ];
+}
+
+function verify_unique_name_claim_code(array &$state, string $currentIdentifier, string $proposedHandle, string $email, string $code, int $nowMs): array
+{
+    $cleanCurrentIdentifier = validate_participant_identifier_string($currentIdentifier, 'current_identifier', false);
+    $cleanProposedHandle = trim((string) $proposedHandle);
+    $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    $verificationKey = build_unique_name_claim_verification_key($cleanCurrentIdentifier, $cleanProposedHandle);
+
+    if (!is_array($state['unique_name_claim_verifications'] ?? null)) {
+        $state['unique_name_claim_verifications'] = [];
+    }
+
+    $verification = is_array($state['unique_name_claim_verifications'][$verificationKey] ?? null)
+        ? normalize_unique_name_claim_verification_record($state['unique_name_claim_verifications'][$verificationKey])
+        : null;
+    if (!$verification || $verification['proposed_handle'] === '') {
+        throw new RuntimeException('Please request a verification code first.');
+    }
+    if ($verification['expires_ms'] > 0 && $verification['expires_ms'] < $nowMs) {
+        unset($state['unique_name_claim_verifications'][$verificationKey]);
+        throw new RuntimeException('That verification code has expired. Please request a new code.');
+    }
+    if (normalize_explore_pro_email($cleanEmail) !== normalize_explore_pro_email($verification['email'])) {
+        throw new RuntimeException('That email does not match the email address used for this unique-name claim.');
+    }
+
+    $normalizedCode = strtoupper(trim((string) $code));
+    if ($normalizedCode === '' || preg_match('/^[A-Z2-9]{5}$/', $normalizedCode) !== 1) {
+        throw new RuntimeException('Please enter the 5-character verification code.');
+    }
+    if (!hash_equals($verification['code'], $normalizedCode)) {
+        throw new RuntimeException('That verification code is invalid. Please try again.');
+    }
+    unset($state['unique_name_claim_verifications'][$verificationKey]);
+
+    $claimResult = claim_unique_handle($state, $cleanCurrentIdentifier, $cleanProposedHandle, $nowMs);
+    $acceptedHandle = trim((string) ($claimResult['handle'] ?? $cleanProposedHandle));
+    $ownerIdentifier = trim((string) ($claimResult['owner_identifier'] ?? $acceptedHandle));
+    set_handle_owner_auth_email($state, $ownerIdentifier, $cleanEmail, $nowMs);
+    assign_user_type_for_identifier($state, $acceptedHandle, 'standard', $nowMs);
+    foreach (($claimResult['previous_identifiers'] ?? []) as $previousIdentifier) {
+        migrate_identifier_history_in_pair_storage((string) ($GLOBALS['pairsDir'] ?? ''), (string) $previousIdentifier, $acceptedHandle);
+        migrate_identifier_in_partner_messaging_state($state, (string) $previousIdentifier, $acceptedHandle);
+        migrate_explore_pro_trial_identifier($state, (string) $previousIdentifier, $acceptedHandle);
+    }
+
+    return [
+        'identifier' => $acceptedHandle,
+        'identifier_status' => get_identifier_status($state, $acceptedHandle),
+        'user_type' => get_user_type_for_identifier($state, $acceptedHandle),
+        'claim' => $claimResult
     ];
 }
 
@@ -1352,6 +1650,16 @@ function write_questionnaire_response_file(string $path, array $payload): void
         throw new RuntimeException('Unable to encode questionnaire response.');
     }
     file_put_contents($path, $encoded);
+}
+
+function clear_questionnaire_response_records(string $questionnaireResponsesDir): void
+{
+    $paths = glob($questionnaireResponsesDir . DIRECTORY_SEPARATOR . '*.json') ?: [];
+    foreach ($paths as $path) {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
 }
 
 function normalize_learning_center_outline_id($value): string
@@ -3798,6 +4106,86 @@ function default_partner_message_thread(string $leftIdentifier, string $rightIde
     ];
 }
 
+function default_messaging_limits(): array
+{
+    return [
+        'max_messages_per_pair' => 25,
+        'max_chars_per_message' => 280,
+        'max_total_chars_per_conversation' => 3000
+    ];
+}
+
+function normalize_messaging_limits(array $limits): array
+{
+    $defaults = default_messaging_limits();
+    return [
+        'max_messages_per_pair' => max(1, min(500, (int) ($limits['max_messages_per_pair'] ?? $defaults['max_messages_per_pair']))),
+        'max_chars_per_message' => max(1, min(2000, (int) ($limits['max_chars_per_message'] ?? $defaults['max_chars_per_message']))),
+        'max_total_chars_per_conversation' => max(1, min(50000, (int) ($limits['max_total_chars_per_conversation'] ?? $defaults['max_total_chars_per_conversation'])))
+    ];
+}
+
+function ensure_messaging_limits_state(array &$state): void
+{
+    $existing = is_array($state['messaging_limits'] ?? null) ? $state['messaging_limits'] : [];
+    $state['messaging_limits'] = normalize_messaging_limits($existing);
+}
+
+function get_messaging_limits(array $state): array
+{
+    return normalize_messaging_limits(is_array($state['messaging_limits'] ?? null) ? $state['messaging_limits'] : []);
+}
+
+function validate_messaging_limits_payload($value, string $field = 'messaging_limits'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an object.');
+    }
+    require_allowed_keys($value, ['max_messages_per_pair', 'max_chars_per_message', 'max_total_chars_per_conversation'], $field);
+    return normalize_messaging_limits([
+        'max_messages_per_pair' => isset($value['max_messages_per_pair']) ? (int) $value['max_messages_per_pair'] : null,
+        'max_chars_per_message' => isset($value['max_chars_per_message']) ? (int) $value['max_chars_per_message'] : null,
+        'max_total_chars_per_conversation' => isset($value['max_total_chars_per_conversation']) ? (int) $value['max_total_chars_per_conversation'] : null
+    ]);
+}
+
+function apply_partner_message_thread_limits(array $thread, array $limits): array
+{
+    $normalizedThread = normalize_partner_message_thread($thread);
+    $messages = is_array($normalizedThread['messages'] ?? null) ? $normalizedThread['messages'] : [];
+    $maxMessages = max(1, (int) ($limits['max_messages_per_pair'] ?? 25));
+    $maxTotalChars = max(1, (int) ($limits['max_total_chars_per_conversation'] ?? 3000));
+
+    if (count($messages) > $maxMessages) {
+        $messages = array_slice($messages, -$maxMessages);
+    }
+
+    $kept = [];
+    $runningChars = 0;
+    for ($index = count($messages) - 1; $index >= 0; $index -= 1) {
+        $message = is_array($messages[$index] ?? null) ? $messages[$index] : null;
+        if (!$message) {
+            continue;
+        }
+        $textLength = mb_strlen(trim((string) ($message['text'] ?? '')));
+        if ($kept && ($runningChars + $textLength) > $maxTotalChars) {
+            continue;
+        }
+        $runningChars += $textLength;
+        array_unshift($kept, $message);
+    }
+
+    $normalizedThread['messages'] = $kept;
+    if ($kept) {
+        $lastMessage = $kept[count($kept) - 1];
+        $normalizedThread['updated_ms'] = isset($lastMessage['created_ms']) && is_numeric($lastMessage['created_ms'])
+            ? (int) $lastMessage['created_ms']
+            : (int) ($normalizedThread['updated_ms'] ?? 0);
+    }
+
+    return $normalizedThread;
+}
+
 function normalize_partner_message_thread(array $thread): array
 {
     $participants = is_array($thread['participants'] ?? null) ? $thread['participants'] : [];
@@ -3828,7 +4216,7 @@ function normalize_partner_message_thread(array $thread): array
     return [
         'participants' => [$left, $right],
         'updated_ms' => isset($thread['updated_ms']) && is_numeric($thread['updated_ms']) ? (int) $thread['updated_ms'] : 0,
-        'messages' => array_slice($messages, -100)
+        'messages' => $messages
     ];
 }
 
@@ -4060,7 +4448,10 @@ function is_partner_message_seen_by_recipient(array $state, array $message): boo
 
 function build_partner_message_thread_for_owner(array $state, string $ownIdentifier, string $partnerIdentifier): array
 {
-    $thread = get_partner_message_thread($state, $ownIdentifier, $partnerIdentifier);
+    $thread = apply_partner_message_thread_limits(
+        get_partner_message_thread($state, $ownIdentifier, $partnerIdentifier),
+        get_messaging_limits($state)
+    );
     $hiddenMessageIds = get_partner_message_hidden_ids($state, $ownIdentifier, $partnerIdentifier);
     $hiddenMap = [];
     foreach ($hiddenMessageIds as $messageId) {
@@ -4100,7 +4491,7 @@ function build_partner_message_inbox_summary(array $state, string $ownerIdentifi
         if (!is_array($entry)) {
             continue;
         }
-        $thread = normalize_partner_message_thread($entry);
+        $thread = apply_partner_message_thread_limits(normalize_partner_message_thread($entry), get_messaging_limits($state));
         $participants = is_array($thread['participants'] ?? null) ? $thread['participants'] : [];
         $left = trim((string) ($participants[0] ?? ''));
         $right = trim((string) ($participants[1] ?? ''));
@@ -4347,7 +4738,7 @@ function get_partner_message_thread(array $state, string $ownIdentifier, string 
         return default_partner_message_thread($ownIdentifier, $partnerIdentifier);
     }
 
-    return normalize_partner_message_thread($thread);
+    return apply_partner_message_thread_limits(normalize_partner_message_thread($thread), get_messaging_limits($state));
 }
 
 function append_partner_message(array &$state, string $senderIdentifier, string $recipientIdentifier, string $senderRole, string $recipientRole, string $text, int $nowMs): array
@@ -4370,7 +4761,7 @@ function append_partner_message(array &$state, string $senderIdentifier, string 
 
     $thread['messages'][] = $messageRecord;
     $thread['updated_ms'] = $nowMs;
-    $state['partner_message_threads'][$threadKey] = normalize_partner_message_thread($thread);
+    $state['partner_message_threads'][$threadKey] = apply_partner_message_thread_limits($thread, get_messaging_limits($state));
 
     return $messageRecord;
 }
@@ -4521,8 +4912,11 @@ function validate_partner_message_text($value, string $field = 'message_text'): 
     if ($text === '') {
         throw new RuntimeException($field . ' is required.');
     }
-    if (mb_strlen($text) > 300) {
-        throw new RuntimeException($field . ' must not exceed 300 characters.');
+    global $state;
+    $limits = is_array($state ?? null) ? get_messaging_limits($state) : default_messaging_limits();
+    $maxChars = max(1, (int) ($limits['max_chars_per_message'] ?? 280));
+    if (mb_strlen($text) > $maxChars) {
+        throw new RuntimeException($field . ' must not exceed ' . $maxChars . ' characters.');
     }
     return $text;
 }
@@ -4593,6 +4987,7 @@ function default_handle_owner_record(string $ownerIdentifier = ''): array
 {
     return [
         'owner_identifier' => trim(preg_replace('/\s+/', ' ', $ownerIdentifier) ?? ''),
+        'auth_email' => '',
         'current_handle' => '',
         'current_canonical_handle' => '',
         'first_claimed_ms' => 0,
@@ -4622,6 +5017,7 @@ function get_or_create_handle_owner_record(array &$state, string $ownerIdentifie
     $record['owner_identifier'] = trim((string) ($record['owner_identifier'] ?? '')) !== ''
         ? trim((string) $record['owner_identifier'])
         : trim(preg_replace('/\s+/', ' ', $ownerIdentifier) ?? '');
+    $record['auth_email'] = normalize_explore_pro_email((string) ($record['auth_email'] ?? ''));
     $record['current_handle'] = trim((string) ($record['current_handle'] ?? ''));
     $record['current_canonical_handle'] = canonicalize_handle((string) ($record['current_canonical_handle'] ?? $record['current_handle'] ?? ''));
     $record['first_claimed_ms'] = isset($record['first_claimed_ms']) && is_numeric($record['first_claimed_ms']) ? (int) $record['first_claimed_ms'] : 0;
@@ -4638,6 +5034,41 @@ function get_or_create_handle_owner_record(array &$state, string $ownerIdentifie
 
     $state['handle_owners'][$ownerKey] = $record;
     return $record;
+}
+
+function set_handle_owner_auth_email(array &$state, string $ownerIdentifier, string $email, int $nowMs): void
+{
+    $owner = trim((string) $ownerIdentifier);
+    $normalizedEmail = normalize_explore_pro_email((string) $email);
+    if ($owner === '' || $normalizedEmail === '') {
+        return;
+    }
+    $ownerKey = get_handle_owner_key($owner);
+    if ($ownerKey === '') {
+        return;
+    }
+    $record = get_or_create_handle_owner_record($state, $owner, $nowMs);
+    $record['auth_email'] = $normalizedEmail;
+    $record['updated_ms'] = $nowMs;
+    $state['handle_owners'][$ownerKey] = $record;
+}
+
+function get_identifier_auth_email(array $state, string $identifier): string
+{
+    $status = get_identifier_status($state, $identifier);
+    $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $identifier));
+    $ownerIdentifier = trim((string) ($status['owner_identifier'] ?? $preferredIdentifier));
+    $ownerKey = get_handle_owner_key($ownerIdentifier);
+    $ownerRecord = $ownerKey !== '' && is_array($state['handle_owners'][$ownerKey] ?? null)
+        ? $state['handle_owners'][$ownerKey]
+        : null;
+    if (is_array($ownerRecord)) {
+        $authEmail = normalize_explore_pro_email((string) ($ownerRecord['auth_email'] ?? ''));
+        if ($authEmail !== '') {
+            return $authEmail;
+        }
+    }
+    return '';
 }
 
 function is_retired_handle(array $state, string $canonicalHandle): bool
@@ -4879,10 +5310,105 @@ function get_identifier_status(array $state, string $identifier): array
     ];
 }
 
+function get_unique_handle_change_status(array &$state, string $identifier, int $nowMs): array
+{
+    $cleanIdentifier = validate_participant_identifier_string($identifier, 'identifier', true);
+    $status = get_identifier_status($state, $cleanIdentifier);
+    $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+    $preferredHandle = trim((string) ($status['preferred_handle'] ?? ''));
+    $ownerIdentifier = trim((string) ($status['owner_identifier'] ?? $preferredIdentifier));
+    $ownerRecord = get_or_create_handle_owner_record($state, $ownerIdentifier, $nowMs);
+    $oldCanonical = canonicalize_handle($preferredHandle);
+    $probeCanonical = $oldCanonical === '' ? '__first_claim_probe__' : '__substantive_change_probe__';
+    $validation = validate_handle_change_allowed($ownerRecord, $oldCanonical, $probeCanonical, $nowMs);
+    $retryAfterMs = isset($validation['retry_after_ms']) && is_numeric($validation['retry_after_ms'])
+        ? max(0, (int) $validation['retry_after_ms'])
+        : 0;
+
+    return [
+        'identifier' => $preferredIdentifier,
+        'current_handle' => $preferredHandle,
+        'owner_identifier' => $ownerIdentifier,
+        'allowed_now' => !empty($validation['allowed']),
+        'operation_type' => (string) ($validation['operation_type'] ?? ($oldCanonical === '' ? 'first_claim' : 'substantive_change')),
+        'reason' => (string) ($validation['reason'] ?? ''),
+        'retry_after_ms' => $retryAfterMs,
+        'substantive_change_count' => isset($ownerRecord['substantive_change_count']) && is_numeric($ownerRecord['substantive_change_count'])
+            ? (int) $ownerRecord['substantive_change_count']
+            : 0,
+        'lifetime_claim_count' => isset($ownerRecord['lifetime_claim_count']) && is_numeric($ownerRecord['lifetime_claim_count'])
+            ? (int) $ownerRecord['lifetime_claim_count']
+            : 0
+    ];
+}
+
 function normalize_user_type($value): string
 {
     $type = strtolower(trim((string) $value));
     return $type === 'pro' ? 'pro' : 'standard';
+}
+
+function default_user_preferences_state(): array
+{
+    return [
+        'include_confidence' => false,
+        'include_positive_reinforcement' => false,
+        'updated_ms' => 0
+    ];
+}
+
+function validate_user_preferences_payload($value, string $field = 'user_preferences'): array
+{
+    if (!is_array($value)) {
+        throw new RuntimeException($field . ' must be an object.');
+    }
+
+    require_allowed_keys($value, ['include_confidence', 'include_positive_reinforcement'], $field);
+
+    return [
+        'include_confidence' => !empty($value['include_confidence']),
+        'include_positive_reinforcement' => !empty($value['include_positive_reinforcement'])
+    ];
+}
+
+function get_user_preferences_for_identifier(array $state, string $identifier): array
+{
+    $default = default_user_preferences_state();
+    $lookupKey = get_canonical_identifier_key($state, $identifier);
+    if ($lookupKey === '') {
+        return $default;
+    }
+
+    $entry = $state['user_preferences'][$lookupKey] ?? null;
+    if (!is_array($entry)) {
+        return $default;
+    }
+
+    return [
+        'include_confidence' => !empty($entry['include_confidence']),
+        'include_positive_reinforcement' => !empty($entry['include_positive_reinforcement']),
+        'updated_ms' => isset($entry['updated_ms']) && is_numeric($entry['updated_ms']) ? (int) $entry['updated_ms'] : 0
+    ];
+}
+
+function set_user_preferences_for_identifier(array &$state, string $identifier, array $preferences, int $nowMs): array
+{
+    $lookupKey = get_canonical_identifier_key($state, $identifier);
+    if ($lookupKey === '') {
+        return default_user_preferences_state();
+    }
+
+    if (!is_array($state['user_preferences'] ?? null)) {
+        $state['user_preferences'] = [];
+    }
+
+    $stored = [
+        'include_confidence' => !empty($preferences['include_confidence']),
+        'include_positive_reinforcement' => !empty($preferences['include_positive_reinforcement']),
+        'updated_ms' => $nowMs
+    ];
+    $state['user_preferences'][$lookupKey] = $stored;
+    return $stored;
 }
 
 function get_user_type_for_identifier(array &$state, string $identifier): string
@@ -4932,6 +5458,9 @@ function participant_identifier_exists(array $state, string $pairsDir, string $i
             return true;
         }
         if (isset($state['user_types'][$check])) {
+            return true;
+        }
+        if (isset($state['user_preferences'][$check]) && is_array($state['user_preferences'][$check])) {
             return true;
         }
         if (isset($state['launcher_profiles'][$check]) && is_array($state['launcher_profiles'][$check])) {
@@ -5180,6 +5709,9 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
     if (!is_array($state['user_types'] ?? null)) {
         $state['user_types'] = [];
     }
+    if (!is_array($state['user_preferences'] ?? null)) {
+        $state['user_preferences'] = [];
+    }
 
     $state['identifier_aliases'][$ownerKey] = $handle;
     foreach ($previousIdentifiers as $previousIdentifier) {
@@ -5241,9 +5773,15 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
         if (isset($state['user_types'][$previousLookup]) && !isset($state['user_types'][$handleKey])) {
             $state['user_types'][$handleKey] = $state['user_types'][$previousLookup];
         }
+        if (isset($state['user_preferences'][$previousLookup]) && is_array($state['user_preferences'][$previousLookup]) && !isset($state['user_preferences'][$handleKey])) {
+            $state['user_preferences'][$handleKey] = $state['user_preferences'][$previousLookup];
+        }
     }
 
     $ownerRecord['owner_identifier'] = $owner;
+    if (trim((string) ($ownerRecord['auth_email'] ?? '')) === '' && filter_var($owner, FILTER_VALIDATE_EMAIL)) {
+        $ownerRecord['auth_email'] = normalize_explore_pro_email($owner);
+    }
     $ownerRecord['current_handle'] = $handle;
     $ownerRecord['current_canonical_handle'] = $handleKey;
     if (($changeValidation['operation_type'] ?? '') === 'first_claim') {
@@ -5383,6 +5921,12 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
             $state['user_types'][$newKey] = $state['user_types'][$oldKey];
         }
         unset($state['user_types'][$oldKey]);
+    }
+    if ($newKey !== $oldKey && isset($state['user_preferences'][$oldKey]) && is_array($state['user_preferences'][$oldKey])) {
+        if (!isset($state['user_preferences'][$newKey])) {
+            $state['user_preferences'][$newKey] = $state['user_preferences'][$oldKey];
+        }
+        unset($state['user_preferences'][$oldKey]);
     }
 
     $updatedLauncherProfiles = [];
@@ -7020,10 +7564,8 @@ function build_user_trial_summary(array $state, array $records): array
         $sortKey = $utcTime !== '' ? $utcTime : $localDate;
         $dateLabel = format_trial_summary_date_label($utcTime, $localDate);
 
-        $receiverStatus = $receiverRaw !== '' ? get_identifier_status($state, $receiverRaw) : [];
-        $senderStatus = $senderRaw !== '' ? get_identifier_status($state, $senderRaw) : [];
-        $receiverName = trim((string) ($receiverStatus['preferred_identifier'] ?? $receiverRaw));
-        $senderName = trim((string) ($senderStatus['preferred_identifier'] ?? $senderRaw));
+        $receiverName = resolve_admin_report_display_identifier($state, $receiverRaw, 'receiver', $senderRaw);
+        $senderName = resolve_admin_report_display_identifier($state, $senderRaw, 'sender', $receiverRaw);
         $receiverCanonical = get_canonical_identifier_key($state, $receiverName);
         $senderCanonical = get_canonical_identifier_key($state, $senderName);
 
@@ -7223,6 +7765,21 @@ function find_temp_display_name_for_internal_visitor(array $state, string $role,
     return $bestIdentifier;
 }
 
+function strip_guest_display_suffix(string $value): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        return '';
+    }
+    return trim((string) preg_replace('/\s*\(guest\)$/i', '', $text));
+}
+
+function format_guest_display_name(string $value): string
+{
+    $base = strip_guest_display_suffix($value);
+    return $base !== '' ? $base . ' (guest)' : '';
+}
+
 function resolve_admin_report_display_identifier(array $state, string $identifier, string $role, string $partnerIdentifier = ''): string
 {
     $cleanIdentifier = trim($identifier);
@@ -7231,10 +7788,14 @@ function resolve_admin_report_display_identifier(array $state, string $identifie
     }
     if (is_internal_visitor_simulation_identifier($cleanIdentifier)) {
         $mapped = find_temp_display_name_for_internal_visitor($state, $role, $partnerIdentifier);
-        return $mapped !== '' ? $mapped : $cleanIdentifier;
+        return $mapped !== '' ? format_guest_display_name($mapped) : $cleanIdentifier;
     }
     $status = get_identifier_status($state, $cleanIdentifier);
-    return trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+    $preferred = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+    if (is_temporary_name_identifier($state, $preferred)) {
+        return format_guest_display_name($preferred);
+    }
+    return $preferred;
 }
 
 function map_pair_source_to_admin_type(array $state, string $source, string $receiverName, string $senderName): string
@@ -7442,11 +8003,19 @@ function build_all_identities_summary(array $state, array $records): array
         if ($cleanIdentifier === '') {
             return;
         }
-        $displayIdentifier = is_internal_visitor_simulation_identifier($cleanIdentifier)
+        $displayIdentifier = (
+            is_internal_visitor_simulation_identifier($cleanIdentifier)
+            || is_temporary_name_identifier($state, $cleanIdentifier)
+        )
             ? resolve_admin_report_display_identifier($state, $cleanIdentifier, 'receiver', 'Robot')
             : $cleanIdentifier;
         $status = get_identifier_status($state, $cleanIdentifier);
-        $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $displayIdentifier));
+        $preferredIdentifier = (
+            is_internal_visitor_simulation_identifier($cleanIdentifier)
+            || is_temporary_name_identifier($state, $cleanIdentifier)
+        )
+            ? trim($displayIdentifier)
+            : trim((string) ($status['preferred_identifier'] ?? $displayIdentifier));
         if ($preferredIdentifier === '') {
             return;
         }
@@ -7478,6 +8047,9 @@ function build_all_identities_summary(array $state, array $records): array
         $ensureIdentity((string) ($entry['owner_identifier'] ?? ''));
     }
     foreach (array_keys((array) ($state['user_types'] ?? [])) as $identifierKey) {
+        $ensureIdentity((string) $identifierKey);
+    }
+    foreach (array_keys((array) ($state['user_preferences'] ?? [])) as $identifierKey) {
         $ensureIdentity((string) $identifierKey);
     }
     foreach (array_keys((array) ($state['launcher_profiles'] ?? [])) as $identifierKey) {
@@ -7626,6 +8198,14 @@ function clear_pair_analysis_records(string $pairsDir): void
             @unlink($path);
         }
     }
+}
+
+function read_preserve_flag(array $input, string $key, bool $default = true): bool
+{
+    if (!array_key_exists($key, $input)) {
+        return $default;
+    }
+    return filter_var($input[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
 }
 
 function default_sync_metrics(): array
@@ -8556,7 +9136,11 @@ if (!is_array($state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'messaging_limits' => default_messaging_limits(),
         'esp_lessons' => [],
+        'identifier_recovery_verifications' => [],
+        'unique_name_claim_verifications' => [],
+        'user_preferences' => [],
         'invitees' => [],
         'email_list' => [],
         'retired_handles' => [],
@@ -8595,7 +9179,11 @@ if (!array_key_exists('sessions', $state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'messaging_limits' => default_messaging_limits(),
         'esp_lessons' => [],
+        'identifier_recovery_verifications' => [],
+        'unique_name_claim_verifications' => [],
+        'user_preferences' => [],
         'invitees' => [],
         'email_list' => [],
         'retired_handles' => [],
@@ -8630,6 +9218,15 @@ if (!is_array($state['pair_difficulties'] ?? null)) {
 if (!is_array($state['launcher_profiles'] ?? null)) {
     $state['launcher_profiles'] = [];
 }
+if (!is_array($state['user_preferences'] ?? null)) {
+    $state['user_preferences'] = [];
+}
+if (!is_array($state['identifier_recovery_verifications'] ?? null)) {
+    $state['identifier_recovery_verifications'] = [];
+}
+if (!is_array($state['unique_name_claim_verifications'] ?? null)) {
+    $state['unique_name_claim_verifications'] = [];
+}
 if (!is_array($state['push_subscriptions'] ?? null)) {
     $state['push_subscriptions'] = [];
 }
@@ -8639,6 +9236,7 @@ if (!is_array($state['partner_message_threads'] ?? null)) {
 if (!is_array($state['partner_message_reads'] ?? null)) {
     $state['partner_message_reads'] = [];
 }
+ensure_messaging_limits_state($state);
 if (!is_array($state['invitees'] ?? null)) {
     $state['invitees'] = [];
 }
@@ -9121,17 +9719,20 @@ $state['pair_difficulties'][$sessionCode]['updated_ms'] = $nowMs;
 if ($action === 'log_debug') {
     $label = isset($input['label']) ? (string) $input['label'] : 'debug';
     $details = isset($input['details']) && is_array($input['details']) ? $input['details'] : [];
-    append_debug_log(
-        $debugLogFile,
-        $debugEnabled,
-        json_encode([
-            'time_ms' => $nowMs,
-            'session_code' => $sessionCode,
-            'role' => $role,
-            'label' => $label,
-            'details' => $details
-        ], JSON_UNESCAPED_SLASHES)
-    );
+    $deviceDebugEnabled = !empty($input['device_debug_enabled']);
+    if ($hasAdminAccess && ($debugEnabled || $deviceDebugEnabled)) {
+        append_debug_log(
+            $debugLogFile,
+            true,
+            json_encode([
+                'time_ms' => $nowMs,
+                'session_code' => $sessionCode,
+                'role' => $role,
+                'label' => $label,
+                'details' => $details
+            ], JSON_UNESCAPED_SLASHES)
+        );
+    }
 }
 
 if ($action === 'trace_client') {
@@ -9194,6 +9795,55 @@ if ($action === 'set_subscription_reminders_enabled' && $hasAdminAccess) {
     $state['subscription_reminders_enabled'] = !empty($input['enabled']);
 }
 
+if ($action === 'save_user_preferences') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'user_preferences'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $userPreferences = validate_user_preferences_payload($input['user_preferences'] ?? []);
+        $storedUserPreferences = set_user_preferences_for_identifier($state, $identifier, $userPreferences, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+    $response = [
+        'ok' => true,
+        'identifier' => $identifier,
+        'user_preferences' => $storedUserPreferences,
+        'server_now_ms' => $nowMs
+    ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_user_preferences') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $userPreferences = get_user_preferences_for_identifier($state, $identifier);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+    $response = [
+        'ok' => true,
+        'identifier' => $identifier,
+        'user_preferences' => $userPreferences,
+        'server_now_ms' => $nowMs
+    ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'set_easy_admin_enabled' && $hasAdminAccess) {
     $state['easy_admin_enabled'] = !empty($input['enabled']);
     $easyAdminEnabled = !empty($state['easy_admin_enabled']);
@@ -9211,6 +9861,15 @@ if ($action === 'set_explore_pro_test_duration_seconds' && $hasAdminAccess) {
 
 if ($action === 'set_trial_mode_public_enabled' && $hasAdminAccess) {
     $state['trial_mode_public_enabled'] = !empty($input['enabled']);
+}
+
+if ($action === 'set_messaging_limits' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'messaging_limits'], 'request');
+        $state['messaging_limits'] = validate_messaging_limits_payload($input['messaging_limits'] ?? null);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
 }
 
 if ($action === 'record_launcher_visit') {
@@ -9542,6 +10201,7 @@ if ($action === 'get_launcher_profile') {
     $response = [
         'ok' => true,
         'launcher_profile' => get_launcher_profile_entry($state, $launcherRole, $ownEmail),
+        'user_preferences' => get_user_preferences_for_identifier($state, $ownEmail),
         'user_type' => get_user_type_for_identifier($state, $ownEmail),
         'server_now_ms' => $nowMs
     ];
@@ -9599,7 +10259,144 @@ if ($action === 'get_identifier_status') {
         'ok' => true,
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
+        'auth_email_on_file' => get_identifier_recovery_email($state, $identifier) !== '',
         'user_type' => get_user_type_for_identifier($state, $identifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_unique_handle_change_status') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'unique_handle_change_status' => get_unique_handle_change_status($state, $identifier, $nowMs),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'send_identifier_recovery_code') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'email'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $email = validate_email_identifier_string($input['email'] ?? '', 'email', true);
+        $verification = send_identifier_recovery_verification_code($state, $identifier, $email, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'verification' => $verification,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'verify_identifier_recovery_code') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'email', 'code'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $email = validate_email_identifier_string($input['email'] ?? '', 'email', true);
+        $code = strtoupper(trim((string) ($input['code'] ?? '')));
+        $result = verify_identifier_recovery_code($state, $identifier, $email, $code, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier' => $result['identifier'],
+        'identifier_status' => $result['identifier_status'],
+        'user_type' => $result['user_type'],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'send_unique_name_claim_code') {
+    try {
+        require_allowed_keys($input, ['action', 'current_identifier', 'proposed_handle', 'email'], 'request');
+        $currentIdentifier = validate_participant_identifier_string($input['current_identifier'] ?? '', 'current_identifier', false);
+        $proposedHandle = trim((string) ($input['proposed_handle'] ?? ''));
+        $email = validate_email_identifier_string($input['email'] ?? '', 'email', true);
+        $verification = send_unique_name_claim_verification_code($state, $currentIdentifier, $proposedHandle, $email, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'verification' => $verification,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'verify_unique_name_claim_code') {
+    try {
+        require_allowed_keys($input, ['action', 'current_identifier', 'proposed_handle', 'email', 'code'], 'request');
+        $currentIdentifier = validate_participant_identifier_string($input['current_identifier'] ?? '', 'current_identifier', false);
+        $proposedHandle = trim((string) ($input['proposed_handle'] ?? ''));
+        $email = validate_email_identifier_string($input['email'] ?? '', 'email', true);
+        $code = strtoupper(trim((string) ($input['code'] ?? '')));
+        $result = verify_unique_name_claim_code($state, $currentIdentifier, $proposedHandle, $email, $code, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier' => $result['identifier'],
+        'identifier_status' => $result['identifier_status'],
+        'user_type' => $result['user_type'],
         'server_now_ms' => $nowMs
     ];
 
@@ -9750,7 +10547,43 @@ if ($action === 'get_user_type') {
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
+        'auth_email' => get_identifier_auth_email($state, $identifier),
         'explore_trial' => $exploreTrial,
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'set_user_auth_email' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'user_identifier', 'email', 'secret_candidate'], 'request');
+        $userIdentifier = trim((string) ($input['user_identifier'] ?? ''));
+        $validatedIdentifier = validate_participant_identifier_string($userIdentifier, 'user_identifier', true);
+        if (!participant_identifier_exists($state, $pairsDir, $validatedIdentifier)) {
+            throw new RuntimeException('That user identifier does not exist.');
+        }
+        $email = validate_email_identifier_string($input['email'] ?? '', 'email', true);
+        $identifierStatus = get_identifier_status($state, $validatedIdentifier);
+        $ownerIdentifier = trim((string) ($identifierStatus['owner_identifier'] ?? $identifierStatus['preferred_identifier'] ?? $validatedIdentifier));
+        set_handle_owner_auth_email($state, $ownerIdentifier, $email, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'identifier_status' => get_identifier_status($state, $validatedIdentifier),
+        'identifier_exists' => true,
+        'user_type' => get_user_type_for_identifier($state, $validatedIdentifier),
+        'auth_email' => get_identifier_auth_email($state, $validatedIdentifier),
         'server_now_ms' => $nowMs
     ];
 
@@ -9982,6 +10815,7 @@ if ($action === 'get_partner_messaging') {
         'partner_status' => $partnerStatus,
         'push_status' => get_push_registration_status($state, $preferredOwnIdentifier, $deviceId),
         'partner_push_status' => get_push_registration_status($state, $preferredPartnerIdentifier),
+        'messaging_limits' => get_messaging_limits($state),
         'server_now_ms' => $nowMs
     ];
 
@@ -10011,6 +10845,7 @@ if ($action === 'get_partner_message_inbox') {
         'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
         'identifier_status' => $ownStatus,
         'push_status' => get_push_registration_status($state, $preferredOwnIdentifier, $deviceId),
+        'messaging_limits' => get_messaging_limits($state),
         'server_now_ms' => $nowMs
     ];
 
@@ -10051,6 +10886,7 @@ if ($action === 'mark_partner_messages_read') {
         'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
         'identifier_status' => $ownStatus,
         'partner_status' => $partnerStatus,
+        'messaging_limits' => get_messaging_limits($state),
         'server_now_ms' => $nowMs
     ];
 
@@ -10126,6 +10962,7 @@ if ($action === 'send_partner_message') {
         'thread' => build_partner_message_thread_for_owner($state, $preferredSenderIdentifier, $preferredRecipientIdentifier),
         'recipient_inbox' => build_partner_message_inbox_summary($state, $preferredRecipientIdentifier),
         'delivery' => $delivery,
+        'messaging_limits' => get_messaging_limits($state),
         'server_now_ms' => $nowMs
     ];
 
@@ -10164,6 +11001,7 @@ if ($action === 'delete_partner_message') {
         'thread' => $deleteResult['thread'],
         'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
         'identifier_status' => $ownStatus,
+        'messaging_limits' => get_messaging_limits($state),
         'partner_status' => $partnerStatus,
         'server_now_ms' => $nowMs
     ];
@@ -10585,6 +11423,7 @@ if ($action === 'save_launcher_profile') {
     $response = [
         'ok' => true,
         'launcher_profile' => $storedProfile,
+        'user_preferences' => get_user_preferences_for_identifier($state, $ownEmail),
         'user_type' => get_user_type_for_identifier($state, $ownEmail),
         'server_now_ms' => $nowMs
     ];
@@ -10753,44 +11592,77 @@ if ($action === 'clear_debug_log' && $hasAdminAccess) {
 }
 
 if ($action === 'fresh_start' && $hasAdminAccess) {
+    $preserveUsers = read_preserve_flag($input, 'preserve_users', true);
+    $preserveInvitees = read_preserve_flag($input, 'preserve_invitees', true);
+    $preservePairs = read_preserve_flag($input, 'preserve_pairs', true);
+    $preserveSimulationPairs = read_preserve_flag($input, 'preserve_simulation_pairs', true);
+    $preserveQuestionnaires = read_preserve_flag($input, 'preserve_questionnaires', true);
+    $preserveMessagingHistory = read_preserve_flag($input, 'preserve_messaging_history', true);
+    $preserveAnalyticsCounters = read_preserve_flag($input, 'preserve_analytics_counters', true);
+
     $state['sessions'] = [];
     $state['session_registry'] = [];
-    $state['pair_difficulties'] = [];
-    $state['launcher_profiles'] = [];
-    $state['unique_handles'] = [];
-    $state['identifier_aliases'] = [];
-    $state['user_types'] = [];
-    $state['level_four_receiver_pools'] = [];
-    $state['invitees'] = [];
-    $state['retired_handles'] = [];
-    $state['handle_owners'] = [];
-    $state['explore_pro_verifications'] = [];
-    $state['explore_pro_trials'] = [];
-    $state['stripe_users'] = [];
-    $state['stripe_customer_index'] = [];
-    $state['stripe_subscription_index'] = [];
-    $state['stripe_processed_events'] = [];
-    $state['push_subscriptions'] = [];
-    $state['partner_message_threads'] = [];
-    $state['partner_message_reads'] = [];
-    $state['esp_lessons'] = [];
-    $state['launcher_visit_count'] = 0;
-    $state['visitor_trial_count'] = 0;
-    $state['debug_enabled'] = false;
-    $state['subscription_emails_enabled'] = false;
-    $state['subscription_reminders_enabled'] = false;
-    $state['easy_admin_enabled'] = false;
-    $state['learn_more_save_enabled'] = false;
-    $state['explore_pro_test_duration_seconds'] = 0;
-    $state['trial_mode_public_enabled'] = false;
+
+    if (!$preservePairs) {
+        $state['pair_difficulties'] = [];
+        $state['level_four_receiver_pools'] = [];
+        clear_pair_trial_records($pairsDir);
+        clear_pair_analysis_records($pairsDir);
+        ensure_demo_pair_records($pairsDir, true);
+    }
+
+    if (!$preserveSimulationPairs) {
+        clear_pair_trial_records($simulationPairsDir);
+        clear_pair_analysis_records($simulationPairsDir);
+    }
+
+    if (!$preserveUsers) {
+        $state['launcher_profiles'] = [];
+        $state['unique_handles'] = [];
+        $state['identifier_aliases'] = [];
+        $state['user_types'] = [];
+        $state['user_preferences'] = [];
+        $state['retired_handles'] = [];
+        $state['handle_owners'] = [];
+        $state['explore_pro_verifications'] = [];
+        $state['explore_pro_trials'] = [];
+        $state['stripe_users'] = [];
+        $state['stripe_customer_index'] = [];
+        $state['stripe_subscription_index'] = [];
+        $state['stripe_processed_events'] = [];
+        $state['push_subscriptions'] = [];
+        $state['esp_lessons'] = [];
+    }
+
+    if (!$preserveInvitees) {
+        $state['invitees'] = [];
+    }
+
+    if (!$preserveMessagingHistory) {
+        $state['partner_message_threads'] = [];
+        $state['partner_message_reads'] = [];
+    }
+
+    if (!$preserveQuestionnaires) {
+        clear_questionnaire_response_records($questionnaireResponsesDir);
+    }
+
+    if (!$preserveAnalyticsCounters) {
+        $state['launcher_visit_count'] = 0;
+        $state['visitor_trial_count'] = 0;
+    }
+
     ensure_email_list_state($state);
-    $state['subscription_email_templates'] = default_subscription_email_templates();
-    clear_pair_trial_records($pairsDir);
-    clear_pair_trial_records($simulationPairsDir);
-    clear_pair_analysis_records($pairsDir);
-    clear_pair_analysis_records($simulationPairsDir);
-    ensure_demo_pair_records($pairsDir, true);
-    file_put_contents($subscriptionEmailLogFile, '');
+
+    $response['fresh_start_summary'] = [
+        'preserve_users' => $preserveUsers,
+        'preserve_invitees' => $preserveInvitees,
+        'preserve_pairs' => $preservePairs,
+        'preserve_simulation_pairs' => $preserveSimulationPairs,
+        'preserve_questionnaires' => $preserveQuestionnaires,
+        'preserve_messaging_history' => $preserveMessagingHistory,
+        'preserve_analytics_counters' => $preserveAnalyticsCounters
+    ];
 }
 
 if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
@@ -11269,6 +12141,7 @@ $response = [
     'learn_more_save_enabled' => !empty($state['learn_more_save_enabled']),
     'explore_pro_test_duration_seconds' => max(0, (int) ($state['explore_pro_test_duration_seconds'] ?? 0)),
     'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled']),
+    'messaging_limits' => get_messaging_limits($state),
     'pair_difficulty' => normalize_difficulty_level($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
     'role_conflict' => $roleConflict,
     'state' => [

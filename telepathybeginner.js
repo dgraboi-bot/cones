@@ -1,7 +1,8 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
-  const launcherBuildVersion = "20260703ae";
+  const recognizedIdentityKey = "cones-recognized-identity-v1";
+  const launcherBuildVersion = "20260705g";
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
@@ -48,12 +49,16 @@
   const adminEmailListView = document.querySelector('[data-view="admin-email-list"]');
   const lessonIndexAdminView = document.querySelector('[data-view="lesson-index-admin"]');
   const savedLinksAdminView = document.querySelector('[data-view="saved-links-admin"]');
+  const messagingParmsAdminView = document.querySelector('[data-view="messaging-parms-admin"]');
   const savedLinksAdminActionButtons = Array.from((savedLinksAdminView && savedLinksAdminView.querySelectorAll("button")) || []);
   const onlineCourseView = document.querySelector('[data-view="online-course"]');
   const baselineQuestionsView = document.querySelector('[data-view="baseline-questions"]');
   const afterFirstSessionQuestionsView = document.querySelector('[data-view="after-first-session-questions"]');
   const contactView = document.querySelector('[data-view="contact"]');
   const aboutView = document.querySelector('[data-view="about"]');
+  const researchParticipationView = document.querySelector('[data-view="research-participation"]');
+  const researchParticipationProView = document.querySelector('[data-view="research-participation-pro"]');
+  const researchInterestFormView = document.querySelector('[data-view="research-interest-form"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
   const reportView = document.querySelector('[data-view="report"]');
   const visualizationView = document.querySelector('[data-view="visualization"]');
@@ -99,6 +104,7 @@
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
+  const openResearchParticipationProButton = document.querySelector("[data-open-research-participation-pro]");
   const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
   const openSubscriptionManagementButton = document.querySelector("[data-open-subscription-management]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
@@ -114,6 +120,7 @@
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
   const openLessonIndexAdminButton = document.querySelector("[data-open-lesson-index-admin]");
   const openSavedLinksAdminButton = document.querySelector("[data-open-saved-links-admin]");
+  const openMessagingParmsAdminButton = document.querySelector("[data-open-messaging-parms-admin]");
   const adminEmailListButton = document.querySelector("[data-admin-email-list]");
   const adminListIdentitiesButton = document.querySelector("[data-admin-list-identities]");
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
@@ -128,7 +135,7 @@
   const closeTemporaryHomePageButton = document.querySelector("[data-close-temporary-home-page]");
   const closeAidsButton = document.querySelector("[data-close-aids]");
   const closeOnlineCourseButton = document.querySelector("[data-close-online-course]");
-  const saveOnlineCourseWordButton = document.querySelector("[data-save-online-course-word]");
+  const openOnlineCoursePracticeButton = document.querySelector("[data-open-online-course-practice]");
   const onlineCourseLessonList = document.querySelector(".online-course-lesson-list");
   const onlineCourseTabButtons = Array.from(document.querySelectorAll("[data-online-course-tab]"));
   const onlineCourseTabPanels = Array.from(document.querySelectorAll("[data-online-course-panel]"));
@@ -196,6 +203,23 @@
   const afterFirstSessionNameAccurateInput = document.querySelector("[data-after-first-session-name-accurate]");
   const afterFirstSessionStatus = document.querySelector("[data-after-first-session-status]");
   const afterFirstSessionSaveButton = document.querySelector("[data-save-after-first-session-questions]");
+  const researchInterestForm = document.querySelector("[data-research-interest-form]");
+  const researchInterestNameInput = document.querySelector("[data-research-interest-name]");
+  const researchInterestUniqueNameInput = document.querySelector("[data-research-interest-unique-name]");
+  const researchInterestEmailInput = document.querySelector("[data-research-interest-email]");
+  const researchInterestZipInput = document.querySelector("[data-research-interest-zip]");
+  const researchInterestAgeInput = document.querySelector("[data-research-interest-age]");
+  const researchInterestBeliefInputs = Array.from(document.querySelectorAll("[data-research-interest-belief]"));
+  const researchInterestBeliefWhyInput = document.querySelector("[data-research-interest-belief-why]");
+  const researchInterestSpontaneousInputs = Array.from(document.querySelectorAll("[data-research-interest-spontaneous]"));
+  const researchInterestDescribeInput = document.querySelector("[data-research-interest-describe]");
+  const researchInterestFamilyInputs = Array.from(document.querySelectorAll("[data-research-interest-family]"));
+  const researchInterestPermissionInput = document.querySelector("[data-research-interest-permission]");
+  const researchInterestSignedInput = document.querySelector("[data-research-interest-signed]");
+  const researchInterestDateInput = document.querySelector("[data-research-interest-date]");
+  const researchInterestStatus = document.querySelector("[data-research-interest-status]");
+  const researchInterestSaveButton = document.querySelector("[data-save-research-interest]");
+  const researchInterestCancelButton = document.querySelector("[data-cancel-research-interest]");
   const otherSettingsHomeButton = document.querySelector("[data-other-settings-home]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
@@ -209,15 +233,25 @@
   const closeAdminIdentityListButton = document.querySelector("[data-close-admin-identity-list]");
   const closeAdminEmailListButton = document.querySelector("[data-close-admin-email-list]");
   const closeLessonIndexAdminButton = document.querySelector("[data-close-lesson-index-admin]");
+  const closeMessagingParmsAdminButton = document.querySelector("[data-close-messaging-parms-admin]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const temporaryHomePageContinueButton = document.querySelector("[data-temporary-home-continue]");
   const temporaryHomePageInvitationCodeInput = document.querySelector("[data-temporary-home-invitation-code]");
   const temporaryHomePageInvitationStatus = document.querySelector("[data-temporary-home-invitation-status]");
   const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
   const temporaryHomePageExploreButton = document.querySelector("[data-temporary-home-explore]");
+  const openLandingPageButton = document.querySelector("[data-open-landing-page]");
   const temporaryHomePageClairvoyanceButton = document.querySelector("[data-temporary-home-clairvoyance]");
   const temporaryHomePageContactButton = document.querySelector("[data-open-temporary-home-contact]");
   const temporaryHomePageHelpButton = document.querySelector("[data-open-temporary-home-help]");
+  const temporaryHomePageResearchButton = document.querySelector("[data-open-research-participation]");
+  const footerOpenBeginnerLink = document.querySelector("[data-footer-open-beginner]");
+  const footerOpenProLink = document.querySelector("[data-footer-open-pro]");
+  const footerOpenHelpLink = document.querySelector("[data-footer-open-help]");
+  const footerOpenContactLink = document.querySelector("[data-footer-open-contact]");
+  const footerOpenPrivacyLink = document.querySelector("[data-footer-open-privacy]");
+  const footerOpenResearchLink = document.querySelector("[data-footer-open-research]");
+  const footerOpenAboutLink = document.querySelector("[data-footer-open-about]");
   const closeContactButton = document.querySelector("[data-close-contact]");
   const rotatingMessagesEditorView = document.querySelector('[data-view="rotating-messages-editor"]');
   const openRotatingMessagesEditorButton = document.querySelector("[data-open-rotating-messages-editor]");
@@ -227,6 +261,10 @@
   const rotatingMessagesStatus = document.querySelector("[data-rotating-messages-status]");
   const openAboutButton = document.querySelector("[data-open-about]");
   const closeAboutButton = document.querySelector("[data-close-about]");
+  const closeResearchParticipationButton = document.querySelector("[data-close-research-participation]");
+  const closeResearchParticipationProButton = document.querySelector("[data-close-research-participation-pro]");
+  const openResearchInterestFormButton = document.querySelector("[data-open-research-interest-form]");
+  const closeResearchInterestFormButton = document.querySelector("[data-close-research-interest-form]");
   const openReportButton = document.querySelector("[data-open-report]");
   const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
   const closeReportButton = document.querySelector("[data-close-report]");
@@ -259,6 +297,7 @@
   let goProReturnScrollY = 0;
   let launcherGuestEntryActive = false;
   const visitorSimulationIdentifierPrefix = "Visitor";
+  const guestDisplaySuffix = " (guest)";
   const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
   const reportTableWrap = document.querySelector("[data-report-table-wrap]");
   const reportTable = document.querySelector("[data-report-table]");
@@ -297,6 +336,9 @@
   const updatesCloseButton = document.querySelector("[data-updates-close]");
   const exploreProOverlay = document.querySelector("[data-explore-pro-overlay]");
   const exploreProDialog = exploreProOverlay?.querySelector(".explore-pro-dialog") || null;
+  const exploreProTitle = document.querySelector("[data-explore-pro-title]");
+  const exploreProIntro = document.querySelector("[data-explore-pro-intro]");
+  const exploreProAuthCopy = document.querySelector("[data-explore-pro-auth-copy]");
   const exploreProEmailInput = document.querySelector("[data-explore-pro-email]");
   const exploreProCodeInput = document.querySelector("[data-explore-pro-code]");
   const exploreProStatus = document.querySelector("[data-explore-pro-status]");
@@ -330,6 +372,11 @@
   const featureSetupLocationActionButton = document.querySelector("[data-feature-setup-location-action]");
   const featureSetupMessagingActionButton = document.querySelector("[data-feature-setup-messaging-action]");
   const featureSetupProtectionActionButton = document.querySelector("[data-feature-setup-protection-action]");
+  const uniqueNameChangeView = document.querySelector('[data-view="unique-name-change"]');
+  const closeUniqueNameChangeButton = document.querySelector("[data-close-unique-name-change]");
+  const uniqueNameChangeCurrent = document.querySelector("[data-unique-name-change-current]");
+  const uniqueNameChangeStatus = document.querySelector("[data-unique-name-change-status]");
+  const uniqueNameChangeContinueButton = document.querySelector("[data-unique-name-change-continue]");
   const featureSetupClaimItem = document.querySelector('[data-feature-setup-item="claim-name"]');
   const featureSetupMessagingItem = document.querySelector('[data-feature-setup-item="messaging"]');
   const featureSetupProtectionItem = document.querySelector('[data-feature-setup-item="protection"]');
@@ -402,6 +449,7 @@
   const blinkOffSecondsInput = document.querySelector("[data-blink-off-seconds]");
   const blinkStatus = document.querySelector("[data-blink-status]");
   const confidenceModeButtons = Array.from(document.querySelectorAll("[data-confidence-mode]"));
+  const reinforcementModeButtons = Array.from(document.querySelectorAll("[data-reinforcement-mode]"));
   const confidenceStatus = document.querySelector("[data-confidence-status]");
   const contactStatus = document.querySelector("[data-contact-status]");
   const contactSendButton = document.querySelector("[data-contact-send]");
@@ -413,23 +461,31 @@
   const adminLearnMoreSaveEnabledCheckbox = document.querySelector("[data-admin-learn-more-save-enabled]");
   const adminExploreProTestDurationInput = document.querySelector("[data-admin-explore-pro-test-duration]");
   const adminTrialModePublicEnabledCheckbox = document.querySelector("[data-admin-trial-mode-public-enabled]");
+  const messagingParmsMaxMessagesInput = document.querySelector("[data-messaging-parms-max-messages]");
+  const messagingParmsMaxCharsInput = document.querySelector("[data-messaging-parms-max-chars]");
+  const messagingParmsMaxTotalCharsInput = document.querySelector("[data-messaging-parms-max-total-chars]");
+  const messagingParmsStatus = document.querySelector("[data-messaging-parms-status]");
+  const saveMessagingParmsAdminButton = document.querySelector("[data-save-messaging-parms-admin]");
   const adminOpen14DayTrialButton = document.querySelector("[data-admin-open-14-day-trial]");
   const userTypeHandleInput = document.querySelector("[data-user-type-handle]");
   const userTypeStatus = document.querySelector("[data-user-type-status]");
   const userTypeOptionsWrap = document.querySelector("[data-user-type-options-wrap]");
+  const userTypeEmailWrap = document.querySelector("[data-user-type-email-wrap]");
+  const userTypeEmailInput = document.querySelector("[data-user-type-email]");
   const userTypeChoiceButtons = Array.from(document.querySelectorAll("[data-user-type-choice-button]"));
   const userTypeSaveButton = document.querySelector("[data-user-type-save]");
+  const userTypeUpdateEmailButton = document.querySelector("[data-user-type-update-email]");
   const userTypeClearButton = document.querySelector("[data-user-type-clear]");
   const inviteeIdentifierInput = document.querySelector("[data-invitee-identifier]");
   const inviteeFullNameInput = document.querySelector("[data-invitee-full-name]");
   const inviteeEmailInput = document.querySelector("[data-invitee-email]");
   const inviteeNoteInput = document.querySelector("[data-invitee-note]");
   const inviteeStatus = document.querySelector("[data-invitee-status]");
-  const inviteeLoadButton = document.querySelector("[data-invitee-load]");
   const inviteeSaveButton = document.querySelector("[data-invitee-save]");
   const inviteeDeleteButton = document.querySelector("[data-invitee-delete]");
   const inviteeClearButton = document.querySelector("[data-invitee-clear]");
-  const inviteeClearDeviceButton = document.querySelector("[data-invitee-clear-device]");
+  const testNewDeviceButton = document.querySelector("[data-test-new-device]");
+  const restoreMyDeviceButton = document.querySelector("[data-restore-my-device]");
   const inviteeListBody = document.querySelector("[data-invitee-list-body]");
   const handleUpdateOldInput = document.querySelector("[data-handle-update-old]");
   const handleUpdateNewInput = document.querySelector("[data-handle-update-new]");
@@ -454,6 +510,13 @@
   const adminListUsersButton = document.querySelector("[data-admin-list-users]");
   const adminAnalyzeDiskButton = document.querySelector("[data-admin-analyze-disk]");
   const adminFreshStartButton = document.querySelector("[data-admin-fresh-start]");
+  const adminFreshStartPreserveUsersCheckbox = document.querySelector("[data-admin-fresh-start-preserve-users]");
+  const adminFreshStartPreserveInviteesCheckbox = document.querySelector("[data-admin-fresh-start-preserve-invitees]");
+  const adminFreshStartPreservePairsCheckbox = document.querySelector("[data-admin-fresh-start-preserve-pairs]");
+  const adminFreshStartPreserveSimulationPairsCheckbox = document.querySelector("[data-admin-fresh-start-preserve-simulation-pairs]");
+  const adminFreshStartPreserveQuestionnairesCheckbox = document.querySelector("[data-admin-fresh-start-preserve-questionnaires]");
+  const adminFreshStartPreserveMessagingHistoryCheckbox = document.querySelector("[data-admin-fresh-start-preserve-messaging-history]");
+  const adminFreshStartPreserveAnalyticsCountersCheckbox = document.querySelector("[data-admin-fresh-start-preserve-analytics-counters]");
   const adminDiskUsage = document.querySelector("[data-admin-disk-usage]");
   const adminUserListSummary = document.querySelector("[data-admin-user-list-summary]");
   const adminUserListStatus = document.querySelector("[data-admin-user-list-status]");
@@ -515,6 +578,7 @@
   let featureSetupReturnScrollY = 0;
   let featureSetupOwnIdentifier = "";
   let featureSetupPendingHandleFlow = "";
+  let uniqueNameChangeAllowedNow = false;
   let installGuideReturnView = "feature-setup";
   let messagingRefreshToken = 0;
   let activeMessagesRole = "";
@@ -697,6 +761,9 @@ This is an alternate test message to show now.`;
   let espLessonsSourceText = defaultEspLessonsText;
   let stripePublicConfigCache = null;
   let stripeCheckoutInFlight = false;
+  let exploreProOverlayMode = "trial";
+  let pendingRecoveryIdentifier = "";
+  let pendingUniqueNameClaim = null;
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
@@ -741,7 +808,8 @@ This is an alternate test message to show now.`;
       email_list: null,
       email_list_meta: null,
       disk_usage_analysis: null,
-      lesson_index: null
+      lesson_index: null,
+      messaging_limits: null
     };
   let activeAdminPairsFilter = "all";
   let activeAdminIdentityFilter = "all";
@@ -767,8 +835,59 @@ This is an alternate test message to show now.`;
     offSeconds: "0.8"
   });
   const defaultConfidenceSettings = Object.freeze({
-    include: false
+    include: false,
+    includePositiveReinforcement: false
   });
+  const defaultMessagingLimits = Object.freeze({
+    max_messages_per_pair: 25,
+    max_chars_per_message: 280,
+    max_total_chars_per_conversation: 3000
+  });
+
+  function normalizeMessagingLimits(limits = {}) {
+    const maxMessagesPerPair = Math.max(1, Number(limits?.max_messages_per_pair || defaultMessagingLimits.max_messages_per_pair) || defaultMessagingLimits.max_messages_per_pair);
+    const maxCharsPerMessage = Math.max(1, Number(limits?.max_chars_per_message || defaultMessagingLimits.max_chars_per_message) || defaultMessagingLimits.max_chars_per_message);
+    const maxTotalCharsPerConversation = Math.max(
+      maxCharsPerMessage,
+      Number(limits?.max_total_chars_per_conversation || defaultMessagingLimits.max_total_chars_per_conversation) || defaultMessagingLimits.max_total_chars_per_conversation
+    );
+    return {
+      max_messages_per_pair: maxMessagesPerPair,
+      max_chars_per_message: maxCharsPerMessage,
+      max_total_chars_per_conversation: maxTotalCharsPerConversation
+    };
+  }
+
+  function getActiveMessagingLimits() {
+    return normalizeMessagingLimits(launcherAdminState?.messaging_limits || defaultMessagingLimits);
+  }
+
+  function applyMessagingLimitsUi(limits = launcherAdminState?.messaging_limits || defaultMessagingLimits) {
+    const normalized = normalizeMessagingLimits(limits);
+    launcherAdminState.messaging_limits = normalized;
+    if (messagesInput) {
+      messagesInput.maxLength = normalized.max_chars_per_message;
+      messagesInput.setAttribute("maxlength", String(normalized.max_chars_per_message));
+    }
+    if (messagingParmsMaxMessagesInput) {
+      messagingParmsMaxMessagesInput.value = String(normalized.max_messages_per_pair);
+    }
+    if (messagingParmsMaxCharsInput) {
+      messagingParmsMaxCharsInput.value = String(normalized.max_chars_per_message);
+    }
+    if (messagingParmsMaxTotalCharsInput) {
+      messagingParmsMaxTotalCharsInput.value = String(normalized.max_total_chars_per_conversation);
+    }
+    return normalized;
+  }
+
+  function rememberMessagingLimitsFromResponse(data) {
+    if (!data || typeof data !== "object" || !data.messaging_limits) {
+      return;
+    }
+    applyMessagingLimitsUi(data.messaging_limits);
+  }
+  applyMessagingLimitsUi(launcherAdminState.messaging_limits);
   const defaultInstallState = Object.freeze({
     confirmed: false,
     confirmedAt: 0,
@@ -838,7 +957,11 @@ This is an alternate test message to show now.`;
     try {
       const raw = localStorage.getItem(launcherKey);
       const parsed = raw ? JSON.parse(raw) : {};
-      return {
+      const recognizedIdentityFromDedicatedKey = String(localStorage.getItem(recognizedIdentityKey) || "").trim();
+      return normalizeLauncherIdentityState({
+        recognizedIdentity: typeof parsed?.recognizedIdentity === "string" && parsed.recognizedIdentity.trim()
+          ? parsed.recognizedIdentity.trim()
+          : recognizedIdentityFromDedicatedKey,
         ownNames: typeof parsed?.ownNames === "object" && parsed.ownNames ? parsed.ownNames : {},
         visitorDisplayNames: typeof parsed?.visitorDisplayNames === "object" && parsed.visitorDisplayNames ? parsed.visitorDisplayNames : {},
         visitorLockedName: typeof parsed?.visitorLockedName === "string" ? parsed.visitorLockedName.trim() : "",
@@ -866,12 +989,18 @@ This is an alternate test message to show now.`;
         blinkImageOnSeconds: typeof parsed?.blinkImageOnSeconds === "string" ? parsed.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
         blinkImageOffSeconds: typeof parsed?.blinkImageOffSeconds === "string" ? parsed.blinkImageOffSeconds : defaultBlinkSettings.offSeconds,
         includeConfidence: typeof parsed?.includeConfidence === "boolean" ? parsed.includeConfidence : defaultConfidenceSettings.include,
+        includePositiveReinforcement: typeof parsed?.includePositiveReinforcement === "boolean"
+          ? parsed.includePositiveReinforcement
+          : defaultConfidenceSettings.includePositiveReinforcement,
         installState: normalizeInstallState(parsed?.installState),
         resolvedMainUserType: String(parsed?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
         entryMode: String(parsed?.entryMode || "").trim().toLowerCase() === "visitor" ? "visitor" : "",
         visitorAlias: typeof parsed?.visitorAlias === "string" ? parsed.visitorAlias.trim() : "",
         loadedInviteeIdentity: parsed?.loadedInviteeIdentity && typeof parsed.loadedInviteeIdentity === "object"
           ? parsed.loadedInviteeIdentity
+          : null,
+        deviceTestMode: parsed?.deviceTestMode && typeof parsed.deviceTestMode === "object"
+          ? parsed.deviceTestMode
           : null,
         pendingInviteeOnboarding: parsed?.pendingInviteeOnboarding && typeof parsed.pendingInviteeOnboarding === "object"
           ? parsed.pendingInviteeOnboarding
@@ -893,9 +1022,10 @@ This is an alternate test message to show now.`;
               userType: String(parsed?.temporaryIdentity?.userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
             }
           : null
-      };
+      });
     } catch (error) {
-      return {
+      return normalizeLauncherIdentityState({
+        recognizedIdentity: "",
         ownNames: {},
         visitorDisplayNames: {},
         visitorLockedName: "",
@@ -923,20 +1053,29 @@ This is an alternate test message to show now.`;
         blinkImageOnSeconds: defaultBlinkSettings.onSeconds,
         blinkImageOffSeconds: defaultBlinkSettings.offSeconds,
         includeConfidence: defaultConfidenceSettings.include,
+        includePositiveReinforcement: defaultConfidenceSettings.includePositiveReinforcement,
         installState: { ...defaultInstallState },
         resolvedMainUserType: "standard",
         entryMode: "",
         visitorAlias: "",
         loadedInviteeIdentity: null,
+        deviceTestMode: null,
         pendingInviteeOnboarding: null,
         exploreTrial: null,
         temporaryIdentity: null
-      };
+      });
     }
   }
 
   function writeLauncherState(state) {
-    localStorage.setItem(launcherKey, JSON.stringify(state));
+    const normalizedState = normalizeLauncherIdentityState(state);
+    const recognizedIdentity = String(normalizedState?.recognizedIdentity || "").trim();
+    if (recognizedIdentity) {
+      localStorage.setItem(recognizedIdentityKey, recognizedIdentity);
+    } else {
+      localStorage.removeItem(recognizedIdentityKey);
+    }
+    localStorage.setItem(launcherKey, JSON.stringify(normalizedState));
   }
 
   function getVisitorLockedName(state = readLauncherState()) {
@@ -989,6 +1128,20 @@ This is an alternate test message to show now.`;
     return getLauncherEntryMode(state) === "visitor";
   }
 
+  function stripGuestDisplaySuffix(value) {
+    const text = String(value || "").trim();
+    if (!text) {
+      return "";
+    }
+    const suffixPattern = new RegExp(`${guestDisplaySuffix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+    return text.replace(suffixPattern, "").trim();
+  }
+
+  function formatGuestDisplayName(value) {
+    const base = stripGuestDisplaySuffix(value);
+    return base ? `${base}${guestDisplaySuffix}` : "";
+  }
+
   function getOrCreateVisitorSimulationIdentifier(state = readLauncherState()) {
     const existing = String(state?.visitorAlias || "").trim();
     if (existing) {
@@ -1027,6 +1180,94 @@ This is an alternate test message to show now.`;
     };
   }
 
+  function buildOwnNamesState(identifier) {
+    const cleanIdentifier = String(identifier || "").trim();
+    return cleanIdentifier ? {
+      sender: cleanIdentifier,
+      receiver: cleanIdentifier,
+      "remote-viewer": cleanIdentifier
+    } : {};
+  }
+
+  function normalizePotentialSelfIdentityValue(value, state = null) {
+    const cleanValue = stripGuestDisplaySuffix(String(value || "").trim());
+    if (!cleanValue) {
+      return "";
+    }
+    if (isRobotSimulationIdentifier(cleanValue)) {
+      return "";
+    }
+    const visitorAlias = String(state?.visitorAlias || "").trim();
+    if (visitorAlias && normalizeIdentifierForStorage(cleanValue) === normalizeIdentifierForStorage(visitorAlias)) {
+      return "";
+    }
+    if (new RegExp(`^${visitorSimulationIdentifierPrefix}\\s+[a-z0-9]+$`, "i").test(cleanValue)) {
+      return "";
+    }
+    return (isValidEmailAddress(cleanValue) || isValidUniqueHandle(cleanValue)) ? cleanValue : "";
+  }
+
+  function inferRecognizedIdentityFromLegacyState(state) {
+    const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
+    const launcherProfiles = state?.launcherProfiles && typeof state.launcherProfiles === "object"
+      ? state.launcherProfiles
+      : {};
+    const profileIdentifiers = Object.keys(launcherProfiles)
+      .map((key) => {
+        const markerIndex = key.indexOf("::");
+        return markerIndex >= 0 ? key.slice(markerIndex + 2).trim() : "";
+      });
+    const candidates = uniqueNames([
+      normalizePotentialSelfIdentityValue(ownNames.sender, state),
+      normalizePotentialSelfIdentityValue(ownNames.receiver, state),
+      normalizePotentialSelfIdentityValue(ownNames["remote-viewer"], state),
+      normalizePotentialSelfIdentityValue(readRoleSettings("sender").ownName, state),
+      normalizePotentialSelfIdentityValue(readRoleSettings("receiver").ownName, state),
+      normalizePotentialSelfIdentityValue(readRoleSettings("remote-viewer").ownName, state),
+      ...profileIdentifiers.map((value) => normalizePotentialSelfIdentityValue(value, state))
+    ].map((value) => getPreferredIdentifier(value, state)).filter(Boolean));
+    return candidates.length === 1 ? String(candidates[0] || "").trim() : "";
+  }
+
+  function normalizeLauncherIdentityState(state) {
+    const next = state && typeof state === "object" ? { ...state } : {};
+    const visitorMode = isVisitorLauncherEntry(next);
+    const loadedInvitee = getLoadedInviteeIdentity(next);
+    const temporaryIdentity = getTemporaryIdentityState(next);
+    const storedRecognizedIdentity = String(next.recognizedIdentity || "").trim();
+    const inferredRecognizedIdentity = (!visitorMode && !loadedInvitee && !temporaryIdentity && !storedRecognizedIdentity)
+      ? inferRecognizedIdentityFromLegacyState(next)
+      : "";
+    const effectiveStoredRecognizedIdentity = storedRecognizedIdentity || inferredRecognizedIdentity;
+
+    if (visitorMode) {
+      next.recognizedIdentity = "";
+      next.ownNames = {};
+      return next;
+    }
+
+    if (loadedInvitee?.identifier) {
+      next.recognizedIdentity = effectiveStoredRecognizedIdentity;
+      next.ownNames = buildOwnNamesState(loadedInvitee.identifier);
+      return next;
+    }
+
+    if (temporaryIdentity?.identifier) {
+      next.recognizedIdentity = effectiveStoredRecognizedIdentity;
+      next.ownNames = buildOwnNamesState(temporaryIdentity.identifier);
+      return next;
+    }
+
+    if (effectiveStoredRecognizedIdentity) {
+      next.recognizedIdentity = effectiveStoredRecognizedIdentity;
+      next.ownNames = buildOwnNamesState(effectiveStoredRecognizedIdentity);
+      return next;
+    }
+
+    next.recognizedIdentity = "";
+    return next;
+  }
+
   function isLandingExploreTemporaryIdentity(identifier, state = readLauncherState()) {
     const temporaryIdentity = getTemporaryIdentityState(state);
     if (!temporaryIdentity || temporaryIdentity.source !== "landing-explore-pro") {
@@ -1048,27 +1289,29 @@ This is an alternate test message to show now.`;
   }
 
   function hasKnownLauncherIdentity(state = readLauncherState()) {
-    const ownNames = state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {};
+    const recognizedIdentity = String(state?.recognizedIdentity || "").trim();
     const loadedInvitee = getLoadedInviteeIdentity(state);
     const temporaryIdentity = getTemporaryIdentityState(state);
     return !!(
-      String(ownNames.sender || "").trim() ||
-      String(ownNames.receiver || "").trim() ||
-      String(ownNames["remote-viewer"] || "").trim() ||
+      recognizedIdentity ||
       loadedInvitee?.identifier ||
       temporaryIdentity?.identifier
     );
   }
 
+  function getCanonicalRecognizedIdentity(state = readLauncherState()) {
+    return String(state?.recognizedIdentity || "").trim();
+  }
+
   function buildLauncherIdentityState(baseState, ownIdentifier, userType = "standard", options = {}) {
     const cleanIdentifier = String(ownIdentifier || "").trim();
     const normalizedUserType = userType === "pro" ? "pro" : "standard";
+    const recognizedIdentity = Object.prototype.hasOwnProperty.call(options, "recognizedIdentity")
+      ? String(options.recognizedIdentity || "").trim()
+      : cleanIdentifier;
     return {
-      ownNames: cleanIdentifier ? {
-        sender: cleanIdentifier,
-        receiver: cleanIdentifier,
-        "remote-viewer": cleanIdentifier
-      } : {},
+      recognizedIdentity: recognizedIdentity,
+      ownNames: buildOwnNamesState(cleanIdentifier),
       visitorDisplayNames: {},
       visitorLockedName: "",
       currentPartners: {},
@@ -1095,11 +1338,15 @@ This is an alternate test message to show now.`;
       blinkImageOnSeconds: typeof baseState?.blinkImageOnSeconds === "string" ? baseState.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
       blinkImageOffSeconds: typeof baseState?.blinkImageOffSeconds === "string" ? baseState.blinkImageOffSeconds : defaultBlinkSettings.offSeconds,
       includeConfidence: typeof baseState?.includeConfidence === "boolean" ? baseState.includeConfidence : defaultConfidenceSettings.include,
+      includePositiveReinforcement: typeof baseState?.includePositiveReinforcement === "boolean"
+        ? baseState.includePositiveReinforcement
+        : defaultConfidenceSettings.includePositiveReinforcement,
       installState: normalizeInstallState(baseState?.installState),
       resolvedMainUserType: normalizedUserType,
       entryMode: normalizeLauncherEntryMode(options.entryMode),
       visitorAlias: typeof baseState?.visitorAlias === "string" ? baseState.visitorAlias.trim() : "",
       loadedInviteeIdentity: baseState?.loadedInviteeIdentity && typeof baseState.loadedInviteeIdentity === "object" ? baseState.loadedInviteeIdentity : null,
+      deviceTestMode: baseState?.deviceTestMode && typeof baseState.deviceTestMode === "object" ? cloneJsonValue(baseState.deviceTestMode, null) : null,
       pendingInviteeOnboarding: baseState?.pendingInviteeOnboarding && typeof baseState.pendingInviteeOnboarding === "object" ? baseState.pendingInviteeOnboarding : null,
       exploreTrial: options.exploreTrial && cleanIdentifier
         ? {
@@ -1128,11 +1375,11 @@ This is an alternate test message to show now.`;
   function getPreferredVisitorDisplayNameForRole(role, state = readLauncherState(), fallback = "") {
     const normalizedRole = String(role || "").trim();
     const candidates = [
-      String(fallback || "").trim(),
-      String(state?.visitorLockedName || "").trim(),
-      normalizedRole ? String(state?.visitorDisplayNames?.[normalizedRole] || "").trim() : "",
-      String(state?.visitorDisplayNames?.sender || "").trim(),
-      String(state?.visitorDisplayNames?.receiver || "").trim()
+      stripGuestDisplaySuffix(fallback),
+      stripGuestDisplaySuffix(state?.visitorLockedName),
+      normalizedRole ? stripGuestDisplaySuffix(state?.visitorDisplayNames?.[normalizedRole]) : "",
+      stripGuestDisplaySuffix(state?.visitorDisplayNames?.sender),
+      stripGuestDisplaySuffix(state?.visitorDisplayNames?.receiver)
     ];
     return candidates.find((candidate) => candidate && !isInternalVisitorSimulationName(candidate)) || "";
   }
@@ -2115,9 +2362,12 @@ This is an alternate test message to show now.`;
 
   function snapshotDeviceIdentityState(state = readLauncherState()) {
     return {
+      recognizedIdentity: String(state?.recognizedIdentity || "").trim(),
       ownNames: cloneJsonValue(state?.ownNames || {}, {}),
       visitorDisplayNames: cloneJsonValue(state?.visitorDisplayNames || {}, {}),
       visitorLockedName: String(state?.visitorLockedName || "").trim(),
+      entryMode: normalizeLauncherEntryMode(state?.entryMode),
+      visitorAlias: String(state?.visitorAlias || "").trim(),
       currentPartners: cloneJsonValue(state?.currentPartners || {}, {}),
       partnerHistory: cloneJsonValue(state?.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(state?.deletedPartners || {}, {}),
@@ -2126,9 +2376,16 @@ This is an alternate test message to show now.`;
       robotSimulationDifficultyLevels: cloneJsonValue(state?.robotSimulationDifficultyLevels || {}, {}),
       identifierStatusMap: cloneJsonValue(state?.identifierStatusMap || {}, {}),
       resolvedMainUserType: String(state?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+      loadedInviteeIdentity: cloneJsonValue(state?.loadedInviteeIdentity || null, null),
+      pendingInviteeOnboarding: cloneJsonValue(state?.pendingInviteeOnboarding || null, null),
+      exploreTrial: cloneJsonValue(state?.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(state?.temporaryIdentity || null, null),
       remoteViewerDisplayDevice: !!state?.remoteViewerDisplayDevice,
       difficultyLevel: normalizeDifficultyLevel(state?.difficultyLevel || "1"),
+      includeConfidence: typeof state?.includeConfidence === "boolean" ? state.includeConfidence : defaultConfidenceSettings.include,
+      includePositiveReinforcement: typeof state?.includePositiveReinforcement === "boolean"
+        ? state.includePositiveReinforcement
+        : defaultConfidenceSettings.includePositiveReinforcement,
       runtimeSettings: {
         sender: cloneJsonValue(readRuntimeSettings("sender"), {}),
         receiver: cloneJsonValue(readRuntimeSettings("receiver"), {}),
@@ -2141,9 +2398,12 @@ This is an alternate test message to show now.`;
     const source = snapshot && typeof snapshot === "object" ? snapshot : {};
     return {
       ...baseState,
+      recognizedIdentity: String(source.recognizedIdentity || "").trim(),
       ownNames: cloneJsonValue(source.ownNames || {}, {}),
       visitorDisplayNames: cloneJsonValue(source.visitorDisplayNames || {}, {}),
       visitorLockedName: String(source.visitorLockedName || "").trim(),
+      entryMode: normalizeLauncherEntryMode(source.entryMode),
+      visitorAlias: String(source.visitorAlias || "").trim(),
       currentPartners: cloneJsonValue(source.currentPartners || {}, {}),
       partnerHistory: cloneJsonValue(source.partnerHistory || {}, {}),
       deletedPartners: cloneJsonValue(source.deletedPartners || {}, {}),
@@ -2152,11 +2412,17 @@ This is an alternate test message to show now.`;
       robotSimulationDifficultyLevels: cloneJsonValue(source.robotSimulationDifficultyLevels || {}, {}),
       identifierStatusMap: cloneJsonValue(source.identifierStatusMap || {}, {}),
       resolvedMainUserType: String(source.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
+      loadedInviteeIdentity: cloneJsonValue(source.loadedInviteeIdentity || null, null),
+      pendingInviteeOnboarding: cloneJsonValue(source.pendingInviteeOnboarding || null, null),
+      exploreTrial: cloneJsonValue(source.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(source.temporaryIdentity || null, null),
       remoteViewerDisplayDevice: !!source.remoteViewerDisplayDevice,
       difficultyLevel: normalizeDifficultyLevel(source.difficultyLevel || "1"),
-      loadedInviteeIdentity: null,
-      pendingInviteeOnboarding: null
+      includeConfidence: typeof source?.includeConfidence === "boolean" ? source.includeConfidence : defaultConfidenceSettings.include,
+      includePositiveReinforcement: typeof source?.includePositiveReinforcement === "boolean"
+        ? source.includePositiveReinforcement
+        : defaultConfidenceSettings.includePositiveReinforcement,
+      deviceTestMode: null
     };
   }
 
@@ -2176,6 +2442,27 @@ This is an alternate test message to show now.`;
         ? loaded.previousIdentitySnapshot
         : null
     };
+  }
+
+  function getDeviceTestModeState(state = readLauncherState()) {
+    const source = state?.deviceTestMode && typeof state.deviceTestMode === "object"
+      ? state.deviceTestMode
+      : null;
+    if (!source) {
+      return null;
+    }
+    const restoreSnapshot = source.restoreSnapshot && typeof source.restoreSnapshot === "object"
+      ? source.restoreSnapshot
+      : null;
+    return {
+      active: !!source.active && !!restoreSnapshot,
+      restoreSnapshot,
+      startedAt: Number.isFinite(Number(source.startedAt)) ? Number(source.startedAt) : 0
+    };
+  }
+
+  function isDeviceTestModeActive(state = readLauncherState()) {
+    return !!getDeviceTestModeState(state)?.active;
   }
 
   function getBlinkBehaviorSettings(state = readLauncherState()) {
@@ -2224,8 +2511,46 @@ This is an alternate test message to show now.`;
 
   function getConfidenceBehaviorSettings(state = readLauncherState()) {
     return {
-      include: state?.includeConfidence === true
+      include: state?.includeConfidence === true,
+      includePositiveReinforcement: state?.includePositiveReinforcement === true
     };
+  }
+
+  function applyConfidencePreferenceFromServer(userPreferences, { render = false } = {}) {
+    if (!userPreferences || typeof userPreferences !== "object") {
+      return readLauncherState();
+    }
+    if (!(Number(userPreferences.updated_ms) > 0)) {
+      if (render) {
+        renderConfidenceBehaviorView();
+      }
+      return readLauncherState();
+    }
+    const latest = readLauncherState();
+    latest.includeConfidence = !!userPreferences.include_confidence;
+    latest.includePositiveReinforcement = !!userPreferences.include_positive_reinforcement;
+    writeLauncherState(latest);
+    if (render) {
+      renderConfidenceBehaviorView();
+    }
+    return latest;
+  }
+
+  async function syncConfidencePreferenceForReceiverContext({ render = false } = {}) {
+    if (isVisitorLauncherEntry()) {
+      return readLauncherState();
+    }
+    const receiverContext = getPairContextForRole("receiver");
+    const ownerIdentifier = String(receiverContext?.ownName || "").trim();
+    if (!ownerIdentifier || isInternalVisitorSimulationName(ownerIdentifier)) {
+      return readLauncherState();
+    }
+    try {
+      const userPreferences = await fetchUserPreferences(ownerIdentifier);
+      return applyConfidencePreferenceFromServer(userPreferences, { render });
+    } catch (_error) {
+      return readLauncherState();
+    }
   }
 
   function renderConfidenceBehaviorView() {
@@ -2238,18 +2563,52 @@ This is an alternate test message to show now.`;
       button.classList.toggle("is-selected", selected);
       button.setAttribute("aria-pressed", selected ? "true" : "false");
     });
+    reinforcementModeButtons.forEach((button) => {
+      const mode = String(button.dataset.reinforcementMode || "").trim().toLowerCase();
+      const selected =
+        (mode === "include" && settings.includePositiveReinforcement)
+        || (mode === "exclude" && !settings.includePositiveReinforcement);
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
     if (confidenceStatus) {
-      confidenceStatus.textContent = settings.include
-        ? "Receiver confidence is included before the target is revealed."
-        : "Receiver confidence is skipped. The target is revealed as soon as the Receiver completes the selection.";
+      if (!settings.includePositiveReinforcement) {
+        confidenceStatus.textContent = "Positive reinforcement sound does not occur.";
+      } else if (settings.include) {
+        confidenceStatus.textContent = "Positive reinforcement sound occurs when the target is revealed and the Receiver has correctly selected it.";
+      } else {
+        confidenceStatus.textContent = "Positive reinforcement sound occurs instantly when the Receiver correctly selects the target.";
+      }
     }
   }
 
-  function persistConfidenceBehavior(includeConfidence) {
+  async function persistConfidenceBehavior(includeConfidence, includePositiveReinforcement = null) {
     const latest = readLauncherState();
     latest.includeConfidence = includeConfidence !== false;
+    if (typeof includePositiveReinforcement === "boolean") {
+      latest.includePositiveReinforcement = includePositiveReinforcement;
+    } else if (typeof latest.includePositiveReinforcement !== "boolean") {
+      latest.includePositiveReinforcement = defaultConfidenceSettings.includePositiveReinforcement;
+    }
     writeLauncherState(latest);
     renderConfidenceBehaviorView();
+    if (isVisitorLauncherEntry()) {
+      return;
+    }
+    const receiverContext = getPairContextForRole("receiver");
+    const ownerIdentifier = String(receiverContext?.ownName || "").trim();
+    if (!ownerIdentifier || isInternalVisitorSimulationName(ownerIdentifier)) {
+      return;
+    }
+    try {
+      const storedPreferences = await saveUserPreferences(ownerIdentifier, {
+        include_confidence: latest.includeConfidence,
+        include_positive_reinforcement: !!latest.includePositiveReinforcement
+      });
+      applyConfidencePreferenceFromServer(storedPreferences, { render: true });
+    } catch (_error) {
+      renderConfidenceBehaviorView();
+    }
   }
 
   function buildReportRequestPayload() {
@@ -2383,6 +2742,10 @@ This is an alternate test message to show now.`;
     });
   }
 
+  function isLandingPreviewRequested() {
+    return readRequestedLauncherView() === "landing-preview";
+  }
+
   function readRequestedLauncherView() {
     try {
       return String(new URLSearchParams(window.location.search).get("open") || "").trim().toLowerCase();
@@ -2468,7 +2831,13 @@ This is an alternate test message to show now.`;
     });
 
     const data = await parseApiResponse(response, `Launcher profile request failed with status ${response.status}`);
-    return data?.launcher_profile || null;
+    if (!data?.launcher_profile || typeof data.launcher_profile !== "object") {
+      return null;
+    }
+    return {
+      ...data.launcher_profile,
+      user_preferences: normalizeUserPreferencesFromServer(data?.user_preferences || null)
+    };
   }
 
   async function fetchIdentifierStatus(identifier) {
@@ -2490,7 +2859,8 @@ This is an alternate test message to show now.`;
     }
     return {
       ...data.identifier_status,
-      identifier_exists: !!data?.identifier_exists
+      identifier_exists: !!data?.identifier_exists,
+      auth_email_on_file: !!data?.auth_email_on_file
     };
   }
 
@@ -2655,6 +3025,38 @@ This is an alternate test message to show now.`;
     return String(data?.user_type || normalizedType).trim().toLowerCase() === "pro" ? "pro" : "standard";
   }
 
+  async function updateUserAuthEmail(userHandle, email) {
+    const cleanHandle = String(userHandle || "").replace(/\s+/g, " ").trim();
+    const cleanEmail = String(email || "").trim();
+    if (!isValidParticipantIdentifier(cleanHandle)) {
+      throw new Error("User identifier is invalid.");
+    }
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "set_user_auth_email",
+        user_identifier: cleanHandle,
+        email: cleanEmail,
+        secret_candidate: getLauncherAdminSecretCandidate()
+      })
+    });
+
+    const data = await parseApiResponse(response, `User email update failed with status ${response.status}`);
+    if (data?.identifier_status) {
+      rememberIdentifierStatus(cleanHandle, data.identifier_status);
+    }
+    return {
+      email: String(data?.auth_email || cleanEmail).trim(),
+      userType: String(data?.user_type || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard"
+    };
+  }
+
   async function adminUpdateHandle(previousHandle, newHandle) {
     const cleanPreviousHandle = String(previousHandle || "").replace(/\s+/g, " ").trim();
     const cleanNewHandle = String(newHandle || "").replace(/\s+/g, " ").trim();
@@ -2733,6 +3135,23 @@ This is an alternate test message to show now.`;
     };
   }
 
+  async function fetchUniqueHandleChangeStatus(identifier) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier", { required: true });
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_unique_handle_change_status",
+        identifier: cleanIdentifier
+      })
+    });
+
+    const data = await parseApiResponse(response, `Unique-name change status request failed with status ${response.status}`);
+    return data?.unique_handle_change_status || null;
+  }
+
   async function createTemporaryLauncherIdentity(userType = "pro") {
     const response = await fetch("api.php", {
       method: "POST",
@@ -2807,6 +3226,122 @@ This is an alternate test message to show now.`;
     return parseApiResponse(response, `Explore PRO verification failed with status ${response.status}`);
   }
 
+  async function sendIdentifierRecoveryCode(identifier, email) {
+    const cleanIdentifier = String(identifier || "").trim();
+    const cleanEmail = String(email || "").trim();
+    if (!cleanIdentifier) {
+      throw new Error("Unique name is required.");
+    }
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "send_identifier_recovery_code",
+        identifier: cleanIdentifier,
+        email: cleanEmail
+      })
+    });
+    const data = await parseApiResponse(response, `Unique-name recovery code request failed with status ${response.status}`);
+    const verification = data?.verification && typeof data.verification === "object" ? data.verification : null;
+    if (!verification || !String(verification.email || "").trim()) {
+      throw new Error("The server did not confirm that a verification code was sent.");
+    }
+    return verification;
+  }
+
+  async function verifyIdentifierRecoveryCode(identifier, email, code) {
+    const cleanIdentifier = String(identifier || "").trim();
+    const cleanEmail = String(email || "").trim();
+    const cleanCode = String(code || "").trim().toUpperCase();
+    if (!cleanIdentifier) {
+      throw new Error("Unique name is required.");
+    }
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    if (!/^[A-Z2-9]{5}$/.test(cleanCode)) {
+      throw new Error("Please enter the 5-character verification code.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "verify_identifier_recovery_code",
+        identifier: cleanIdentifier,
+        email: cleanEmail,
+        code: cleanCode
+      })
+    });
+    return parseApiResponse(response, `Unique-name recovery verification failed with status ${response.status}`);
+  }
+
+  async function sendUniqueNameClaimCode(currentIdentifier, proposedHandle, email) {
+    const cleanCurrentIdentifier = String(currentIdentifier || "").trim();
+    const cleanProposedHandle = String(proposedHandle || "").trim();
+    const cleanEmail = String(email || "").trim();
+    if (!cleanProposedHandle) {
+      throw new Error("Please enter the unique name you want to claim.");
+    }
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "send_unique_name_claim_code",
+        current_identifier: cleanCurrentIdentifier,
+        proposed_handle: cleanProposedHandle,
+        email: cleanEmail
+      })
+    });
+    const data = await parseApiResponse(response, `Unique-name claim code request failed with status ${response.status}`);
+    const verification = data?.verification && typeof data.verification === "object" ? data.verification : null;
+    if (!verification || !String(verification.email || "").trim()) {
+      throw new Error("The server did not confirm that a verification code was sent.");
+    }
+    return verification;
+  }
+
+  async function verifyUniqueNameClaimCode(currentIdentifier, proposedHandle, email, code) {
+    const cleanCurrentIdentifier = String(currentIdentifier || "").trim();
+    const cleanProposedHandle = String(proposedHandle || "").trim();
+    const cleanEmail = String(email || "").trim();
+    const cleanCode = String(code || "").trim().toUpperCase();
+    if (!cleanProposedHandle) {
+      throw new Error("Please enter the unique name you want to claim.");
+    }
+    if (!isValidEmailAddress(cleanEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    if (!/^[A-Z2-9]{5}$/.test(cleanCode)) {
+      throw new Error("Please enter the 5-character verification code.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "verify_unique_name_claim_code",
+        current_identifier: cleanCurrentIdentifier,
+        proposed_handle: cleanProposedHandle,
+        email: cleanEmail,
+        code: cleanCode
+      })
+    });
+    return parseApiResponse(response, `Unique-name claim verification failed with status ${response.status}`);
+  }
+
   async function fetchLandingInvitationIdentity(identifier) {
     const cleanIdentifier = assertValidParticipantIdentifier(identifier, "Invitation code");
     const response = await fetch("api.php", {
@@ -2831,6 +3366,7 @@ This is an alternate test message to show now.`;
 
   function buildVisitorLauncherState(baseState = readLauncherState()) {
     const nextState = buildLauncherIdentityState(baseState, "", "standard", {
+      recognizedIdentity: "",
       entryMode: "visitor"
     });
     nextState.currentPartners = {
@@ -3145,7 +3681,13 @@ This is an alternate test message to show now.`;
     });
 
     const data = await parseApiResponse(response, `Launcher profile save failed with status ${response.status}`);
-    return data?.launcher_profile || null;
+    if (!data?.launcher_profile || typeof data.launcher_profile !== "object") {
+      return null;
+    }
+    return {
+      ...data.launcher_profile,
+      user_preferences: normalizeUserPreferencesFromServer(data?.user_preferences || null)
+    };
   }
 
   async function saveEmailListSignup(email, type = "updates", name = "") {
@@ -3249,7 +3791,9 @@ This is an alternate test message to show now.`;
       })
     });
 
-    return parseApiResponse(response, `Partner messaging request failed with status ${response.status}`);
+    const data = await parseApiResponse(response, `Partner messaging request failed with status ${response.status}`);
+    rememberMessagingLimitsFromResponse(data);
+    return data;
   }
 
   async function fetchPartnerMessageInbox(ownIdentifier, deviceId) {
@@ -3267,7 +3811,9 @@ This is an alternate test message to show now.`;
       })
     });
 
-    return parseApiResponse(response, `Partner message inbox request failed with status ${response.status}`);
+    const data = await parseApiResponse(response, `Partner message inbox request failed with status ${response.status}`);
+    rememberMessagingLimitsFromResponse(data);
+    return data;
   }
 
   async function markPartnerMessagesReadRequest(ownIdentifier, partnerIdentifier, messageId = "") {
@@ -3286,7 +3832,9 @@ This is an alternate test message to show now.`;
       })
     });
 
-    return parseApiResponse(response, `Mark messages read request failed with status ${response.status}`);
+    const data = await parseApiResponse(response, `Mark messages read request failed with status ${response.status}`);
+    rememberMessagingLimitsFromResponse(data);
+    return data;
   }
 
   async function sendPartnerMessageRequest(senderIdentifier, recipientIdentifier, senderRole, recipientRole, messageText) {
@@ -3296,8 +3844,9 @@ This is an alternate test message to show now.`;
     if (!cleanMessageText) {
       throw new Error("Please enter a message before sending.");
     }
-    if (cleanMessageText.length > 300) {
-      throw new Error("Messages must be 300 characters or fewer.");
+    const limits = getActiveMessagingLimits();
+    if (cleanMessageText.length > limits.max_chars_per_message) {
+      throw new Error(`Messages must be ${limits.max_chars_per_message} characters or fewer.`);
     }
     const response = await fetch("api.php", {
       method: "POST",
@@ -3314,7 +3863,9 @@ This is an alternate test message to show now.`;
       })
     });
 
-    return parseApiResponse(response, `Message send failed with status ${response.status}`);
+    const data = await parseApiResponse(response, `Message send failed with status ${response.status}`);
+    rememberMessagingLimitsFromResponse(data);
+    return data;
   }
 
   async function deletePartnerMessageRequest(ownIdentifier, partnerIdentifier, messageId) {
@@ -3337,7 +3888,9 @@ This is an alternate test message to show now.`;
       })
     });
 
-    return parseApiResponse(response, `Message delete failed with status ${response.status}`);
+    const data = await parseApiResponse(response, `Message delete failed with status ${response.status}`);
+    rememberMessagingLimitsFromResponse(data);
+    return data;
   }
 
   function uniqueNames(names) {
@@ -3652,6 +4205,53 @@ This is an alternate test message to show now.`;
       return;
     }
     previewElement.innerHTML = renderLearnMorePreviewMarkup(value);
+  }
+
+  function normalizeUserPreferencesFromServer(record) {
+    const source = record && typeof record === "object" ? record : {};
+    return {
+      include_confidence: !!source.include_confidence,
+      include_positive_reinforcement: !!source.include_positive_reinforcement,
+      updated_ms: Number.isFinite(Number(source.updated_ms)) ? Number(source.updated_ms) : 0
+    };
+  }
+
+  async function saveUserPreferences(identifier, preferences = {}) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_user_preferences",
+        identifier: cleanIdentifier,
+        user_preferences: {
+          include_confidence: !!preferences?.include_confidence,
+          include_positive_reinforcement: !!preferences?.include_positive_reinforcement
+        }
+      })
+    });
+
+    const data = await parseApiResponse(response, `User-preferences save failed with status ${response.status}`);
+    return normalizeUserPreferencesFromServer(data?.user_preferences || null);
+  }
+
+  async function fetchUserPreferences(identifier) {
+    const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_user_preferences",
+        identifier: cleanIdentifier
+      })
+    });
+
+    const data = await parseApiResponse(response, `User-preferences request failed with status ${response.status}`);
+    return normalizeUserPreferencesFromServer(data?.user_preferences || null);
   }
 
   function normalizeLearningCenterLessonId(value) {
@@ -4025,6 +4625,10 @@ This is an alternate test message to show now.`;
     state.partnerHistory = state.partnerHistory || {};
     state.deletedPartners = state.deletedPartners || {};
     state.launcherProfiles = state.launcherProfiles || {};
+
+    if (!state.recognizedIdentity || normalizeIdentifierForStorage(state.recognizedIdentity) === normalizeIdentifierForStorage(prior)) {
+      state.recognizedIdentity = next;
+    }
 
     ["sender", "receiver"].forEach((role) => {
       state.ownNames[role] = replaceIdentifierValue(state.ownNames[role], prior, next);
@@ -4448,7 +5052,8 @@ This is an alternate test message to show now.`;
     details.unshift(snapshotUserTypeAdminState());
     void launcherAdminApi("log_debug", {
       label: `user_type_admin:${label}`,
-      details
+      details,
+      device_debug_enabled: !!launcherAdminState.debug_enabled
     }).catch(() => {
       // Ignore debug logging failures.
     });
@@ -4460,7 +5065,21 @@ This is an alternate test message to show now.`;
     }
     void launcherAdminApi("log_debug", {
       label: `launcher_direct_open:${label}`,
-      details: [details]
+      details: [details],
+      device_debug_enabled: !!launcherAdminState.debug_enabled
+    }).catch(() => {
+      // Ignore debug logging failures.
+    });
+  }
+
+  function logLauncherUserTypeDebug(label, details = {}) {
+    if (!hasLauncherAdminAccess() || !launcherAdminState.debug_enabled) {
+      return;
+    }
+    void launcherAdminApi("log_debug", {
+      label: `launcher_user_type:${label}`,
+      details: [details],
+      device_debug_enabled: !!launcherAdminState.debug_enabled
     }).catch(() => {
       // Ignore debug logging failures.
     });
@@ -4718,6 +5337,7 @@ This is an alternate test message to show now.`;
     if (handleInput) {
       handleInput.value = "";
     }
+    setFeatureSetupBackButtonTemporarilyHidden(true);
     handleOverlay?.classList.remove("beginner-view-hidden");
     handleInput?.focus();
   }
@@ -4731,6 +5351,7 @@ This is an alternate test message to show now.`;
     if (handleStatus) {
       handleStatus.textContent = "";
     }
+    setFeatureSetupBackButtonTemporarilyHidden(false);
     if (returnRole) {
       const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
       if (matchingCard) {
@@ -4752,7 +5373,10 @@ This is an alternate test message to show now.`;
     }
     const ownInput = isRemoteViewerRole ? remoteViewerOwnInput : form.querySelector('input[name="ownName"]');
     const partnerInput = isRemoteViewerRole ? null : form.querySelector('input[name="partnerName"]');
-    const currentIdentifier = String(ownInput?.value || "").trim();
+    const visitorMode = isVisitorLauncherEntry();
+    const currentIdentifier = visitorMode
+      ? String(readLauncherState().visitorAlias || getOrCreateVisitorSimulationIdentifier()).trim()
+      : String(ownInput?.value || "").trim();
     const proposedHandle = String(handleInput?.value || "").trim();
 
     if (handleStatus) {
@@ -4764,6 +5388,54 @@ This is an alternate test message to show now.`;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const postClaimFlow = featureSetupPendingHandleFlow;
+      if (visitorMode) {
+        let proposedStatus = null;
+        try {
+          proposedStatus = await fetchIdentifierStatus(proposedHandle);
+        } catch (_) {
+          proposedStatus = null;
+        }
+        if (proposedStatus?.identifier_exists) {
+          if (!proposedStatus.auth_email_on_file) {
+            throw new Error("Your email address cannot be validated. Please contact ESP Gym.");
+          }
+          activeHandleRole = "";
+          handleOverlayReturnRole = "";
+          featureSetupPendingHandleFlow = "";
+          handleOverlay?.classList.add("beginner-view-hidden");
+          if (handleStatus) {
+            handleStatus.textContent = "";
+          }
+          if (handleInput) {
+            handleInput.value = "";
+          }
+          openExploreProOverlay({
+            mode: "recovery",
+            identifier: String(proposedStatus.preferred_identifier || proposedHandle).trim()
+          });
+          return;
+        }
+        activeHandleRole = "";
+        handleOverlayReturnRole = "";
+        featureSetupPendingHandleFlow = "";
+        handleOverlay?.classList.add("beginner-view-hidden");
+        if (handleStatus) {
+          handleStatus.textContent = "";
+        }
+        if (handleInput) {
+          handleInput.value = "";
+        }
+        openExploreProOverlay({
+          mode: "claim",
+          identifier: proposedHandle,
+          role: completedRole,
+          returnRole,
+          returnScrollY,
+          postClaimFlow,
+          currentIdentifier
+        });
+        return;
+      }
       const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
       if (result?.status) {
@@ -4789,6 +5461,7 @@ This is an alternate test message to show now.`;
         const latestState = readLauncherState();
         const normalizedUserType = String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
         const nextIdentityState = buildLauncherIdentityState(latestState, acceptedHandle, normalizedUserType, {
+          recognizedIdentity: acceptedHandle,
           entryMode: ""
         });
         writeLauncherState(nextIdentityState);
@@ -4823,12 +5496,16 @@ This is an alternate test message to show now.`;
         }
         showFeatureSetupView({
           role: completedRole,
-          returnView: completedRole === "remote-viewer" ? "remote-viewer" : "card",
-          scrollY: returnScrollY
+          returnView: featureSetupReturnView || (completedRole === "remote-viewer" ? "remote-viewer" : "card"),
+          scrollY: featureSetupReturnView === "help" || featureSetupReturnView === "options"
+            ? featureSetupReturnScrollY
+            : returnScrollY
         });
-        const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
-        if (matchingCard) {
-          ensureCardExpanded(matchingCard, { scrollIntoView: false });
+        if ((featureSetupReturnView || "card") === "card" || completedRole === "remote-viewer") {
+          const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
+          if (matchingCard) {
+            ensureCardExpanded(matchingCard, { scrollIntoView: false });
+          }
         }
       }
     } catch (error) {
@@ -5294,6 +5971,7 @@ This is an alternate test message to show now.`;
   }
 
   async function resolveFeatureSetupContext(preferredRole = "") {
+    const launcherState = readLauncherState();
     const roles = [];
     const normalizedPreferredRole = String(preferredRole || "").trim();
     if (normalizedPreferredRole) {
@@ -5328,6 +6006,36 @@ This is an alternate test message to show now.`;
             role,
             identifier: ownIdentifier,
             status: getCachedIdentifierStatus(ownIdentifier)
+          };
+        }
+      }
+    }
+
+    const fallbackOwnNames = launcherState?.ownNames && typeof launcherState.ownNames === "object"
+      ? launcherState.ownNames
+      : {};
+    for (const role of roles) {
+      const fallbackIdentifier = String(fallbackOwnNames[role] || "").trim();
+      if (!fallbackIdentifier) {
+        continue;
+      }
+      try {
+        const status = await fetchIdentifierStatus(fallbackIdentifier);
+        rememberIdentifierStatus(fallbackIdentifier, status);
+        const preferredIdentifier = String(status?.preferred_identifier || fallbackIdentifier).trim() || fallbackIdentifier;
+        if (isAcceptedUniqueHandleIdentifier(preferredIdentifier, status)) {
+          return {
+            role,
+            identifier: preferredIdentifier,
+            status
+          };
+        }
+      } catch (_) {
+        if (isValidUniqueHandle(fallbackIdentifier) && !isValidEmailAddress(fallbackIdentifier)) {
+          return {
+            role,
+            identifier: fallbackIdentifier,
+            status: getCachedIdentifierStatus(fallbackIdentifier)
           };
         }
       }
@@ -5391,6 +6099,15 @@ This is an alternate test message to show now.`;
       return preferred;
     }
     return "sender";
+  }
+
+  function setFeatureSetupBackButtonTemporarilyHidden(hidden) {
+    if (!closeFeatureSetupButton) {
+      return;
+    }
+    const shouldHide = !!hidden && !!featureSetupView && !featureSetupView.classList.contains("beginner-view-hidden");
+    closeFeatureSetupButton.hidden = shouldHide;
+    closeFeatureSetupButton.disabled = shouldHide;
   }
 
   function openFeatureSetupHandleFlow(flow = "claim") {
@@ -5544,6 +6261,7 @@ This is an alternate test message to show now.`;
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.remove("beginner-view-hidden");
+    setFeatureSetupBackButtonTemporarilyHidden(false);
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -5569,6 +6287,118 @@ This is an alternate test message to show now.`;
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
     void refreshFeatureSetupView();
+  }
+
+  function formatRetryDaysMessage(retryAfterMs) {
+    const remainingMs = Math.max(0, Number(retryAfterMs || 0) || 0);
+    if (remainingMs <= 0) {
+      return "Unique name change is permitted now.";
+    }
+    const dayMs = 24 * 60 * 60 * 1000;
+    const hourMs = 60 * 60 * 1000;
+    const days = Math.floor(remainingMs / dayMs);
+    const hours = Math.ceil((remainingMs % dayMs) / hourMs);
+    if (days > 0) {
+      return hours > 0
+        ? `Unique name change permitted in ${days} day${days === 1 ? "" : "s"} and ${hours} hour${hours === 1 ? "" : "s"}.`
+        : `Unique name change permitted in ${days} day${days === 1 ? "" : "s"}.`;
+    }
+    const roundedHours = Math.max(1, Math.ceil(remainingMs / hourMs));
+    return `Unique name change permitted in ${roundedHours} hour${roundedHours === 1 ? "" : "s"}.`;
+  }
+
+  async function refreshUniqueNameChangeView() {
+    uniqueNameChangeAllowedNow = false;
+    const context = await resolveFeatureSetupContext(featureSetupReturnRole || activeLauncherRole || "sender");
+    const currentIdentifier = String(context.identifier || "").trim();
+    if (uniqueNameChangeCurrent) {
+      uniqueNameChangeCurrent.textContent = currentIdentifier
+        ? `Current Unique Name: ${currentIdentifier}`
+        : "Current Unique Name: none currently loaded.";
+    }
+    if (!currentIdentifier) {
+      if (uniqueNameChangeStatus) {
+        uniqueNameChangeStatus.textContent = "No unique name exists for this user yet.";
+      }
+      if (uniqueNameChangeContinueButton) {
+        uniqueNameChangeContinueButton.textContent = "OK";
+      }
+      return;
+    }
+
+    try {
+      const changeStatus = await fetchUniqueHandleChangeStatus(currentIdentifier);
+      const allowed = !!changeStatus?.allowed_now;
+      uniqueNameChangeAllowedNow = allowed;
+      const reason = String(changeStatus?.reason || "").trim();
+      if (uniqueNameChangeStatus) {
+        uniqueNameChangeStatus.textContent = allowed
+          ? "You may continue now to propose a different unique name."
+          : reason === "max_changes_reached"
+            ? "This unique name has already used the maximum number of substantive name changes."
+            : reason === "max_lifetime_claims_reached"
+              ? "This unique name has already used the maximum number of unique-name claims."
+              : reason === "cooldown_active"
+                ? formatRetryDaysMessage(changeStatus?.retry_after_ms)
+                : "That unique-name change is not permitted right now.";
+      }
+      if (uniqueNameChangeContinueButton) {
+        uniqueNameChangeContinueButton.textContent = allowed ? "CONTINUE" : "OK";
+      }
+    } catch (error) {
+      if (uniqueNameChangeStatus) {
+        uniqueNameChangeStatus.textContent = error instanceof Error
+          ? error.message
+          : "Unable to check unique-name change eligibility right now.";
+      }
+      if (uniqueNameChangeContinueButton) {
+        uniqueNameChangeContinueButton.textContent = "OK";
+      }
+    }
+  }
+
+  function showUniqueNameChangeView() {
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    uniqueNameChangeView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    uniqueNameChangeView?.classList.remove("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    void refreshUniqueNameChangeView();
+  }
+
+  function closeUniqueNameChangeView() {
+    showFeatureSetupView({
+      role: featureSetupReturnRole || activeLauncherRole || "sender",
+      returnView: featureSetupReturnView || "card",
+      scrollY: featureSetupReturnScrollY
+    });
   }
 
   function closeFeatureSetupView() {
@@ -7303,6 +8133,7 @@ This is an alternate test message to show now.`;
   function renderProOnlyLockedControls() {
     const beginnerMessagingMessage = "Instant messaging with notifications is a PRO feature";
     const beginnerRemoteViewingMessage = "Clairvoyance / Remote Viewing is an ESP PRO feature.";
+    const beginnerResearchMessage = "Research Participation is an ESP PRO feature.";
     const beginnerProtectionMessage = "Protection from impersonators is a PRO feature.";
     const beginnerGlobeMessage = "GLOBE is a PRO feature.";
     const isPro = isEffectiveLauncherUserPro();
@@ -7319,6 +8150,12 @@ This is an alternate test message to show now.`;
     applyProLockToButton(openClairvoyanceViewingButton, !isPro, beginnerRemoteViewingMessage);
     if (openClairvoyanceViewingButton) {
       openClairvoyanceViewingButton.hidden = false;
+    }
+
+    applyProLockPresentation(openResearchParticipationProButton, !isPro, beginnerResearchMessage);
+    applyProLockToButton(openResearchParticipationProButton, !isPro, beginnerResearchMessage);
+    if (openResearchParticipationProButton) {
+      openResearchParticipationProButton.hidden = false;
     }
 
     applyProLockPresentation(reportGlobeButton, !isPro, beginnerGlobeMessage);
@@ -7409,6 +8246,20 @@ This is an alternate test message to show now.`;
       return [];
     }
 
+    const launcherState = readLauncherState();
+    const loadedInvitee = getLoadedInviteeIdentity(launcherState);
+    if (loadedInvitee?.identifier) {
+      return [String(loadedInvitee.identifier || "").trim()];
+    }
+    const temporaryIdentity = getTemporaryIdentityState(launcherState);
+    if (temporaryIdentity?.identifier) {
+      return [String(temporaryIdentity.identifier || "").trim()];
+    }
+    const canonicalRecognizedIdentity = getCanonicalRecognizedIdentity(launcherState);
+    if (canonicalRecognizedIdentity) {
+      return [canonicalRecognizedIdentity];
+    }
+
     const activeOwnIdentifier = getActiveOwnIdentifierForUserType();
     if (activeOwnIdentifier) {
       return [activeOwnIdentifier];
@@ -7435,44 +8286,98 @@ This is an alternate test message to show now.`;
       ...visibleRoleOwnIdentifiers,
       String(remoteViewerOwnInput?.value || "").trim()
     ]);
-
-    if (visibleOwnIdentifiers.length === 1) {
+    if (visibleOwnIdentifiers.length > 0) {
       return visibleOwnIdentifiers;
-    }
-
-    if (visibleOwnIdentifiers.length > 1) {
-      return [];
     }
 
     const rememberedOwnIdentifiers = uniqueNames([
       readRoleSettings("sender").ownName,
       readRoleSettings("receiver").ownName,
-      String(readLauncherState().ownNames?.sender || "").trim(),
-      String(readLauncherState().ownNames?.receiver || "").trim()
+      String(launcherState.ownNames?.sender || "").trim(),
+      String(launcherState.ownNames?.receiver || "").trim()
     ]);
-
-    if (rememberedOwnIdentifiers.length === 1) {
+    if (rememberedOwnIdentifiers.length > 0) {
       return rememberedOwnIdentifiers;
-    }
-
-    if (rememberedOwnIdentifiers.length > 1) {
-      return [];
     }
 
     const fallbackRememberedOwnIdentifiers = uniqueNames([
       ...rememberedOwnIdentifiers,
       readRoleSettings("remote-viewer").ownName,
-      String(readLauncherState().ownNames?.["remote-viewer"] || "").trim()
+      String(launcherState.ownNames?.["remote-viewer"] || "").trim()
     ]);
 
-    return fallbackRememberedOwnIdentifiers.length === 1 ? fallbackRememberedOwnIdentifiers : [];
+    return fallbackRememberedOwnIdentifiers;
   }
 
   function getCurrentTelepathyProIdentifier() {
+    const loadedInvitee = getLoadedInviteeIdentity();
+    if (loadedInvitee?.identifier) {
+      return String(loadedInvitee.identifier || "").trim();
+    }
+    const temporaryIdentity = getTemporaryIdentityState();
+    if (temporaryIdentity?.identifier) {
+      return String(temporaryIdentity.identifier || "").trim();
+    }
+    const canonicalRecognizedIdentity = getCanonicalRecognizedIdentity();
+    if (canonicalRecognizedIdentity) {
+      return canonicalRecognizedIdentity;
+    }
     const candidates = getCurrentUserTypeCandidates()
       .map((value) => String(value || "").trim())
       .filter(Boolean);
     return candidates.length === 1 ? candidates[0] : "";
+  }
+
+  function getResumeUserTypeCandidatesFromState(state = readLauncherState()) {
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    if (loadedInvitee?.identifier) {
+      return [String(loadedInvitee.identifier || "").trim()];
+    }
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    if (temporaryIdentity?.identifier) {
+      return [String(temporaryIdentity.identifier || "").trim()];
+    }
+    const recognizedIdentity = getCanonicalRecognizedIdentity(state);
+    if (recognizedIdentity) {
+      return [recognizedIdentity];
+    }
+    const inferredRecognizedIdentity = inferRecognizedIdentityFromLegacyState(state);
+    return inferredRecognizedIdentity ? [inferredRecognizedIdentity] : [];
+  }
+
+  async function resolveResumeUserType(state = readLauncherState()) {
+    if (launcherGuestEntryActive) {
+      return "standard";
+    }
+    const candidates = getResumeUserTypeCandidatesFromState(state);
+    logLauncherUserTypeDebug("resolve_resume_start", {
+      candidates,
+      recognizedIdentity: String(state?.recognizedIdentity || "").trim(),
+      dedicatedRecognizedIdentity: String(localStorage.getItem(recognizedIdentityKey) || "").trim(),
+      ownNames: state?.ownNames && typeof state.ownNames === "object" ? state.ownNames : {},
+      persistedResolvedMainUserType: String(state?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
+    });
+    for (const identifier of candidates) {
+      if (!identifier) {
+        continue;
+      }
+      try {
+        const userType = await fetchUserType(identifier);
+        logLauncherUserTypeDebug("resolve_resume_candidate_result", {
+          identifier,
+          userType
+        });
+        if (userType === "pro") {
+          return "pro";
+        }
+      } catch (error) {
+        logLauncherUserTypeDebug("resolve_resume_candidate_error", {
+          identifier,
+          message: error instanceof Error ? error.message : "unknown error"
+        });
+      }
+    }
+    return "standard";
   }
 
   function setGoProStatus(message, isError = false) {
@@ -8058,8 +8963,21 @@ This is an alternate test message to show now.`;
 
     const lookupToken = ++pendingUserTypeLookupToken;
     const candidates = getCurrentUserTypeCandidates();
+    logLauncherUserTypeDebug("refresh_start", {
+      lookupToken,
+      activeLauncherRole,
+      launcherGuestEntryActive,
+      resolvedMainUserType,
+      candidates
+    });
 
     if (!candidates.length) {
+      logLauncherUserTypeDebug("refresh_no_candidates", {
+        lookupToken,
+        activeLauncherRole,
+        launcherGuestEntryActive,
+        resolvedMainUserType
+      });
       return;
     }
 
@@ -8069,14 +8987,28 @@ This is an alternate test message to show now.`;
       }
       try {
         const userType = await fetchUserType(identifier);
+        logLauncherUserTypeDebug("refresh_candidate_result", {
+          lookupToken,
+          identifier,
+          userType
+        });
         if (lookupToken !== pendingUserTypeLookupToken || launcherGuestEntryActive) {
           return;
         }
         if (userType === "pro") {
           renderMainTitle("pro");
+          logLauncherUserTypeDebug("refresh_resolved_pro", {
+            lookupToken,
+            identifier
+          });
           return;
         }
       } catch (error) {
+        logLauncherUserTypeDebug("refresh_candidate_error", {
+          lookupToken,
+          identifier,
+          message: error instanceof Error ? error.message : "unknown error"
+        });
         // Ignore lookup errors and continue trying other identifiers.
       }
     }
@@ -8084,6 +9016,10 @@ This is an alternate test message to show now.`;
     if (lookupToken === pendingUserTypeLookupToken && !launcherGuestEntryActive && resolvedMainUserType !== "standard") {
       renderMainTitle("standard");
     }
+    logLauncherUserTypeDebug("refresh_complete", {
+      lookupToken,
+      finalResolvedMainUserType: resolvedMainUserType
+    });
   }
 
   function getPairContextForRole(role) {
@@ -8206,7 +9142,8 @@ This is an alternate test message to show now.`;
 
     return uniqueNames([
       ...rawNames,
-      ...rawNames.map((name) => getPreferredIdentifier(name, state))
+      ...rawNames.map((name) => stripGuestDisplaySuffix(name)),
+      ...rawNames.map((name) => getPreferredIdentifier(stripGuestDisplaySuffix(name), state))
     ]);
   }
 
@@ -8217,8 +9154,8 @@ This is an alternate test message to show now.`;
     const visitorMode = isVisitorLauncherEntry(state);
 
     const addCandidate = (receiverName, senderName) => {
-      const receiver = getPreferredIdentifier(String(receiverName || "").trim(), state);
-      const sender = getPreferredIdentifier(String(senderName || "").trim(), state);
+      const receiver = getPreferredIdentifier(stripGuestDisplaySuffix(String(receiverName || "").trim()), state);
+      const sender = getPreferredIdentifier(stripGuestDisplaySuffix(String(senderName || "").trim()), state);
       if (!receiver || !sender) {
         return;
       }
@@ -8337,7 +9274,7 @@ This is an alternate test message to show now.`;
       ? String(state.visitorDisplayNames?.receiver || "").trim()
       : String(state.visitorDisplayNames?.sender || "").trim();
     if (mapped && !isInternalVisitorSimulationName(mapped)) {
-      return mapped;
+      return formatGuestDisplayName(mapped);
     }
     const fallbackCandidates = [
       String(state.visitorDisplayNames?.sender || "").trim(),
@@ -8350,7 +9287,7 @@ This is an alternate test message to show now.`;
     const fallback = fallbackCandidates.find((candidate) =>
       candidate && !isInternalVisitorSimulationName(candidate)
     );
-    return fallback || rawName;
+    return fallback ? formatGuestDisplayName(fallback) : rawName;
   }
 
   function getPairInfoReceiverLabel(pairInfo) {
@@ -11161,6 +12098,7 @@ This is an alternate test message to show now.`;
     params.set("blink_image_off_seconds", blinkSettings.offSeconds);
     const confidenceSettings = getConfidenceBehaviorSettings(state);
     params.set("include_confidence", confidenceSettings.include ? "1" : "0");
+    params.set("include_positive_reinforcement", confidenceSettings.includePositiveReinforcement ? "1" : "0");
     params.set(
       "difficulty_level",
       normalizeDifficultyLevel(
@@ -12168,6 +13106,10 @@ This is an alternate test message to show now.`;
       return;
     }
 
+    if (role === "receiver") {
+      applyConfidencePreferenceFromServer(fetchedProfile?.user_preferences, { render: true });
+    }
+
     if (fetchedProfile?.own_email) {
       rememberIdentifierStatus(requestedIdentifier, {
         input_identifier: requestedIdentifier,
@@ -12192,6 +13134,44 @@ This is an alternate test message to show now.`;
     applyPartnerHistory(role, form, latest, getPreferredIdentifier(requestedIdentifier, latest));
     void refreshPartnerAliasHistory(role, form);
     void refreshDifficultyLabels();
+  }
+
+  async function maybeHandleRecognizedVisitorIdentifier(role, form) {
+    if (!isVisitorLauncherEntry()) {
+      return false;
+    }
+    const ownInput = form?.querySelector('input[name="ownName"]');
+    if (!(ownInput instanceof HTMLInputElement)) {
+      return false;
+    }
+    const requestedIdentifier = stripGuestDisplaySuffix(ownInput.value);
+    if (!requestedIdentifier) {
+      return false;
+    }
+
+    let status = null;
+    try {
+      status = await fetchIdentifierStatus(requestedIdentifier);
+    } catch (error) {
+      return false;
+    }
+    if (!status || !status.identifier_exists) {
+      return false;
+    }
+
+    const latestState = rememberIdentifierStatus(requestedIdentifier, status) || readLauncherState();
+    let acceptedIdentifier = "";
+    try {
+      acceptedIdentifier = assertAcceptedLauncherIdentifier(requestedIdentifier, status, "Your identifier", { allowClaimPrompt: false });
+    } catch (error) {
+      return false;
+    }
+    const canonicalIdentifier = getPreferredIdentifier(acceptedIdentifier, latestState);
+    const message = `This unique name already exists. To use ${canonicalIdentifier} on this device, you need to verify that you are ${canonicalIdentifier}.`;
+    if (window.confirm(message)) {
+      openExploreProOverlay({ mode: "recovery", identifier: canonicalIdentifier });
+    }
+    return true;
   }
 
   async function refreshPartnerAliasHistory(role, form) {
@@ -12493,7 +13473,7 @@ This is an alternate test message to show now.`;
     }
     const isLocked = visitorMode && String(lockedName || "").trim() !== "";
     if (isLocked) {
-      ownInput.value = String(lockedName || "").trim();
+      ownInput.value = formatGuestDisplayName(lockedName);
     }
     ownInput.readOnly = isLocked;
     ownInput.setAttribute("aria-readonly", isLocked ? "true" : "false");
@@ -12543,7 +13523,9 @@ This is an alternate test message to show now.`;
     ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
     applyVisitorOwnInputLock(ownInput, lockedVisitorName, visitorMode);
     partnerInput.value = savedPartner;
-    partnerInput.placeholder = "name@example.com or unique handle";
+    partnerInput.placeholder = role === "sender"
+      ? "Enter unique name of receiver"
+      : "Enter unique name of sender";
     applyVisitorPartnerInputLock(partnerInput, visitorMode);
     const robotSimulationDifficulty = isRobotSimulationIdentifier(savedPartner)
       ? getRobotSimulationDifficulty(role, savedOwn, state)
@@ -12592,7 +13574,7 @@ This is an alternate test message to show now.`;
       if (visitorMode) {
         const latestState = readLauncherState();
         latestState.visitorDisplayNames = latestState.visitorDisplayNames || {};
-        const sharedVisitorName = String(ownInput.value || "").trim();
+        const sharedVisitorName = stripGuestDisplaySuffix(ownInput.value);
         latestState.visitorDisplayNames.sender = sharedVisitorName;
         latestState.visitorDisplayNames.receiver = sharedVisitorName;
         writeLauncherState(latestState);
@@ -12705,7 +13687,10 @@ This is an alternate test message to show now.`;
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const submittedOwnDisplayName = ownInput.value.trim();
+      if (await maybeHandleRecognizedVisitorIdentifier(role, form)) {
+        return;
+      }
+      const submittedOwnDisplayName = stripGuestDisplaySuffix(ownInput.value);
       let ownName = submittedOwnDisplayName;
       let exactPartnerName = partnerInput.value.trim();
       const robotSimulationPartner = isRobotSimulationIdentifier(exactPartnerName);
@@ -12811,7 +13796,9 @@ This is an alternate test message to show now.`;
       latest.visitorDisplayNames = latest.visitorDisplayNames || {};
       if (visitorRobotSession) {
         latest.ownNames[role] = "";
-        latest.visitorDisplayNames[role] = submittedOwnDisplayName;
+        latest.visitorDisplayNames.sender = submittedOwnDisplayName;
+        latest.visitorDisplayNames.receiver = submittedOwnDisplayName;
+        latest.visitorLockedName = submittedOwnDisplayName;
       } else {
         latest.ownNames[role] = ownName;
       }
@@ -13144,13 +14131,22 @@ This is an alternate test message to show now.`;
     });
   }
 
-  function enterWorkingHomeFromLanding(mode = "resume") {
+  async function enterWorkingHomeFromLanding(mode = "resume") {
     const normalizedMode = mode === "fresh" || mode === "visitor" ? mode : "resume";
     setLauncherGuestEntryActive(normalizedMode !== "resume");
+    logLauncherUserTypeDebug("enter_working_home", {
+      mode: normalizedMode,
+      resolvedMainUserType: readLauncherState().resolvedMainUserType || "standard",
+      activeLauncherRole,
+      candidates: normalizedMode === "resume" ? getCurrentUserTypeCandidates() : []
+    });
     if (normalizedMode !== "resume") {
       resetLauncherWorkingHomeForFreshEntry();
     } else {
-      renderMainTitle(readLauncherState().resolvedMainUserType || "standard", { persist: false });
+      const latestState = readLauncherState();
+      const resolvedUserType = await resolveResumeUserType(latestState);
+      renderMainTitle(resolvedUserType, { persist: true });
+      scheduleMainUserTypeRefresh(0);
     }
     showLauncherView();
     applyIdentityStateToLauncherInputs();
@@ -13166,6 +14162,8 @@ This is an alternate test message to show now.`;
     launcherView?.classList.remove("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
+    uniqueNameChangeView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
@@ -13185,6 +14183,7 @@ This is an alternate test message to show now.`;
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
     messagesView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -13207,6 +14206,7 @@ This is an alternate test message to show now.`;
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
+    uniqueNameChangeView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
@@ -13261,6 +14261,7 @@ This is an alternate test message to show now.`;
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
+    uniqueNameChangeView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
@@ -14161,6 +15162,18 @@ This is an alternate test message to show now.`;
     }
   }
 
+  function formatOnlineCourseDate(date = new Date()) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric"
+      }).format(date);
+    } catch (error) {
+      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    }
+  }
+
   async function renderBaselineQuestionsView() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
@@ -14366,135 +15379,6 @@ This is an alternate test message to show now.`;
       afterFirstSessionStatus.textContent = `After First Session Questions saved for ${displayIdentifier}.`;
     }
     closeAfterFirstSessionQuestionsView();
-  }
-
-  function formatOnlineCourseDate(date = new Date()) {
-    try {
-      return new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric"
-      }).format(date);
-    } catch (error) {
-      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-    }
-  }
-
-  function escapeWordHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
-  }
-
-  function exportLearningCenterAsWordFile() {
-    const panel = onlineCourseView?.querySelector(".online-course-panel");
-    if (!panel) {
-      return;
-    }
-    const exportClone = panel.cloneNode(true);
-    exportClone.querySelector(".online-course-tabs")?.remove();
-    exportClone.querySelectorAll("button").forEach((button) => button.remove());
-    exportClone.querySelectorAll("[data-online-course-panel]").forEach((tabPanel) => {
-      tabPanel.hidden = false;
-      tabPanel.classList.remove("online-course-tab-panel-hidden");
-    });
-    const lessonList = exportClone.querySelector(".online-course-lesson-list");
-    if (lessonList) {
-      const lessonRows = Array.from(lessonList.querySelectorAll(".online-course-lesson-row"));
-      const lessonMarkup = lessonRows.map((row) => {
-        const title = row.querySelector(".online-course-lesson-title")?.textContent?.trim() || "";
-        const subcopy = row.querySelector(".online-course-lesson-subcopy")?.textContent?.trim() || "";
-        return `
-          <div class="word-lesson-block">
-            <p class="word-lesson-line">[ ] ${escapeWordHtml(title)}</p>
-            ${subcopy ? `<p class="word-lesson-subcopy">${escapeWordHtml(subcopy)}</p>` : ""}
-          </div>
-        `;
-      }).join("");
-      lessonList.innerHTML = lessonMarkup;
-    }
-    const styleBlock = `
-      body {
-        font-family: Calibri, Arial, sans-serif;
-        color: #111;
-        margin: 36px;
-        line-height: 1.45;
-      }
-      h1, h2, h3, p {
-        margin-top: 0;
-      }
-      .online-course-reference,
-      .online-course-lesson-list {
-        border: 1px solid #b7b7b7;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin: 18px 0;
-      }
-      .online-course-action-row,
-      .online-course-jump-links {
-        display: none;
-      }
-      .online-course-lesson-list,
-      .online-course-curriculum,
-      .online-course-lesson-main {
-        display: block;
-      }
-      .word-lesson-block {
-        margin: 18pt 0 0 0;
-        page-break-inside: avoid;
-      }
-      .word-lesson-block:first-child {
-        margin-top: 0;
-      }
-      .word-lesson-line,
-      .word-lesson-subcopy {
-        margin-left: 0;
-        text-align: left;
-      }
-      .word-lesson-line {
-        margin-top: 0;
-        margin-bottom: 4pt;
-        font-weight: 700;
-      }
-      .word-lesson-subcopy {
-        margin-top: 0;
-        margin-bottom: 0;
-        color: #333;
-      }
-      .about-section-copy,
-      .online-course-reference-meta,
-      .online-course-course-subheading {
-        white-space: pre-wrap;
-      }
-    `;
-    const displayDate = onlineCourseDate?.textContent?.trim() || formatOnlineCourseDate();
-    const displayIdentifier = onlineCourseName?.textContent?.trim() || getOnlineCourseDisplayIdentifier(readLauncherState());
-    const safeDate = displayDate.replace(/[\\/:\s]+/g, "-");
-    const fileName = `ESP-GYM-Learning-Center-${safeDate}.doc`;
-    const documentHtml = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-  <meta charset="utf-8">
-  <title>ESP GYM Learning Center</title>
-  <style>${styleBlock}</style>
-</head>
-<body>
-  <h1>ESP GYM Learning Center</h1>
-  <p><strong>Date:</strong> ${escapeWordHtml(displayDate)}<br><strong>Unique Name:</strong> ${escapeWordHtml(displayIdentifier)}</p>
-  ${exportClone.innerHTML}
-</body>
-</html>`;
-    const blob = new Blob([documentHtml], { type: "application/msword" });
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = objectUrl;
-    anchor.download = fileName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
   function buildLearningCenterLessonRow(record) {
@@ -15631,6 +16515,7 @@ This is an alternate test message to show now.`;
     adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderSettingsView();
+    void syncConfidencePreferenceForReceiverContext({ render: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -15982,6 +16867,7 @@ This is an alternate test message to show now.`;
       if (adminTrialModePublicEnabledCheckbox) {
         adminTrialModePublicEnabledCheckbox.checked = !!launcherAdminState.trial_mode_public_enabled;
       }
+      applyMessagingLimitsUi(launcherAdminState.messaging_limits);
       if (adminClearDebugLogButton) {
         const debugLog = launcherAdminState.debug_log;
         const sizeLabel = debugLog?.size_formatted ? debugLog.size_formatted : "0 B";
@@ -16035,7 +16921,8 @@ This is an alternate test message to show now.`;
           identity_summary_meta: data?.identity_summary_meta || null,
           email_list: data?.email_list || null,
           email_list_meta: data?.email_list_meta || null,
-          disk_usage_analysis: data?.disk_usage_analysis || null
+          disk_usage_analysis: data?.disk_usage_analysis || null,
+          messaging_limits: normalizeMessagingLimits(data?.messaging_limits || defaultMessagingLimits)
         };
       if (adminStatus) {
         adminStatus.textContent = "Admin access active.";
@@ -16095,48 +16982,73 @@ This is an alternate test message to show now.`;
     });
   }
 
-  async function clearLocalFreshStartState() {
+  function getFreshStartPreserveSelections() {
+    return {
+      preserve_users: adminFreshStartPreserveUsersCheckbox?.checked !== false,
+      preserve_invitees: adminFreshStartPreserveInviteesCheckbox?.checked !== false,
+      preserve_pairs: adminFreshStartPreservePairsCheckbox?.checked !== false,
+      preserve_simulation_pairs: adminFreshStartPreserveSimulationPairsCheckbox?.checked !== false,
+      preserve_questionnaires: adminFreshStartPreserveQuestionnairesCheckbox?.checked !== false,
+      preserve_messaging_history: adminFreshStartPreserveMessagingHistoryCheckbox?.checked !== false,
+      preserve_analytics_counters: adminFreshStartPreserveAnalyticsCountersCheckbox?.checked !== false
+    };
+  }
+
+  async function clearLocalFreshStartState(options = {}) {
+    const preserveUsers = options?.preserve_users !== false;
+    const preservePairs = options?.preserve_pairs !== false;
+    const preserveQuestionnaires = options?.preserve_questionnaires !== false;
+    const preservedAdminDevicePrefs = {
+      ...launcherAdminDevicePrefs
+    };
     try {
-      localStorage.removeItem(launcherKey);
       localStorage.removeItem(analysisStorageKey);
-      localStorage.removeItem(launcherAdminDevicePrefsKey);
-      localStorage.removeItem(stripeReturnIdentifierStorageKey);
       localStorage.removeItem("cones-local-trials-receiver");
       localStorage.removeItem("cones-local-trials-v2-sender");
       localStorage.removeItem("cones-local-trials-v2-receiver");
       localStorage.removeItem("conesArrangementHistory");
       localStorage.removeItem("conesArrangementHistory-v2");
-      localStorage.removeItem("cones-settings-v2-sender");
-      localStorage.removeItem("cones-settings-v2-receiver");
-      localStorage.removeItem("cones-settings-v2-remote-viewer");
       localStorage.removeItem("cones-receiver-skip-two-choice-instructions");
+    if (!preserveUsers) {
+      localStorage.removeItem(launcherKey);
+      localStorage.removeItem(recognizedIdentityKey);
+      localStorage.removeItem(stripeReturnIdentifierStorageKey);
+    }
+      if (!preservePairs) {
+        localStorage.removeItem("cones-settings-v2-sender");
+        localStorage.removeItem("cones-settings-v2-receiver");
+        localStorage.removeItem("cones-settings-v2-remote-viewer");
+      }
       const questionnairePrefixes = [
         "cones-baseline-questions-v1-",
         "cones-after-first-session-questions-v1-"
       ];
-      const keysToRemove = [];
-      for (let index = 0; index < localStorage.length; index += 1) {
-        const key = String(localStorage.key(index) || "");
-        if (questionnairePrefixes.some((prefix) => key.startsWith(prefix))) {
-          keysToRemove.push(key);
+      if (!preserveQuestionnaires) {
+        const keysToRemove = [];
+        for (let index = 0; index < localStorage.length; index += 1) {
+          const key = String(localStorage.key(index) || "");
+          if (questionnairePrefixes.some((prefix) => key.startsWith(prefix))) {
+            keysToRemove.push(key);
+          }
         }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
       }
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
-      launcherAdminDevicePrefs = {
-        debug_enabled: false,
-        easy_admin_enabled: false,
-        learn_more_save_enabled: false,
-        cached_secret: ""
-      };
-      syncLauncherAdminStateFromDevicePrefs();
     } catch (error) {
       // Ignore local cleanup failures.
     }
-    await deleteIndexedDbDatabase("cones-folder-handles");
+    writeLauncherAdminDevicePrefs(preservedAdminDevicePrefs);
+    syncLauncherAdminStateFromDevicePrefs();
+    if (!preserveUsers) {
+      await deleteIndexedDbDatabase("cones-folder-handles");
+    }
   }
 
   async function clearAppLocalStorageArtifacts() {
-    await clearLocalFreshStartState();
+    await clearLocalFreshStartState({
+      preserve_users: false,
+      preserve_pairs: false,
+      preserve_questionnaires: false
+    });
     try {
       sessionStorage.removeItem(launcherKey);
       sessionStorage.removeItem("cones-client-id-sender");
@@ -16151,6 +17063,45 @@ This is an alternate test message to show now.`;
   function showAdminView() {
     clearReportPanelOffset();
     adminView?.classList.remove("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
+    messagingParmsAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderAdminView();
+    void refreshAdminView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showMessagingParmsAdminView() {
+    clearReportPanelOffset();
+    messagingParmsAdminView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
@@ -16177,11 +17128,15 @@ This is an alternate test message to show now.`;
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    renderAdminView();
-    void refreshAdminView();
+    applyMessagingLimitsUi(launcherAdminState.messaging_limits);
+    if (messagingParmsStatus) {
+      messagingParmsStatus.textContent = "";
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -16311,6 +17266,237 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showResearchParticipationView() {
+    clearReportPanelOffset();
+    researchParticipationView?.classList.remove("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showResearchParticipationProView() {
+    clearReportPanelOffset();
+    researchParticipationProView?.classList.remove("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function getResearchInterestIdentifier() {
+    return String(getCurrentTelepathyProIdentifier() || getOnlineCourseDisplayIdentifier(readLauncherState()) || "").trim();
+  }
+
+  async function readResearchInterestResponse(identifier = getResearchInterestIdentifier()) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    if (!normalizedIdentifier) {
+      return {};
+    }
+    try {
+      const record = await fetchQuestionnaireResponseFromServer("research-interest", normalizedIdentifier);
+      return record?.response && typeof record.response === "object" ? record.response : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  async function saveResearchInterestResponse(identifier = getResearchInterestIdentifier(), payload = {}) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    if (!normalizedIdentifier) {
+      return null;
+    }
+    try {
+      const record = await saveQuestionnaireResponseToServer("research-interest", normalizedIdentifier, "", "", payload);
+      return record?.response && typeof record.response === "object" ? record.response : payload;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function populateResearchInterestForm(response = {}) {
+    const identifier = getResearchInterestIdentifier();
+    if (researchInterestUniqueNameInput) {
+      researchInterestUniqueNameInput.value = identifier;
+    }
+    if (researchInterestNameInput) {
+      researchInterestNameInput.value = String(response.name || "").trim();
+    }
+    if (researchInterestEmailInput) {
+      researchInterestEmailInput.value = String(response.email || "").trim();
+    }
+    if (researchInterestZipInput) {
+      researchInterestZipInput.value = String(response.zip_code || "").trim();
+    }
+    if (researchInterestAgeInput) {
+      researchInterestAgeInput.value = String(response.age || "").trim();
+    }
+    setBaselineRadioValue(researchInterestBeliefInputs, response.belief_has_esp);
+    if (researchInterestBeliefWhyInput) {
+      researchInterestBeliefWhyInput.value = String(response.belief_why || "").trim();
+    }
+    setBaselineRadioValue(researchInterestSpontaneousInputs, response.spontaneous_experiences);
+    if (researchInterestDescribeInput) {
+      researchInterestDescribeInput.value = String(response.spontaneous_description || "").trim();
+    }
+    setBaselineRadioValue(researchInterestFamilyInputs, response.family_esp);
+    if (researchInterestPermissionInput) {
+      researchInterestPermissionInput.checked = !!response.permission_granted;
+    }
+    if (researchInterestSignedInput) {
+      researchInterestSignedInput.value = String(response.signed || response.name || "").trim();
+    }
+    if (researchInterestDateInput) {
+      researchInterestDateInput.value = String(response.date || formatOnlineCourseDate()).trim();
+    }
+  }
+
+  function collectResearchInterestPayload() {
+    return {
+      name: String(researchInterestNameInput?.value || "").trim(),
+      unique_name: getResearchInterestIdentifier(),
+      email: String(researchInterestEmailInput?.value || "").trim(),
+      zip_code: String(researchInterestZipInput?.value || "").trim(),
+      age: String(researchInterestAgeInput?.value || "").trim(),
+      belief_has_esp: getBaselineRadioValue(researchInterestBeliefInputs),
+      belief_why: String(researchInterestBeliefWhyInput?.value || "").trim(),
+      spontaneous_experiences: getBaselineRadioValue(researchInterestSpontaneousInputs),
+      spontaneous_description: String(researchInterestDescribeInput?.value || "").trim(),
+      family_esp: getBaselineRadioValue(researchInterestFamilyInputs),
+      permission_granted: !!researchInterestPermissionInput?.checked,
+      signed: String(researchInterestSignedInput?.value || "").trim(),
+      date: String(researchInterestDateInput?.value || formatOnlineCourseDate()).trim()
+    };
+  }
+
+  async function renderResearchInterestFormView() {
+    const identifier = getResearchInterestIdentifier();
+    if (researchInterestStatus) {
+      researchInterestStatus.textContent = identifier
+        ? "Loading research participation form..."
+        : "Load a recognized ESP PRO identity before submitting this form.";
+    }
+    const saved = identifier ? await readResearchInterestResponse(identifier) : {};
+    populateResearchInterestForm(saved);
+    if (researchInterestStatus) {
+      researchInterestStatus.textContent = saved?.saved_at
+        ? `Previously submitted information loaded for ${identifier}.`
+        : "";
+    }
+  }
+
+  function showResearchInterestFormView() {
+    clearReportPanelOffset();
+    researchInterestFormView?.classList.remove("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderResearchInterestFormView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function saveResearchInterestForm() {
+    const identifier = getResearchInterestIdentifier();
+    if (!identifier) {
+      if (researchInterestStatus) {
+        researchInterestStatus.textContent = "A recognized ESP PRO unique name is required before this form can be submitted.";
+      }
+      return;
+    }
+    const payload = collectResearchInterestPayload();
+    if (researchInterestStatus) {
+      researchInterestStatus.textContent = `Submitting research participation form for ${identifier}...`;
+    }
+    const saved = await saveResearchInterestResponse(identifier, payload);
+    if (saved) {
+      populateResearchInterestForm(saved);
+      if (researchInterestStatus) {
+        researchInterestStatus.textContent = `Research participation form submitted for ${identifier}.`;
+      }
+    } else if (researchInterestStatus) {
+      researchInterestStatus.textContent = "Unable to submit the research participation form right now.";
+    }
+  }
+
   function showLessonIndexAdminView() {
     lessonIndexAdminView?.classList.remove("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -16360,7 +17546,9 @@ This is an alternate test message to show now.`;
     const statusText = String(options.statusText || "").trim();
     const showChoices = !!options.showChoices;
     const showInviteeButton = !!options.showInviteeButton;
+    const showEmailUpdate = !!options.showEmailUpdate;
     const currentType = String(options.currentType || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    const authEmail = String(options.authEmail || "").trim();
     pendingUserTypeSelection = currentType;
 
     if (userTypeStatus) {
@@ -16374,6 +17562,17 @@ This is an alternate test message to show now.`;
       userTypeSaveButton.classList.toggle("beginner-view-hidden", !showChoices);
       userTypeSaveButton.hidden = !showChoices;
     }
+    if (userTypeEmailWrap) {
+      userTypeEmailWrap.classList.toggle("beginner-view-hidden", !showEmailUpdate);
+      userTypeEmailWrap.hidden = !showEmailUpdate;
+    }
+    if (userTypeEmailInput) {
+      userTypeEmailInput.value = authEmail;
+    }
+    if (userTypeUpdateEmailButton) {
+      userTypeUpdateEmailButton.classList.toggle("beginner-view-hidden", !showEmailUpdate);
+      userTypeUpdateEmailButton.hidden = !showEmailUpdate;
+    }
     if (openInviteeAdminButton) {
       openInviteeAdminButton.classList.toggle("beginner-view-hidden", !showInviteeButton);
       openInviteeAdminButton.hidden = !showInviteeButton;
@@ -16386,7 +17585,9 @@ This is an alternate test message to show now.`;
     logUserTypeAdminDebug("render_state", [{
       requested_show_choices: showChoices,
       requested_show_invitee_button: showInviteeButton,
+      requested_show_email_update: showEmailUpdate,
       requested_current_type: currentType,
+      requested_auth_email: authEmail,
       requested_status_text: statusText
     }]);
   }
@@ -16412,10 +17613,15 @@ This is an alternate test message to show now.`;
     if (userTypeHandleInput) {
       userTypeHandleInput.value = "";
     }
+    if (userTypeEmailInput) {
+      userTypeEmailInput.value = "";
+    }
     renderUserTypeAdminState({
       statusText: "",
       showChoices: false,
       showInviteeButton: false,
+      showEmailUpdate: false,
+      authEmail: "",
       currentType: "standard"
     });
     logUserTypeAdminDebug("reset_view");
@@ -16449,9 +17655,10 @@ This is an alternate test message to show now.`;
       inviteeStatus.textContent = "";
     }
     setInviteeAdminActionState({
-      canLoad: false,
       canSave: !!identifier && isValidUniqueHandle(identifier),
-      canDelete: false
+      canDelete: false,
+      canTestNewDevice: !isDeviceTestModeActive(),
+      canRestoreMyDevice: isDeviceTestModeActive()
     });
   }
 
@@ -16468,14 +17675,17 @@ This is an alternate test message to show now.`;
   }
 
   function setInviteeAdminActionState(options = {}) {
-    if (inviteeLoadButton) {
-      inviteeLoadButton.disabled = !options.canLoad;
-    }
     if (inviteeSaveButton) {
       inviteeSaveButton.disabled = !options.canSave;
     }
     if (inviteeDeleteButton) {
       inviteeDeleteButton.disabled = !options.canDelete;
+    }
+    if (testNewDeviceButton) {
+      testNewDeviceButton.disabled = !options.canTestNewDevice;
+    }
+    if (restoreMyDeviceButton) {
+      restoreMyDeviceButton.disabled = !options.canRestoreMyDevice;
     }
   }
 
@@ -16542,17 +17752,18 @@ This is an alternate test message to show now.`;
       inviteeNoteInput.value = String(match?.private_note || "");
     }
     if (inviteeStatus) {
-      const loadedIdentifier = getCurrentLoadedInviteeIdentifier();
+      const testModeActive = isDeviceTestModeActive();
       inviteeStatus.textContent = cleanIdentifier
-        ? normalizeInviteeIdentifierValue(loadedIdentifier) === normalizeInviteeIdentifierValue(cleanIdentifier)
-          ? `Invitee ${String(match?.identifier || cleanIdentifier)} is loaded on this device.`
-          : `Invitee ${String(match?.identifier || cleanIdentifier)} is loaded into the form. Press Load Invitee to use it on this device.`
+        ? testModeActive
+          ? `Invitee ${String(match?.identifier || cleanIdentifier)} is loaded into the form. Test mode is active, so enter this code on the Landing page to test the public invitee flow.`
+          : `Invitee ${String(match?.identifier || cleanIdentifier)} is loaded into the form. Save or delete it here, then use Test As New Device to try the Landing-page flow.`
         : "";
     }
     setInviteeAdminActionState({
-      canLoad: !!match,
       canSave: !!match,
-      canDelete: !!match
+      canDelete: !!match,
+      canTestNewDevice: !isDeviceTestModeActive(),
+      canRestoreMyDevice: isDeviceTestModeActive()
     });
   }
 
@@ -16566,9 +17777,10 @@ This is an alternate test message to show now.`;
         inviteeStatus.textContent = "";
       }
       setInviteeAdminActionState({
-        canLoad: false,
         canSave: false,
-        canDelete: false
+        canDelete: false,
+        canTestNewDevice: !isDeviceTestModeActive(),
+        canRestoreMyDevice: isDeviceTestModeActive()
       });
       return;
     }
@@ -16578,9 +17790,10 @@ This is an alternate test message to show now.`;
         inviteeStatus.textContent = "Invitee unique name is invalid.";
       }
       setInviteeAdminActionState({
-        canLoad: false,
         canSave: false,
-        canDelete: false
+        canDelete: false,
+        canTestNewDevice: !isDeviceTestModeActive(),
+        canRestoreMyDevice: isDeviceTestModeActive()
       });
       return;
     }
@@ -16595,9 +17808,10 @@ This is an alternate test message to show now.`;
       inviteeStatus.textContent = "Checking unique name...";
     }
     setInviteeAdminActionState({
-      canLoad: false,
       canSave: false,
-      canDelete: false
+      canDelete: false,
+      canTestNewDevice: !isDeviceTestModeActive(),
+      canRestoreMyDevice: isDeviceTestModeActive()
     });
 
     try {
@@ -16611,9 +17825,10 @@ This is an alternate test message to show now.`;
           inviteeStatus.textContent = "That unique name already exists and cannot be saved as an invitee.";
         }
         setInviteeAdminActionState({
-          canLoad: false,
           canSave: false,
-          canDelete: false
+          canDelete: false,
+          canTestNewDevice: !isDeviceTestModeActive(),
+          canRestoreMyDevice: isDeviceTestModeActive()
         });
         return;
       }
@@ -16622,9 +17837,10 @@ This is an alternate test message to show now.`;
         inviteeStatus.textContent = `Unique name ${typedIdentifier} is available to save as an invitee.`;
       }
       setInviteeAdminActionState({
-        canLoad: false,
         canSave: true,
-        canDelete: false
+        canDelete: false,
+        canTestNewDevice: !isDeviceTestModeActive(),
+        canRestoreMyDevice: isDeviceTestModeActive()
       });
     } catch (error) {
       if (lookupToken !== pendingInviteeLookupToken) {
@@ -16634,9 +17850,10 @@ This is an alternate test message to show now.`;
         inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to validate that unique name right now.";
       }
       setInviteeAdminActionState({
-        canLoad: false,
         canSave: false,
-        canDelete: false
+        canDelete: false,
+        canTestNewDevice: !isDeviceTestModeActive(),
+        canRestoreMyDevice: isDeviceTestModeActive()
       });
     }
   }
@@ -16753,11 +17970,24 @@ This is an alternate test message to show now.`;
   }
 
   function resetExploreProOverlay() {
+    exploreProOverlayMode = "trial";
+    pendingRecoveryIdentifier = "";
+    pendingUniqueNameClaim = null;
+    if (exploreProTitle) {
+      exploreProTitle.textContent = "Explore ESP PRO";
+    }
+    if (exploreProIntro) {
+      exploreProIntro.textContent = "Start your free 14-day ESP PRO exploration.";
+    }
+    if (exploreProAuthCopy) {
+      exploreProAuthCopy.textContent = "Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code.";
+    }
     if (exploreProEmailInput) {
       exploreProEmailInput.value = "";
     }
     if (exploreProCodeInput) {
       exploreProCodeInput.value = "";
+      exploreProCodeInput.setAttribute("maxlength", "5");
     }
     setExploreProStatus("");
     if (exploreProResendCodeButton) {
@@ -16774,14 +18004,69 @@ This is an alternate test message to show now.`;
     }
     if (exploreProStartButton) {
       exploreProStartButton.disabled = false;
+      exploreProStartButton.textContent = "START FREE 14-DAY EXPLORATION";
     }
     if (exploreProCloseButton) {
       exploreProCloseButton.disabled = false;
+      exploreProCloseButton.textContent = "CANCEL";
     }
   }
 
-  function openExploreProOverlay() {
+  function openExploreProOverlay(options = {}) {
     resetExploreProOverlay();
+    const requestedMode = String(options.mode || "trial").trim().toLowerCase();
+    const mode = requestedMode === "recovery"
+      ? "recovery"
+      : requestedMode === "claim"
+        ? "claim"
+        : "trial";
+    exploreProOverlayMode = mode;
+    pendingRecoveryIdentifier = String(options.identifier || "").trim();
+    if (mode === "claim") {
+      pendingUniqueNameClaim = options && typeof options === "object"
+        ? {
+            role: String(options.role || "").trim(),
+            returnRole: String(options.returnRole || "").trim(),
+            returnScrollY: Math.max(0, Number(options.returnScrollY || 0) || 0),
+            postClaimFlow: String(options.postClaimFlow || "").trim(),
+            currentIdentifier: String(options.currentIdentifier || "").trim(),
+            proposedHandle: String(options.identifier || "").trim()
+          }
+        : null;
+    }
+    if (mode === "recovery") {
+      if (exploreProTitle) {
+        exploreProTitle.textContent = "Verify Existing Unique Name";
+      }
+      if (exploreProIntro) {
+        exploreProIntro.textContent = pendingRecoveryIdentifier
+          ? `Verify that you are ${pendingRecoveryIdentifier} on this device.`
+          : "Verify your existing unique name on this device.";
+      }
+      if (exploreProAuthCopy) {
+        exploreProAuthCopy.textContent = "Your email address is used for authentication. Please enter the authentication email for this unique name below. We will send you a 5-character verification code.";
+      }
+      if (exploreProStartButton) {
+        exploreProStartButton.textContent = "VERIFY UNIQUE NAME";
+      }
+    } else if (mode === "claim") {
+      const proposedHandle = String(options.identifier || "").trim();
+      if (exploreProTitle) {
+        exploreProTitle.textContent = "Verify New Unique Name";
+      }
+      if (exploreProIntro) {
+        exploreProIntro.textContent = proposedHandle
+          ? `Verify your email to claim ${proposedHandle} as your unique name in ESP GYM.`
+          : "Verify your email to claim your unique name in ESP GYM.";
+      }
+      if (exploreProAuthCopy) {
+        exploreProAuthCopy.textContent = "Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code. Your unique name will be claimed only after verification succeeds.";
+      }
+      if (exploreProStartButton) {
+        exploreProStartButton.textContent = "CLAIM UNIQUE NAME";
+      }
+    }
+    setFeatureSetupBackButtonTemporarilyHidden(true);
     exploreProOverlay?.classList.remove("beginner-view-hidden");
     exploreProEmailInput?.focus();
     exploreProEmailInput?.select?.();
@@ -16789,6 +18074,7 @@ This is an alternate test message to show now.`;
 
   function closeExploreProOverlay() {
     exploreProOverlay?.classList.add("beginner-view-hidden");
+    setFeatureSetupBackButtonTemporarilyHidden(false);
   }
 
   async function requestExploreProCode(resend = false) {
@@ -16801,7 +18087,15 @@ This is an alternate test message to show now.`;
       exploreProResendCodeButton.disabled = true;
     }
     try {
-      const verification = await sendExploreProVerificationCode(email);
+      const verification = exploreProOverlayMode === "recovery"
+        ? await sendIdentifierRecoveryCode(pendingRecoveryIdentifier, email)
+        : exploreProOverlayMode === "claim"
+          ? await sendUniqueNameClaimCode(
+              String(pendingUniqueNameClaim?.currentIdentifier || "").trim(),
+              String(pendingUniqueNameClaim?.proposedHandle || "").trim(),
+              email
+            )
+        : await sendExploreProVerificationCode(email);
       if (exploreProResendCodeButton) {
         exploreProResendCodeButton.hidden = false;
       }
@@ -16835,12 +18129,80 @@ This is an alternate test message to show now.`;
       exploreProStartButton.disabled = true;
     }
     try {
+      if (exploreProOverlayMode === "recovery") {
+        const data = await verifyIdentifierRecoveryCode(pendingRecoveryIdentifier, email, code);
+        const recoveredIdentifier = String(data?.identifier || pendingRecoveryIdentifier).trim();
+        const userType = String(data?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+        const latestState = readLauncherState();
+        const nextIdentityState = buildLauncherIdentityState(latestState, recoveredIdentifier, userType, {
+          recognizedIdentity: recoveredIdentifier,
+          entryMode: ""
+        });
+        if (data?.identifier_status && recoveredIdentifier) {
+          nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
+          nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(recoveredIdentifier)] = data.identifier_status;
+        }
+        writeLauncherState(nextIdentityState);
+        setLauncherGuestEntryActive(false);
+        closeExploreProOverlay();
+        window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+        return;
+      }
+      if (exploreProOverlayMode === "claim") {
+        const claimContext = pendingUniqueNameClaim && typeof pendingUniqueNameClaim === "object"
+          ? pendingUniqueNameClaim
+          : null;
+        const data = await verifyUniqueNameClaimCode(
+          String(claimContext?.currentIdentifier || "").trim(),
+          String(claimContext?.proposedHandle || "").trim(),
+          email,
+          code
+        );
+        const acceptedHandle = String(data?.identifier || claimContext?.proposedHandle || "").trim();
+        const currentIdentifier = String(claimContext?.currentIdentifier || "").trim();
+        if (currentIdentifier && acceptedHandle) {
+          propagateClaimedHandle(currentIdentifier, acceptedHandle);
+        }
+        const migratedState = readLauncherState();
+        const nextIdentityState = {
+          ...migratedState,
+          recognizedIdentity: acceptedHandle,
+          ownNames: acceptedHandle ? {
+            sender: acceptedHandle,
+            receiver: acceptedHandle,
+            "remote-viewer": acceptedHandle
+          } : {},
+          visitorDisplayNames: {},
+          visitorLockedName: "",
+          entryMode: "",
+          resolvedMainUserType: "standard",
+          temporaryIdentity: null
+        };
+        if (data?.identifier_status && acceptedHandle) {
+          nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
+          nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = data.identifier_status;
+        }
+        writeLauncherState(nextIdentityState);
+        setLauncherGuestEntryActive(false);
+        closeExploreProOverlay();
+        if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
+          showInstallGuideView({ returnView: "feature-setup" });
+          return;
+        }
+        showFeatureSetupView({
+          role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
+          returnView: featureSetupReturnView || "card",
+          scrollY: Number.isFinite(Number(claimContext?.returnScrollY)) ? Number(claimContext.returnScrollY) : 0
+        });
+        return;
+      }
       const data = await verifyExploreProCode(email, code);
       const temporaryIdentity = String(data?.temporary_identity?.identifier || "").trim();
       const userType = String(data?.temporary_identity?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
       const baseState = readLauncherState();
       const exploreTrial = normalizeExploreTrialData(data?.explore_trial || data?.trial_activation || null, temporaryIdentity);
       const nextState = buildLauncherIdentityState(baseState, temporaryIdentity, userType, {
+        recognizedIdentity: getCanonicalRecognizedIdentity(baseState),
         temporaryIdentity: {
           source: "landing-explore-pro"
         },
@@ -16883,8 +18245,16 @@ This is an alternate test message to show now.`;
     temporaryHomePageExploreButton.textContent = "Explore";
   }
 
+  function shouldResumeRecognizedLandingIdentity(state = readLauncherState()) {
+    return hasKnownLauncherIdentity(state) && !isVisitorLauncherEntry(state);
+  }
+
   function startVisitorLandingEntry() {
     const baseState = readLauncherState();
+    if (shouldResumeRecognizedLandingIdentity(baseState)) {
+      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+      return;
+    }
     const nextState = buildVisitorLauncherState(baseState);
     writeLauncherState(nextState);
     window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
@@ -16892,6 +18262,10 @@ This is an alternate test message to show now.`;
 
   async function handleLandingExploreClick() {
     if (!temporaryHomePageExploreButton) {
+      return;
+    }
+    if (shouldResumeRecognizedLandingIdentity()) {
+      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
       return;
     }
     temporaryHomePageExploreButton.disabled = true;
@@ -16951,7 +18325,9 @@ This is an alternate test message to show now.`;
       ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
       applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName(state) : "", visitorMode);
       partnerInput.value = savedPartner;
-      partnerInput.placeholder = "name@example.com or unique handle";
+      partnerInput.placeholder = role === "sender"
+        ? "Enter unique name of receiver"
+        : "Enter unique name of sender";
       applyVisitorPartnerInputLock(partnerInput, visitorMode);
       applyPartnerHistory(role, form, state, savedOwn);
       applyRoleIdentifierPresentation(role, {
@@ -16960,7 +18336,7 @@ This is an alternate test message to show now.`;
       });
     });
     renderRemoteViewerCard();
-    renderMainTitle(String(state.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard");
+    renderMainTitle(resolvedMainUserType === "pro" ? "pro" : "standard");
     void refreshDifficultyLabels();
   }
 
@@ -17000,7 +18376,9 @@ This is an alternate test message to show now.`;
     const baseState = readLauncherState();
     const existingLoaded = getLoadedInviteeIdentity(baseState);
     const previousIdentitySnapshot = existingLoaded?.previousIdentitySnapshot || snapshotDeviceIdentityState(baseState);
-    const nextState = buildLauncherIdentityState(baseState, cleanIdentifier, normalizedUserType);
+    const nextState = buildLauncherIdentityState(baseState, cleanIdentifier, normalizedUserType, {
+      recognizedIdentity: getCanonicalRecognizedIdentity(baseState)
+    });
     nextState.loadedInviteeIdentity = {
       identifier: cleanIdentifier,
       userType: normalizedUserType,
@@ -17048,6 +18426,11 @@ This is an alternate test message to show now.`;
   async function continueFromLandingPage() {
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
     if (!invitationCode) {
+      const launcherState = readLauncherState();
+      if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
+        window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+        return;
+      }
       startVisitorLandingEntry();
       return;
     }
@@ -17074,70 +18457,72 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function clearInviteeAdminDeviceIdentity() {
-    const cleared = clearLoadedInviteeIdentityFromDevice();
-    currentInviteeIdentifier = "";
-    if (inviteeIdentifierInput) {
-      inviteeIdentifierInput.value = "";
-    }
-    if (inviteeFullNameInput) {
-      inviteeFullNameInput.value = "";
-    }
-    if (inviteeEmailInput) {
-      inviteeEmailInput.value = "";
-    }
-    if (inviteeNoteInput) {
-      inviteeNoteInput.value = "";
-    }
-    if (inviteeStatus) {
-      inviteeStatus.textContent = cleared
-        ? `Loaded invitee ${cleared.identifier} cleared on this device.`
-        : "No invitee identity is currently loaded on this device.";
-    }
-    void refreshInviteeAdminList({ preserveSelection: true });
-  }
-
-  async function loadInviteeIdentityOnDevice() {
-    const identifier = normalizeInviteeIdentifierValue(inviteeIdentifierInput?.value || currentInviteeIdentifier);
-    const inviteeRecord = getInviteeRecordByIdentifier(identifier);
-    if (!inviteeRecord) {
+  function startInviteeDeviceTestMode() {
+    const latest = readLauncherState();
+    if (isDeviceTestModeActive(latest)) {
       if (inviteeStatus) {
-        inviteeStatus.textContent = "Load an existing saved invitee before using Load Invitee.";
+        inviteeStatus.textContent = "Test mode is already active on this device.";
       }
       setInviteeAdminActionState({
-        canLoad: false,
-        canSave: !!identifier && isValidUniqueHandle(identifier),
-        canDelete: false
+        canSave: !!currentInviteeIdentifier && isValidUniqueHandle(currentInviteeIdentifier),
+        canDelete: !!getInviteeRecordByIdentifier(currentInviteeIdentifier),
+        canTestNewDevice: false,
+        canRestoreMyDevice: true
       });
       return;
     }
 
+    const restoreSnapshot = snapshotDeviceIdentityState(latest);
+    const nextState = buildVisitorLauncherState(latest);
+    nextState.deviceTestMode = {
+      active: true,
+      restoreSnapshot,
+      startedAt: Date.now()
+    };
+    writeLauncherState(nextState);
+    setLauncherGuestEntryActive(false);
     if (inviteeStatus) {
-      inviteeStatus.textContent = `Loading invitee ${inviteeRecord.identifier} on this device...`;
+      inviteeStatus.textContent = "Test mode started. This device is now behaving like a new device.";
     }
+    window.location.href = buildCanonicalLauncherUrl({ open: "landing" });
+  }
 
-    try {
-      const lookup = await fetchLandingInvitationIdentity(String(inviteeRecord.identifier || identifier));
-      const identifierStatus = lookup.identifierStatus || null;
-      const preferredIdentifier = String(identifierStatus?.preferred_identifier || inviteeRecord.identifier || identifier).trim();
-      loadInvitationIdentityOntoDevice(preferredIdentifier, lookup.userType, identifierStatus, {
-        source: "invitee-admin"
-      });
-      applyIdentityStateToLauncherInputs();
+  function restoreInviteeDeviceTestMode() {
+    const latest = readLauncherState();
+    const testMode = getDeviceTestModeState(latest);
+    if (!testMode?.active || !testMode.restoreSnapshot) {
       if (inviteeStatus) {
-        inviteeStatus.textContent = `Invitee ${preferredIdentifier} loaded on this device.`;
+        inviteeStatus.textContent = "No saved device snapshot is available to restore.";
       }
       setInviteeAdminActionState({
-        canLoad: true,
-        canSave: true,
-        canDelete: true
+        canSave: !!currentInviteeIdentifier && isValidUniqueHandle(currentInviteeIdentifier),
+        canDelete: !!getInviteeRecordByIdentifier(currentInviteeIdentifier),
+        canTestNewDevice: true,
+        canRestoreMyDevice: false
       });
-      void refreshAdminView();
-    } catch (error) {
-      if (inviteeStatus) {
-        inviteeStatus.textContent = error instanceof Error ? error.message : "Unable to load that invitee on this device right now.";
-      }
+      return;
     }
+
+    const restored = restoreDeviceIdentitySnapshot(testMode.restoreSnapshot, latest);
+    writeLauncherState(restored);
+    const runtimeSettings = testMode.restoreSnapshot.runtimeSettings && typeof testMode.restoreSnapshot.runtimeSettings === "object"
+      ? testMode.restoreSnapshot.runtimeSettings
+      : {};
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      const nextRuntime = runtimeSettings[role] && typeof runtimeSettings[role] === "object" ? runtimeSettings[role] : {};
+      writeRuntimeSettings(role, nextRuntime);
+    });
+    setLauncherGuestEntryActive(false);
+    applyIdentityStateToLauncherInputs();
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "Your original device state has been restored.";
+    }
+    setInviteeAdminActionState({
+      canSave: !!currentInviteeIdentifier && isValidUniqueHandle(currentInviteeIdentifier),
+      canDelete: !!getInviteeRecordByIdentifier(currentInviteeIdentifier),
+      canTestNewDevice: true,
+      canRestoreMyDevice: false
+    });
   }
 
   async function deleteInviteeRecord() {
@@ -17193,9 +18578,10 @@ This is an alternate test message to show now.`;
         }
       } else {
         setInviteeAdminActionState({
-          canLoad: false,
           canSave: false,
-          canDelete: false
+          canDelete: false,
+          canTestNewDevice: !isDeviceTestModeActive(),
+          canRestoreMyDevice: isDeviceTestModeActive()
         });
       }
       return invitees;
@@ -17238,9 +18624,10 @@ This is an alternate test message to show now.`;
         inviteeStatus.textContent = String(data?.message || `Invitee ${currentInviteeIdentifier} saved.`);
       }
       setInviteeAdminActionState({
-        canLoad: true,
         canSave: true,
-        canDelete: true
+        canDelete: true,
+        canTestNewDevice: !isDeviceTestModeActive(),
+        canRestoreMyDevice: isDeviceTestModeActive()
       });
       void refreshAdminView();
     } catch (error) {
@@ -17375,6 +18762,8 @@ This is an alternate test message to show now.`;
         statusText: "",
         showChoices: false,
         showInviteeButton: false,
+        showEmailUpdate: false,
+        authEmail: "",
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_empty");
@@ -17386,6 +18775,8 @@ This is an alternate test message to show now.`;
         statusText: "That identifier is invalid.",
         showChoices: false,
         showInviteeButton: false,
+        showEmailUpdate: false,
+        authEmail: "",
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_invalid_identifier", [{ attempted_identifier: handle }]);
@@ -17397,6 +18788,8 @@ This is an alternate test message to show now.`;
       statusText: "Checking user identifier...",
       showChoices: false,
       showInviteeButton: false,
+      showEmailUpdate: false,
+      authEmail: "",
       currentType: "standard"
     });
 
@@ -17424,6 +18817,8 @@ This is an alternate test message to show now.`;
           statusText: "That user identifier does not exist.",
           showChoices: false,
           showInviteeButton: canInvite,
+          showEmailUpdate: false,
+          authEmail: "",
           currentType: "standard"
         });
         logUserTypeAdminDebug("lookup_missing_identifier", [{ attempted_identifier: handle }]);
@@ -17435,6 +18830,8 @@ This is an alternate test message to show now.`;
         statusText: `Current status for ${handle}: ${String(data?.user_type || "standard").toUpperCase()}`,
         showChoices: true,
         showInviteeButton: false,
+        showEmailUpdate: true,
+        authEmail: String(data?.auth_email || "").trim(),
         currentType: String(data?.user_type || "standard")
       });
       logUserTypeAdminDebug("lookup_success", [{
@@ -17458,6 +18855,8 @@ This is an alternate test message to show now.`;
         statusText: error instanceof Error ? error.message : "Unable to look up that user right now.",
         showChoices: false,
         showInviteeButton: false,
+        showEmailUpdate: false,
+        authEmail: "",
         currentType: "standard"
       });
       logUserTypeAdminDebug("lookup_error", [{
@@ -17481,6 +18880,8 @@ This is an alternate test message to show now.`;
         statusText: "",
         showChoices: false,
         showInviteeButton: false,
+        showEmailUpdate: false,
+        authEmail: "",
         currentType: "standard"
       });
       logUserTypeAdminDebug("schedule_empty");
@@ -17492,6 +18893,8 @@ This is an alternate test message to show now.`;
         statusText: "That identifier is invalid.",
         showChoices: false,
         showInviteeButton: false,
+        showEmailUpdate: false,
+        authEmail: "",
         currentType: "standard"
       });
       logUserTypeAdminDebug("schedule_invalid_identifier", [{ attempted_identifier: handle }]);
@@ -17502,6 +18905,8 @@ This is an alternate test message to show now.`;
       statusText: "",
       showChoices: false,
       showInviteeButton: false,
+      showEmailUpdate: false,
+      authEmail: "",
       currentType: "standard"
     });
     logUserTypeAdminDebug("schedule_lookup", [{ attempted_identifier: handle, delay_ms: delayMs }]);
@@ -17521,6 +18926,8 @@ This is an alternate test message to show now.`;
       renderUserTypeAdminState({
         statusText: "That identifier is invalid.",
         showChoices: false,
+        showEmailUpdate: false,
+        authEmail: "",
         currentType: "standard"
       });
       logUserTypeAdminDebug("save_invalid_identifier", [{ attempted_identifier: handle, selected_type: selectedType }]);
@@ -17530,6 +18937,8 @@ This is an alternate test message to show now.`;
     renderUserTypeAdminState({
       statusText: "Saving user status...",
       showChoices: true,
+      showEmailUpdate: true,
+      authEmail: String(userTypeEmailInput?.value || "").trim(),
       currentType: selectedType
     });
 
@@ -17540,6 +18949,8 @@ This is an alternate test message to show now.`;
         statusText: `Current status for ${handle}: ${savedType.toUpperCase()}.`,
         showChoices: true,
         showInviteeButton: false,
+        showEmailUpdate: true,
+        authEmail: String(userTypeEmailInput?.value || "").trim(),
         currentType: savedType
       });
       logUserTypeAdminDebug("save_success", [{ attempted_identifier: handle, saved_type: savedType }]);
@@ -17549,6 +18960,8 @@ This is an alternate test message to show now.`;
         statusText: error instanceof Error ? error.message : "Unable to save that user status right now.",
         showChoices: true,
         showInviteeButton: false,
+        showEmailUpdate: true,
+        authEmail: String(userTypeEmailInput?.value || "").trim(),
         currentType: selectedType
       });
       logUserTypeAdminDebug("save_error", [{
@@ -18083,23 +19496,23 @@ This is an alternate test message to show now.`;
           });
         }
       if (requestedView === "launcher") {
-        enterWorkingHomeFromLanding("resume");
+        void enterWorkingHomeFromLanding("resume");
         return;
       }
       if (requestedView === "fresh-launcher") {
-        enterWorkingHomeFromLanding("fresh");
+        void enterWorkingHomeFromLanding("fresh");
         return;
       }
       if (requestedView === "visitor-launcher") {
         if (!isVisitorLauncherEntry(launcherState)) {
           if (hasKnownLauncherIdentity(launcherState)) {
-            enterWorkingHomeFromLanding("resume");
+            void enterWorkingHomeFromLanding("resume");
             return;
           }
           launcherState = buildVisitorLauncherState(launcherState);
           writeLauncherState(launcherState);
         }
-        enterWorkingHomeFromLanding("visitor");
+        void enterWorkingHomeFromLanding("visitor");
         return;
       }
       if (requestedView === "go-pro") {
@@ -18111,13 +19524,17 @@ This is an alternate test message to show now.`;
         openExploreProOverlay();
         return;
       }
+      if (requestedView === "landing-preview") {
+        showTemporaryHomePageView();
+        return;
+      }
       if (requestedView === "explore-entry") {
         void resolveLandingExploreEntry();
         return;
       }
       if (requestedView === "landing") {
         if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
-          enterWorkingHomeFromLanding("resume");
+          void enterWorkingHomeFromLanding("resume");
           return;
         }
         showTemporaryHomePageView();
@@ -18139,7 +19556,7 @@ This is an alternate test message to show now.`;
         return;
       }
       if (!requestedView && hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
-        enterWorkingHomeFromLanding("resume");
+        void enterWorkingHomeFromLanding("resume");
         return;
       }
       if (requestedView === "settings") {
@@ -18272,6 +19689,55 @@ This is an alternate test message to show now.`;
     }
   }
 
+  async function saveUserTypeAuthEmail() {
+    const handle = currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "").trim();
+    const email = String(userTypeEmailInput?.value || "").trim();
+    const selectedType = pendingUserTypeSelection || "standard";
+
+    if (!isValidParticipantIdentifier(handle)) {
+      renderUserTypeAdminState({
+        statusText: "That identifier is invalid.",
+        showChoices: false,
+        showInviteeButton: false,
+        showEmailUpdate: false,
+        authEmail: "",
+        currentType: "standard"
+      });
+      return;
+    }
+
+    renderUserTypeAdminState({
+      statusText: "Updating authentication email...",
+      showChoices: true,
+      showInviteeButton: false,
+      showEmailUpdate: true,
+      authEmail: email,
+      currentType: selectedType
+    });
+
+    try {
+      const result = await updateUserAuthEmail(handle, email);
+      currentUserTypeAdminHandle = handle;
+      renderUserTypeAdminState({
+        statusText: `Authentication email updated for ${handle}.`,
+        showChoices: true,
+        showInviteeButton: false,
+        showEmailUpdate: true,
+        authEmail: result.email,
+        currentType: result.userType
+      });
+    } catch (error) {
+      renderUserTypeAdminState({
+        statusText: error instanceof Error ? error.message : "Unable to update that authentication email right now.",
+        showChoices: true,
+        showInviteeButton: false,
+        showEmailUpdate: true,
+        authEmail: email,
+        currentType: selectedType
+      });
+    }
+  }
+
   function renderColorSchemeView() {
     const currentColor = normalizeThemeHex(readLauncherState().themeColor || defaultThemeColor);
     if (colorSchemeInput) {
@@ -18322,6 +19788,7 @@ This is an alternate test message to show now.`;
     );
     clearReportPanelOffset();
     goProView?.classList.remove("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
@@ -18403,6 +19870,8 @@ This is an alternate test message to show now.`;
   function showOtherSettingsView() {
     clearReportPanelOffset();
     otherSettingsView?.classList.remove("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
@@ -19660,6 +21129,11 @@ This is an alternate test message to show now.`;
   });
   openAidsButton?.addEventListener("click", showAidsView);
   openTemporaryHomePageButton?.addEventListener("click", showTemporaryHomePageView);
+  openLandingPageButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    window.location.href = buildCanonicalLauncherUrl({ open: "landing-preview" });
+  });
   openGoProButton?.addEventListener("click", () => {
     showGoProView("subscription-management");
   });
@@ -19681,6 +21155,12 @@ This is an alternate test message to show now.`;
       return;
     }
     showClairvoyanceViewingView();
+  });
+  openResearchParticipationProButton?.addEventListener("click", () => {
+    if (isProLockedButton(openResearchParticipationProButton)) {
+      return;
+    }
+    showResearchParticipationProView();
   });
   openSubscriptionManagementButton?.addEventListener("click", showSubscriptionManagementView);
   openLocationPickerSettingsButton?.addEventListener("click", () => {
@@ -19726,7 +21206,9 @@ This is an alternate test message to show now.`;
     }
   });
   openSavedLinksAdminButton?.addEventListener("click", showSavedLinksAdminView);
+  openMessagingParmsAdminButton?.addEventListener("click", showMessagingParmsAdminView);
   closeSavedLinksAdminButton?.addEventListener("click", showAdminView);
+  closeMessagingParmsAdminButton?.addEventListener("click", showAdminView);
   savedLinksAdminActionButtons.forEach((button) => {
     if (button === closeSavedLinksAdminButton) {
       return;
@@ -19750,7 +21232,12 @@ This is an alternate test message to show now.`;
     if (inlineHandle instanceof HTMLElement) {
       event.preventDefault();
       event.stopPropagation();
-      openHandleOverlay(String(inlineHandle.dataset.inlineOpenHandle || ""));
+      const role = String(inlineHandle.dataset.inlineOpenHandle || activeLauncherRole || "sender").trim() || "sender";
+      showFeatureSetupView({
+        role,
+        returnView: role === "remote-viewer" ? "remote-viewer" : "card",
+        scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+      });
       return;
     }
     const inlinePro = target.closest("[data-inline-open-visitor-pro]");
@@ -19778,7 +21265,7 @@ This is an alternate test message to show now.`;
   closeTemporaryHomePageButton?.addEventListener("click", showOptionsView);
   closeAidsButton?.addEventListener("click", showOptionsView);
   closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
-  saveOnlineCourseWordButton?.addEventListener("click", exportLearningCenterAsWordFile);
+  openOnlineCoursePracticeButton?.addEventListener("click", showLauncherView);
   closeBaselineQuestionsButton?.addEventListener("click", closeBaselineQuestionsView);
   closeAfterFirstSessionQuestionsButton?.addEventListener("click", closeAfterFirstSessionQuestionsView);
   closeGeneralInformationButton?.addEventListener("click", showAidsView);
@@ -19791,6 +21278,13 @@ This is an alternate test message to show now.`;
   closeGoProButton?.addEventListener("click", closeGoProViewToOrigin);
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
   closeClairvoyanceViewingButton?.addEventListener("click", showOtherSettingsView);
+  closeResearchParticipationProButton?.addEventListener("click", showOtherSettingsView);
+  openResearchInterestFormButton?.addEventListener("click", showResearchInterestFormView);
+  closeResearchInterestFormButton?.addEventListener("click", showResearchParticipationProView);
+  researchInterestCancelButton?.addEventListener("click", showResearchParticipationProView);
+  researchInterestSaveButton?.addEventListener("click", () => {
+    void saveResearchInterestForm();
+  });
   closeSubscriptionManagementButton?.addEventListener("click", showOtherSettingsView);
   otherSettingsHomeButton?.addEventListener("click", showLauncherView);
   closeUserTypeAdminButton?.addEventListener("click", showAdminView);
@@ -19880,9 +21374,39 @@ This is an alternate test message to show now.`;
   temporaryHomePageContactButton?.addEventListener("click", () => {
     showContactView("temporary-home-page");
   });
+  temporaryHomePageResearchButton?.addEventListener("click", showResearchParticipationView);
   temporaryHomePageHelpButton?.addEventListener("click", () => {
     openUpdatesOverlay();
   });
+  footerOpenBeginnerLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    startVisitorLandingEntry();
+  });
+  footerOpenProLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    void handleLandingExploreClick();
+  });
+  footerOpenHelpLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showHelpView();
+  });
+  footerOpenContactLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showContactView("temporary-home-page");
+  });
+  footerOpenPrivacyLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showAboutView();
+  });
+  footerOpenResearchLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showResearchParticipationView();
+  });
+  footerOpenAboutLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showAboutView();
+  });
+  closeResearchParticipationButton?.addEventListener("click", showTemporaryHomePageView);
   updatesYesButton?.addEventListener("click", saveUpdatesInterest);
   updatesCloseButton?.addEventListener("click", closeUpdatesOverlay);
   updatesDialog?.addEventListener("click", (event) => {
@@ -19990,6 +21514,18 @@ This is an alternate test message to show now.`;
       void startExploreProTrial();
     }
   });
+  exploreProCodeInput?.addEventListener("input", () => {
+    if (!exploreProCodeInput) {
+      return;
+    }
+    const normalized = String(exploreProCodeInput.value || "")
+      .toUpperCase()
+      .replace(/[^A-Z2-9]/g, "")
+      .slice(0, 5);
+    if (exploreProCodeInput.value !== normalized) {
+      exploreProCodeInput.value = normalized;
+    }
+  });
   exploreProEndedSubscribeButton?.addEventListener("click", () => {
     closeExploreProEndedOverlay();
     showGoProView("temporary-home-page");
@@ -20026,7 +21562,25 @@ This is an alternate test message to show now.`;
     closeInstallGuideView();
   });
   featureSetupClaimActionButton?.addEventListener("click", () => {
+    if (featureSetupOwnIdentifier) {
+      showUniqueNameChangeView();
+      return;
+    }
     openFeatureSetupHandleFlow("claim");
+  });
+  closeUniqueNameChangeButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeUniqueNameChangeView();
+  });
+  uniqueNameChangeContinueButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (uniqueNameChangeAllowedNow) {
+      openFeatureSetupHandleFlow("claim");
+      return;
+    }
+    closeUniqueNameChangeView();
   });
   featureSetupInstallActionButton?.addEventListener("click", () => {
     if (isVisitorLauncherEntry() && !featureSetupOwnIdentifier) {
@@ -20224,7 +21778,15 @@ This is an alternate test message to show now.`;
   confidenceModeButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const include = String(button.dataset.confidenceMode || "").trim().toLowerCase() !== "exclude";
-      persistConfidenceBehavior(include);
+      const currentSettings = getConfidenceBehaviorSettings();
+      void persistConfidenceBehavior(include, currentSettings.includePositiveReinforcement);
+    });
+  });
+  reinforcementModeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const includePositiveReinforcement = String(button.dataset.reinforcementMode || "").trim().toLowerCase() !== "exclude";
+      const currentSettings = getConfidenceBehaviorSettings();
+      void persistConfidenceBehavior(currentSettings.include, includePositiveReinforcement);
     });
   });
   userTypeHandleInput?.addEventListener("input", () => {
@@ -20244,12 +21806,23 @@ This is an alternate test message to show now.`;
     logUserTypeAdminDebug("save_button_click");
     void saveUserTypeAssignment();
   });
+  userTypeUpdateEmailButton?.addEventListener("click", () => {
+    logUserTypeAdminDebug("update_email_button_click");
+    void saveUserTypeAuthEmail();
+  });
   userTypeChoiceButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const value = String(button.dataset.userTypeChoiceButton || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
       logUserTypeAdminDebug("choice_button_click", [{ clicked_value: value }]);
       applyPendingUserTypeSelection(value);
     });
+  });
+  userTypeEmailInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      logUserTypeAdminDebug("update_email_enter_key", [{ current_email: String(userTypeEmailInput?.value || "").trim() }]);
+      void saveUserTypeAuthEmail();
+    }
   });
   userTypeClearButton?.addEventListener("click", () => {
     logUserTypeAdminDebug("clear_click");
@@ -20280,18 +21853,17 @@ This is an alternate test message to show now.`;
     resetInviteeAdminView();
     inviteeIdentifierInput?.focus();
   });
-  inviteeClearDeviceButton?.addEventListener("click", () => {
-    clearInviteeAdminDeviceIdentity();
-    inviteeIdentifierInput?.focus();
-  });
   inviteeSaveButton?.addEventListener("click", () => {
     void saveInviteeRecord();
   });
-  inviteeLoadButton?.addEventListener("click", () => {
-    void loadInviteeIdentityOnDevice();
-  });
   inviteeDeleteButton?.addEventListener("click", () => {
     void deleteInviteeRecord();
+  });
+  testNewDeviceButton?.addEventListener("click", () => {
+    startInviteeDeviceTestMode();
+  });
+  restoreMyDeviceButton?.addEventListener("click", () => {
+    restoreInviteeDeviceTestMode();
   });
   handleUpdateOldInput?.addEventListener("input", () => {
     pendingHandleUpdateLookupToken += 1;
@@ -20596,6 +22168,36 @@ This is an alternate test message to show now.`;
       }
     }
   });
+  saveMessagingParmsAdminButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    const nextLimits = normalizeMessagingLimits({
+      max_messages_per_pair: messagingParmsMaxMessagesInput?.value,
+      max_chars_per_message: messagingParmsMaxCharsInput?.value,
+      max_total_chars_per_conversation: messagingParmsMaxTotalCharsInput?.value
+    });
+    try {
+      if (messagingParmsStatus) {
+        messagingParmsStatus.textContent = "Saving messaging limits...";
+      }
+      const data = await launcherAdminApi("set_messaging_limits", {
+        messaging_limits: nextLimits
+      });
+      launcherAdminState.messaging_limits = normalizeMessagingLimits(data?.messaging_limits || nextLimits);
+      applyMessagingLimitsUi(launcherAdminState.messaging_limits);
+      if (messagingParmsStatus) {
+        messagingParmsStatus.textContent = "Messaging limits saved.";
+      }
+      if (adminStatus) {
+        adminStatus.textContent = "Messaging limits saved.";
+      }
+    } catch (error) {
+      if (messagingParmsStatus) {
+        messagingParmsStatus.textContent = error instanceof Error ? error.message : "Unable to save messaging limits right now.";
+      }
+    }
+  });
   adminTrialModePublicEnabledCheckbox?.addEventListener("change", async () => {
     if (!hasLauncherAdminAccess()) {
       return;
@@ -20828,7 +22430,8 @@ This is an alternate test message to show now.`;
       adminStatus.textContent = "Applying fresh start...";
     }
     try {
-      const data = await launcherAdminApi("fresh_start");
+      const preserveSelections = getFreshStartPreserveSelections();
+      const data = await launcherAdminApi("fresh_start", preserveSelections);
       launcherAdminState.storage = data?.storage || launcherAdminState.storage;
       launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
       launcherAdminState.pair_summary = null;
@@ -20836,7 +22439,7 @@ This is an alternate test message to show now.`;
       launcherAdminState.identity_summary = null;
       launcherAdminState.identity_summary_meta = null;
       launcherAdminState.disk_usage_analysis = null;
-      await clearLocalFreshStartState();
+      await clearLocalFreshStartState(preserveSelections);
       launcherAdminSecret = "";
       if (adminStatus) {
         adminStatus.textContent = "Fresh start complete.";

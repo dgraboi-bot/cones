@@ -761,6 +761,23 @@ body {
   justify-self: start;
 }
 
+.launcher-top-row .beginner-top-button.beginner-top-button-left.beginner-top-arrow-button {
+  left: 0 !important;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.28rem;
+  line-height: 1;
+  z-index: 3;
+}
+
+.launcher-top-row .beginner-top-button.beginner-top-button-left.beginner-top-lessons-button {
+  left: 62px !important;
+  z-index: 2;
+}
+
 .beginner-top-menu-button {
   gap: 10px;
 }
@@ -2307,6 +2324,7 @@ body {
 .explore-pro-code-input {
   text-transform: uppercase;
   letter-spacing: 0.18em;
+  min-width: 10ch;
 }
 
 .explore-pro-actions-row {
