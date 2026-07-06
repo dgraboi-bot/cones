@@ -241,6 +241,33 @@ Preferred usage:
 powershell -ExecutionPolicy Bypass -File scripts\deploy-live.ps1 -Version 20260705g
 ```
 
+Default rule:
+
+- use the helper as the normal deployment path
+- do not improvise a manual live push unless the helper is failing and the user needs an urgent exception
+- if a manual exception is ever used, fold the reason and the fix back into the helper and this runbook immediately afterward
+
+Preflight behavior now expected from the helper:
+
+1. confirm the git repo root is actually `C:\xampp\htdocs\telepathyexperiment\cones`
+2. refuse deployment from a dirty worktree unless explicitly overridden
+3. run the version bump helper first
+4. re-sync the local mirror
+5. verify key mirror files match the authoritative local tree by hash
+6. create a live snapshot
+7. upload by staged `pscp`
+8. copy staged files into the live tree
+9. verify the live version markers
+10. print both the canonical live root URL and the cache-busted launcher URL for testing
+
+Intentional override:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\deploy-live.ps1 -Version 20260705g -AllowDirty
+```
+
+`-AllowDirty` should be rare and used only when the operator deliberately wants to deploy an uncommitted working tree.
+
 If the helper ever fails, fix the helper or the environment rather than reverting to an undocumented ad hoc deployment path.
 
 ## Required Local Mirror Confirmation
@@ -257,6 +284,8 @@ robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /X
 ```
 
 Do not merely run the mirror. Also explicitly note in the work log or user update that the mirror step was completed.
+
+When using the authoritative helper, the mirror step and a key-file hash verification are part of the deployment itself and should not be treated as optional memory steps.
 
 ## Build Version Rule
 
@@ -276,6 +305,8 @@ Required tool rule:
 - always run `scripts\bump-version.ps1 -Version <build>` from the repo root workflow before deployment
 - if the script reports stale version markers remain, stop and fix them before deploying
 - do not hand-wave partial version updates
+
+The authoritative helper already calls `bump-version.ps1`, so normal deployments should not run the bump separately first unless you are intentionally doing a dry preparatory pass.
 
 ## Authoritative Version Surface Inventory
 

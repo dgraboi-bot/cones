@@ -2866,6 +2866,20 @@ body {
   gap: 10px;
 }
 
+.report-pair-banner {
+  margin: -6px 0 10px;
+  padding: 2px 12px 8px;
+  color: rgba(250, 240, 230, 0.96);
+  font-size: 1rem;
+  line-height: 1.35;
+  text-align: center;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .report-summary-line {
   margin: 0;
   color: rgba(248, 240, 232, 0.94);
@@ -3123,6 +3137,17 @@ body {
   filter: brightness(1.05);
 }
 
+.options-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  filter: saturate(0.72);
+}
+
+.options-button:disabled:hover,
+.options-button:disabled:focus-visible {
+  filter: saturate(0.72);
+}
+
 .settings-view-panel {
   width: min(100%, 640px);
   margin: 34px auto 0;
@@ -3160,6 +3185,12 @@ body {
 .settings-view-status {
   min-height: 1.45em;
   color: rgba(255, 235, 214, 0.92);
+}
+
+.subscription-management-status {
+  width: min(100%, 640px);
+  margin: 16px auto 0;
+  text-align: center;
 }
 
 .settings-view-checkbox {

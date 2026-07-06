@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260705g";
-const APP_VERSION = "20260705g";
+const CACHE_NAME = "telepathybeginner-v20260706w";
+const APP_VERSION = "20260706w";
 const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
   "./",
@@ -23,7 +23,7 @@ const APP_ASSETS = [
   "./tb-test-icon-3.png",
   "./tb-test-icon-4.png",
   "./BeginnerUserManual.html",
-  `./BeginnerUserManual.html?v=20260705g`,
+  `./BeginnerUserManual.html?v=20260706w`,
   "./minds-connected-uncropped.png",
   "./rewire.png",
   "./RV1.png",
@@ -56,6 +56,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  let requestUrl = null;
+  try {
+    requestUrl = new URL(event.request.url);
+  } catch (_) {
+    requestUrl = null;
+  }
+
+  const isSameOriginVersionedAsset = !!(
+    requestUrl &&
+    requestUrl.origin === self.location.origin &&
+    requestUrl.searchParams.has("v")
+  );
+
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)
@@ -74,6 +87,32 @@ self.addEventListener("fetch", (event) => {
             return cachedNavigation;
           }
           return caches.match(APP_LAUNCH_URL) || caches.match(`./telepathybeginner.html?v=${APP_VERSION}`);
+        })
+    );
+    return;
+  }
+
+  if (isSameOriginVersionedAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (!response || response.status !== 200 || response.type !== "basic") {
+            return response;
+          }
+
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) {
+            return cached;
+          }
+          throw new Error("Network and cache unavailable for versioned asset.");
         })
     );
     return;

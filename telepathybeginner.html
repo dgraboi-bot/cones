@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260705g">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260706w">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260705g">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260705g">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260705g">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260706w">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260706w">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260706w">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260705g">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260705g">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260705g">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260706w">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260706w">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260706w">
   <script>
     (function () {
-      var buildVersion = "20260705g";
+      var buildVersion = "20260706w";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -263,7 +263,7 @@
                       type="text"
                       name="ownName"
                       autocomplete="off"
-                      placeholder="name@example.com or unique handle"
+                      placeholder="Enter unique name of sender"
                       spellcheck="false"
                     >
                     <div class="role-messaging-launch" data-role-messaging-launch="sender">
@@ -285,7 +285,7 @@
                       type="text"
                       name="partnerName"
                       autocomplete="off"
-                      placeholder="name@example.com or unique handle"
+                      placeholder="Enter unique name of receiver"
                       spellcheck="false"
                     >
                     <select class="role-select" name="partnerHistory" aria-label="Saved receiver handles" autocomplete="off" title="Press here to select a saved handle" hidden>
@@ -531,7 +531,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260705g</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260706w</span>
           </div>
         </div>
 
@@ -1325,6 +1325,61 @@
             <button class="options-button" type="button" data-open-go-pro>PRO Subscription</button>
             <button class="options-button" type="button" data-cancel-pro hidden>Cancel PRO Subscription</button>
           </div>
+          <p class="settings-view-status subscription-management-status" data-subscription-management-status></p>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden" data-view="gift-pro-subscription" aria-labelledby="giftProSubscriptionTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-gift-pro-subscription>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="giftProSubscriptionTitle">ESP PRO GIFT SUBSCRIPTION</h1>
+          <section class="settings-view-panel about-view-panel baseline-questions-panel">
+            <div class="about-section">
+              <p class="about-section-copy" data-gift-pro-subscription-copy>
+                Use this form to sponsor ESP PRO for another person. The subscription will be attached to the recipient unique name entered below.
+              </p>
+            </div>
+
+            <form class="baseline-questions-form" data-gift-pro-subscription-form>
+              <div class="baseline-trial-summary-grid">
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="giftProGiverIdentifier">Gift from:</label>
+                  <input class="settings-view-input" id="giftProGiverIdentifier" type="text" data-gift-pro-giver readonly>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="giftProRecipientIdentifier">Recipient unique name:</label>
+                  <input class="settings-view-input" id="giftProRecipientIdentifier" type="text" autocomplete="off" spellcheck="false" data-gift-pro-recipient-identifier>
+                </div>
+                <div class="settings-view-field">
+                  <label class="settings-view-label" for="giftProRecipientEmail">Recipient email:</label>
+                  <input class="settings-view-input" id="giftProRecipientEmail" type="email" autocomplete="email" spellcheck="false" data-gift-pro-recipient-email>
+                </div>
+              </div>
+
+              <fieldset class="baseline-question-group">
+                <legend class="settings-view-label">Gift plan</legend>
+                <div class="baseline-choice-grid">
+                  <label class="settings-view-checkbox">
+                    <input type="radio" name="giftProPlan" value="monthly" data-gift-pro-plan checked>
+                    <span>Monthly gift subscription - $2.99</span>
+                  </label>
+                  <label class="settings-view-checkbox">
+                    <input type="radio" name="giftProPlan" value="annual" data-gift-pro-plan>
+                    <span>Annual gift subscription - $25.00</span>
+                  </label>
+                </div>
+              </fieldset>
+            </form>
+
+            <p class="settings-view-status" data-gift-pro-subscription-status></p>
+            <div class="options-actions">
+              <button class="options-button" type="button" data-submit-gift-pro-subscription>OPEN SECURE GIFT CHECKOUT</button>
+              <button class="options-button" type="button" data-cancel-gift-pro-subscription>CANCEL</button>
+            </div>
+          </section>
         </section>
 
         <section class="beginner-view beginner-view-hidden" data-view="color-scheme" aria-labelledby="colorSchemeTitle">
@@ -1736,6 +1791,9 @@
             <p class="about-section-copy">Individuals who demonstrate talent as demonstrated by performance with these tools are encouraged to participate in the ongoing ESP research program at CIHS, the California Institute for Human Science. In one ongoing experiment, you would participate as remote telepathic receiver with a sender you meet in a zoom meeting and who sends from within a room heavily shielded from outside radio waves and sound. Other experiments may involve travel to the CIHS laboratory in Southern California.</p>
             <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please select the "Research Participation" button on the ESP PRO menu and fill out the form. The research team wil get back to you.</p>
           </section>
+          <div class="options-actions">
+            <button class="options-button" type="button" data-open-research-proposal>Research Proposal</button>
+          </div>
         </section>
 
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="research-participation-pro" aria-labelledby="researchParticipationProTitle">
@@ -1751,6 +1809,26 @@
           <section class="settings-view-panel about-view-panel">
             <p class="about-section-copy">Individuals who demonstrate talent as demonstrated by performance with these tools are encouraged to participate in the ongoing ESP research program at CIHS, the California Institute for Human Science. In one ongoing experiment, you would participate as remote telepathic receiver with a sender you meet in a zoom meeting and who sends from within a room heavily shielded from outside radio waves and sound. Other experiments may involve travel to the CIHS laboratory in Southern California.</p>
             <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please click on <button class="role-note-link role-note-inline-link" type="button" data-open-research-interest-form>This link</button> and fill out the form. The research team will get back to you.</p>
+          </section>
+          <div class="options-actions">
+            <button class="options-button" type="button" data-open-research-proposal>Research Proposal</button>
+          </div>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="research-proposal" aria-labelledby="researchProposalTitle">
+          <div class="beginner-top-row">
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker">ESP GYM</p>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill beginner-top-button-right" type="button" data-close-research-proposal>BACK</button>
+          </div>
+
+          <h1 class="beginner-title" id="researchProposalTitle">Research Proposal</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <h2 class="about-section-title">Measuring the Speed of Thought Propagation</h2>
+              <p class="about-section-copy">Placeholder text.</p>
+            </div>
           </section>
         </section>
 
@@ -1938,7 +2016,7 @@
               </label>
               <label class="settings-view-checkbox">
                 <input type="checkbox" data-admin-fresh-start-preserve-invitees checked>
-                <span>Preserve invitees</span>
+                <span>Preserve invitees (server-side)</span>
               </label>
               <label class="settings-view-checkbox">
                 <input type="checkbox" data-admin-fresh-start-preserve-pairs checked>
@@ -1985,8 +2063,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260705g'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260705g'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260706w'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260706w'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -2496,6 +2574,7 @@
 
         <h1 class="beginner-title" id="reportTitle">Performance Reports</h1>
         <section class="report-panel">
+          <div class="report-pair-banner" data-report-pair-banner hidden></div>
           <div class="report-summary" data-report-summary></div>
           <div class="report-status" data-report-status></div>
           <div class="report-table-wrap" data-report-table-wrap hidden>
@@ -2575,8 +2654,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260705g"></script>
-<script src="telepathybeginner.js?v=20260705g"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260706w"></script>
+<script src="telepathybeginner.js?v=20260706w"></script>
 </body>
 </html>
 

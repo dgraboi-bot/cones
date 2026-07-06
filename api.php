@@ -5525,6 +5525,37 @@ function participant_identifier_exists(array $state, string $pairsDir, string $i
     return false;
 }
 
+function formal_identifier_exists(array $state, string $identifier): bool
+{
+    $cleanIdentifier = trim((string) $identifier);
+    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+    if ($lookup === '' || $lookup === 'robot') {
+        return false;
+    }
+
+    $status = get_identifier_status($state, $cleanIdentifier);
+    $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
+    $preferredLookup = normalize_identifier_for_lookup($preferredIdentifier);
+    $checks = array_values(array_unique(array_filter([$lookup, $preferredLookup], static fn(string $value): bool => $value !== '')));
+
+    foreach ($checks as $check) {
+        if (isset($state['unique_handles'][$check]) && is_array($state['unique_handles'][$check])) {
+            return true;
+        }
+        if (isset($state['retired_handles'][$check]) && is_array($state['retired_handles'][$check])) {
+            return true;
+        }
+        if (isset($state['user_types'][$check])) {
+            return true;
+        }
+        if (isset($state['handle_owners'][$check]) && is_array($state['handle_owners'][$check])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function identifier_has_trial_history(string $identifier, string $pairsDir, string $simulationPairsDir): bool
 {
     $cleanIdentifier = trim((string) $identifier);
@@ -5671,6 +5702,7 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
         && $oldHandleKey !== $handleKey
         && $realPairsDir !== ''
         && $simulationPairsDir !== ''
+        && !is_temporary_name_identifier($state, $handle)
         && identifier_has_trial_history($handle, $realPairsDir, $simulationPairsDir)
     ) {
         throw new RuntimeException('That unique handle has already been used previously and is no longer available.');
@@ -8684,9 +8716,9 @@ function build_email_test_attachment(array $input)
     ];
 }
 
-function build_stripe_checkout_session_fields(array $config, string $priceId, string $appUserIdentifier, string $plan): array
+function build_stripe_checkout_session_fields(array $config, string $priceId, string $appUserIdentifier, string $plan, array $metadata = [], string $customerEmail = ''): array
 {
-    return [
+    $fields = [
         'mode' => 'subscription',
         'success_url' => (string) $config['successUrl'],
         'cancel_url' => (string) $config['cancelUrl'],
@@ -8695,16 +8727,43 @@ function build_stripe_checkout_session_fields(array $config, string $priceId, st
         'phone_number_collection[enabled]' => 'false',
         'line_items[0][price]' => $priceId,
         'line_items[0][quantity]' => 1,
-        'metadata[app_user_identifier]' => $appUserIdentifier,
-        'metadata[plan]' => $plan,
-        'subscription_data[metadata][app_user_identifier]' => $appUserIdentifier,
-        'subscription_data[metadata][plan]' => $plan
     ];
+
+    $metadataValues = array_merge([
+        'app_user_identifier' => $appUserIdentifier,
+        'target_identifier' => $appUserIdentifier,
+        'plan' => $plan
+    ], $metadata);
+
+    foreach ($metadataValues as $key => $value) {
+        $cleanKey = trim((string) $key);
+        $cleanValue = trim((string) $value);
+        if ($cleanKey === '' || $cleanValue === '') {
+            continue;
+        }
+        $fields['metadata[' . $cleanKey . ']'] = $cleanValue;
+        $fields['subscription_data[metadata][' . $cleanKey . ']'] = $cleanValue;
+    }
+
+    $cleanCustomerEmail = normalize_stripe_checkout_email($customerEmail);
+    if ($cleanCustomerEmail !== '') {
+        $fields['customer_email'] = $cleanCustomerEmail;
+    }
+
+    return $fields;
 }
 
-function extract_app_user_identifier_from_stripe_object(array $object): string
+function extract_subscription_target_identifier_from_stripe_object(array $object): string
 {
     $metadata = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
+    $identifier = trim((string) ($metadata['target_identifier'] ?? ''));
+    if ($identifier !== '') {
+        return $identifier;
+    }
+    $identifier = trim((string) ($metadata['recipient_identifier'] ?? ''));
+    if ($identifier !== '') {
+        return $identifier;
+    }
     $identifier = trim((string) ($metadata['app_user_identifier'] ?? ''));
     if ($identifier !== '') {
         return $identifier;
@@ -8713,10 +8772,16 @@ function extract_app_user_identifier_from_stripe_object(array $object): string
     return trim((string) ($object['client_reference_id'] ?? ''));
 }
 
+function extract_stripe_gift_recipient_email(array $object): string
+{
+    $metadata = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
+    return normalize_stripe_checkout_email($metadata['recipient_email'] ?? '');
+}
+
 function apply_checkout_session_completed_event(array &$state, string $subscriptionEmailLogFile, array $event, int $nowMs): array
 {
     $object = is_array($event['data']['object'] ?? null) ? $event['data']['object'] : [];
-    $identifier = extract_app_user_identifier_from_stripe_object($object);
+    $identifier = extract_subscription_target_identifier_from_stripe_object($object);
     if ($identifier === '') {
         return ['updated' => false, 'message' => 'Stripe event did not include an app user identifier.'];
     }
@@ -8731,6 +8796,15 @@ function apply_checkout_session_completed_event(array &$state, string $subscript
         'subscriber_email' => $subscriberEmail,
         'last_event_id' => trim((string) ($event['id'] ?? ''))
     ], $nowMs);
+
+    $giftRecipientEmail = extract_stripe_gift_recipient_email($object);
+    if ($giftRecipientEmail !== '') {
+        $identifierStatus = get_identifier_status($state, (string) ($record['identifier'] ?? $identifier));
+        $ownerIdentifier = trim((string) ($identifierStatus['owner_identifier'] ?? ($record['identifier'] ?? $identifier)));
+        if ($ownerIdentifier !== '') {
+            set_handle_owner_auth_email($state, $ownerIdentifier, $giftRecipientEmail, $nowMs);
+        }
+    }
 
     $notificationResult = send_stripe_checkout_notifications(
         $state,
@@ -8754,7 +8828,7 @@ function apply_subscription_updated_event(array &$state, array $event, int $nowM
     $object = is_array($event['data']['object'] ?? null) ? $event['data']['object'] : [];
     $customerId = trim((string) ($object['customer'] ?? ''));
     $subscriptionId = trim((string) ($object['id'] ?? ''));
-    $identifier = extract_app_user_identifier_from_stripe_object($object);
+    $identifier = extract_subscription_target_identifier_from_stripe_object($object);
     if ($identifier === '') {
         $identifier = find_identifier_for_stripe_reference($state, $customerId, $subscriptionId);
     }
@@ -8785,7 +8859,7 @@ function apply_invoice_payment_succeeded_event(array &$state, string $subscripti
     $billingReason = trim((string) ($object['billing_reason'] ?? ''));
     $subscriptionId = trim((string) ($object['subscription'] ?? ''));
     $customerId = trim((string) ($object['customer'] ?? ''));
-    $identifier = extract_app_user_identifier_from_stripe_object($object);
+    $identifier = extract_subscription_target_identifier_from_stripe_object($object);
     if ($identifier === '') {
         $identifier = find_identifier_for_stripe_reference($state, $customerId, $subscriptionId);
     }
@@ -9020,7 +9094,7 @@ function apply_subscription_deleted_event(array &$state, string $subscriptionEma
     $object = is_array($event['data']['object'] ?? null) ? $event['data']['object'] : [];
     $customerId = trim((string) ($object['customer'] ?? ''));
     $subscriptionId = trim((string) ($object['id'] ?? ''));
-    $identifier = extract_app_user_identifier_from_stripe_object($object);
+    $identifier = extract_subscription_target_identifier_from_stripe_object($object);
     if ($identifier === '') {
         $identifier = find_identifier_for_stripe_reference($state, $customerId, $subscriptionId);
     }
@@ -10259,6 +10333,7 @@ if ($action === 'get_identifier_status') {
         'ok' => true,
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
+        'formal_identity_exists' => formal_identifier_exists($state, $identifier),
         'auth_email_on_file' => get_identifier_recovery_email($state, $identifier) !== '',
         'user_type' => get_user_type_for_identifier($state, $identifier),
         'server_now_ms' => $nowMs
@@ -11043,6 +11118,90 @@ if ($action === 'get_stripe_public_config') {
     exit;
 }
 
+if ($action === 'create_gift_stripe_checkout_session') {
+    try {
+        require_allowed_keys($input, ['action', 'giver_identifier', 'recipient_identifier', 'recipient_email', 'plan'], 'request');
+        $giverIdentifier = validate_participant_identifier_string($input['giver_identifier'] ?? '', 'giver_identifier', true);
+        $recipientIdentifier = validate_participant_identifier_string($input['recipient_identifier'] ?? '', 'recipient_identifier', true);
+        $recipientEmail = validate_email_identifier_string($input['recipient_email'] ?? '', 'recipient_email', true);
+        $plan = normalize_stripe_plan($input['plan'] ?? '');
+        if ($plan === '') {
+            throw new RuntimeException('Gift subscription plan is invalid.');
+        }
+        if (normalize_identifier_for_lookup($giverIdentifier) === normalize_identifier_for_lookup($recipientIdentifier)) {
+            throw new RuntimeException('ESP PRO is already active for this user. Please enter a different recipient unique name for the gift subscription.');
+        }
+        if (get_user_type_for_identifier($state, $giverIdentifier) !== 'pro') {
+            throw new RuntimeException('Only a current PRO user can create an ESP PRO gift subscription.');
+        }
+
+        $recipientExists = participant_identifier_exists($state, $pairsDir, $recipientIdentifier);
+        if ($recipientExists && get_user_type_for_identifier($state, $recipientIdentifier) === 'pro') {
+            $recipientStatus = get_identifier_status($state, $recipientIdentifier);
+            $recipientLabel = trim((string) ($recipientStatus['preferred_identifier'] ?? $recipientIdentifier));
+            throw new RuntimeException('ESP PRO is already active for ' . $recipientLabel . '.');
+        }
+
+        $existingRecipientEmail = get_identifier_recovery_email($state, $recipientIdentifier);
+        if ($existingRecipientEmail !== '' && normalize_explore_pro_email($existingRecipientEmail) !== normalize_explore_pro_email($recipientEmail)) {
+            throw new RuntimeException('That email does not match the authentication email already on file for this unique name.');
+        }
+
+        $stripeConfig = load_stripe_config($configDir);
+        if (!($stripeConfig['available'] ?? false)) {
+            throw new RuntimeException((string) ($stripeConfig['message'] ?? 'Stripe configuration is unavailable.'));
+        }
+
+        $priceId = get_stripe_price_id_for_plan($stripeConfig, $plan);
+        if ($priceId === '') {
+            throw new RuntimeException('Stripe price is not configured for that plan.');
+        }
+
+        $sessionResponse = stripe_api_request(
+            'POST',
+            '/v1/checkout/sessions',
+            build_stripe_checkout_session_fields(
+                $stripeConfig,
+                $priceId,
+                $giverIdentifier,
+                $plan,
+                [
+                    'purchase_kind' => 'gift',
+                    'giver_identifier' => $giverIdentifier,
+                    'recipient_identifier' => $recipientIdentifier,
+                    'recipient_email' => $recipientEmail,
+                    'target_identifier' => $recipientIdentifier
+                ]
+            ),
+            (string) $stripeConfig['secretKey']
+        );
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'checkout' => [
+            'session_id' => trim((string) ($sessionResponse['id'] ?? '')),
+            'url' => trim((string) ($sessionResponse['url'] ?? '')),
+            'plan' => $plan,
+            'giver_identifier' => $giverIdentifier,
+            'recipient_identifier' => $recipientIdentifier,
+            'recipient_email' => $recipientEmail
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'create_stripe_checkout_session') {
     try {
         require_allowed_keys($input, ['action', 'app_user_identifier', 'plan'], 'request');
@@ -11301,6 +11460,7 @@ if ($action === 'list_email_list' && $hasAdminAccess) {
 }
 
 if ($action === 'save_invitee' && $hasAdminAccess) {
+    $inviteeCountBefore = count((array) ($state['invitees'] ?? []));
     try {
         require_allowed_keys($input, ['action', 'identifier', 'full_name', 'email', 'private_note', 'secret_candidate'], 'request');
         $identifier = trim((string) ($input['identifier'] ?? ''));
@@ -11312,10 +11472,27 @@ if ($action === 'save_invitee' && $hasAdminAccess) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
+    $inviteeList = list_invitees($state);
+    $inviteeCountAfter = count($inviteeList);
+    append_debug_log(
+        $debugLogFile,
+        $debugEnabled,
+        '[invitee_save] ' . json_encode([
+            'identifier' => (string) ($invitee['identifier'] ?? ''),
+            'invitee_count_before' => $inviteeCountBefore,
+            'invitee_count_after' => $inviteeCountAfter,
+            'invitee_keys_after' => array_values(array_map(
+                static fn(array $entry): string => (string) ($entry['identifier'] ?? ''),
+                $inviteeList
+            ))
+        ], JSON_UNESCAPED_SLASHES)
+    );
+
     $response = [
         'ok' => true,
         'invitee' => $invitee,
-        'invitees' => list_invitees($state),
+        'invitees' => $inviteeList,
+        'invitee_count' => $inviteeCountAfter,
         'message' => 'Invitee saved successfully.',
         'server_now_ms' => $nowMs
     ];
@@ -11599,6 +11776,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     $preserveQuestionnaires = read_preserve_flag($input, 'preserve_questionnaires', true);
     $preserveMessagingHistory = read_preserve_flag($input, 'preserve_messaging_history', true);
     $preserveAnalyticsCounters = read_preserve_flag($input, 'preserve_analytics_counters', true);
+    $inviteeCountBeforeFreshStart = count((array) ($state['invitees'] ?? []));
 
     $state['sessions'] = [];
     $state['session_registry'] = [];
@@ -11653,6 +11831,27 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     }
 
     ensure_email_list_state($state);
+    $inviteeCountAfterFreshStart = count((array) ($state['invitees'] ?? []));
+
+    append_debug_log(
+        $debugLogFile,
+        $debugEnabled,
+        '[fresh_start] ' . json_encode([
+            'preserve_users' => $preserveUsers,
+            'preserve_invitees' => $preserveInvitees,
+            'preserve_pairs' => $preservePairs,
+            'preserve_simulation_pairs' => $preserveSimulationPairs,
+            'preserve_questionnaires' => $preserveQuestionnaires,
+            'preserve_messaging_history' => $preserveMessagingHistory,
+            'preserve_analytics_counters' => $preserveAnalyticsCounters,
+            'invitee_count_before' => $inviteeCountBeforeFreshStart,
+            'invitee_count_after' => $inviteeCountAfterFreshStart,
+            'invitee_keys_after' => array_values(array_map(
+                static fn(array $entry): string => (string) ($entry['identifier'] ?? ''),
+                list_invitees($state)
+            ))
+        ], JSON_UNESCAPED_SLASHES)
+    );
 
     $response['fresh_start_summary'] = [
         'preserve_users' => $preserveUsers,
@@ -11661,7 +11860,9 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
         'preserve_simulation_pairs' => $preserveSimulationPairs,
         'preserve_questionnaires' => $preserveQuestionnaires,
         'preserve_messaging_history' => $preserveMessagingHistory,
-        'preserve_analytics_counters' => $preserveAnalyticsCounters
+        'preserve_analytics_counters' => $preserveAnalyticsCounters,
+        'invitee_count_before' => $inviteeCountBeforeFreshStart,
+        'invitee_count_after' => $inviteeCountAfterFreshStart
     ];
 }
 

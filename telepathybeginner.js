@@ -2,9 +2,16 @@
   try {
   const launcherKey = "cones-beginner-launcher-v2";
   const recognizedIdentityKey = "cones-recognized-identity-v1";
-  const launcherBuildVersion = "20260705g";
+  const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
+  const launcherStateWriteLockKey = "cones-launcher-state-write-lock-v1";
+  const localFreshStartEpochKey = "cones-local-fresh-start-epoch-v1";
+  const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
+  const deviceTestNoticeKey = "cones-device-test-notice-v1";
+  const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
+  const launcherBuildVersion = "20260706w";
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
+  let suppressLauncherProfileSaves = false;
   const roleCards = Array.from(document.querySelectorAll("[data-role-card]"));
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
@@ -35,6 +42,7 @@
   const otherSettingsView = document.querySelector('[data-view="other-settings"]');
   const clairvoyanceViewingView = document.querySelector('[data-view="clairvoyance-viewing"]');
   const subscriptionManagementView = document.querySelector('[data-view="subscription-management"]');
+  const giftProSubscriptionView = document.querySelector('[data-view="gift-pro-subscription"]');
   const behaviorsView = null;
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
   const blinkBehaviorView = document.querySelector('[data-view="blink-behavior"]');
@@ -58,9 +66,11 @@
   const aboutView = document.querySelector('[data-view="about"]');
   const researchParticipationView = document.querySelector('[data-view="research-participation"]');
   const researchParticipationProView = document.querySelector('[data-view="research-participation-pro"]');
+  const researchProposalView = document.querySelector('[data-view="research-proposal"]');
   const researchInterestFormView = document.querySelector('[data-view="research-interest-form"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
   const reportView = document.querySelector('[data-view="report"]');
+  const reportPairBanner = document.querySelector("[data-report-pair-banner]");
   const visualizationView = document.querySelector('[data-view="visualization"]');
   const analyzerView = document.querySelector('[data-view="analyzer"]');
   const difficultyView = document.querySelector('[data-view="difficulty"]');
@@ -105,8 +115,19 @@
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openResearchParticipationProButton = document.querySelector("[data-open-research-participation-pro]");
+  const openResearchProposalButtons = Array.from(document.querySelectorAll("[data-open-research-proposal]"));
   const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
   const openSubscriptionManagementButton = document.querySelector("[data-open-subscription-management]");
+  const subscriptionManagementStatus = document.querySelector("[data-subscription-management-status]");
+  const giftProSubscriptionCopy = document.querySelector("[data-gift-pro-subscription-copy]");
+  const giftProSubscriptionForm = document.querySelector("[data-gift-pro-subscription-form]");
+  const giftProGiverInput = document.querySelector("[data-gift-pro-giver]");
+  const giftProRecipientIdentifierInput = document.querySelector("[data-gift-pro-recipient-identifier]");
+  const giftProRecipientEmailInput = document.querySelector("[data-gift-pro-recipient-email]");
+  const giftProPlanInputs = Array.from(document.querySelectorAll("[data-gift-pro-plan]"));
+  const giftProSubscriptionStatus = document.querySelector("[data-gift-pro-subscription-status]");
+  const submitGiftProSubscriptionButton = document.querySelector("[data-submit-gift-pro-subscription]");
+  const cancelGiftProSubscriptionButton = document.querySelector("[data-cancel-gift-pro-subscription]");
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
   const openLocationPickerSettingsButton = document.querySelector("[data-open-location-picker-settings]");
   const openBlinkBehaviorButton = document.querySelector("[data-open-blink-behavior]");
@@ -160,6 +181,7 @@
   const closeClairvoyanceLearnMoreButton = document.querySelector("[data-close-clairvoyance-learn-more]");
   const saveClairvoyanceLearnMoreButton = document.querySelector("[data-save-clairvoyance-learn-more]");
   const closeSubscriptionManagementButton = document.querySelector("[data-close-subscription-management]");
+  const closeGiftProSubscriptionButton = document.querySelector("[data-close-gift-pro-subscription]");
   const onlineCourseDate = document.querySelector("[data-online-course-date]");
   const onlineCourseName = document.querySelector("[data-online-course-name]");
   const onlineCourseCheckpointDate = document.querySelector("[data-online-course-checkpoint-date]");
@@ -263,6 +285,7 @@
   const closeAboutButton = document.querySelector("[data-close-about]");
   const closeResearchParticipationButton = document.querySelector("[data-close-research-participation]");
   const closeResearchParticipationProButton = document.querySelector("[data-close-research-participation-pro]");
+  const closeResearchProposalButton = document.querySelector("[data-close-research-proposal]");
   const openResearchInterestFormButton = document.querySelector("[data-open-research-interest-form]");
   const closeResearchInterestFormButton = document.querySelector("[data-close-research-interest-form]");
   const openReportButton = document.querySelector("[data-open-report]");
@@ -291,6 +314,7 @@
   let reportImageLightboxImage = null;
   let levelFourImagePairsCachePromise = null;
   let contactReturnView = "help";
+  let researchProposalReturnView = "research-participation";
   let contactFromLineRequestToken = 0;
   let goProReturnView = "subscription-management";
   let goProReturnRole = "";
@@ -1068,6 +1092,13 @@ This is an alternate test message to show now.`;
   }
 
   function writeLauncherState(state) {
+    try {
+      if (sessionStorage.getItem(launcherStateWriteLockKey) === "1") {
+        return;
+      }
+    } catch (error) {
+      // Ignore session-storage access failures and continue.
+    }
     const normalizedState = normalizeLauncherIdentityState(state);
     const recognizedIdentity = String(normalizedState?.recognizedIdentity || "").trim();
     if (recognizedIdentity) {
@@ -1076,6 +1107,114 @@ This is an alternate test message to show now.`;
       localStorage.removeItem(recognizedIdentityKey);
     }
     localStorage.setItem(launcherKey, JSON.stringify(normalizedState));
+  }
+
+  function setLauncherStateWriteLock(active) {
+    try {
+      if (active) {
+        sessionStorage.setItem(launcherStateWriteLockKey, "1");
+      } else {
+        sessionStorage.removeItem(launcherStateWriteLockKey);
+      }
+    } catch (error) {
+      // Ignore session-storage access failures.
+    }
+  }
+
+  function consumeLauncherStateWriteLock() {
+    try {
+      if (sessionStorage.getItem(launcherStateWriteLockKey) === "1") {
+        sessionStorage.removeItem(launcherStateWriteLockKey);
+        return true;
+      }
+    } catch (error) {
+      return false;
+    }
+    return false;
+  }
+
+  function clearLauncherIdentityArtifacts() {
+    try {
+      roleCards.forEach((card) => {
+        const form = card.querySelector("[data-role-form]");
+        const ownInput = form?.querySelector('input[name="ownName"]');
+        const partnerInput = form?.querySelector('input[name="partnerName"]');
+        if (ownInput) {
+          ownInput.value = "";
+        }
+        if (partnerInput) {
+          partnerInput.value = "";
+        }
+      });
+    } catch (error) {
+      // Ignore visible input cleanup failures.
+    }
+    try {
+      localStorage.removeItem(launcherKey);
+      localStorage.removeItem(recognizedIdentityKey);
+      localStorage.removeItem(deviceTestRestoreSnapshotKey);
+      localStorage.removeItem(stripeReturnIdentifierStorageKey);
+      localStorage.removeItem("cones-settings-v2-sender");
+      localStorage.removeItem("cones-settings-v2-receiver");
+      localStorage.removeItem("cones-settings-v2-remote-viewer");
+    } catch (error) {
+      // Ignore local cleanup failures.
+    }
+    try {
+      sessionStorage.removeItem(launcherKey);
+      sessionStorage.removeItem("cones-client-id-sender");
+      sessionStorage.removeItem("cones-client-id-receiver");
+      sessionStorage.removeItem("cones-client-id-remote-viewer");
+    } catch (error) {
+      // Ignore session cleanup failures.
+    }
+  }
+
+  function setPendingFreshStartAnonymousReset(active) {
+    try {
+      if (active) {
+        localStorage.setItem(freshStartAnonymousResetKey, "1");
+      } else {
+        localStorage.removeItem(freshStartAnonymousResetKey);
+      }
+    } catch (error) {
+      // Ignore local persistence failures.
+    }
+  }
+
+  function consumePendingFreshStartAnonymousReset() {
+    try {
+      if (localStorage.getItem(freshStartAnonymousResetKey) !== "1") {
+        return false;
+      }
+      clearLauncherIdentityArtifacts();
+      localStorage.removeItem(freshStartAnonymousResetKey);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function writeLocalFreshStartEpoch(value = Date.now()) {
+    try {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        localStorage.setItem(localFreshStartEpochKey, String(Math.trunc(numeric)));
+      } else {
+        localStorage.removeItem(localFreshStartEpochKey);
+      }
+    } catch (error) {
+      // Ignore local persistence failures.
+    }
+  }
+
+  function readLocalFreshStartEpoch() {
+    try {
+      const numeric = Number(localStorage.getItem(localFreshStartEpochKey) || 0);
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+    } catch (error) {
+      return 0;
+    }
   }
 
   function getVisitorLockedName(state = readLauncherState()) {
@@ -2362,6 +2501,7 @@ This is an alternate test message to show now.`;
 
   function snapshotDeviceIdentityState(state = readLauncherState()) {
     return {
+      strictRecognizedIdentity: true,
       recognizedIdentity: String(state?.recognizedIdentity || "").trim(),
       ownNames: cloneJsonValue(state?.ownNames || {}, {}),
       visitorDisplayNames: cloneJsonValue(state?.visitorDisplayNames || {}, {}),
@@ -2398,6 +2538,7 @@ This is an alternate test message to show now.`;
     const source = snapshot && typeof snapshot === "object" ? snapshot : {};
     return {
       ...baseState,
+      strictRecognizedIdentity: !!source.strictRecognizedIdentity,
       recognizedIdentity: String(source.recognizedIdentity || "").trim(),
       ownNames: cloneJsonValue(source.ownNames || {}, {}),
       visitorDisplayNames: cloneJsonValue(source.visitorDisplayNames || {}, {}),
@@ -2424,6 +2565,93 @@ This is an alternate test message to show now.`;
         : defaultConfidenceSettings.includePositiveReinforcement,
       deviceTestMode: null
     };
+  }
+
+  function describeRestoreSnapshotIdentity(snapshot) {
+    const source = snapshot && typeof snapshot === "object" ? snapshot : {};
+    const loadedInvitee = source.loadedInviteeIdentity && typeof source.loadedInviteeIdentity === "object"
+      ? source.loadedInviteeIdentity
+      : null;
+    const temporaryIdentity = source.temporaryIdentity && typeof source.temporaryIdentity === "object"
+      ? source.temporaryIdentity
+      : null;
+    const recognizedIdentity = String(source.recognizedIdentity || "").trim();
+
+    if (loadedInvitee?.identifier) {
+      const inviteeType = String(loadedInvitee.userType || "").trim().toLowerCase() === "pro" ? "PRO" : "STD";
+      return `loaded invitee ${String(loadedInvitee.identifier || "").trim()} (${inviteeType})`;
+    }
+    if (recognizedIdentity) {
+      return `recognized user ${recognizedIdentity}`;
+    }
+    if (temporaryIdentity?.identifier) {
+      return `temporary identity ${String(temporaryIdentity.identifier || "").trim()}`;
+    }
+
+    const ownNames = source.ownNames && typeof source.ownNames === "object" ? source.ownNames : {};
+    const visibleOwnNames = uniqueNames([
+      String(ownNames.sender || "").trim(),
+      String(ownNames.receiver || "").trim(),
+      String(ownNames["remote-viewer"] || "").trim()
+    ]);
+    if (visibleOwnNames.length === 1) {
+      return `typed local identity ${visibleOwnNames[0]}`;
+    }
+
+    return "no user identity";
+  }
+
+  function finalizeRestoredIdentityState(state) {
+    const next = state && typeof state === "object" ? { ...state } : {};
+    const strictRecognizedIdentity = !!next.strictRecognizedIdentity;
+    const recognizedIdentity = String(next.recognizedIdentity || "").trim()
+      || (strictRecognizedIdentity ? "" : inferRecognizedIdentityFromLegacyState(next));
+    delete next.strictRecognizedIdentity;
+    if (recognizedIdentity) {
+      next.recognizedIdentity = recognizedIdentity;
+      next.ownNames = buildOwnNamesState(recognizedIdentity);
+      next.entryMode = "";
+      next.loadedInviteeIdentity = null;
+      next.temporaryIdentity = null;
+      return next;
+    }
+    next.recognizedIdentity = "";
+    next.ownNames = {};
+    next.loadedInviteeIdentity = null;
+    next.temporaryIdentity = null;
+    if (strictRecognizedIdentity) {
+      return next;
+    }
+    return normalizeLauncherIdentityState(next);
+  }
+
+  function hydrateRecognizedIdentityFromCurrentState(state = readLauncherState()) {
+    const next = state && typeof state === "object" ? { ...state } : {};
+    const recognizedIdentity = String(next.recognizedIdentity || "").trim();
+    if (!recognizedIdentity) {
+      return normalizeLauncherIdentityState(next);
+    }
+    next.recognizedIdentity = recognizedIdentity;
+    next.ownNames = buildOwnNamesState(recognizedIdentity);
+    next.entryMode = "";
+    next.loadedInviteeIdentity = null;
+    next.temporaryIdentity = null;
+    return normalizeLauncherIdentityState(next);
+  }
+
+  function promoteRecognizedIdentityFromCandidate(identifier, userType = "standard", state = readLauncherState()) {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier) {
+      return normalizeLauncherIdentityState(state);
+    }
+    const next = state && typeof state === "object" ? { ...state } : {};
+    next.recognizedIdentity = cleanIdentifier;
+    next.ownNames = buildOwnNamesState(cleanIdentifier);
+    next.entryMode = "";
+    next.loadedInviteeIdentity = null;
+    next.temporaryIdentity = null;
+    next.resolvedMainUserType = String(userType || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    return normalizeLauncherIdentityState(next);
   }
 
   function getLoadedInviteeIdentity(state = readLauncherState()) {
@@ -2454,15 +2682,158 @@ This is an alternate test message to show now.`;
     const restoreSnapshot = source.restoreSnapshot && typeof source.restoreSnapshot === "object"
       ? source.restoreSnapshot
       : null;
+    const startedAt = Number.isFinite(Number(source.startedAt)) ? Number(source.startedAt) : 0;
+    const freshStartEpoch = readLocalFreshStartEpoch();
+    if (freshStartEpoch && startedAt && startedAt < freshStartEpoch) {
+      return null;
+    }
     return {
       active: !!source.active && !!restoreSnapshot,
       restoreSnapshot,
-      startedAt: Number.isFinite(Number(source.startedAt)) ? Number(source.startedAt) : 0
+      startedAt
     };
   }
 
   function isDeviceTestModeActive(state = readLauncherState()) {
     return !!getDeviceTestModeState(state)?.active;
+  }
+
+  function writeDeviceTestRestoreSnapshot(snapshot) {
+    try {
+      if (!snapshot || typeof snapshot !== "object") {
+        localStorage.removeItem(deviceTestRestoreSnapshotKey);
+        return;
+      }
+      localStorage.setItem(deviceTestRestoreSnapshotKey, JSON.stringify(snapshot));
+    } catch (error) {
+      // Ignore local persistence failures.
+    }
+  }
+
+  function readDeviceTestRestoreSnapshot() {
+    try {
+      const raw = localStorage.getItem(deviceTestRestoreSnapshotKey);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function clearDeviceTestRestoreSnapshot() {
+    try {
+      localStorage.removeItem(deviceTestRestoreSnapshotKey);
+    } catch (error) {
+      // Ignore local cleanup failures.
+    }
+  }
+
+  function writeDeviceTestNotice(message) {
+    try {
+      const text = String(message || "").trim();
+      if (!text) {
+        sessionStorage.removeItem(deviceTestNoticeKey);
+        return;
+      }
+      sessionStorage.setItem(deviceTestNoticeKey, text);
+    } catch (error) {
+      // Ignore session persistence failures.
+    }
+  }
+
+  function readAndClearDeviceTestNotice() {
+    try {
+      const text = String(sessionStorage.getItem(deviceTestNoticeKey) || "").trim();
+      sessionStorage.removeItem(deviceTestNoticeKey);
+      return text;
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function setLauncherProfileSaveSuppression(active, persistToSession = false) {
+    suppressLauncherProfileSaves = !!active;
+    if (!persistToSession) {
+      return;
+    }
+    try {
+      if (suppressLauncherProfileSaves) {
+        sessionStorage.setItem(suppressLauncherProfileSavesKey, "1");
+      } else {
+        sessionStorage.removeItem(suppressLauncherProfileSavesKey);
+      }
+    } catch (error) {
+      // Ignore session persistence failures.
+    }
+  }
+
+  function syncLauncherProfileSaveSuppressionFromSession() {
+    try {
+      suppressLauncherProfileSaves = String(sessionStorage.getItem(suppressLauncherProfileSavesKey) || "").trim() === "1";
+    } catch (error) {
+      suppressLauncherProfileSaves = false;
+    }
+  }
+
+  syncLauncherProfileSaveSuppressionFromSession();
+
+  function hasDeviceTestRestoreSnapshot() {
+    return !!readDeviceTestRestoreSnapshot();
+  }
+
+  function clearStaleDeviceTestModeArtifactsIfNeeded(state = readLauncherState()) {
+    const rawDeviceTestMode = state?.deviceTestMode && typeof state.deviceTestMode === "object"
+      ? state.deviceTestMode
+      : null;
+    if (!rawDeviceTestMode) {
+      return state;
+    }
+    const freshStartEpoch = readLocalFreshStartEpoch();
+    const startedAt = Number.isFinite(Number(rawDeviceTestMode?.startedAt)) ? Number(rawDeviceTestMode.startedAt) : 0;
+    if (!freshStartEpoch || !startedAt || startedAt >= freshStartEpoch) {
+      return state;
+    }
+    const nextState = normalizeLauncherIdentityState({
+      ...state,
+      deviceTestMode: null
+    });
+    try {
+      localStorage.setItem(launcherKey, JSON.stringify(nextState));
+    } catch (error) {
+      // Ignore local persistence failures.
+    }
+    clearDeviceTestRestoreSnapshot();
+    writeDeviceTestNotice("");
+    logLauncherUserTypeDebug("stale_device_test_mode_cleared", {
+      startedAt,
+      freshStartEpoch
+    });
+    return nextState;
+  }
+
+  function canRestoreDeviceIdentity(state = readLauncherState()) {
+    return !!(
+      isDeviceTestModeActive(state) ||
+      hasDeviceTestRestoreSnapshot() ||
+      getLoadedInviteeIdentity(state)
+    );
+  }
+
+  function hasAuthoritativeDeviceIdentity(state = readLauncherState()) {
+    const recognizedIdentity = String(state?.recognizedIdentity || "").trim();
+    if (recognizedIdentity) {
+      return true;
+    }
+    if (getLoadedInviteeIdentity(state)?.identifier) {
+      return true;
+    }
+    if (getTemporaryIdentityState(state)?.identifier) {
+      return true;
+    }
+    return false;
   }
 
   function getBlinkBehaviorSettings(state = readLauncherState()) {
@@ -2860,6 +3231,7 @@ This is an alternate test message to show now.`;
     return {
       ...data.identifier_status,
       identifier_exists: !!data?.identifier_exists,
+      formal_identity_exists: !!data?.formal_identity_exists,
       auth_email_on_file: !!data?.auth_email_on_file
     };
   }
@@ -2996,6 +3368,35 @@ This is an alternate test message to show now.`;
     });
 
     const data = await parseApiResponse(response, `Stripe checkout request failed with status ${response.status}`);
+    return data?.checkout || null;
+  }
+
+  async function createGiftStripeCheckoutSession(plan, giverIdentifier, recipientIdentifier, recipientEmail) {
+    const cleanPlan = String(plan || "").trim().toLowerCase();
+    if (!["monthly", "annual"].includes(cleanPlan)) {
+      throw new Error("Gift subscription plan is invalid.");
+    }
+    const cleanGiverIdentifier = assertValidParticipantIdentifier(giverIdentifier, "gift giver identifier");
+    const cleanRecipientIdentifier = assertValidParticipantIdentifier(recipientIdentifier, "recipient unique name");
+    const cleanRecipientEmail = String(recipientEmail || "").trim();
+    if (!isValidEmailAddress(cleanRecipientEmail)) {
+      throw new Error("Please enter a valid recipient email address.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "create_gift_stripe_checkout_session",
+        giver_identifier: cleanGiverIdentifier,
+        recipient_identifier: cleanRecipientIdentifier,
+        recipient_email: cleanRecipientEmail,
+        plan: cleanPlan
+      })
+    });
+
+    const data = await parseApiResponse(response, `Gift subscription checkout request failed with status ${response.status}`);
     return data?.checkout || null;
   }
 
@@ -3365,6 +3766,12 @@ This is an alternate test message to show now.`;
   }
 
   function buildVisitorLauncherState(baseState = readLauncherState()) {
+    logLauncherUserTypeDebug("build_visitor_launcher_state_before", {
+      recognizedIdentity: String(baseState?.recognizedIdentity || "").trim(),
+      entryMode: String(baseState?.entryMode || "").trim(),
+      deviceTestMode: cloneJsonValue(baseState?.deviceTestMode || null, null),
+      loadedInviteeIdentifier: String(baseState?.loadedInviteeIdentity?.identifier || "").trim()
+    });
     const nextState = buildLauncherIdentityState(baseState, "", "standard", {
       recognizedIdentity: "",
       entryMode: "visitor"
@@ -3377,9 +3784,16 @@ This is an alternate test message to show now.`;
     nextState.visitorDisplayNames = {};
     nextState.visitorLockedName = "";
     nextState.loadedInviteeIdentity = null;
+    nextState.deviceTestMode = null;
     nextState.pendingInviteeOnboarding = null;
     nextState.exploreTrial = null;
     nextState.temporaryIdentity = null;
+    logLauncherUserTypeDebug("build_visitor_launcher_state_after", {
+      recognizedIdentity: String(nextState?.recognizedIdentity || "").trim(),
+      entryMode: String(nextState?.entryMode || "").trim(),
+      deviceTestMode: cloneJsonValue(nextState?.deviceTestMode || null, null),
+      loadedInviteeIdentifier: String(nextState?.loadedInviteeIdentity?.identifier || "").trim()
+    });
     return nextState;
   }
 
@@ -3663,6 +4077,9 @@ This is an alternate test message to show now.`;
   }
 
   async function saveLauncherProfile(role, ownEmail, profileState) {
+    if (suppressLauncherProfileSaves) {
+      return null;
+    }
     if (isInternalVisitorSimulationName(ownEmail)) {
       return null;
     }
@@ -4900,6 +5317,14 @@ This is an alternate test message to show now.`;
     return next;
   }
 
+  function clearRuntimeSettings(role) {
+    try {
+      localStorage.removeItem(`cones-settings-v2-${role}`);
+    } catch (error) {
+      // Ignore local cleanup failures.
+    }
+  }
+
   function persistLauncherRuntimeIdentity(role, ownIdentifier, partnerIdentifier, extraUpdates = {}) {
     const cleanOwn = String(ownIdentifier || "").trim();
     const cleanPartner = String(partnerIdentifier || "").trim();
@@ -5082,6 +5507,34 @@ This is an alternate test message to show now.`;
       device_debug_enabled: !!launcherAdminState.debug_enabled
     }).catch(() => {
       // Ignore debug logging failures.
+    });
+  }
+
+  function logGoProCheckoutDebug(label, details = {}) {
+    const payload = {
+      ...(details && typeof details === "object" ? details : {}),
+      href: String(window.location.href || "").trim(),
+      recognizedIdentity: String(getCanonicalRecognizedIdentity(readLauncherState()) || "").trim(),
+      currentIdentifier: String(getCurrentTelepathyProIdentifier() || "").trim(),
+      stripeCheckoutInFlight: !!stripeCheckoutInFlight
+    };
+    logLauncherUserTypeDebug(`go_pro_checkout:${label}`, payload);
+    traceLauncherClient(`go_pro_checkout:${label}`, payload);
+  }
+
+  function traceLauncherClient(label, details = {}) {
+    void fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "trace_client",
+        label,
+        details: [details]
+      })
+    }).catch(() => {
+      // Ignore trace failures.
     });
   }
 
@@ -5395,7 +5848,7 @@ This is an alternate test message to show now.`;
         } catch (_) {
           proposedStatus = null;
         }
-        if (proposedStatus?.identifier_exists) {
+        if (proposedStatus?.formal_identity_exists) {
           if (!proposedStatus.auth_email_on_file) {
             throw new Error("Your email address cannot be validated. Please contact ESP Gym.");
           }
@@ -5465,6 +5918,7 @@ This is an alternate test message to show now.`;
           entryMode: ""
         });
         writeLauncherState(nextIdentityState);
+        setLauncherProfileSaveSuppression(false, true);
         setLauncherGuestEntryActive(false);
         applyIdentityStateToLauncherInputs();
       }
@@ -5983,59 +6437,45 @@ This is an alternate test message to show now.`;
       }
     });
 
-    for (const role of roles) {
-      const identifiers = readVisibleRoleIdentifiers(role);
-      const ownIdentifier = String(identifiers?.ownName || "").trim();
-      if (!ownIdentifier) {
-        continue;
+    const authoritativeCandidates = [
+      {
+        identifier: String(getLoadedInviteeIdentity(launcherState)?.identifier || "").trim(),
+        role: normalizedPreferredRole || activeLauncherRole || "sender"
+      },
+      {
+        identifier: String(getTemporaryIdentityState(launcherState)?.identifier || "").trim(),
+        role: normalizedPreferredRole || activeLauncherRole || "sender"
+      },
+      {
+        identifier: String(getCanonicalRecognizedIdentity(launcherState) || "").trim(),
+        role: normalizedPreferredRole || activeLauncherRole || "sender"
       }
-      try {
-        const status = await fetchIdentifierStatus(ownIdentifier);
-        rememberIdentifierStatus(ownIdentifier, status);
-        const preferredIdentifier = String(status?.preferred_identifier || ownIdentifier).trim() || ownIdentifier;
-        if (isAcceptedUniqueHandleIdentifier(preferredIdentifier, status)) {
-          return {
-            role,
-            identifier: preferredIdentifier,
-            status
-          };
-        }
-      } catch (_) {
-        if (isValidUniqueHandle(ownIdentifier) && !isValidEmailAddress(ownIdentifier)) {
-          return {
-            role,
-            identifier: ownIdentifier,
-            status: getCachedIdentifierStatus(ownIdentifier)
-          };
-        }
-      }
-    }
+    ];
 
-    const fallbackOwnNames = launcherState?.ownNames && typeof launcherState.ownNames === "object"
-      ? launcherState.ownNames
-      : {};
-    for (const role of roles) {
-      const fallbackIdentifier = String(fallbackOwnNames[role] || "").trim();
-      if (!fallbackIdentifier) {
+    for (const candidate of authoritativeCandidates) {
+      const rawIdentifier = String(candidate.identifier || "").trim();
+      if (!rawIdentifier) {
         continue;
       }
       try {
-        const status = await fetchIdentifierStatus(fallbackIdentifier);
-        rememberIdentifierStatus(fallbackIdentifier, status);
-        const preferredIdentifier = String(status?.preferred_identifier || fallbackIdentifier).trim() || fallbackIdentifier;
+        const status = await fetchIdentifierStatus(rawIdentifier);
+        rememberIdentifierStatus(rawIdentifier, status);
+        const preferredIdentifier = String(status?.preferred_identifier || rawIdentifier).trim() || rawIdentifier;
         if (isAcceptedUniqueHandleIdentifier(preferredIdentifier, status)) {
           return {
-            role,
+            role: candidate.role,
             identifier: preferredIdentifier,
             status
           };
         }
       } catch (_) {
-        if (isValidUniqueHandle(fallbackIdentifier) && !isValidEmailAddress(fallbackIdentifier)) {
+        const cachedStatus = getCachedIdentifierStatus(rawIdentifier);
+        const preferredIdentifier = String(cachedStatus?.preferred_identifier || rawIdentifier).trim() || rawIdentifier;
+        if (isAcceptedUniqueHandleIdentifier(preferredIdentifier, cachedStatus)) {
           return {
-            role,
-            identifier: fallbackIdentifier,
-            status: getCachedIdentifierStatus(fallbackIdentifier)
+            role: candidate.role,
+            identifier: preferredIdentifier,
+            status: cachedStatus
           };
         }
       }
@@ -6227,7 +6667,7 @@ This is an alternate test message to show now.`;
     }
 
     const missingCount = [
-      visitorMode && !recognizedUser,
+      !recognizedUser,
       !installed,
       !locationSummary.ready,
       isEffectiveLauncherUserPro() ? !messagingReady : false
@@ -8341,8 +8781,37 @@ This is an alternate test message to show now.`;
     if (recognizedIdentity) {
       return [recognizedIdentity];
     }
-    const inferredRecognizedIdentity = inferRecognizedIdentityFromLegacyState(state);
-    return inferredRecognizedIdentity ? [inferredRecognizedIdentity] : [];
+    return [];
+  }
+
+  async function sanitizeRecognizedIdentityForLauncherEntry(state = readLauncherState()) {
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    if (loadedInvitee?.identifier || temporaryIdentity?.identifier || isVisitorLauncherEntry(state)) {
+      return state;
+    }
+
+    const recognizedIdentity = getCanonicalRecognizedIdentity(state);
+    if (!recognizedIdentity) {
+      return state;
+    }
+
+    try {
+      const status = await fetchIdentifierStatus(recognizedIdentity);
+      if (status?.formal_identity_exists) {
+        rememberIdentifierStatus(recognizedIdentity, status);
+        return readLauncherState();
+      }
+      clearLauncherIdentityArtifacts();
+      logLauncherUserTypeDebug("recognized_identity_cleared_as_stale", {
+        identifier: recognizedIdentity,
+        identifierExists: !!status?.identifier_exists,
+        formalIdentityExists: !!status?.formal_identity_exists
+      });
+      return readLauncherState();
+    } catch (error) {
+      return state;
+    }
   }
 
   async function resolveResumeUserType(state = readLauncherState()) {
@@ -8395,12 +8864,74 @@ This is an alternate test message to show now.`;
     goProIdentifierNote.textContent = String(message || "").trim();
   }
 
+  function setSubscriptionManagementStatus(message, isError = false) {
+    if (!subscriptionManagementStatus) {
+      return;
+    }
+    subscriptionManagementStatus.textContent = String(message || "").trim();
+    subscriptionManagementStatus.dataset.state = isError ? "error" : "info";
+  }
+
+  function setGiftProSubscriptionStatus(message, isError = false) {
+    if (!giftProSubscriptionStatus) {
+      return;
+    }
+    giftProSubscriptionStatus.textContent = String(message || "").trim();
+    giftProSubscriptionStatus.dataset.state = isError ? "error" : "info";
+  }
+
+  function readGiftProSubscriptionPlan() {
+    const selected = giftProPlanInputs.find((input) => input.checked);
+    const value = String(selected?.value || "monthly").trim().toLowerCase();
+    return value === "annual" ? "annual" : "monthly";
+  }
+
+  function setGiftProSubscriptionPending(pending = false) {
+    if (submitGiftProSubscriptionButton) {
+      submitGiftProSubscriptionButton.disabled = !!pending;
+      submitGiftProSubscriptionButton.textContent = pending
+        ? "OPENING SECURE GIFT CHECKOUT..."
+        : "OPEN SECURE GIFT CHECKOUT";
+    }
+    if (cancelGiftProSubscriptionButton) {
+      cancelGiftProSubscriptionButton.disabled = !!pending;
+    }
+    if (giftProRecipientIdentifierInput) {
+      giftProRecipientIdentifierInput.disabled = !!pending;
+    }
+    if (giftProRecipientEmailInput) {
+      giftProRecipientEmailInput.disabled = !!pending;
+    }
+    giftProPlanInputs.forEach((input) => {
+      input.disabled = !!pending;
+    });
+  }
+
   function setGoProButtonsEnabled(enabled) {
     if (goProMonthlyButton) {
       goProMonthlyButton.disabled = !enabled;
     }
     if (goProAnnualButton) {
       goProAnnualButton.disabled = !enabled;
+    }
+    logGoProCheckoutDebug("buttons_enabled_state", {
+      enabled: !!enabled,
+      monthlyExists: !!goProMonthlyButton,
+      annualExists: !!goProAnnualButton
+    });
+  }
+
+  function setGoProCheckoutPending(plan = "", pending = false) {
+    const normalizedPlan = String(plan || "").trim().toLowerCase();
+    if (goProMonthlyButton) {
+      goProMonthlyButton.textContent = pending && normalizedPlan === "monthly"
+        ? "Opening Secure Checkout..."
+        : "Subscribe Monthly - $2.99";
+    }
+    if (goProAnnualButton) {
+      goProAnnualButton.textContent = pending && normalizedPlan === "annual"
+        ? "Opening Secure Checkout..."
+        : "Subscribe Annual - $25.00";
     }
   }
 
@@ -8455,6 +8986,12 @@ This is an alternate test message to show now.`;
 
   async function renderGoProViewState() {
     const currentIdentifier = getCurrentTelepathyProIdentifier();
+    logGoProCheckoutDebug("render_state_start", {
+      currentIdentifier,
+      effectivePro: isEffectiveLauncherUserPro(),
+      goProViewHidden: !!goProView?.classList.contains("beginner-view-hidden"),
+      subscriptionManagementHidden: !!subscriptionManagementView?.classList.contains("beginner-view-hidden")
+    });
     setGoProIdentifierNote(
       currentIdentifier
         ? `PRO access will be attached to: ${currentIdentifier}`
@@ -8463,6 +9000,7 @@ This is an alternate test message to show now.`;
 
     if (stripeCheckoutInFlight) {
       setGoProButtonsEnabled(false);
+      setGoProCheckoutPending("", false);
       return;
     }
 
@@ -8470,6 +9008,7 @@ This is an alternate test message to show now.`;
       stripePublicConfigCache = await fetchStripePublicConfig();
     } catch (error) {
       setGoProButtonsEnabled(false);
+      setGoProCheckoutPending("", false);
       setGoProStatus(error instanceof Error ? error.message : "Unable to load Stripe configuration right now.", true);
       return;
     }
@@ -8478,8 +9017,16 @@ This is an alternate test message to show now.`;
     const monthlyReady = !!stripePublicConfigCache?.has_monthly_price;
     const annualReady = !!stripePublicConfigCache?.has_annual_price;
     const canSubscribe = !!currentIdentifier && stripeAvailable && monthlyReady && annualReady;
+    logGoProCheckoutDebug("render_state_config", {
+      stripeAvailable,
+      monthlyReady,
+      annualReady,
+      canSubscribe,
+      currentIdentifier
+    });
 
     setGoProButtonsEnabled(canSubscribe);
+    setGoProCheckoutPending("", false);
 
     if (!stripeAvailable) {
       setGoProStatus(String(stripePublicConfigCache?.message || "Stripe is not configured yet on this app."), true);
@@ -8538,17 +9085,29 @@ This is an alternate test message to show now.`;
   }
 
   async function startTelepathyProCheckout(plan) {
+    logGoProCheckoutDebug("click_start", { plan: String(plan || "").trim().toLowerCase() });
+    if (stripeCheckoutInFlight) {
+      logGoProCheckoutDebug("ignored_while_in_flight", { plan: String(plan || "").trim().toLowerCase() });
+      return;
+    }
     const currentIdentifier = getCurrentTelepathyProIdentifier();
     if (!currentIdentifier) {
       setGoProStatus("Enter your user identifier on the main page first so PRO can be attached to the correct account.", true);
       setGoProButtonsEnabled(false);
+      setGoProCheckoutPending("", false);
+      logGoProCheckoutDebug("blocked_no_identifier", { plan: String(plan || "").trim().toLowerCase() });
       return;
     }
 
     stripeCheckoutInFlight = true;
     storePendingStripeReturnIdentifier(currentIdentifier);
     setGoProButtonsEnabled(false);
-    setGoProStatus("Redirecting to secure Stripe checkout...", false);
+    setGoProCheckoutPending(plan, true);
+    setGoProStatus("Opening secure Stripe checkout in this tab...", false);
+    logGoProCheckoutDebug("requesting_checkout_session", {
+      plan: String(plan || "").trim().toLowerCase(),
+      identifier: currentIdentifier
+    });
 
     try {
       const checkout = await createStripeCheckoutSession(plan, currentIdentifier);
@@ -8556,9 +9115,18 @@ This is an alternate test message to show now.`;
       if (!checkoutUrl) {
         throw new Error("Stripe did not return a checkout URL.");
       }
+      logGoProCheckoutDebug("checkout_url_received", {
+        plan: String(plan || "").trim().toLowerCase(),
+        hasUrl: true
+      });
       window.location.href = checkoutUrl;
     } catch (error) {
       stripeCheckoutInFlight = false;
+      setGoProCheckoutPending("", false);
+      logGoProCheckoutDebug("checkout_failed", {
+        plan: String(plan || "").trim().toLowerCase(),
+        message: error instanceof Error ? error.message : "Unable to start Stripe checkout right now."
+      });
       setGoProStatus(error instanceof Error ? error.message : "Unable to start Stripe checkout right now.", true);
       await renderGoProViewState();
     }
@@ -8768,6 +9336,89 @@ This is an alternate test message to show now.`;
     proOnlyOtherSettingsButtons.forEach((button) => {
       button.hidden = false;
     });
+  }
+
+  function renderSubscriptionManagementState() {
+    const effectivePro = isEffectiveLauncherUserPro();
+    const currentIdentifier = getCurrentTelepathyProIdentifier();
+    if (openGoProButton) {
+      openGoProButton.disabled = false;
+      openGoProButton.textContent = effectivePro ? "ESP PRO GIFT SUBSCRIPTION" : "PRO Subscription";
+    }
+    setSubscriptionManagementStatus(
+      effectivePro
+        ? `ESP PRO is already active for ${currentIdentifier || "this user"}. Click below to give a gift subscription of ESP PRO to a person who could enjoy it.`
+        : "Open the secure subscription plans page to begin or manage PRO access.",
+      false
+    );
+    logGoProCheckoutDebug("render_subscription_management_state", {
+      effectivePro,
+      currentIdentifier,
+      openButtonDisabled: !!openGoProButton?.disabled
+    });
+  }
+
+  function renderGiftProSubscriptionState() {
+    const currentIdentifier = getCurrentTelepathyProIdentifier();
+    if (giftProSubscriptionCopy) {
+      giftProSubscriptionCopy.textContent = `ESP PRO is already active for ${currentIdentifier || "this user"}. Use this form to sponsor ESP PRO for another person who could enjoy it.`;
+    }
+    if (giftProGiverInput) {
+      giftProGiverInput.value = currentIdentifier || "";
+    }
+    if (giftProRecipientIdentifierInput && !giftProRecipientIdentifierInput.value.trim()) {
+      giftProRecipientIdentifierInput.value = "";
+    }
+    if (giftProRecipientEmailInput && !giftProRecipientEmailInput.value.trim()) {
+      giftProRecipientEmailInput.value = "";
+    }
+    setGiftProSubscriptionPending(false);
+    setGiftProSubscriptionStatus(
+      currentIdentifier
+        ? "Enter the recipient unique name, recipient email, and the gift plan."
+        : "A current PRO user must be loaded before a gift subscription can be created.",
+      !currentIdentifier
+    );
+  }
+
+  async function submitGiftProSubscription() {
+    const giverIdentifier = getCurrentTelepathyProIdentifier();
+    if (!giverIdentifier) {
+      setGiftProSubscriptionStatus("A current PRO user must be loaded before a gift subscription can be created.", true);
+      return;
+    }
+
+    const recipientIdentifier = String(giftProRecipientIdentifierInput?.value || "").replace(/\s+/g, " ").trim();
+    const recipientEmail = String(giftProRecipientEmailInput?.value || "").trim();
+    const plan = readGiftProSubscriptionPlan();
+
+    if (!recipientIdentifier) {
+      giftProRecipientIdentifierInput?.focus();
+      setGiftProSubscriptionStatus("Please enter the recipient unique name.", true);
+      return;
+    }
+    if (!recipientEmail) {
+      giftProRecipientEmailInput?.focus();
+      setGiftProSubscriptionStatus("Please enter the recipient email address.", true);
+      return;
+    }
+
+    setGiftProSubscriptionPending(true);
+    setGiftProSubscriptionStatus("Opening secure Stripe gift checkout in this tab...", false);
+    try {
+      const checkout = await createGiftStripeCheckoutSession(plan, giverIdentifier, recipientIdentifier, recipientEmail);
+      const checkoutUrl = String(checkout?.url || "").trim();
+      if (!checkoutUrl) {
+        throw new Error("Stripe did not return a gift-checkout URL.");
+      }
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      setGiftProSubscriptionPending(false);
+      setGiftProSubscriptionStatus(
+        error instanceof Error ? error.message : "Unable to start gift checkout right now.",
+        true
+      );
+    }
   }
 
   function getFallbackOwnIdentifierForRemoteViewer() {
@@ -9131,6 +9782,22 @@ This is an alternate test message to show now.`;
 
   function collectReportOwnNames() {
     const state = readLauncherState();
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    const recognizedIdentity = getCanonicalRecognizedIdentity(state);
+    const visitorMode = isVisitorLauncherEntry(state);
+
+    if (!visitorMode) {
+      const authoritativeNames = uniqueNames([
+        String(loadedInvitee?.identifier || "").trim(),
+        String(temporaryIdentity?.identifier || "").trim(),
+        String(recognizedIdentity || "").trim()
+      ].filter(Boolean));
+      if (authoritativeNames.length) {
+        return authoritativeNames;
+      }
+    }
+
     const rawNames = [
       readRoleFormValues("sender").ownName,
       readRoleFormValues("receiver").ownName,
@@ -9152,6 +9819,18 @@ This is an alternate test message to show now.`;
     const seen = new Set();
     const state = readLauncherState();
     const visitorMode = isVisitorLauncherEntry(state);
+    const loadedInvitee = getLoadedInviteeIdentity(state);
+    const temporaryIdentity = getTemporaryIdentityState(state);
+    const recognizedIdentity = getCanonicalRecognizedIdentity(state);
+    const authoritativeSelfIdentities = new Set(
+      uniqueNames([
+        String(loadedInvitee?.identifier || "").trim(),
+        String(temporaryIdentity?.identifier || "").trim(),
+        String(recognizedIdentity || "").trim()
+      ])
+        .map((value) => normalizeIdentifierForStorage(value))
+        .filter(Boolean)
+    );
 
     const addCandidate = (receiverName, senderName) => {
       const receiver = getPreferredIdentifier(stripGuestDisplaySuffix(String(receiverName || "").trim()), state);
@@ -9194,20 +9873,53 @@ This is an alternate test message to show now.`;
     };
 
     const receiverForm = readRoleFormValues("receiver");
-    addCandidate(receiverForm.ownName, receiverForm.partnerName);
+    if (
+      visitorMode ||
+      !authoritativeSelfIdentities.size ||
+      authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(receiverForm.ownName, state)))
+    ) {
+      addCandidate(receiverForm.ownName, receiverForm.partnerName);
+    }
 
     const senderForm = readRoleFormValues("sender");
-    addCandidate(senderForm.partnerName, senderForm.ownName);
+    if (
+      visitorMode ||
+      !authoritativeSelfIdentities.size ||
+      authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(senderForm.ownName, state)))
+    ) {
+      addCandidate(senderForm.partnerName, senderForm.ownName);
+    }
 
     const receiverSettings = readRoleSettings("receiver");
-    addCandidate(receiverSettings.ownName, receiverSettings.partnerName);
+    if (
+      visitorMode ||
+      !authoritativeSelfIdentities.size ||
+      authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(receiverSettings.ownName, state)))
+    ) {
+      addCandidate(receiverSettings.ownName, receiverSettings.partnerName);
+    }
 
     const senderSettings = readRoleSettings("sender");
-    addCandidate(senderSettings.partnerName, senderSettings.ownName);
+    if (
+      visitorMode ||
+      !authoritativeSelfIdentities.size ||
+      authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(senderSettings.ownName, state)))
+    ) {
+      addCandidate(senderSettings.partnerName, senderSettings.ownName);
+    }
 
     const currentParticipants = getCurrentPairParticipants();
     if (currentParticipants) {
-      addCandidate(currentParticipants.receiverName, currentParticipants.senderName);
+      const currentReceiverIdentity = normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(currentParticipants.receiverName, state));
+      const currentSenderIdentity = normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(currentParticipants.senderName, state));
+      if (
+        visitorMode ||
+        !authoritativeSelfIdentities.size ||
+        authoritativeSelfIdentities.has(currentReceiverIdentity) ||
+        authoritativeSelfIdentities.has(currentSenderIdentity)
+      ) {
+        addCandidate(currentParticipants.receiverName, currentParticipants.senderName);
+      }
     }
 
     if (visitorMode) {
@@ -9316,7 +10028,7 @@ This is an alternate test message to show now.`;
   }
 
   function getAvailableReportPairs(records = reportCsvRecordsCache) {
-    const includeAllPairs = hasLauncherAdminAccess();
+    const includeAllPairs = false;
     const state = readLauncherState();
     const ownNames = new Set(collectReportOwnNames().map((name) => normalizePersonNameForPairMatch(name)));
     const candidatePairs = collectReportCandidatePairs();
@@ -11719,6 +12431,21 @@ This is an alternate test message to show now.`;
     window.removeEventListener("pointercancel", endReportViewPan);
   }
 
+  function setReportPairBanner(pairInfo, visible = true) {
+    if (!reportPairBanner) {
+      return;
+    }
+    if (!visible || !pairInfo?.receiverName || !pairInfo?.senderName) {
+      reportPairBanner.textContent = "";
+      reportPairBanner.hidden = true;
+      return;
+    }
+    const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
+    const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
+    reportPairBanner.textContent = `Receiver: ${receiverLabel}      Sender: ${senderLabel}`;
+    reportPairBanner.hidden = false;
+  }
+
   async function renderPerformanceReport(pairInfo = selectedReportPair) {
     let csvResult = {
       available: false,
@@ -11740,6 +12467,7 @@ This is an alternate test message to show now.`;
     }
 
     if (!pairInfo?.receiverName || !pairInfo?.senderName) {
+      setReportPairBanner(null, false);
       reportSummary.replaceChildren();
       reportStatus.textContent = "Choose a receiver-sender pair in Report Definition first, then open this report again.";
       if (reportTableWrap) {
@@ -11752,6 +12480,7 @@ This is an alternate test message to show now.`;
     }
 
     const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+    setReportPairBanner(pairInfo, true);
 
     if (!records.length) {
       reportSummary.replaceChildren();
@@ -13038,6 +13767,9 @@ This is an alternate test message to show now.`;
   }
 
   async function persistLauncherProfileForForm(role, form, overrideState = null) {
+    if (suppressLauncherProfileSaves) {
+      return;
+    }
     if (launcherGuestEntryActive && isVisitorLauncherEntry(overrideState || readLauncherState())) {
       return;
     }
@@ -13155,7 +13887,7 @@ This is an alternate test message to show now.`;
     } catch (error) {
       return false;
     }
-    if (!status || !status.identifier_exists) {
+    if (!status || !status.formal_identity_exists) {
       return false;
     }
 
@@ -13520,7 +14252,9 @@ This is an alternate test message to show now.`;
       : profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
 
     ownInput.value = savedOwn;
-    ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
+    ownInput.placeholder = visitorMode ? "" : (role === "sender"
+      ? "Enter unique name of sender"
+      : "Enter unique name of receiver");
     applyVisitorOwnInputLock(ownInput, lockedVisitorName, visitorMode);
     partnerInput.value = savedPartner;
     partnerInput.placeholder = role === "sender"
@@ -14052,7 +14786,9 @@ This is an alternate test message to show now.`;
       const partnerInput = form.querySelector('input[name="partnerName"]');
       if (ownInput) {
         ownInput.value = visitorMode ? getVisitorLockedName() : "";
-        ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
+        ownInput.placeholder = visitorMode ? "" : (role === "sender"
+          ? "Enter unique name of sender"
+          : "Enter unique name of receiver");
         applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName() : "", visitorMode);
       }
       if (partnerInput) {
@@ -14134,17 +14870,35 @@ This is an alternate test message to show now.`;
   async function enterWorkingHomeFromLanding(mode = "resume") {
     const normalizedMode = mode === "fresh" || mode === "visitor" ? mode : "resume";
     setLauncherGuestEntryActive(normalizedMode !== "resume");
+    const initialResumeCandidates = normalizedMode === "resume" ? getResumeUserTypeCandidatesFromState(readLauncherState()) : [];
     logLauncherUserTypeDebug("enter_working_home", {
       mode: normalizedMode,
       resolvedMainUserType: readLauncherState().resolvedMainUserType || "standard",
       activeLauncherRole,
-      candidates: normalizedMode === "resume" ? getCurrentUserTypeCandidates() : []
+      candidates: initialResumeCandidates
     });
     if (normalizedMode !== "resume") {
       resetLauncherWorkingHomeForFreshEntry();
     } else {
       const latestState = readLauncherState();
       const resolvedUserType = await resolveResumeUserType(latestState);
+      const refreshedState = readLauncherState();
+      if (
+        !isVisitorLauncherEntry(refreshedState) &&
+        !getLoadedInviteeIdentity(refreshedState) &&
+        !getTemporaryIdentityState(refreshedState) &&
+        !getCanonicalRecognizedIdentity(refreshedState)
+      ) {
+        const promotionCandidates = uniqueNames(initialResumeCandidates.map((value) => String(value || "").trim()).filter(Boolean));
+        if (promotionCandidates.length === 1) {
+          const promoted = promoteRecognizedIdentityFromCandidate(promotionCandidates[0], resolvedUserType, refreshedState);
+          writeLauncherState(promoted);
+          logLauncherUserTypeDebug("resume_identity_promoted", {
+            identifier: promotionCandidates[0],
+            userType: resolvedUserType
+          });
+        }
+      }
       renderMainTitle(resolvedUserType, { persist: true });
       scheduleMainUserTypeRefresh(0);
     }
@@ -16997,11 +17751,23 @@ This is an alternate test message to show now.`;
   async function clearLocalFreshStartState(options = {}) {
     const preserveUsers = options?.preserve_users !== false;
     const preservePairs = options?.preserve_pairs !== false;
+    const preserveInvitees = options?.preserve_invitees !== false;
     const preserveQuestionnaires = options?.preserve_questionnaires !== false;
     const preservedAdminDevicePrefs = {
       ...launcherAdminDevicePrefs
     };
+    logLauncherUserTypeDebug("fresh_start_local_clear_begin", {
+      preserveUsers,
+      preservePairs,
+      preserveInvitees,
+      preserveQuestionnaires,
+      deviceTestModeBefore: cloneJsonValue(readLauncherState()?.deviceTestMode || null, null),
+      hasRestoreSnapshotKeyBefore: hasDeviceTestRestoreSnapshot()
+    });
     try {
+      writeDeviceTestNotice("");
+      clearDeviceTestRestoreSnapshot();
+      setLauncherProfileSaveSuppression(!preserveUsers, true);
       localStorage.removeItem(analysisStorageKey);
       localStorage.removeItem("cones-local-trials-receiver");
       localStorage.removeItem("cones-local-trials-v2-sender");
@@ -17009,15 +17775,40 @@ This is an alternate test message to show now.`;
       localStorage.removeItem("conesArrangementHistory");
       localStorage.removeItem("conesArrangementHistory-v2");
       localStorage.removeItem("cones-receiver-skip-two-choice-instructions");
-    if (!preserveUsers) {
-      localStorage.removeItem(launcherKey);
-      localStorage.removeItem(recognizedIdentityKey);
-      localStorage.removeItem(stripeReturnIdentifierStorageKey);
-    }
+      if (!preserveUsers) {
+        roleCards.forEach((card) => {
+          const form = card.querySelector("[data-role-form]");
+          const ownInput = form?.querySelector('input[name="ownName"]');
+          const partnerInput = form?.querySelector('input[name="partnerName"]');
+          if (ownInput) {
+            ownInput.value = "";
+          }
+          if (partnerInput) {
+            partnerInput.value = "";
+          }
+        });
+        clearLauncherIdentityArtifacts();
+        try {
+          const anonymousState = buildVisitorLauncherState(normalizeLauncherIdentityState({}));
+          anonymousState.deviceTestMode = null;
+          anonymousState.loadedInviteeIdentity = null;
+          anonymousState.pendingInviteeOnboarding = null;
+          localStorage.setItem(launcherKey, JSON.stringify(normalizeLauncherIdentityState(anonymousState)));
+          sessionStorage.removeItem(launcherKey);
+        } catch (error) {
+          // Ignore last-ditch launcher reset failures.
+        }
+        writeLocalFreshStartEpoch(Date.now());
+        setPendingFreshStartAnonymousReset(true);
+      }
       if (!preservePairs) {
         localStorage.removeItem("cones-settings-v2-sender");
         localStorage.removeItem("cones-settings-v2-receiver");
         localStorage.removeItem("cones-settings-v2-remote-viewer");
+      }
+      if (!preserveInvitees) {
+        inviteeRecordsCache = [];
+        currentInviteeIdentifier = "";
       }
       const questionnairePrefixes = [
         "cones-baseline-questions-v1-",
@@ -17033,9 +17824,25 @@ This is an alternate test message to show now.`;
         }
         keysToRemove.forEach((key) => localStorage.removeItem(key));
       }
+      if (preserveUsers) {
+        const latest = readLauncherState();
+        if (latest?.deviceTestMode || latest?.loadedInviteeIdentity) {
+          latest.deviceTestMode = null;
+          latest.loadedInviteeIdentity = null;
+          latest.pendingInviteeOnboarding = null;
+          writeLauncherState(latest);
+        }
+      }
     } catch (error) {
       // Ignore local cleanup failures.
     }
+    logLauncherUserTypeDebug("fresh_start_local_clear_end", {
+      preserveUsers,
+      deviceTestModeAfter: cloneJsonValue(readLauncherState()?.deviceTestMode || null, null),
+      hasRestoreSnapshotKeyAfter: hasDeviceTestRestoreSnapshot(),
+      recognizedIdentityAfter: String(readLauncherState()?.recognizedIdentity || "").trim(),
+      entryModeAfter: String(readLauncherState()?.entryMode || "").trim()
+    });
     writeLauncherAdminDevicePrefs(preservedAdminDevicePrefs);
     syncLauncherAdminStateFromDevicePrefs();
     if (!preserveUsers) {
@@ -17269,6 +18076,7 @@ This is an alternate test message to show now.`;
   function showResearchParticipationView() {
     clearReportPanelOffset();
     researchParticipationView?.classList.remove("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -17303,6 +18111,7 @@ This is an alternate test message to show now.`;
   function showResearchParticipationProView() {
     clearReportPanelOffset();
     researchParticipationProView?.classList.remove("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -17440,6 +18249,7 @@ This is an alternate test message to show now.`;
   function showResearchInterestFormView() {
     clearReportPanelOffset();
     researchInterestFormView?.classList.remove("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -17658,7 +18468,7 @@ This is an alternate test message to show now.`;
       canSave: !!identifier && isValidUniqueHandle(identifier),
       canDelete: false,
       canTestNewDevice: !isDeviceTestModeActive(),
-      canRestoreMyDevice: isDeviceTestModeActive()
+      canRestoreMyDevice: canRestoreDeviceIdentity()
     });
   }
 
@@ -17682,10 +18492,12 @@ This is an alternate test message to show now.`;
       inviteeDeleteButton.disabled = !options.canDelete;
     }
     if (testNewDeviceButton) {
-      testNewDeviceButton.disabled = !options.canTestNewDevice;
+      testNewDeviceButton.disabled = false;
+      testNewDeviceButton.setAttribute("aria-disabled", options.canTestNewDevice ? "false" : "true");
     }
     if (restoreMyDeviceButton) {
-      restoreMyDeviceButton.disabled = !options.canRestoreMyDevice;
+      restoreMyDeviceButton.disabled = false;
+      restoreMyDeviceButton.setAttribute("aria-disabled", options.canRestoreMyDevice ? "false" : "true");
     }
   }
 
@@ -17763,7 +18575,7 @@ This is an alternate test message to show now.`;
       canSave: !!match,
       canDelete: !!match,
       canTestNewDevice: !isDeviceTestModeActive(),
-      canRestoreMyDevice: isDeviceTestModeActive()
+      canRestoreMyDevice: canRestoreDeviceIdentity()
     });
   }
 
@@ -17780,7 +18592,7 @@ This is an alternate test message to show now.`;
         canSave: false,
         canDelete: false,
         canTestNewDevice: !isDeviceTestModeActive(),
-        canRestoreMyDevice: isDeviceTestModeActive()
+        canRestoreMyDevice: canRestoreDeviceIdentity()
       });
       return;
     }
@@ -17793,7 +18605,7 @@ This is an alternate test message to show now.`;
         canSave: false,
         canDelete: false,
         canTestNewDevice: !isDeviceTestModeActive(),
-        canRestoreMyDevice: isDeviceTestModeActive()
+        canRestoreMyDevice: canRestoreDeviceIdentity()
       });
       return;
     }
@@ -17811,7 +18623,7 @@ This is an alternate test message to show now.`;
       canSave: false,
       canDelete: false,
       canTestNewDevice: !isDeviceTestModeActive(),
-      canRestoreMyDevice: isDeviceTestModeActive()
+      canRestoreMyDevice: canRestoreDeviceIdentity()
     });
 
     try {
@@ -17828,7 +18640,7 @@ This is an alternate test message to show now.`;
           canSave: false,
           canDelete: false,
           canTestNewDevice: !isDeviceTestModeActive(),
-          canRestoreMyDevice: isDeviceTestModeActive()
+          canRestoreMyDevice: canRestoreDeviceIdentity()
         });
         return;
       }
@@ -17840,7 +18652,7 @@ This is an alternate test message to show now.`;
         canSave: true,
         canDelete: false,
         canTestNewDevice: !isDeviceTestModeActive(),
-        canRestoreMyDevice: isDeviceTestModeActive()
+        canRestoreMyDevice: canRestoreDeviceIdentity()
       });
     } catch (error) {
       if (lookupToken !== pendingInviteeLookupToken) {
@@ -17853,7 +18665,7 @@ This is an alternate test message to show now.`;
         canSave: false,
         canDelete: false,
         canTestNewDevice: !isDeviceTestModeActive(),
-        canRestoreMyDevice: isDeviceTestModeActive()
+        canRestoreMyDevice: canRestoreDeviceIdentity()
       });
     }
   }
@@ -17871,6 +18683,7 @@ This is an alternate test message to show now.`;
 
   function renderTemporaryHomeReturnState() {
     const state = readLauncherState();
+    const deviceTestNotice = readAndClearDeviceTestNotice();
     const temporaryIdentity = getTemporaryIdentityState(state);
     const exploreTrial = state?.exploreTrial && typeof state.exploreTrial === "object" ? state.exploreTrial : null;
     const hasMatchingActiveExploreTrial =
@@ -17890,6 +18703,11 @@ This is an alternate test message to show now.`;
       setTemporaryHomeInvitationStatus(
         `This device already has an active ESP PRO exploration for ${temporaryIdentity.identifier}. Press CONTINUE to return to it.`
       );
+      return;
+    }
+
+    if (deviceTestNotice) {
+      setTemporaryHomeInvitationStatus(deviceTestNotice);
       return;
     }
 
@@ -18143,7 +18961,18 @@ This is an alternate test message to show now.`;
           nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(recoveredIdentifier)] = data.identifier_status;
         }
         writeLauncherState(nextIdentityState);
+        setLauncherProfileSaveSuppression(false, true);
+        ["sender", "receiver", "remote-viewer"].forEach((role) => {
+          const currentRuntime = readRuntimeSettings(role);
+          persistLauncherRuntimeIdentity(
+            role,
+            recoveredIdentifier,
+            String(currentRuntime?.partner_email || "").trim(),
+            currentRuntime
+          );
+        });
         setLauncherGuestEntryActive(false);
+        applyIdentityStateToLauncherInputs();
         closeExploreProOverlay();
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
@@ -18183,7 +19012,17 @@ This is an alternate test message to show now.`;
           nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = data.identifier_status;
         }
         writeLauncherState(nextIdentityState);
+        ["sender", "receiver", "remote-viewer"].forEach((role) => {
+          const currentRuntime = readRuntimeSettings(role);
+          persistLauncherRuntimeIdentity(
+            role,
+            acceptedHandle,
+            String(currentRuntime?.partner_email || "").trim(),
+            currentRuntime
+          );
+        });
         setLauncherGuestEntryActive(false);
+        applyIdentityStateToLauncherInputs();
         closeExploreProOverlay();
         if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
           showInstallGuideView({ returnView: "feature-setup" });
@@ -18246,6 +19085,9 @@ This is an alternate test message to show now.`;
   }
 
   function shouldResumeRecognizedLandingIdentity(state = readLauncherState()) {
+    if (isDeviceTestModeActive(state) || hasDeviceTestRestoreSnapshot()) {
+      return false;
+    }
     return hasKnownLauncherIdentity(state) && !isVisitorLauncherEntry(state);
   }
 
@@ -18322,7 +19164,9 @@ This is an alternate test message to show now.`;
         ? "Robot"
         : profileState?.currentPartner || String(state.currentPartners?.[role] || "").trim() || roleSettings.partnerName || "";
       ownInput.value = savedOwn;
-      ownInput.placeholder = visitorMode ? "" : "name@example.com or unique handle";
+      ownInput.placeholder = visitorMode ? "" : (role === "sender"
+        ? "Enter unique name of sender"
+        : "Enter unique name of receiver");
       applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName(state) : "", visitorMode);
       partnerInput.value = savedPartner;
       partnerInput.placeholder = role === "sender"
@@ -18394,6 +19238,7 @@ This is an alternate test message to show now.`;
         }
       : null;
     writeLauncherState(nextState);
+    setLauncherProfileSaveSuppression(false, true);
     if (identifierStatus) {
       rememberIdentifierStatus(cleanIdentifier, identifierStatus);
     }
@@ -18409,7 +19254,7 @@ This is an alternate test message to show now.`;
     if (!loaded) {
       return null;
     }
-    const restored = restoreDeviceIdentitySnapshot(loaded.previousIdentitySnapshot || {}, latest);
+    const restored = finalizeRestoredIdentityState(restoreDeviceIdentitySnapshot(loaded.previousIdentitySnapshot || {}, latest));
     writeLauncherState(restored);
     const runtimeSettings = loaded.previousIdentitySnapshot?.runtimeSettings && typeof loaded.previousIdentitySnapshot.runtimeSettings === "object"
       ? loaded.previousIdentitySnapshot.runtimeSettings
@@ -18418,6 +19263,7 @@ This is an alternate test message to show now.`;
       const nextRuntime = runtimeSettings[role] && typeof runtimeSettings[role] === "object" ? runtimeSettings[role] : {};
       writeRuntimeSettings(role, nextRuntime);
     });
+    writeLauncherState(hydrateRecognizedIdentityFromCurrentState());
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
     return loaded;
@@ -18458,8 +19304,37 @@ This is an alternate test message to show now.`;
   }
 
   function startInviteeDeviceTestMode() {
-    const latest = readLauncherState();
+    let latest = clearStaleDeviceTestModeArtifactsIfNeeded(readLauncherState());
+    logLauncherUserTypeDebug("invitee_test_mode_start_attempt", {
+      deviceTestModeActive: isDeviceTestModeActive(latest),
+      rawDeviceTestMode: cloneJsonValue(latest?.deviceTestMode || null, null),
+      hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot(),
+      recognizedIdentity: String(latest?.recognizedIdentity || "").trim(),
+      entryMode: String(latest?.entryMode || "").trim(),
+      loadedInviteeIdentifier: String(getLoadedInviteeIdentity(latest)?.identifier || "").trim()
+    });
     if (isDeviceTestModeActive(latest)) {
+      if (!hasAuthoritativeDeviceIdentity(latest)) {
+        logLauncherUserTypeDebug("invitee_test_mode_restart_from_anonymous_state", {
+          rawDeviceTestMode: cloneJsonValue(latest?.deviceTestMode || null, null),
+          hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot(),
+          recognizedIdentity: String(latest?.recognizedIdentity || "").trim(),
+          entryMode: String(latest?.entryMode || "").trim()
+        });
+        clearDeviceTestRestoreSnapshot();
+        writeDeviceTestNotice("");
+        latest = normalizeLauncherIdentityState({
+          ...latest,
+          deviceTestMode: null
+        });
+        writeLauncherState(latest);
+      } else {
+      logLauncherUserTypeDebug("invitee_test_mode_already_active_branch", {
+        rawDeviceTestMode: cloneJsonValue(latest?.deviceTestMode || null, null),
+        hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot(),
+        recognizedIdentity: String(latest?.recognizedIdentity || "").trim(),
+        entryMode: String(latest?.entryMode || "").trim()
+      });
       if (inviteeStatus) {
         inviteeStatus.textContent = "Test mode is already active on this device.";
       }
@@ -18470,27 +19345,76 @@ This is an alternate test message to show now.`;
         canRestoreMyDevice: true
       });
       return;
+      }
     }
 
     const restoreSnapshot = snapshotDeviceIdentityState(latest);
+    const restoreDescription = describeRestoreSnapshotIdentity(restoreSnapshot);
+    writeDeviceTestRestoreSnapshot(restoreSnapshot);
     const nextState = buildVisitorLauncherState(latest);
     nextState.deviceTestMode = {
       active: true,
       restoreSnapshot,
       startedAt: Date.now()
     };
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      clearRuntimeSettings(role);
+    });
     writeLauncherState(nextState);
+    writeDeviceTestNotice(
+      `Test As New Device is active. Restore My Device will restore ${restoreDescription}.`
+    );
+    logLauncherUserTypeDebug("invitee_test_mode_started", {
+      hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot(),
+      recognizedIdentity: String(nextState?.recognizedIdentity || "").trim(),
+      entryMode: String(nextState?.entryMode || "").trim()
+    });
     setLauncherGuestEntryActive(false);
     if (inviteeStatus) {
       inviteeStatus.textContent = "Test mode started. This device is now behaving like a new device.";
     }
+    window.alert(`Test As New Device is active.\n\nRestore My Device will restore ${restoreDescription}.`);
     window.location.href = buildCanonicalLauncherUrl({ open: "landing" });
   }
 
   function restoreInviteeDeviceTestMode() {
-    const latest = readLauncherState();
+    const latest = clearStaleDeviceTestModeArtifactsIfNeeded(readLauncherState());
     const testMode = getDeviceTestModeState(latest);
-    if (!testMode?.active || !testMode.restoreSnapshot) {
+    const loadedInvitee = getLoadedInviteeIdentity(latest);
+    const restoreSnapshot = testMode?.restoreSnapshot || readDeviceTestRestoreSnapshot();
+    const snapshotIdentity = String(restoreSnapshot?.recognizedIdentity || "").trim();
+    logLauncherUserTypeDebug("invitee_test_mode_restore_attempt", {
+      deviceTestModeActive: !!testMode?.active,
+      hasInlineRestoreSnapshot: !!testMode?.restoreSnapshot,
+      hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot(),
+      recognizedIdentity: String(latest?.recognizedIdentity || "").trim(),
+      loadedInviteeIdentifier: String(loadedInvitee?.identifier || "").trim()
+    });
+    if (!restoreSnapshot && loadedInvitee) {
+      clearLoadedInviteeIdentityFromDevice();
+      clearDeviceTestRestoreSnapshot();
+      setLauncherProfileSaveSuppression(false, true);
+      logLauncherUserTypeDebug("invitee_loaded_identity_restored", {
+        recognizedIdentity: String(readLauncherState()?.recognizedIdentity || "").trim(),
+        restoredInviteeIdentifier: String(loadedInvitee?.identifier || "").trim(),
+        hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot()
+      });
+      setLauncherGuestEntryActive(false);
+      applyIdentityStateToLauncherInputs();
+      if (inviteeStatus) {
+        inviteeStatus.textContent = snapshotIdentity
+          ? `Your original device state has been restored: ${snapshotIdentity}.`
+          : "Your original device state has been restored.";
+      }
+      setInviteeAdminActionState({
+        canSave: !!currentInviteeIdentifier && isValidUniqueHandle(currentInviteeIdentifier),
+        canDelete: !!getInviteeRecordByIdentifier(currentInviteeIdentifier),
+        canTestNewDevice: true,
+        canRestoreMyDevice: false
+      });
+      return;
+    }
+    if (!restoreSnapshot) {
       if (inviteeStatus) {
         inviteeStatus.textContent = "No saved device snapshot is available to restore.";
       }
@@ -18503,19 +19427,29 @@ This is an alternate test message to show now.`;
       return;
     }
 
-    const restored = restoreDeviceIdentitySnapshot(testMode.restoreSnapshot, latest);
+    const restored = finalizeRestoredIdentityState(restoreDeviceIdentitySnapshot(restoreSnapshot, latest));
     writeLauncherState(restored);
-    const runtimeSettings = testMode.restoreSnapshot.runtimeSettings && typeof testMode.restoreSnapshot.runtimeSettings === "object"
-      ? testMode.restoreSnapshot.runtimeSettings
+    const runtimeSettings = restoreSnapshot.runtimeSettings && typeof restoreSnapshot.runtimeSettings === "object"
+      ? restoreSnapshot.runtimeSettings
       : {};
     ["sender", "receiver", "remote-viewer"].forEach((role) => {
       const nextRuntime = runtimeSettings[role] && typeof runtimeSettings[role] === "object" ? runtimeSettings[role] : {};
       writeRuntimeSettings(role, nextRuntime);
     });
+    writeLauncherState(hydrateRecognizedIdentityFromCurrentState());
+    clearDeviceTestRestoreSnapshot();
+    setLauncherProfileSaveSuppression(false, true);
+    logLauncherUserTypeDebug("invitee_test_mode_restored", {
+      recognizedIdentity: String(readLauncherState()?.recognizedIdentity || "").trim(),
+      loadedInviteeIdentifier: String(getLoadedInviteeIdentity(readLauncherState())?.identifier || "").trim(),
+      hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot()
+    });
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
     if (inviteeStatus) {
-      inviteeStatus.textContent = "Your original device state has been restored.";
+      inviteeStatus.textContent = snapshotIdentity
+        ? `Your original device state has been restored: ${snapshotIdentity}.`
+        : "Your original device state has been restored.";
     }
     setInviteeAdminActionState({
       canSave: !!currentInviteeIdentifier && isValidUniqueHandle(currentInviteeIdentifier),
@@ -18581,7 +19515,7 @@ This is an alternate test message to show now.`;
           canSave: false,
           canDelete: false,
           canTestNewDevice: !isDeviceTestModeActive(),
-          canRestoreMyDevice: isDeviceTestModeActive()
+          canRestoreMyDevice: canRestoreDeviceIdentity()
         });
       }
       return invitees;
@@ -18618,16 +19552,24 @@ This is an alternate test message to show now.`;
         email,
         private_note: privateNote
       });
+      const authoritativeInvitees = Array.isArray(data?.invitees) ? data.invitees : [];
+      const authoritativeMatch = authoritativeInvitees.find(
+        (entry) => normalizeInviteeIdentifierValue(entry?.identifier || "") === normalizeInviteeIdentifierValue(data?.invitee?.identifier || identifier)
+      );
+      if (!authoritativeMatch) {
+        throw new Error("The server did not confirm that invitee save. Please try again.");
+      }
       currentInviteeIdentifier = String(data?.invitee?.identifier || identifier);
       await refreshInviteeAdminList({ preserveSelection: true });
       if (inviteeStatus) {
-        inviteeStatus.textContent = String(data?.message || `Invitee ${currentInviteeIdentifier} saved.`);
+        const countLabel = Number.isFinite(Number(data?.invitee_count)) ? ` Saved invitees on server: ${Number(data.invitee_count)}.` : "";
+        inviteeStatus.textContent = `${String(data?.message || `Invitee ${currentInviteeIdentifier} saved.`)}${countLabel}`;
       }
       setInviteeAdminActionState({
         canSave: true,
         canDelete: true,
         canTestNewDevice: !isDeviceTestModeActive(),
-        canRestoreMyDevice: isDeviceTestModeActive()
+        canRestoreMyDevice: canRestoreDeviceIdentity()
       });
       void refreshAdminView();
     } catch (error) {
@@ -19442,8 +20384,10 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function applyLauncherOpenRequest() {
+  async function applyLauncherOpenRequest() {
       try {
+        consumeLauncherStateWriteLock();
+        consumePendingFreshStartAnonymousReset();
         const params = new URLSearchParams(window.location.search);
         const requestedView = String(params.get("open") || "").trim().toLowerCase();
         const requestedDifficultyLevel = normalizeDifficultyLevel(params.get("difficulty_level") || "");
@@ -19459,7 +20403,16 @@ This is an alternate test message to show now.`;
       const messageOwner = String(params.get("message_owner") || "").trim();
         const messagePartner = String(params.get("message_partner") || "").trim();
         const messageFocus = params.get("message_focus") === "1";
-        const launcherState = readLauncherState();
+        let launcherState = clearStaleDeviceTestModeArtifactsIfNeeded(readLauncherState());
+        launcherState = await sanitizeRecognizedIdentityForLauncherEntry(launcherState);
+        logLauncherUserTypeDebug("apply_launcher_open_request", {
+          requestedView,
+          recognizedIdentity: String(launcherState?.recognizedIdentity || "").trim(),
+          entryMode: String(launcherState?.entryMode || "").trim(),
+          deviceTestMode: cloneJsonValue(launcherState?.deviceTestMode || null, null),
+          loadedInviteeIdentifier: String(launcherState?.loadedInviteeIdentity?.identifier || "").trim(),
+          hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot()
+        });
         if (
           requestedVisitorDisplayName &&
           ["sender", "receiver"].includes(requestedView) &&
@@ -19786,6 +20739,11 @@ This is an alternate test message to show now.`;
       0,
       Number(returnDescriptor.scrollY ?? window.scrollY ?? window.pageYOffset ?? 0) || 0
     );
+    logGoProCheckoutDebug("show_go_pro_view", {
+      returnView: goProReturnView,
+      returnRole: goProReturnRole,
+      returnScrollY: goProReturnScrollY
+    });
     clearReportPanelOffset();
     goProView?.classList.remove("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
@@ -19871,6 +20829,7 @@ This is an alternate test message to show now.`;
     clearReportPanelOffset();
     otherSettingsView?.classList.remove("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -19903,8 +20862,14 @@ This is an alternate test message to show now.`;
   }
 
   function showSubscriptionManagementView() {
+    logGoProCheckoutDebug("show_subscription_management_view", {
+      currentIdentifier: getCurrentTelepathyProIdentifier(),
+      effectivePro: isEffectiveLauncherUserPro()
+    });
+    renderSubscriptionManagementState();
     clearReportPanelOffset();
     subscriptionManagementView?.classList.remove("beginner-view-hidden");
+    giftProSubscriptionView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
@@ -19933,6 +20898,81 @@ This is an alternate test message to show now.`;
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showGiftProSubscriptionView() {
+    renderGiftProSubscriptionState();
+    clearReportPanelOffset();
+    giftProSubscriptionView?.classList.remove("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showResearchProposalView(returnView = "research-participation") {
+    researchProposalReturnView = String(returnView || "research-participation").trim() || "research-participation";
+    clearReportPanelOffset();
+    researchProposalView?.classList.remove("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -21135,6 +22175,14 @@ This is an alternate test message to show now.`;
     window.location.href = buildCanonicalLauncherUrl({ open: "landing-preview" });
   });
   openGoProButton?.addEventListener("click", () => {
+    logGoProCheckoutDebug("outer_pro_subscription_button_click", {
+      currentIdentifier: getCurrentTelepathyProIdentifier(),
+      effectivePro: isEffectiveLauncherUserPro()
+    });
+    if (isEffectiveLauncherUserPro()) {
+      showGiftProSubscriptionView();
+      return;
+    }
     showGoProView("subscription-management");
   });
   openVisitorProFeatureButtons.forEach((button) => {
@@ -21144,9 +22192,11 @@ This is an alternate test message to show now.`;
     });
   });
   goProMonthlyButton?.addEventListener("click", () => {
+    logGoProCheckoutDebug("monthly_button_handler");
     void startTelepathyProCheckout("monthly");
   });
   goProAnnualButton?.addEventListener("click", () => {
+    logGoProCheckoutDebug("annual_button_handler");
     void startTelepathyProCheckout("annual");
   });
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
@@ -21162,7 +22212,21 @@ This is an alternate test message to show now.`;
     }
     showResearchParticipationProView();
   });
-  openSubscriptionManagementButton?.addEventListener("click", showSubscriptionManagementView);
+  openResearchProposalButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const sourceView = button.closest('[data-view="research-participation-pro"]')
+        ? "research-participation-pro"
+        : "research-participation";
+      showResearchProposalView(sourceView);
+    });
+  });
+  openSubscriptionManagementButton?.addEventListener("click", () => {
+    logGoProCheckoutDebug("open_subscription_management_button_click", {
+      currentIdentifier: getCurrentTelepathyProIdentifier(),
+      effectivePro: isEffectiveLauncherUserPro()
+    });
+    showSubscriptionManagementView();
+  });
   openLocationPickerSettingsButton?.addEventListener("click", () => {
     void showLocationPicker(activeLauncherRole || "sender", {
       sourceTimestamp: Number(readLauncherState().deviceLocation?.timestamp || 0)
@@ -21228,6 +22292,18 @@ This is an alternate test message to show now.`;
     if (!target) {
       return;
     }
+    const goProTrigger = target.closest("[data-go-pro-monthly], [data-go-pro-annual]");
+    if (goProTrigger instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      const plan = goProTrigger.hasAttribute("data-go-pro-annual") ? "annual" : "monthly";
+      logGoProCheckoutDebug("delegated_click_handler", {
+        plan,
+        buttonText: String(goProTrigger.textContent || "").trim()
+      });
+      void startTelepathyProCheckout(plan);
+      return;
+    }
     const inlineHandle = target.closest("[data-inline-open-handle]");
     if (inlineHandle instanceof HTMLElement) {
       event.preventDefault();
@@ -21279,6 +22355,13 @@ This is an alternate test message to show now.`;
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
   closeClairvoyanceViewingButton?.addEventListener("click", showOtherSettingsView);
   closeResearchParticipationProButton?.addEventListener("click", showOtherSettingsView);
+  closeResearchProposalButton?.addEventListener("click", () => {
+    if (researchProposalReturnView === "research-participation") {
+      showResearchParticipationView();
+      return;
+    }
+    showResearchParticipationProView();
+  });
   openResearchInterestFormButton?.addEventListener("click", showResearchInterestFormView);
   closeResearchInterestFormButton?.addEventListener("click", showResearchParticipationProView);
   researchInterestCancelButton?.addEventListener("click", showResearchParticipationProView);
@@ -21286,6 +22369,15 @@ This is an alternate test message to show now.`;
     void saveResearchInterestForm();
   });
   closeSubscriptionManagementButton?.addEventListener("click", showOtherSettingsView);
+  closeGiftProSubscriptionButton?.addEventListener("click", showSubscriptionManagementView);
+  cancelGiftProSubscriptionButton?.addEventListener("click", showSubscriptionManagementView);
+  submitGiftProSubscriptionButton?.addEventListener("click", () => {
+    void submitGiftProSubscription();
+  });
+  giftProSubscriptionForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitGiftProSubscription();
+  });
   otherSettingsHomeButton?.addEventListener("click", showLauncherView);
   closeUserTypeAdminButton?.addEventListener("click", showAdminView);
   closeInviteeAdminButton?.addEventListener("click", () => {
@@ -21860,9 +22952,25 @@ This is an alternate test message to show now.`;
     void deleteInviteeRecord();
   });
   testNewDeviceButton?.addEventListener("click", () => {
+    traceLauncherClient("invitee_test_new_device_button_clicked", {
+      hasAdminAccess: hasLauncherAdminAccess(),
+      deviceTestModeActive: isDeviceTestModeActive(),
+      hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot()
+    });
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "Starting Test As New Device...";
+    }
     startInviteeDeviceTestMode();
   });
   restoreMyDeviceButton?.addEventListener("click", () => {
+    traceLauncherClient("invitee_restore_my_device_button_clicked", {
+      hasAdminAccess: hasLauncherAdminAccess(),
+      deviceTestModeActive: isDeviceTestModeActive(),
+      hasRestoreSnapshotKey: hasDeviceTestRestoreSnapshot()
+    });
+    if (inviteeStatus) {
+      inviteeStatus.textContent = "Restoring your saved device state...";
+    }
     restoreInviteeDeviceTestMode();
   });
   handleUpdateOldInput?.addEventListener("input", () => {
@@ -22432,6 +23540,12 @@ This is an alternate test message to show now.`;
     try {
       const preserveSelections = getFreshStartPreserveSelections();
       const data = await launcherAdminApi("fresh_start", preserveSelections);
+      const freshStartSummary = data?.fresh_start_summary && typeof data.fresh_start_summary === "object"
+        ? data.fresh_start_summary
+        : {};
+      if (preserveSelections.preserve_invitees === false && Number(freshStartSummary.invitee_count_after) !== 0) {
+        throw new Error("Fresh Start did not clear invitees on the server.");
+      }
       launcherAdminState.storage = data?.storage || launcherAdminState.storage;
       launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
       launcherAdminState.pair_summary = null;
@@ -22439,15 +23553,21 @@ This is an alternate test message to show now.`;
       launcherAdminState.identity_summary = null;
       launcherAdminState.identity_summary_meta = null;
       launcherAdminState.disk_usage_analysis = null;
+      setLauncherStateWriteLock(true);
       await clearLocalFreshStartState(preserveSelections);
       launcherAdminSecret = "";
       if (adminStatus) {
-        adminStatus.textContent = "Fresh start complete.";
+        const inviteeSummary = preserveSelections.preserve_invitees === false
+          ? ` Invitees were cleared from the server. Remaining invitees: ${Number(freshStartSummary.invitee_count_after || 0)}.`
+          : " Invitees were preserved on the server.";
+        adminStatus.textContent = `Fresh start complete.${inviteeSummary}`;
       }
       window.location.href = `telepathybeginner.html?v=${launcherBuildVersion}`;
     } catch (error) {
       if (adminStatus) {
-        adminStatus.textContent = "Unable to complete fresh start right now.";
+        adminStatus.textContent = error instanceof Error && error.message
+          ? error.message
+          : "Unable to complete fresh start right now.";
       }
     }
   });
@@ -22726,6 +23846,7 @@ This is an alternate test message to show now.`;
     }
   }
 })();
+
 
 
 
