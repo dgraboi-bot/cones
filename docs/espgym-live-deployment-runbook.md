@@ -67,6 +67,31 @@ Required rule going forward:
 
 Never conclude "GitHub commit cannot be done" until the actual nested repo root has been checked.
 
+## Post-Deploy GitHub Rule
+
+When a deployment script changes local version markers, a pre-deploy GitHub checkpoint is not enough.
+
+Required rule going forward:
+
+1. if the user asks to commit the current version to GitHub, GitHub must end up matching the actual deployed build
+2. if deployment bumps versioned files locally, those post-bump files must be committed after the live push
+3. do not stop after a pre-deploy checkpoint when the live build label has changed
+4. after the live push completes, run `git status --short`
+5. if the only remaining changes are the expected version-marker updates from deployment, commit them immediately as the live-build checkpoint
+
+Practical meaning:
+
+- pre-deploy checkpoint = optional safety checkpoint before overwriting the live server
+- post-deploy checkpoint = required checkpoint if the deployment changed local build/version strings
+
+For example:
+
+- if the deploy script bumps `20260706w` to `20260706x`
+- and the live server is now on `20260706x`
+- then GitHub must also receive a follow-up commit containing `20260706x`
+
+Otherwise GitHub is one version behind the actual recoverable live build, which is not acceptable.
+
 ## Local Source Of Truth
 
 The local working copy is the source of truth before deployment.
