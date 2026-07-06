@@ -39,7 +39,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260706x";
+  const runtimeBuildVersion = "20260706am";
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);

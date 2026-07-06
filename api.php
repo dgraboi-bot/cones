@@ -67,7 +67,7 @@ $timeoutNoticeLifetimeMs = 1800000;
 $timeoutExitLifetimeMs = 60000;
 $sessionRetentionMs = 3600000;
 $visitorSimulationRetentionMs = 2 * 24 * 60 * 60 * 1000;
-$debugLogMaxBytes = 307200;
+$debugLogMaxBytes = 524288;
 $safetyLogMaxBytes = 51200;
 $handleChangeCooldownMs = 7 * 24 * 60 * 60 * 1000;
 $maxHandleSubstantiveChanges = 2;
@@ -2281,9 +2281,52 @@ function ensure_stripe_state_sections(array &$state): void
     }
 }
 
+function rebuild_stripe_subscription_indexes(array &$state): void
+{
+    ensure_stripe_state_sections($state);
+    $state['stripe_customer_index'] = [];
+    $state['stripe_subscription_index'] = [];
+    foreach ((array) ($state['stripe_users'] ?? []) as $storageKey => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $customerId = trim((string) ($record['customer_id'] ?? ''));
+        $subscriptionId = trim((string) ($record['subscription_id'] ?? ''));
+        if ($customerId !== '') {
+            $state['stripe_customer_index'][$customerId] = (string) $storageKey;
+        }
+        if ($subscriptionId !== '') {
+            $state['stripe_subscription_index'][$subscriptionId] = (string) $storageKey;
+        }
+    }
+}
+
 function normalize_stripe_subscription_status($value): string
 {
     return strtolower(trim((string) $value));
+}
+
+function normalize_stripe_environment($value): string
+{
+    $normalized = strtolower(trim((string) $value));
+    if ($normalized === 'test') {
+        return 'test';
+    }
+    if ($normalized === 'live') {
+        return 'live';
+    }
+    return '';
+}
+
+function get_current_stripe_environment(array $stripeConfig): string
+{
+    $publishableKey = trim((string) ($stripeConfig['publishableKey'] ?? ''));
+    $secretKey = trim((string) ($stripeConfig['secretKey'] ?? ''));
+    $combined = strtolower($publishableKey . ' ' . $secretKey);
+    if (str_contains($combined, 'pk_test_') || str_contains($combined, 'sk_test_')) {
+        return 'test';
+    }
+    return 'live';
 }
 
 function is_stripe_subscription_active_status(string $status): bool
@@ -2308,9 +2351,19 @@ function update_stripe_subscription_state_for_identifier(array &$state, string $
     $subscriptionStatus = normalize_stripe_subscription_status($subscriptionData['status'] ?? '');
     $plan = normalize_stripe_plan($subscriptionData['plan'] ?? '');
     $checkoutSessionId = trim((string) ($subscriptionData['checkout_session_id'] ?? ''));
+    $currentPeriodStartUtc = trim((string) ($subscriptionData['current_period_start_utc'] ?? ''));
     $currentPeriodEndUtc = trim((string) ($subscriptionData['current_period_end_utc'] ?? ''));
+    $cancelAtPeriodEnd = !empty($subscriptionData['cancel_at_period_end']);
+    $canceledAtUtc = trim((string) ($subscriptionData['canceled_at_utc'] ?? ''));
     $lastEventId = trim((string) ($subscriptionData['last_event_id'] ?? ''));
     $subscriberEmail = trim((string) ($subscriptionData['subscriber_email'] ?? ''));
+    $giftMode = trim((string) ($subscriptionData['gift_mode'] ?? ''));
+    $giftGiverIdentifier = trim((string) ($subscriptionData['gift_giver_identifier'] ?? ''));
+    $giftFromName = normalize_gift_from_name($subscriptionData['gift_from_name'] ?? '');
+    $giftGiverEmail = trim((string) ($subscriptionData['gift_giver_email'] ?? ''));
+    $giftRecipientIdentifier = trim((string) ($subscriptionData['gift_recipient_identifier'] ?? ''));
+    $giftRecipientEmail = trim((string) ($subscriptionData['gift_recipient_email'] ?? ''));
+    $stripeEnvironment = normalize_stripe_environment($subscriptionData['stripe_environment'] ?? '');
 
     $record = is_array($state['stripe_users'][$storageKey] ?? null)
         ? $state['stripe_users'][$storageKey]
@@ -2323,9 +2376,19 @@ function update_stripe_subscription_state_for_identifier(array &$state, string $
     $record['status'] = $subscriptionStatus !== '' ? $subscriptionStatus : (string) ($record['status'] ?? '');
     $record['plan'] = $plan !== '' ? $plan : (string) ($record['plan'] ?? '');
     $record['checkout_session_id'] = $checkoutSessionId !== '' ? $checkoutSessionId : (string) ($record['checkout_session_id'] ?? '');
+    $record['current_period_start_utc'] = $currentPeriodStartUtc !== '' ? $currentPeriodStartUtc : (string) ($record['current_period_start_utc'] ?? '');
     $record['current_period_end_utc'] = $currentPeriodEndUtc !== '' ? $currentPeriodEndUtc : (string) ($record['current_period_end_utc'] ?? '');
+    $record['cancel_at_period_end'] = $cancelAtPeriodEnd;
+    $record['canceled_at_utc'] = $canceledAtUtc !== '' ? $canceledAtUtc : (string) ($record['canceled_at_utc'] ?? '');
     $record['last_event_id'] = $lastEventId !== '' ? $lastEventId : (string) ($record['last_event_id'] ?? '');
     $record['subscriber_email'] = $subscriberEmail !== '' ? $subscriberEmail : (string) ($record['subscriber_email'] ?? '');
+    $record['gift_mode'] = $giftMode !== '' ? $giftMode : (string) ($record['gift_mode'] ?? '');
+    $record['gift_giver_identifier'] = $giftGiverIdentifier !== '' ? $giftGiverIdentifier : (string) ($record['gift_giver_identifier'] ?? '');
+    $record['gift_from_name'] = $giftFromName !== '' ? $giftFromName : (string) ($record['gift_from_name'] ?? '');
+    $record['gift_giver_email'] = $giftGiverEmail !== '' ? $giftGiverEmail : (string) ($record['gift_giver_email'] ?? '');
+    $record['gift_recipient_identifier'] = $giftRecipientIdentifier !== '' ? $giftRecipientIdentifier : (string) ($record['gift_recipient_identifier'] ?? '');
+    $record['gift_recipient_email'] = $giftRecipientEmail !== '' ? $giftRecipientEmail : (string) ($record['gift_recipient_email'] ?? '');
+    $record['stripe_environment'] = $stripeEnvironment !== '' ? $stripeEnvironment : (string) ($record['stripe_environment'] ?? '');
     $record['updated_ms'] = $nowMs;
     $state['stripe_users'][$storageKey] = $record;
 
@@ -2581,6 +2644,280 @@ function normalize_stripe_timestamp_to_utc($value): string
     }
 
     return gmdate('Y-m-d\TH:i:s\Z', $seconds);
+}
+
+function normalize_stripe_gift_mode($value): string
+{
+    $normalized = strtolower(trim((string) $value));
+    if ($normalized === 'gift') {
+        return 'gift';
+    }
+    if ($normalized === 'self') {
+        return 'self';
+    }
+    return '';
+}
+
+function normalize_stripe_bool_flag($value): bool
+{
+    if (is_bool($value)) {
+        return $value;
+    }
+    if (is_numeric($value)) {
+        return ((int) $value) !== 0;
+    }
+    $normalized = strtolower(trim((string) $value));
+    return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+}
+
+function derive_stripe_environment_from_object(array $object, string $fallback = 'live'): string
+{
+    if (array_key_exists('livemode', $object)) {
+        return !empty($object['livemode']) ? 'live' : 'test';
+    }
+    $metadata = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
+    $fromMetadata = normalize_stripe_environment($metadata['stripe_environment'] ?? '');
+    if ($fromMetadata !== '') {
+        return $fromMetadata;
+    }
+    return normalize_stripe_environment($fallback) !== '' ? normalize_stripe_environment($fallback) : 'live';
+}
+
+function migrate_stripe_subscription_identity_refs(array &$state, string $oldHandle, string $newIdentifier): void
+{
+    ensure_stripe_state_sections($state);
+    $updatedStripeUsers = [];
+    foreach ((array) ($state['stripe_users'] ?? []) as $storageKey => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $currentIdentifier = replace_identifier_if_match(trim((string) ($record['identifier'] ?? '')), $oldHandle, $newIdentifier);
+        $giftGiverIdentifier = replace_identifier_if_match(trim((string) ($record['gift_giver_identifier'] ?? '')), $oldHandle, $newIdentifier);
+        $giftRecipientIdentifier = replace_identifier_if_match(trim((string) ($record['gift_recipient_identifier'] ?? '')), $oldHandle, $newIdentifier);
+        $record['identifier'] = $currentIdentifier;
+        $record['gift_giver_identifier'] = $giftGiverIdentifier;
+        $record['gift_recipient_identifier'] = $giftRecipientIdentifier;
+
+        $nextStorageKey = $storageKey;
+        if ($currentIdentifier !== '') {
+            $candidateKey = get_user_storage_key_for_identifier($state, $currentIdentifier);
+            if ($candidateKey !== '') {
+                $nextStorageKey = $candidateKey;
+            }
+        }
+        $updatedStripeUsers[$nextStorageKey] = $record;
+    }
+
+    $state['stripe_users'] = $updatedStripeUsers;
+    rebuild_stripe_subscription_indexes($state);
+}
+
+function build_admin_subscription_rows(array $state, string $pairsDir): array
+{
+    ensure_stripe_state_sections($state);
+    $rows = [];
+    foreach ((array) ($state['stripe_users'] ?? []) as $storageKey => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $identifier = trim((string) ($record['identifier'] ?? ''));
+        if ($identifier === '') {
+            continue;
+        }
+        $localType = strtoupper(normalize_user_type(get_user_type_for_identifier($state, $identifier)));
+        $localType = $localType === 'PRO' ? 'PRO' : 'STD';
+        $stripeStatus = normalize_stripe_subscription_status($record['status'] ?? '');
+        $planKey = normalize_stripe_plan($record['plan'] ?? '');
+        $giftMode = normalize_stripe_gift_mode($record['gift_mode'] ?? '');
+        if ($giftMode === '') {
+            $giftMode = trim((string) ($record['gift_giver_identifier'] ?? '')) !== '' ? 'gift' : 'self';
+        }
+        $stripeEnvironment = normalize_stripe_environment($record['stripe_environment'] ?? '');
+        if ($stripeEnvironment === '') {
+            $stripeEnvironment = 'live';
+        }
+        $desiredLocalType = is_stripe_subscription_active_status($stripeStatus) ? 'PRO' : 'STD';
+        $syncState = $desiredLocalType === $localType ? 'ok' : 'mismatch';
+        $authEmail = trim((string) get_identifier_auth_email($state, $identifier));
+        $subscriberEmail = trim((string) ($record['subscriber_email'] ?? ''));
+        $email = $authEmail !== '' ? $authEmail : $subscriberEmail;
+        $cancelAtPeriodEnd = normalize_stripe_bool_flag($record['cancel_at_period_end'] ?? false);
+        $syncNotes = [];
+        if ($syncState === 'mismatch') {
+            $syncNotes[] = 'Local type differs from Stripe billing status.';
+        }
+        if ($cancelAtPeriodEnd) {
+            $syncNotes[] = 'This subscription is set to cancel at period end.';
+        }
+        if (!participant_identifier_exists($state, $pairsDir, $identifier)) {
+            $syncNotes[] = 'The local identifier no longer has pair history on the server.';
+        }
+
+        $giftGiverIdentifier = trim((string) ($record['gift_giver_identifier'] ?? ''));
+        $giftFromName = normalize_gift_from_name($record['gift_from_name'] ?? '');
+        $giftGiverEmail = trim((string) ($record['gift_giver_email'] ?? ''));
+        $giftRecipientIdentifier = trim((string) ($record['gift_recipient_identifier'] ?? ''));
+        $giftRecipientEmail = trim((string) ($record['gift_recipient_email'] ?? ''));
+        $giftGiverDisplayParts = [];
+        if ($giftFromName !== '') {
+            $giftGiverDisplayParts[] = $giftFromName;
+        }
+        if ($giftGiverIdentifier !== '') {
+            $giftGiverDisplayParts[] = $giftGiverIdentifier;
+        }
+        if ($giftGiverEmail !== '') {
+            $giftGiverDisplayParts[] = $giftGiverEmail;
+        }
+
+        $rows[] = [
+            'storage_key' => trim((string) $storageKey),
+            'identifier' => $identifier,
+            'subscriber_email' => $email,
+            'customer_id' => trim((string) ($record['customer_id'] ?? '')),
+            'subscription_id' => trim((string) ($record['subscription_id'] ?? '')),
+            'stripe_status' => $stripeStatus,
+            'stripe_status_label' => $stripeStatus !== '' ? strtoupper(str_replace('_', ' ', $stripeStatus)) : 'UNKNOWN',
+            'stripe_environment' => $stripeEnvironment,
+            'stripe_environment_label' => strtoupper($stripeEnvironment),
+            'plan_key' => $planKey,
+            'plan_label' => $planKey !== '' ? ucfirst($planKey) : 'Unknown',
+            'gift_mode' => $giftMode,
+            'gift_label' => $giftMode === 'gift' ? 'Gift' : 'Self',
+            'gift_giver_identifier' => $giftGiverIdentifier,
+            'gift_from_name' => $giftFromName,
+            'gift_giver_email' => $giftGiverEmail,
+            'gift_giver_display' => implode(' | ', $giftGiverDisplayParts),
+            'gift_recipient_identifier' => $giftRecipientIdentifier,
+            'gift_recipient_email' => $giftRecipientEmail,
+            'gift_recipient_display' => trim($giftRecipientIdentifier . ($giftRecipientEmail !== '' ? ' | ' . $giftRecipientEmail : '')),
+            'local_type' => $localType,
+            'desired_local_type' => $desiredLocalType,
+            'sync_state' => $syncState,
+            'sync_label' => $syncState === 'mismatch' ? 'Mismatch' : 'OK',
+            'sync_notes' => implode(' ', $syncNotes),
+            'current_period_start_utc' => trim((string) ($record['current_period_start_utc'] ?? '')),
+            'current_period_end_utc' => trim((string) ($record['current_period_end_utc'] ?? '')),
+            'cancel_at_period_end' => $cancelAtPeriodEnd,
+            'canceled_at_utc' => trim((string) ($record['canceled_at_utc'] ?? '')),
+            'updated_ms' => (int) ($record['updated_ms'] ?? 0)
+        ];
+    }
+
+    usort($rows, static function (array $left, array $right): int {
+        $leftTime = normalize_utc_text_to_epoch((string) ($left['current_period_end_utc'] ?? ''));
+        $rightTime = normalize_utc_text_to_epoch((string) ($right['current_period_end_utc'] ?? ''));
+        if ($leftTime !== $rightTime) {
+            return $rightTime <=> $leftTime;
+        }
+        return strcasecmp((string) ($left['identifier'] ?? ''), (string) ($right['identifier'] ?? ''));
+    });
+
+    return $rows;
+}
+
+function build_admin_subscription_meta(array $rows): array
+{
+    $meta = [
+        'report_date' => gmdate('Y-m-d H:i') . ' UTC',
+        'total_records' => count($rows),
+        'active_pro_count' => 0,
+        'monthly_count' => 0,
+        'annual_count' => 0,
+        'gift_count' => 0,
+        'cancel_at_period_end_count' => 0,
+        'mismatch_count' => 0
+    ];
+    foreach ($rows as $row) {
+        $status = strtolower(trim((string) ($row['stripe_status'] ?? '')));
+        $plan = strtolower(trim((string) ($row['plan_key'] ?? '')));
+        $giftMode = strtolower(trim((string) ($row['gift_mode'] ?? '')));
+        $environment = strtolower(trim((string) ($row['stripe_environment'] ?? '')));
+        if (in_array($status, ['active', 'trialing'], true)) {
+            $meta['active_pro_count']++;
+        }
+        if ($plan === 'monthly') {
+            $meta['monthly_count']++;
+        } elseif ($plan === 'annual') {
+            $meta['annual_count']++;
+        }
+        if ($giftMode === 'gift') {
+            $meta['gift_count']++;
+        }
+        if (!empty($row['cancel_at_period_end'])) {
+            $meta['cancel_at_period_end_count']++;
+        }
+        if (strcasecmp((string) ($row['sync_state'] ?? ''), 'mismatch') === 0) {
+            $meta['mismatch_count']++;
+        }
+        if ($environment === 'live') {
+            $meta['live_count'] = (int) ($meta['live_count'] ?? 0) + 1;
+        } elseif ($environment === 'test') {
+            $meta['test_count'] = (int) ($meta['test_count'] ?? 0) + 1;
+        }
+    }
+    return $meta;
+}
+
+function refresh_admin_subscription_from_stripe(array &$state, string $configDir, string $subscriptionId, int $nowMs): array
+{
+    $cleanSubscriptionId = trim($subscriptionId);
+    if ($cleanSubscriptionId === '') {
+        throw new RuntimeException('Stripe subscription id is required.');
+    }
+
+    $stripeConfig = load_stripe_config($configDir);
+    if (!($stripeConfig['available'] ?? false)) {
+        throw new RuntimeException((string) ($stripeConfig['message'] ?? 'Stripe configuration is unavailable.'));
+    }
+
+    $subscription = stripe_api_request(
+        'GET',
+        '/v1/subscriptions/' . rawurlencode($cleanSubscriptionId) . '?expand[]=customer',
+        [],
+        (string) $stripeConfig['secretKey']
+    );
+
+    $identifier = extract_subscription_target_identifier_from_stripe_object($subscription);
+    if ($identifier === '') {
+        $identifier = find_identifier_for_stripe_reference(
+            $state,
+            trim((string) ($subscription['customer'] ?? '')),
+            trim((string) ($subscription['id'] ?? ''))
+        );
+    }
+    if ($identifier === '') {
+        throw new RuntimeException('This Stripe subscription is not linked to an ESP Gym identity.');
+    }
+
+    $customer = is_array($subscription['customer'] ?? null) ? $subscription['customer'] : [];
+    $customerEmail = normalize_stripe_checkout_email($customer['email'] ?? '');
+    $metadata = is_array($subscription['metadata'] ?? null) ? $subscription['metadata'] : [];
+    $giftMode = normalize_stripe_gift_mode($metadata['purchase_kind'] ?? '');
+    if ($giftMode === '') {
+        $giftMode = normalize_stripe_gift_mode($metadata['gift_mode'] ?? '');
+    }
+    if ($giftMode === '') {
+        $giftMode = trim((string) ($metadata['giver_identifier'] ?? '')) !== '' ? 'gift' : 'self';
+    }
+
+    return update_stripe_subscription_state_for_identifier($state, $identifier, [
+        'customer_id' => trim((string) ($subscription['customer'] ?? '')),
+        'subscription_id' => trim((string) ($subscription['id'] ?? '')),
+        'status' => trim((string) ($subscription['status'] ?? '')),
+        'plan' => normalize_stripe_plan($metadata['plan'] ?? ''),
+        'current_period_start_utc' => normalize_stripe_timestamp_to_utc($subscription['current_period_start'] ?? null),
+        'current_period_end_utc' => normalize_stripe_timestamp_to_utc($subscription['current_period_end'] ?? null),
+        'cancel_at_period_end' => !empty($subscription['cancel_at_period_end']),
+        'canceled_at_utc' => normalize_stripe_timestamp_to_utc($subscription['canceled_at'] ?? null),
+        'subscriber_email' => $customerEmail,
+        'gift_mode' => $giftMode,
+        'gift_giver_identifier' => trim((string) ($metadata['giver_identifier'] ?? '')),
+        'gift_from_name' => normalize_gift_from_name($metadata['gift_from_name'] ?? ''),
+        'gift_giver_email' => normalize_stripe_checkout_email($metadata['giver_email'] ?? ''),
+        'gift_recipient_identifier' => trim((string) ($metadata['recipient_identifier'] ?? $metadata['target_identifier'] ?? '')),
+        'gift_recipient_email' => normalize_stripe_checkout_email($metadata['recipient_email'] ?? ''),
+        'stripe_environment' => get_current_stripe_environment($stripeConfig)
+    ], $nowMs);
 }
 
 function is_localhost_request(): bool
@@ -3007,40 +3344,13 @@ function get_trial_csv_headers(): array
 
 function get_demo_pair_seed_definitions(): array
 {
-    $receiverLocationEast = json_encode([
-        'latitude' => 40.7128,
-        'longitude' => -74.0060,
-        'accuracy' => 18,
-        'timestamp' => 1781870000000
-    ], JSON_UNESCAPED_SLASHES);
-    $senderLocationWest = json_encode([
-        'latitude' => 33.06163,
-        'longitude' => -117.232628,
-        'accuracy' => 16,
-        'timestamp' => 1781870000000
-    ], JSON_UNESCAPED_SLASHES);
-    $receiverLocationEurope = json_encode([
-        'latitude' => 48.8566,
-        'longitude' => 2.3522,
-        'accuracy' => 18,
-        'timestamp' => 1781873600000
-    ], JSON_UNESCAPED_SLASHES);
-    $senderLocationEurope = json_encode([
-        'latitude' => 51.5074,
-        'longitude' => -0.1278,
-        'accuracy' => 16,
-        'timestamp' => 1781873600000
-    ], JSON_UNESCAPED_SLASHES);
-
     $baseRecord = static function (
         string $roundId,
         string $receiverName,
         string $senderName,
         string $localDate,
         string $localTime,
-        string $utcTime,
-        string $receiverLocation,
-        string $senderLocation
+        string $utcTime
     ): array {
         return [
             'export schema/version' => '1',
@@ -3058,8 +3368,8 @@ function get_demo_pair_seed_definitions(): array
             'confidence' => '',
             'rx done rt' => '',
             'utc time' => $utcTime,
-            'rx location' => $receiverLocation,
-            'tx location' => $senderLocation,
+            'rx location' => '',
+            'tx location' => '',
             'sync est' => '',
             'sync best' => '',
             'sync worst' => '',
@@ -3071,225 +3381,182 @@ function get_demo_pair_seed_definitions(): array
         ];
     };
 
-    $buildGlobeRecords = static function () use ($baseRecord, $receiverLocationEast, $senderLocationWest, $receiverLocationEurope, $senderLocationEurope): array {
-        $receiver = 'demo.globe.receiver@espgym.com';
-        $sender = 'demo.globe.sender@espgym.com';
-        $records = [];
-        $entries = [
-            ['globedemo0001', '6/19/2026', '10:01:00 AM', '2026-06-19T17:01:00Z', $receiverLocationEast, $senderLocationWest, '1', '1', '1', '91', '4400'],
-            ['globedemo0002', '6/19/2026', '10:03:00 AM', '2026-06-19T17:03:00Z', $receiverLocationEast, $senderLocationWest, '6', '1', '3', '73', '5200'],
-            ['globedemo0003', '6/19/2026', '10:05:00 AM', '2026-06-19T17:05:00Z', $receiverLocationEast, $senderLocationWest, '1', '2', '1', '88', '6100'],
-            ['globedemo0004', '6/19/2026', '10:07:00 AM', '2026-06-19T17:07:00Z', $receiverLocationEast, $senderLocationWest, '7', '2', '9', '41', '8400'],
-            ['globedemo0005', '6/19/2026', '10:09:00 AM', '2026-06-19T17:09:00Z', $receiverLocationEurope, $senderLocationEurope, '5', '3', '5', '84', '7600'],
-            ['globedemo0006', '6/19/2026', '10:11:00 AM', '2026-06-19T17:11:00Z', $receiverLocationEurope, $senderLocationEurope, '4', '3', '2', '36', '11200'],
-            ['globedemo0007', '6/19/2026', '10:13:00 AM', '2026-06-19T17:13:00Z', $receiverLocationEurope, $senderLocationEurope, '1', '4', '', '79', '9300', 'pair-0001', '1707.jpg', '1707.jpg', '4162.jpg', '1707.jpg'],
-            ['globedemo0008', '6/19/2026', '10:15:00 AM', '2026-06-19T17:15:00Z', $receiverLocationEurope, $senderLocationEurope, '1', '4', '', '46', '10100', 'pair-0002', '1828.jpg', '1295.jpg', '1828.jpg', '1295.jpg'],
-            ['globedemo0009', '6/19/2026', '10:17:00 AM', '2026-06-19T17:17:00Z', $receiverLocationEurope, $senderLocationEurope, '6', '1', '3', '68', '5800'],
-            ['globedemo0010', '6/19/2026', '10:19:00 AM', '2026-06-19T17:19:00Z', $receiverLocationEast, $senderLocationWest, '8', '2', '8', '77', '6900'],
-            ['globedemo0011', '6/19/2026', '10:21:00 AM', '2026-06-19T17:21:00Z', $receiverLocationEast, $senderLocationWest, '9', '3', '9', '72', '8700'],
-            ['globedemo0012', '6/19/2026', '10:23:00 AM', '2026-06-19T17:23:00Z', $receiverLocationEast, $senderLocationWest, '1', '4', '', '82', '9500', 'pair-0003', '1981.jpg', '1981.jpg', '2075.jpg', '1981.jpg']
-        ];
-
-        foreach ($entries as $entry) {
-            [
-                $roundId,
-                $localDate,
-                $localTime,
-                $utcTime,
-                $receiverLocation,
-                $senderLocation,
-                $sentLayout,
-                $difficulty,
-                $choiceOne,
-                $confidence,
-                $doneRt,
-                $imagePairId,
-                $sentImage,
-                $imageChoiceA,
-                $imageChoiceB,
-                $rxImageChoice
-            ] = array_pad($entry, 16, '');
-
-            $record = $baseRecord($roundId, $receiver, $sender, $localDate, $localTime, $utcTime, $receiverLocation, $senderLocation);
-            $record['sent layout'] = $sentLayout;
-            $record['difficulty level'] = $difficulty;
-            $record['rx choice1'] = $choiceOne;
-            $record['confidence'] = $confidence;
-            $record['rx done rt'] = $doneRt;
-            $record['image pair id'] = $imagePairId;
-            $record['sent image'] = $sentImage;
-            $record['image choice a'] = $imageChoiceA;
-            $record['image choice b'] = $imageChoiceB;
-            $record['rx image choice'] = $rxImageChoice;
-            $records[] = $record;
-        }
-
-        return $records;
-    };
-
-    $buildRandomLevelTwoRecords = static function () use ($baseRecord, $receiverLocationEast, $senderLocationWest): array {
-        $receiver = 'demo.random.level2.receiver@espgym.com';
-        $sender = 'demo.random.level2.sender@espgym.com';
-        $entries = [
-            ['lvl2rand0001', '6/19/2026', '11:01:00 AM', '2026-06-19T18:01:00Z', '1', '2', '1', '86', '4921'],
-            ['lvl2rand0002', '6/19/2026', '11:02:00 AM', '2026-06-19T18:02:00Z', '6', '2', '1', '36', '10990'],
-            ['lvl2rand0003', '6/19/2026', '11:03:00 AM', '2026-06-19T18:03:00Z', '7', '2', '9', '54', '8674'],
-            ['lvl2rand0004', '6/19/2026', '11:04:00 AM', '2026-06-19T18:04:00Z', '6', '2', '6', '32', '12342'],
-            ['lvl2rand0005', '6/19/2026', '11:05:00 AM', '2026-06-19T18:05:00Z', '8', '2', '7', '79', '8261'],
-            ['lvl2rand0006', '6/19/2026', '11:06:00 AM', '2026-06-19T18:06:00Z', '8', '2', '1', '66', '12360'],
-            ['lvl2rand0007', '6/19/2026', '11:07:00 AM', '2026-06-19T18:07:00Z', '6', '2', '8', '74', '13679']
-        ];
-
+    $buildRecords = static function (string $receiverName, string $senderName, array $entries) use ($baseRecord): array {
         $records = [];
         foreach ($entries as [$roundId, $localDate, $localTime, $utcTime, $sentLayout, $difficulty, $choiceOne, $confidence, $doneRt]) {
-            $record = $baseRecord($roundId, $receiver, $sender, $localDate, $localTime, $utcTime, $receiverLocationEast, $senderLocationWest);
-            $record['sent layout'] = $sentLayout;
-            $record['difficulty level'] = $difficulty;
-            $record['rx choice1'] = $choiceOne;
-            $record['confidence'] = $confidence;
-            $record['rx done rt'] = $doneRt;
-            $records[] = $record;
-        }
-
-        return $records;
-    };
-
-    $buildRandomLevelThreeRecords = static function () use ($baseRecord, $receiverLocationEast, $senderLocationWest): array {
-        $receiver = 'demo.random.level3.receiver@espgym.com';
-        $sender = 'demo.random.level3.sender@espgym.com';
-        $entries = [
-            ['lvl3rand0001', '6/19/2026', '11:01:00 AM', '2026-06-19T18:01:00Z', '4', '3', '6', '40', '2505'],
-            ['lvl3rand0002', '6/19/2026', '11:02:00 AM', '2026-06-19T18:02:00Z', '9', '3', '5', '52', '7520'],
-            ['lvl3rand0003', '6/19/2026', '11:03:00 AM', '2026-06-19T18:03:00Z', '5', '3', '1', '81', '8542'],
-            ['lvl3rand0004', '6/19/2026', '11:04:00 AM', '2026-06-19T18:04:00Z', '4', '3', '2', '33', '9465'],
-            ['lvl3rand0005', '6/19/2026', '11:05:00 AM', '2026-06-19T18:05:00Z', '1', '3', '7', '50', '2914'],
-            ['lvl3rand0006', '6/19/2026', '11:06:00 AM', '2026-06-19T18:06:00Z', '5', '3', '8', '51', '10574'],
-            ['lvl3rand0007', '6/19/2026', '11:07:00 AM', '2026-06-19T18:07:00Z', '4', '3', '2', '49', '6466']
-        ];
-
-        $records = [];
-        foreach ($entries as [$roundId, $localDate, $localTime, $utcTime, $sentLayout, $difficulty, $choiceOne, $confidence, $doneRt]) {
-            $record = $baseRecord($roundId, $receiver, $sender, $localDate, $localTime, $utcTime, $receiverLocationEast, $senderLocationWest);
-            $record['sent layout'] = $sentLayout;
-            $record['difficulty level'] = $difficulty;
-            $record['rx choice1'] = $choiceOne;
-            $record['confidence'] = $confidence;
-            $record['rx done rt'] = $doneRt;
-            $records[] = $record;
-        }
-
-        return $records;
-    };
-
-    $buildMixedLevelOneTwoRecords = static function () use ($baseRecord, $receiverLocationEast, $senderLocationWest): array {
-        $receiver = 'demo.mixed.level12.receiver@espgym.com';
-        $sender = 'demo.mixed.level12.sender@espgym.com';
-        $levelOneSentLayouts = [1, 6, 1, 7, 1, 8, 1, 9, 6, 1, 7, 1, 8, 1, 9, 1, 6, 7, 8, 9];
-        $levelTwoSentLayouts = [1, 6, 7, 1, 8, 9];
-        $drawSeriesValue = static function (int $index): int {
-            $bucketSeed = hexdec(substr(hash('sha256', 'demo-mixed-level12-v2-bucket-' . $index), 0, 8));
-            $valueSeed = hexdec(substr(hash('sha256', 'demo-mixed-level12-v2-value-' . $index), 0, 8));
-            $useLowerBucket = ($bucketSeed % 2) === 0;
-            return $useLowerBucket
-                ? 1 + ($valueSeed % 60)
-                : 61 + ($valueSeed % 40);
-        };
-        $isCorrectDraw = static function (int $index) use ($drawSeriesValue): bool {
-            return $drawSeriesValue($index) <= 60;
-        };
-        $records = [];
-        $baseUtc = strtotime('2026-06-19 19:00:00 UTC');
-        $baseLocal = strtotime('2026-06-19 12:00:00');
-
-        for ($index = 0; $index < 20; $index += 1) {
-            $sentLayout = $levelOneSentLayouts[$index];
-            $sentConeCount = $sentLayout === 1 ? 1 : 3;
-            $isCorrect = $isCorrectDraw($index + 1);
-            $choiceOne = $sentConeCount === 1
-                ? ($isCorrect ? '1' : '3')
-                : ($isCorrect ? '3' : '1');
-            $confidence = $isCorrect ? '78' : '39';
-            $doneRt = (string) (4300 + ($index * 170));
-            $utcTime = gmdate('Y-m-d\\TH:i:s\\Z', $baseUtc + ($index * 120));
-            $localTime = date('g:i:s A', $baseLocal + ($index * 120));
-            $record = $baseRecord(
-                sprintf('lvl12mix%04d', $index + 1),
-                $receiver,
-                $sender,
-                '6/19/2026',
-                $localTime,
-                $utcTime,
-                $receiverLocationEast,
-                $senderLocationWest
-            );
+            $record = $baseRecord($roundId, $receiverName, $senderName, $localDate, $localTime, $utcTime);
             $record['sent layout'] = (string) $sentLayout;
-            $record['difficulty level'] = '1';
-            $record['rx choice1'] = $choiceOne;
-            $record['confidence'] = $confidence;
-            $record['rx done rt'] = $doneRt;
+            $record['difficulty level'] = (string) $difficulty;
+            $record['rx choice1'] = (string) $choiceOne;
+            $record['confidence'] = (string) $confidence;
+            $record['rx done rt'] = (string) $doneRt;
             $records[] = $record;
         }
-
-        for ($index = 0; $index < 6; $index += 1) {
-            $seriesIndex = 21 + $index;
-            $sentLayout = $levelTwoSentLayouts[$index];
-            $isCorrect = $isCorrectDraw($seriesIndex);
-            if ($sentLayout === 1) {
-                $choiceOne = $isCorrect ? '1' : '6';
-            } else {
-                $choiceOne = $isCorrect ? (string) $sentLayout : '1';
-            }
-            $confidence = $isCorrect ? '74' : '35';
-            $doneRt = (string) (6100 + ($index * 260));
-            $utcTime = gmdate('Y-m-d\\TH:i:s\\Z', $baseUtc + ((20 + $index) * 120));
-            $localTime = date('g:i:s A', $baseLocal + ((20 + $index) * 120));
-            $record = $baseRecord(
-                sprintf('lvl12mix%04d', 21 + $index),
-                $receiver,
-                $sender,
-                '6/19/2026',
-                $localTime,
-                $utcTime,
-                $receiverLocationEast,
-                $senderLocationWest
-            );
-            $record['sent layout'] = (string) $sentLayout;
-            $record['difficulty level'] = '2';
-            $record['rx choice1'] = $choiceOne;
-            $record['confidence'] = $confidence;
-            $record['rx done rt'] = $doneRt;
-            $records[] = $record;
-        }
-
         return $records;
     };
 
     return [
         [
-            'receiver_name' => 'demo.globe.receiver@espgym.com',
-            'sender_name' => 'demo.globe.sender@espgym.com',
-            'records' => $buildGlobeRecords()
+            'receiver_name' => 'demo.level1.too-little.receiver@espgym.com',
+            'sender_name' => 'demo.level1.too-little.sender@espgym.com',
+            'records' => $buildRecords('demo.level1.too-little.receiver@espgym.com', 'demo.level1.too-little.sender@espgym.com', [
+                ['lvl1little0001', '7/7/2026', '10:00:00 AM', '2026-07-07T17:00:00Z', '1', '1', '1', '68', '4300'],
+                ['lvl1little0002', '7/7/2026', '10:02:00 AM', '2026-07-07T17:02:00Z', '6', '1', '1', '42', '4480'],
+                ['lvl1little0003', '7/7/2026', '10:04:00 AM', '2026-07-07T17:04:00Z', '7', '1', '3', '73', '4660'],
+                ['lvl1little0004', '7/7/2026', '10:06:00 AM', '2026-07-07T17:06:00Z', '8', '1', '1', '37', '4840'],
+                ['lvl1little0005', '7/7/2026', '10:08:00 AM', '2026-07-07T17:08:00Z', '1', '1', '1', '71', '5020'],
+                ['lvl1little0006', '7/7/2026', '10:10:00 AM', '2026-07-07T17:10:00Z', '9', '1', '3', '76', '5200'],
+                ['lvl1little0007', '7/7/2026', '10:12:00 AM', '2026-07-07T17:12:00Z', '6', '1', '1', '40', '5380'],
+                ['lvl1little0008', '7/7/2026', '10:14:00 AM', '2026-07-07T17:14:00Z', '1', '1', '1', '69', '5560'],
+                ['lvl1little0009', '7/7/2026', '10:16:00 AM', '2026-07-07T17:16:00Z', '7', '1', '3', '74', '5740'],
+                ['lvl1little0010', '7/7/2026', '10:18:00 AM', '2026-07-07T17:18:00Z', '8', '1', '1', '38', '5920']
+            ])
         ],
         [
-            'receiver_name' => 'demo.random.level2.receiver@espgym.com',
-            'sender_name' => 'demo.random.level2.sender@espgym.com',
-            'records' => $buildRandomLevelTwoRecords()
+            'receiver_name' => 'demo.level1.promising.receiver@espgym.com',
+            'sender_name' => 'demo.level1.promising.sender@espgym.com',
+            'records' => $buildRecords('demo.level1.promising.receiver@espgym.com', 'demo.level1.promising.sender@espgym.com', [
+                ['lvl1prom0001', '7/7/2026', '11:00:00 AM', '2026-07-07T18:00:00Z', '1', '1', '1', '74', '4200'],
+                ['lvl1prom0002', '7/7/2026', '11:02:00 AM', '2026-07-07T18:02:00Z', '6', '1', '3', '78', '4380'],
+                ['lvl1prom0003', '7/7/2026', '11:04:00 AM', '2026-07-07T18:04:00Z', '7', '1', '1', '36', '4560'],
+                ['lvl1prom0004', '7/7/2026', '11:06:00 AM', '2026-07-07T18:06:00Z', '8', '1', '3', '73', '4740'],
+                ['lvl1prom0005', '7/7/2026', '11:08:00 AM', '2026-07-07T18:08:00Z', '1', '1', '3', '44', '4920'],
+                ['lvl1prom0006', '7/7/2026', '11:10:00 AM', '2026-07-07T18:10:00Z', '9', '1', '3', '77', '5100'],
+                ['lvl1prom0007', '7/7/2026', '11:12:00 AM', '2026-07-07T18:12:00Z', '6', '1', '3', '72', '5280'],
+                ['lvl1prom0008', '7/7/2026', '11:14:00 AM', '2026-07-07T18:14:00Z', '1', '1', '1', '75', '5460'],
+                ['lvl1prom0009', '7/7/2026', '11:16:00 AM', '2026-07-07T18:16:00Z', '7', '1', '3', '76', '5640'],
+                ['lvl1prom0010', '7/7/2026', '11:18:00 AM', '2026-07-07T18:18:00Z', '8', '1', '1', '39', '5820'],
+                ['lvl1prom0011', '7/7/2026', '11:20:00 AM', '2026-07-07T18:20:00Z', '1', '1', '3', '46', '6000'],
+                ['lvl1prom0012', '7/7/2026', '11:22:00 AM', '2026-07-07T18:22:00Z', '9', '1', '3', '79', '6180']
+            ])
         ],
         [
-            'receiver_name' => 'demo.random.level3.receiver@espgym.com',
-            'sender_name' => 'demo.random.level3.sender@espgym.com',
-            'records' => $buildRandomLevelThreeRecords()
+            'receiver_name' => 'demo.level1.not-telepathic.receiver@espgym.com',
+            'sender_name' => 'demo.level1.not-telepathic.sender@espgym.com',
+            'records' => $buildRecords('demo.level1.not-telepathic.receiver@espgym.com', 'demo.level1.not-telepathic.sender@espgym.com', [
+                ['lvl1not0001', '7/7/2026', '12:00:00 PM', '2026-07-07T19:00:00Z', '1', '1', '1', '61', '4400'],
+                ['lvl1not0002', '7/7/2026', '12:02:00 PM', '2026-07-07T19:02:00Z', '6', '1', '1', '47', '4560'],
+                ['lvl1not0003', '7/7/2026', '12:04:00 PM', '2026-07-07T19:04:00Z', '7', '1', '3', '58', '4720'],
+                ['lvl1not0004', '7/7/2026', '12:06:00 PM', '2026-07-07T19:06:00Z', '8', '1', '1', '43', '4880'],
+                ['lvl1not0005', '7/7/2026', '12:08:00 PM', '2026-07-07T19:08:00Z', '1', '1', '1', '62', '5040'],
+                ['lvl1not0006', '7/7/2026', '12:10:00 PM', '2026-07-07T19:10:00Z', '9', '1', '1', '45', '5200'],
+                ['lvl1not0007', '7/7/2026', '12:12:00 PM', '2026-07-07T19:12:00Z', '6', '1', '3', '57', '5360'],
+                ['lvl1not0008', '7/7/2026', '12:14:00 PM', '2026-07-07T19:14:00Z', '1', '1', '3', '49', '5520'],
+                ['lvl1not0009', '7/7/2026', '12:16:00 PM', '2026-07-07T19:16:00Z', '7', '1', '3', '59', '5680'],
+                ['lvl1not0010', '7/7/2026', '12:18:00 PM', '2026-07-07T19:18:00Z', '8', '1', '3', '46', '5840'],
+                ['lvl1not0011', '7/7/2026', '12:20:00 PM', '2026-07-07T19:20:00Z', '1', '1', '1', '63', '6000'],
+                ['lvl1not0012', '7/7/2026', '12:22:00 PM', '2026-07-07T19:22:00Z', '9', '1', '1', '44', '6160'],
+                ['lvl1not0013', '7/7/2026', '12:24:00 PM', '2026-07-07T19:24:00Z', '6', '1', '1', '60', '6320'],
+                ['lvl1not0014', '7/7/2026', '12:26:00 PM', '2026-07-07T19:26:00Z', '1', '1', '1', '48', '6480'],
+                ['lvl1not0015', '7/7/2026', '12:28:00 PM', '2026-07-07T19:28:00Z', '7', '1', '1', '55', '6640'],
+                ['lvl1not0016', '7/7/2026', '12:30:00 PM', '2026-07-07T19:30:00Z', '8', '1', '1', '42', '6800'],
+                ['lvl1not0017', '7/7/2026', '12:32:00 PM', '2026-07-07T19:32:00Z', '1', '1', '3', '58', '6960'],
+                ['lvl1not0018', '7/7/2026', '12:34:00 PM', '2026-07-07T19:34:00Z', '9', '1', '3', '47', '7120'],
+                ['lvl1not0019', '7/7/2026', '12:36:00 PM', '2026-07-07T19:36:00Z', '6', '1', '3', '56', '7280'],
+                ['lvl1not0020', '7/7/2026', '12:38:00 PM', '2026-07-07T19:38:00Z', '1', '1', '3', '50', '7440'],
+                ['lvl1not0021', '7/7/2026', '12:40:00 PM', '2026-07-07T19:40:00Z', '7', '1', '3', '57', '7600'],
+                ['lvl1not0022', '7/7/2026', '12:42:00 PM', '2026-07-07T19:42:00Z', '8', '1', '1', '41', '7760'],
+                ['lvl1not0023', '7/7/2026', '12:44:00 PM', '2026-07-07T19:44:00Z', '1', '1', '1', '62', '7920'],
+                ['lvl1not0024', '7/7/2026', '12:46:00 PM', '2026-07-07T19:46:00Z', '9', '1', '3', '46', '8080']
+            ])
         ],
         [
-            'receiver_name' => 'demo.mixed.level12.receiver@espgym.com',
-            'sender_name' => 'demo.mixed.level12.sender@espgym.com',
-            'records' => $buildMixedLevelOneTwoRecords()
+            'receiver_name' => 'demo.level1.telepathic.receiver@espgym.com',
+            'sender_name' => 'demo.level1.telepathic.sender@espgym.com',
+            'records' => $buildRecords('demo.level1.telepathic.receiver@espgym.com', 'demo.level1.telepathic.sender@espgym.com', [
+                ['lvl1tele0001', '7/7/2026', '1:30:00 PM', '2026-07-07T20:30:00Z', '1', '1', '1', '82', '4100'],
+                ['lvl1tele0002', '7/7/2026', '1:32:00 PM', '2026-07-07T20:32:00Z', '6', '1', '3', '84', '4250'],
+                ['lvl1tele0003', '7/7/2026', '1:34:00 PM', '2026-07-07T20:34:00Z', '7', '1', '3', '79', '4400'],
+                ['lvl1tele0004', '7/7/2026', '1:36:00 PM', '2026-07-07T20:36:00Z', '8', '1', '1', '41', '4550'],
+                ['lvl1tele0005', '7/7/2026', '1:38:00 PM', '2026-07-07T20:38:00Z', '1', '1', '1', '81', '4700'],
+                ['lvl1tele0006', '7/7/2026', '1:40:00 PM', '2026-07-07T20:40:00Z', '9', '1', '3', '85', '4850'],
+                ['lvl1tele0007', '7/7/2026', '1:42:00 PM', '2026-07-07T20:42:00Z', '6', '1', '3', '78', '5000'],
+                ['lvl1tele0008', '7/7/2026', '1:44:00 PM', '2026-07-07T20:44:00Z', '1', '1', '1', '83', '5150'],
+                ['lvl1tele0009', '7/7/2026', '1:46:00 PM', '2026-07-07T20:46:00Z', '7', '1', '3', '80', '5300'],
+                ['lvl1tele0010', '7/7/2026', '1:48:00 PM', '2026-07-07T20:48:00Z', '8', '1', '3', '77', '5450'],
+                ['lvl1tele0011', '7/7/2026', '1:50:00 PM', '2026-07-07T20:50:00Z', '1', '1', '1', '82', '5600'],
+                ['lvl1tele0012', '7/7/2026', '1:52:00 PM', '2026-07-07T20:52:00Z', '9', '1', '1', '43', '5750'],
+                ['lvl1tele0013', '7/7/2026', '1:54:00 PM', '2026-07-07T20:54:00Z', '6', '1', '3', '79', '5900'],
+                ['lvl1tele0014', '7/7/2026', '1:56:00 PM', '2026-07-07T20:56:00Z', '1', '1', '1', '81', '6050'],
+                ['lvl1tele0015', '7/7/2026', '1:58:00 PM', '2026-07-07T20:58:00Z', '7', '1', '1', '45', '6200'],
+                ['lvl1tele0016', '7/7/2026', '2:00:00 PM', '2026-07-07T21:00:00Z', '8', '1', '3', '78', '6350'],
+                ['lvl1tele0017', '7/7/2026', '2:02:00 PM', '2026-07-07T21:02:00Z', '1', '1', '1', '84', '6500'],
+                ['lvl1tele0018', '7/7/2026', '2:04:00 PM', '2026-07-07T21:04:00Z', '9', '1', '3', '83', '6650'],
+                ['lvl1tele0019', '7/7/2026', '2:06:00 PM', '2026-07-07T21:06:00Z', '6', '1', '3', '80', '6800'],
+                ['lvl1tele0020', '7/7/2026', '2:08:00 PM', '2026-07-07T21:08:00Z', '1', '1', '1', '82', '6950'],
+                ['lvl1tele0021', '7/7/2026', '2:10:00 PM', '2026-07-07T21:10:00Z', '7', '1', '3', '79', '7100'],
+                ['lvl1tele0022', '7/7/2026', '2:12:00 PM', '2026-07-07T21:12:00Z', '8', '1', '1', '44', '7250'],
+                ['lvl1tele0023', '7/7/2026', '2:14:00 PM', '2026-07-07T21:14:00Z', '1', '1', '1', '81', '7400'],
+                ['lvl1tele0024', '7/7/2026', '2:16:00 PM', '2026-07-07T21:16:00Z', '9', '1', '3', '85', '7550']
+            ])
+        ],
+        [
+            'receiver_name' => 'demo.mixed.level123.receiver@espgym.com',
+            'sender_name' => 'demo.mixed.level123.sender@espgym.com',
+            'records' => $buildRecords('demo.mixed.level123.receiver@espgym.com', 'demo.mixed.level123.sender@espgym.com', [
+                ['lvl123mix0001', '7/7/2026', '3:00:00 PM', '2026-07-07T22:00:00Z', '1', '1', '1', '80', '4200'],
+                ['lvl123mix0002', '7/7/2026', '3:02:00 PM', '2026-07-07T22:02:00Z', '6', '1', '3', '82', '4350'],
+                ['lvl123mix0003', '7/7/2026', '3:04:00 PM', '2026-07-07T22:04:00Z', '7', '1', '3', '79', '4500'],
+                ['lvl123mix0004', '7/7/2026', '3:06:00 PM', '2026-07-07T22:06:00Z', '8', '1', '1', '40', '4650'],
+                ['lvl123mix0005', '7/7/2026', '3:08:00 PM', '2026-07-07T22:08:00Z', '1', '1', '1', '81', '4800'],
+                ['lvl123mix0006', '7/7/2026', '3:10:00 PM', '2026-07-07T22:10:00Z', '9', '1', '3', '83', '4950'],
+                ['lvl123mix0007', '7/7/2026', '3:12:00 PM', '2026-07-07T22:12:00Z', '6', '1', '3', '78', '5100'],
+                ['lvl123mix0008', '7/7/2026', '3:14:00 PM', '2026-07-07T22:14:00Z', '1', '1', '1', '80', '5250'],
+                ['lvl123mix0009', '7/7/2026', '3:16:00 PM', '2026-07-07T22:16:00Z', '7', '1', '1', '44', '5400'],
+                ['lvl123mix0010', '7/7/2026', '3:18:00 PM', '2026-07-07T22:18:00Z', '8', '1', '3', '79', '5550'],
+                ['lvl123mix0011', '7/7/2026', '3:20:00 PM', '2026-07-07T22:20:00Z', '1', '1', '1', '82', '5700'],
+                ['lvl123mix0012', '7/7/2026', '3:22:00 PM', '2026-07-07T22:22:00Z', '9', '1', '3', '81', '5850'],
+                ['lvl123mix0013', '7/7/2026', '3:24:00 PM', '2026-07-07T22:24:00Z', '6', '1', '3', '77', '6000'],
+                ['lvl123mix0014', '7/7/2026', '3:26:00 PM', '2026-07-07T22:26:00Z', '1', '1', '1', '80', '6150'],
+                ['lvl123mix0015', '7/7/2026', '3:28:00 PM', '2026-07-07T22:28:00Z', '7', '1', '3', '78', '6300'],
+                ['lvl123mix0016', '7/7/2026', '3:30:00 PM', '2026-07-07T22:30:00Z', '8', '1', '3', '76', '6450'],
+                ['lvl123mix0017', '7/7/2026', '3:32:00 PM', '2026-07-07T22:32:00Z', '1', '1', '1', '83', '6600'],
+                ['lvl123mix0018', '7/7/2026', '3:34:00 PM', '2026-07-07T22:34:00Z', '9', '1', '1', '42', '6750'],
+                ['lvl123mix0019', '7/7/2026', '3:36:00 PM', '2026-07-07T22:36:00Z', '6', '1', '1', '46', '6900'],
+                ['lvl123mix0020', '7/7/2026', '3:38:00 PM', '2026-07-07T22:38:00Z', '1', '1', '1', '43', '7050'],
+                ['lvl123mix0021', '7/7/2026', '3:40:00 PM', '2026-07-07T22:40:00Z', '7', '1', '3', '79', '7200'],
+                ['lvl123mix0022', '7/7/2026', '3:42:00 PM', '2026-07-07T22:42:00Z', '8', '1', '1', '41', '7350'],
+                ['lvl123mix0023', '7/7/2026', '3:44:00 PM', '2026-07-07T22:44:00Z', '1', '1', '1', '82', '7500'],
+                ['lvl123mix0024', '7/7/2026', '3:46:00 PM', '2026-07-07T22:46:00Z', '9', '1', '3', '80', '7650'],
+                ['lvl123mix0025', '7/7/2026', '3:48:00 PM', '2026-07-07T22:48:00Z', '1', '2', '1', '72', '6200'],
+                ['lvl123mix0026', '7/7/2026', '3:50:00 PM', '2026-07-07T22:50:00Z', '6', '2', '1', '36', '6420'],
+                ['lvl123mix0027', '7/7/2026', '3:52:00 PM', '2026-07-07T22:52:00Z', '7', '2', '1', '39', '6640'],
+                ['lvl123mix0028', '7/7/2026', '3:54:00 PM', '2026-07-07T22:54:00Z', '8', '2', '1', '34', '6860'],
+                ['lvl123mix0029', '7/7/2026', '3:56:00 PM', '2026-07-07T22:56:00Z', '9', '2', '1', '37', '7080'],
+                ['lvl123mix0030', '7/7/2026', '3:58:00 PM', '2026-07-07T22:58:00Z', '1', '2', '6', '70', '7300'],
+                ['lvl123mix0031', '7/7/2026', '4:00:00 PM', '2026-07-07T23:00:00Z', '6', '2', '1', '35', '7520'],
+                ['lvl123mix0032', '7/7/2026', '4:02:00 PM', '2026-07-07T23:02:00Z', '7', '2', '1', '38', '7740'],
+                ['lvl123mix0033', '7/7/2026', '4:04:00 PM', '2026-07-07T23:04:00Z', '1', '3', '9', '31', '7600'],
+                ['lvl123mix0034', '7/7/2026', '4:06:00 PM', '2026-07-07T23:06:00Z', '2', '3', '9', '29', '7860'],
+                ['lvl123mix0035', '7/7/2026', '4:08:00 PM', '2026-07-07T23:08:00Z', '3', '3', '9', '34', '8120'],
+                ['lvl123mix0036', '7/7/2026', '4:10:00 PM', '2026-07-07T23:10:00Z', '4', '3', '4', '68', '8380'],
+                ['lvl123mix0037', '7/7/2026', '4:12:00 PM', '2026-07-07T23:12:00Z', '5', '3', '9', '30', '8640'],
+                ['lvl123mix0038', '7/7/2026', '4:14:00 PM', '2026-07-07T23:14:00Z', '6', '3', '9', '33', '8900'],
+                ['lvl123mix0039', '7/7/2026', '4:16:00 PM', '2026-07-07T23:16:00Z', '7', '3', '9', '28', '9160'],
+                ['lvl123mix0040', '7/7/2026', '4:18:00 PM', '2026-07-07T23:18:00Z', '8', '3', '9', '32', '9420']
+            ])
         ]
     ];
 }
 
 function ensure_demo_pair_records(string $pairsDir, bool $force = false): void
 {
+    $legacyDefinitions = [
+        ['receiver_name' => 'demo.globe.receiver@espgym.com', 'sender_name' => 'demo.globe.sender@espgym.com'],
+        ['receiver_name' => 'demo.random.level2.receiver@espgym.com', 'sender_name' => 'demo.random.level2.sender@espgym.com'],
+        ['receiver_name' => 'demo.random.level3.receiver@espgym.com', 'sender_name' => 'demo.random.level3.sender@espgym.com'],
+        ['receiver_name' => 'demo.mixed.level12.receiver@espgym.com', 'sender_name' => 'demo.mixed.level12.sender@espgym.com']
+    ];
+    foreach ($legacyDefinitions as $legacyDefinition) {
+        $legacyReceiver = trim((string) ($legacyDefinition['receiver_name'] ?? ''));
+        $legacySender = trim((string) ($legacyDefinition['sender_name'] ?? ''));
+        if ($legacyReceiver === '' || $legacySender === '') {
+            continue;
+        }
+        @unlink(get_pair_trial_csv_path($pairsDir, $legacyReceiver, $legacySender));
+        @unlink(get_pair_analysis_json_path($pairsDir, $legacyReceiver, $legacySender));
+    }
+
     foreach (get_demo_pair_seed_definitions() as $definition) {
         $receiverName = trim((string) ($definition['receiver_name'] ?? ''));
         $senderName = trim((string) ($definition['sender_name'] ?? ''));
@@ -3722,10 +3989,11 @@ function build_pair_match_key(string $receiverName, string $senderName): string
 function is_demo_report_pair(string $receiverName, string $senderName): bool
 {
     static $demoPairs = [
-        'demo.globe.receiver@espgym.com|||demo.globe.sender@espgym.com' => true,
-        'demo.mixed.level12.receiver@espgym.com|||demo.mixed.level12.sender@espgym.com' => true,
-        'demo.random.level2.receiver@espgym.com|||demo.random.level2.sender@espgym.com' => true,
-        'demo.random.level3.receiver@espgym.com|||demo.random.level3.sender@espgym.com' => true
+        'demo.level1.too-little.receiver@espgym.com|||demo.level1.too-little.sender@espgym.com' => true,
+        'demo.level1.promising.receiver@espgym.com|||demo.level1.promising.sender@espgym.com' => true,
+        'demo.level1.not-telepathic.receiver@espgym.com|||demo.level1.not-telepathic.sender@espgym.com' => true,
+        'demo.level1.telepathic.receiver@espgym.com|||demo.level1.telepathic.sender@espgym.com' => true,
+        'demo.mixed.level123.receiver@espgym.com|||demo.mixed.level123.sender@espgym.com' => true
     ];
 
     return isset($demoPairs[build_pair_match_key($receiverName, $senderName)]);
@@ -3897,6 +4165,18 @@ function get_esp_lesson_progress_record(array &$state, string $identifier, array
     $normalized['identifier'] = trim($identifier);
     $state['esp_lessons'][$storageKey] = $normalized;
     return $normalized;
+}
+
+function normalize_gift_from_name($value): string
+{
+    $text = preg_replace('/\s+/', ' ', trim((string) $value));
+    if ($text === null) {
+        $text = '';
+    }
+    if ($text === '') {
+        return '';
+    }
+    return mb_substr($text, 0, 80);
 }
 
 function advance_esp_lesson_progress_record(array &$state, string $identifier, array $availableLessonIds, string $command, string $currentLessonId, int $nowMs): array
@@ -6072,6 +6352,7 @@ function admin_update_unique_handle(array &$state, string $pairsDir, string $pre
     migrate_identifier_history_in_pair_storage($pairsDir, $oldHandle, $newIdentifier);
     migrate_identifier_in_partner_messaging_state($state, $oldHandle, $newIdentifier);
     migrate_explore_pro_trial_identifier($state, $oldHandle, $newIdentifier);
+    migrate_stripe_subscription_identity_refs($state, $oldHandle, $newIdentifier);
 
     return [
         'updated' => true,
@@ -6670,13 +6951,186 @@ function write_pair_trial_records(string $path, array $records): void
     file_put_contents($path, $headerLine . $body, LOCK_EX);
 }
 
-function prune_anonymous_visitor_simulation_records(string $pairsDir, int $nowMs, int $retentionMs): int
+function is_expiring_temp_simulation_trial_record(array $state, array $record): bool
+{
+    $receiverName = trim((string) ($record['rx name'] ?? ''));
+    $senderName = trim((string) ($record['tx name'] ?? ''));
+
+    if (is_internal_visitor_simulation_identifier($receiverName) || is_internal_visitor_simulation_identifier($senderName)) {
+        return true;
+    }
+
+    return is_temporary_name_identifier($state, $receiverName) || is_temporary_name_identifier($state, $senderName);
+}
+
+function get_temp_identifier_last_updated_ms(array $state, string $identifier): int
+{
+    $lookupKey = normalize_identifier_for_lookup($identifier);
+    if ($lookupKey === '') {
+        return 0;
+    }
+
+    $latest = 0;
+
+    $profileSet = is_array($state['launcher_profiles'][$lookupKey] ?? null) ? $state['launcher_profiles'][$lookupKey] : [];
+    foreach ($profileSet as $profile) {
+        if (!is_array($profile)) {
+            continue;
+        }
+        $updatedMs = isset($profile['updated_ms']) && is_numeric($profile['updated_ms']) ? (int) $profile['updated_ms'] : 0;
+        if ($updatedMs > $latest) {
+            $latest = $updatedMs;
+        }
+    }
+
+    $preferences = is_array($state['user_preferences'][$lookupKey] ?? null) ? $state['user_preferences'][$lookupKey] : null;
+    if (is_array($preferences)) {
+        $updatedMs = isset($preferences['updated_ms']) && is_numeric($preferences['updated_ms']) ? (int) $preferences['updated_ms'] : 0;
+        if ($updatedMs > $latest) {
+            $latest = $updatedMs;
+        }
+    }
+
+    return $latest;
+}
+
+function prune_expired_temp_identity_state(
+    array &$state,
+    int $nowMs,
+    int $retentionMs,
+    string $debugLogFile = '',
+    bool $debugEnabled = false
+): void
+{
+    $protectedKeys = [];
+
+    foreach ((array) ($state['sessions'] ?? []) as $sessionEntry) {
+        if (!is_array($sessionEntry)) {
+            continue;
+        }
+        foreach (['sender', 'receiver'] as $roleKey) {
+            $profile = is_array($sessionEntry[$roleKey]['profile'] ?? null) ? $sessionEntry[$roleKey]['profile'] : [];
+            $ownIdentifier = trim((string) ($profile['own_email'] ?? ''));
+            if ($ownIdentifier === '' || !is_temporary_name_identifier($state, $ownIdentifier)) {
+                continue;
+            }
+            $lookupKey = normalize_identifier_for_lookup($ownIdentifier);
+            if ($lookupKey !== '') {
+                $protectedKeys[$lookupKey] = true;
+            }
+        }
+    }
+
+    foreach ((array) ($state['session_registry'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        foreach (['sender_name', 'receiver_name'] as $fieldKey) {
+            $identifier = trim((string) ($entry[$fieldKey] ?? ''));
+            if ($identifier === '' || !is_temporary_name_identifier($state, $identifier)) {
+                continue;
+            }
+            $lookupKey = normalize_identifier_for_lookup($identifier);
+            if ($lookupKey !== '') {
+                $protectedKeys[$lookupKey] = true;
+            }
+        }
+    }
+
+    $candidateKeys = [];
+    foreach (['launcher_profiles', 'user_types', 'user_preferences'] as $bucketKey) {
+        foreach (array_keys((array) ($state[$bucketKey] ?? [])) as $identifierKey) {
+            $normalized = normalize_identifier_for_lookup((string) $identifierKey);
+            if ($normalized !== '') {
+                $candidateKeys[$normalized] = true;
+            }
+        }
+    }
+
+    foreach (array_keys($candidateKeys) as $lookupKey) {
+        if (isset($protectedKeys[$lookupKey])) {
+            if ($debugEnabled && $debugLogFile !== '') {
+                append_debug_log(
+                    $debugLogFile,
+                    true,
+                    sprintf(
+                        '[temp-prune] keeping "%s": still protected by active session/session_registry.',
+                        $lookupKey
+                    )
+                );
+            }
+            continue;
+        }
+
+        if (!is_temporary_name_identifier($state, $lookupKey)) {
+            continue;
+        }
+
+        $updatedMs = get_temp_identifier_last_updated_ms($state, $lookupKey);
+        if ($updatedMs > 0 && ($nowMs - $updatedMs) <= $retentionMs) {
+            if ($debugEnabled && $debugLogFile !== '') {
+                append_debug_log(
+                    $debugLogFile,
+                    true,
+                    sprintf(
+                        '[temp-prune] keeping "%s": updated %.1f minutes ago, retention %.1f minutes.',
+                        $lookupKey,
+                        (($nowMs - $updatedMs) / 60000),
+                        ($retentionMs / 60000)
+                    )
+                );
+            }
+            continue;
+        }
+
+        if ($debugEnabled && $debugLogFile !== '') {
+            append_debug_log(
+                $debugLogFile,
+                true,
+                sprintf(
+                    '[temp-prune] removing "%s": last updated %s, age %.1f minutes, retention %.1f minutes.',
+                    $lookupKey,
+                    $updatedMs > 0 ? gmdate('Y-m-d H:i:s', (int) floor($updatedMs / 1000)) . ' UTC' : 'unknown',
+                    $updatedMs > 0 ? (($nowMs - $updatedMs) / 60000) : -1,
+                    ($retentionMs / 60000)
+                )
+            );
+        }
+        unset($state['launcher_profiles'][$lookupKey]);
+        unset($state['user_types'][$lookupKey]);
+        unset($state['user_preferences'][$lookupKey]);
+    }
+
+    if ($debugEnabled && $debugLogFile !== '') {
+        append_debug_log(
+            $debugLogFile,
+            true,
+            sprintf(
+                '[temp-prune] scan complete: candidates=%d protected=%d retention_minutes=%.1f.',
+                count($candidateKeys),
+                count($protectedKeys),
+                ($retentionMs / 60000)
+            )
+        );
+    }
+}
+
+function prune_expiring_temp_simulation_records(
+    array $state,
+    string $pairsDir,
+    int $nowMs,
+    int $retentionMs,
+    string $debugLogFile = '',
+    bool $debugEnabled = false
+): int
 {
     if (!is_dir($pairsDir)) {
         return 0;
     }
 
     $prunedCount = 0;
+    $inspectedRecords = 0;
+    $changedFiles = 0;
     $paths = glob($pairsDir . DIRECTORY_SEPARATOR . '*.csv');
     if (!is_array($paths)) {
         return 0;
@@ -6696,10 +7150,11 @@ function prune_anonymous_visitor_simulation_records(string $pairsDir, int $nowMs
         $fileChanged = false;
 
         foreach ($records as $record) {
-            if (!is_array($record) || !is_anonymous_visitor_simulation_trial_record($record)) {
+            if (!is_array($record) || !is_expiring_temp_simulation_trial_record($state, $record)) {
                 $keptRecords[] = $record;
                 continue;
             }
+            $inspectedRecords++;
 
             $recordUtc = trim((string) ($record['utc time'] ?? ''));
             $recordMillis = $recordUtc !== '' ? strtotime($recordUtc) : false;
@@ -6708,6 +7163,21 @@ function prune_anonymous_visitor_simulation_records(string $pairsDir, int $nowMs
             if ($recordAgeMs > $retentionMs) {
                 $fileChanged = true;
                 $prunedCount++;
+                if ($debugEnabled && $debugLogFile !== '') {
+                    append_debug_log(
+                        $debugLogFile,
+                        true,
+                        sprintf(
+                            '[temp-sim-prune] removing record from "%s": rx="%s" tx="%s" utc="%s" age_minutes=%.1f retention_minutes=%.1f.',
+                            basename($path),
+                            trim((string) ($record['rx name'] ?? '')),
+                            trim((string) ($record['tx name'] ?? '')),
+                            $recordUtc !== '' ? $recordUtc : 'unknown',
+                            ($recordAgeMs / 60000),
+                            ($retentionMs / 60000)
+                        )
+                    );
+                }
                 continue;
             }
 
@@ -6716,7 +7186,23 @@ function prune_anonymous_visitor_simulation_records(string $pairsDir, int $nowMs
 
         if ($fileChanged) {
             write_pair_trial_records($path, $keptRecords);
+            $changedFiles++;
         }
+    }
+
+    if ($debugEnabled && $debugLogFile !== '') {
+        append_debug_log(
+            $debugLogFile,
+            true,
+            sprintf(
+                '[temp-sim-prune] scan complete: files=%d inspected_records=%d changed_files=%d pruned_records=%d retention_minutes=%.1f.',
+                count($paths),
+                $inspectedRecords,
+                $changedFiles,
+                $prunedCount,
+                ($retentionMs / 60000)
+            )
+        );
     }
 
     return $prunedCount;
@@ -7903,6 +8389,32 @@ function detect_identity_kind(array $state, string $identifier): string
     return 'Unique Name';
 }
 
+function build_identity_type_label(array $state, string $identifier): string
+{
+    $cleanIdentifier = trim($identifier);
+    if ($cleanIdentifier === '') {
+        return 'Assigned STD';
+    }
+
+    if (is_temporary_name_identifier($state, $cleanIdentifier) || is_internal_visitor_simulation_identifier($cleanIdentifier)) {
+        return 'Temp';
+    }
+
+    $subscription = get_user_type_for_identifier($state, $cleanIdentifier) === 'pro' ? 'PRO' : 'STD';
+    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
+
+    if ($lookup !== '' && is_array($state['invitees'] ?? null) && isset($state['invitees'][$lookup]) && is_array($state['invitees'][$lookup])) {
+        return 'Invitee ' . $subscription;
+    }
+
+    $authEmail = trim((string) get_identifier_auth_email($state, $cleanIdentifier));
+    if ($authEmail !== '') {
+        return 'User ' . $subscription;
+    }
+
+    return 'Assigned ' . $subscription;
+}
+
 function build_all_pairs_summary(array $state, array $records): array
 {
     $summary = [];
@@ -8061,6 +8573,7 @@ function build_all_identities_summary(array $state, array $records): array
                 'identity' => $preferredIdentifier,
                 'kind' => detect_identity_kind($state, $preferredIdentifier),
                 'subscription' => get_user_type_for_identifier($state, $preferredIdentifier) === 'pro' ? 'PRO' : 'STD',
+                'type' => build_identity_type_label($state, $preferredIdentifier),
                 'completed_trials' => 0,
                 'distinct_partners' => [],
                 'first_activity' => '',
@@ -8121,6 +8634,7 @@ function build_all_identities_summary(array $state, array $records): array
                     'identity' => $receiverRaw . ' - ' . $senderRaw,
                     'kind' => 'Demo',
                     'subscription' => 'Demo',
+                    'type' => 'Demo',
                     'completed_trials' => 0,
                     'distinct_partners' => 1,
                     'first_activity' => $dateLabel,
@@ -8313,7 +8827,13 @@ function default_session_state(): array
     ];
 }
 
-function prune_inactive_operational_state(array &$state, int $nowMs, int $retentionMs): void
+function prune_inactive_operational_state(
+    array &$state,
+    int $nowMs,
+    int $retentionMs,
+    string $debugLogFile = '',
+    bool $debugEnabled = false
+): void
 {
     if (!is_array($state['sessions'] ?? null)) {
         $state['sessions'] = [];
@@ -8357,6 +8877,8 @@ function prune_inactive_operational_state(array &$state, int $nowMs, int $retent
 
         unset($state['session_registry'][$sessionCode]);
     }
+
+    prune_expired_temp_identity_state($state, $nowMs, $retentionMs, $debugLogFile, $debugEnabled);
 }
 
 function ensure_session_shape(array &$session): void
@@ -8787,13 +9309,24 @@ function apply_checkout_session_completed_event(array &$state, string $subscript
     }
 
     $subscriberEmail = extract_stripe_checkout_email($object, $identifier);
+    $metadata = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
+    $giftMode = normalize_stripe_gift_mode($metadata['purchase_kind'] ?? '');
+    if ($giftMode === '') {
+        $giftMode = trim((string) ($metadata['giver_identifier'] ?? '')) !== '' ? 'gift' : 'self';
+    }
     $record = update_stripe_subscription_state_for_identifier($state, $identifier, [
         'customer_id' => trim((string) ($object['customer'] ?? '')),
         'subscription_id' => trim((string) ($object['subscription'] ?? '')),
         'status' => 'active',
-        'plan' => normalize_stripe_plan((is_array($object['metadata'] ?? null) ? ($object['metadata']['plan'] ?? '') : '')),
+        'plan' => normalize_stripe_plan($metadata['plan'] ?? ''),
         'checkout_session_id' => trim((string) ($object['id'] ?? '')),
         'subscriber_email' => $subscriberEmail,
+        'gift_mode' => $giftMode,
+        'gift_giver_identifier' => trim((string) ($metadata['giver_identifier'] ?? '')),
+        'gift_from_name' => normalize_gift_from_name($metadata['gift_from_name'] ?? ''),
+        'gift_recipient_identifier' => trim((string) ($metadata['recipient_identifier'] ?? $metadata['target_identifier'] ?? '')),
+        'gift_recipient_email' => normalize_stripe_checkout_email($metadata['recipient_email'] ?? ''),
+        'stripe_environment' => derive_stripe_environment_from_object($object),
         'last_event_id' => trim((string) ($event['id'] ?? ''))
     ], $nowMs);
 
@@ -8837,12 +9370,25 @@ function apply_subscription_updated_event(array &$state, array $event, int $nowM
     }
 
     $currentPeriodEndUtc = normalize_stripe_timestamp_to_utc($object['current_period_end'] ?? null);
+    $metadata = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
+    $giftMode = normalize_stripe_gift_mode($metadata['purchase_kind'] ?? '');
+    if ($giftMode === '') {
+        $giftMode = trim((string) ($metadata['giver_identifier'] ?? '')) !== '' ? 'gift' : 'self';
+    }
     $record = update_stripe_subscription_state_for_identifier($state, $identifier, [
         'customer_id' => $customerId,
         'subscription_id' => $subscriptionId,
         'status' => trim((string) ($object['status'] ?? '')),
-        'plan' => normalize_stripe_plan((is_array($object['metadata'] ?? null) ? ($object['metadata']['plan'] ?? '') : '')),
+        'plan' => normalize_stripe_plan($metadata['plan'] ?? ''),
+        'current_period_start_utc' => normalize_stripe_timestamp_to_utc($object['current_period_start'] ?? null),
         'current_period_end_utc' => $currentPeriodEndUtc,
+        'cancel_at_period_end' => !empty($object['cancel_at_period_end']),
+        'canceled_at_utc' => normalize_stripe_timestamp_to_utc($object['canceled_at'] ?? null),
+        'gift_mode' => $giftMode,
+        'gift_giver_identifier' => trim((string) ($metadata['giver_identifier'] ?? '')),
+        'gift_recipient_identifier' => trim((string) ($metadata['recipient_identifier'] ?? $metadata['target_identifier'] ?? '')),
+        'gift_recipient_email' => normalize_stripe_checkout_email($metadata['recipient_email'] ?? ''),
+        'stripe_environment' => derive_stripe_environment_from_object($object),
         'last_event_id' => trim((string) ($event['id'] ?? ''))
     ], $nowMs);
 
@@ -8871,8 +9417,10 @@ function apply_invoice_payment_succeeded_event(array &$state, string $subscripti
         'customer_id' => $customerId,
         'subscription_id' => $subscriptionId,
         'status' => 'active',
+        'current_period_start_utc' => normalize_stripe_timestamp_to_utc($object['period_start'] ?? null),
         'current_period_end_utc' => normalize_stripe_timestamp_to_utc($object['period_end'] ?? null),
         'subscriber_email' => extract_stripe_checkout_email($object, $identifier),
+        'stripe_environment' => derive_stripe_environment_from_object($object),
         'last_event_id' => trim((string) ($event['id'] ?? ''))
     ], $nowMs);
 
@@ -9107,7 +9655,11 @@ function apply_subscription_deleted_event(array &$state, string $subscriptionEma
         'subscription_id' => $subscriptionId,
         'status' => 'canceled',
         'plan' => normalize_stripe_plan((is_array($object['metadata'] ?? null) ? ($object['metadata']['plan'] ?? '') : '')),
+        'current_period_start_utc' => normalize_stripe_timestamp_to_utc($object['current_period_start'] ?? null),
         'current_period_end_utc' => normalize_stripe_timestamp_to_utc($object['current_period_end'] ?? null),
+        'cancel_at_period_end' => !empty($object['cancel_at_period_end']),
+        'canceled_at_utc' => normalize_stripe_timestamp_to_utc($object['canceled_at'] ?? null),
+        'stripe_environment' => derive_stripe_environment_from_object($object),
         'last_event_id' => trim((string) ($event['id'] ?? ''))
     ], $nowMs);
 
@@ -9492,8 +10044,21 @@ foreach ($state['retired_handles'] as $retiredKey => $entry) {
 }
 $state['retired_handles'] = $normalizedRetiredHandles;
 
-prune_inactive_operational_state($state, $nowMs, $sessionRetentionMs);
-prune_anonymous_visitor_simulation_records($simulationPairsDir, $nowMs, $visitorSimulationRetentionMs);
+prune_inactive_operational_state(
+    $state,
+    $nowMs,
+    $sessionRetentionMs,
+    $debugLogFile,
+    (bool) ($state['debug_enabled'] ?? false)
+);
+prune_expiring_temp_simulation_records(
+    $state,
+    $simulationPairsDir,
+    $nowMs,
+    $visitorSimulationRetentionMs,
+    $debugLogFile,
+    (bool) ($state['debug_enabled'] ?? false)
+);
 
 if (!array_key_exists($sessionCode, $state['sessions']) || !is_array($state['sessions'][$sessionCode])) {
     $state['sessions'][$sessionCode] = default_session_state();
@@ -10779,12 +11344,14 @@ if ($action === 'get_push_setup') {
 
 if ($action === 'save_push_subscription') {
     try {
-        require_allowed_keys($input, ['action', 'own_identifier', 'device_id', 'push_subscription', 'app_version', 'is_installed_app'], 'request');
+        require_allowed_keys($input, ['action', 'own_identifier', 'device_id', 'push_subscription', 'app_version', 'is_installed_app', 'app_shell_mode', 'install_confirmation_state'], 'request');
         $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
         $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
         $subscription = validate_push_subscription_payload($input['push_subscription'] ?? [], 'push_subscription');
         $appVersion = substr(trim((string) ($input['app_version'] ?? '')), 0, 64);
         $isInstalledApp = !empty($input['is_installed_app']);
+        $appShellMode = substr(trim((string) ($input['app_shell_mode'] ?? '')), 0, 64);
+        $installConfirmationState = substr(trim((string) ($input['install_confirmation_state'] ?? '')), 0, 64);
         $webPushConfig = load_webpush_config($webPushConfigFile);
         if (empty($webPushConfig['available'])) {
             throw new RuntimeException(trim((string) ($webPushConfig['message'] ?? 'Web Push is unavailable.')));
@@ -10804,6 +11371,8 @@ if ($action === 'save_push_subscription') {
         [
             'app_version' => $appVersion,
             'is_installed_app' => $isInstalledApp,
+            'app_shell_mode' => $appShellMode,
+            'install_confirmation_state' => $installConfirmationState,
             'user_agent' => substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 512)
         ]
     );
@@ -11120,10 +11689,11 @@ if ($action === 'get_stripe_public_config') {
 
 if ($action === 'create_gift_stripe_checkout_session') {
     try {
-        require_allowed_keys($input, ['action', 'giver_identifier', 'recipient_identifier', 'recipient_email', 'plan'], 'request');
+        require_allowed_keys($input, ['action', 'giver_identifier', 'recipient_identifier', 'recipient_email', 'gift_from_name', 'plan'], 'request');
         $giverIdentifier = validate_participant_identifier_string($input['giver_identifier'] ?? '', 'giver_identifier', true);
         $recipientIdentifier = validate_participant_identifier_string($input['recipient_identifier'] ?? '', 'recipient_identifier', true);
         $recipientEmail = validate_email_identifier_string($input['recipient_email'] ?? '', 'recipient_email', true);
+        $giftFromName = normalize_gift_from_name($input['gift_from_name'] ?? '');
         $plan = normalize_stripe_plan($input['plan'] ?? '');
         if ($plan === '') {
             throw new RuntimeException('Gift subscription plan is invalid.');
@@ -11151,6 +11721,7 @@ if ($action === 'create_gift_stripe_checkout_session') {
         if (!($stripeConfig['available'] ?? false)) {
             throw new RuntimeException((string) ($stripeConfig['message'] ?? 'Stripe configuration is unavailable.'));
         }
+        $stripeEnvironment = get_current_stripe_environment($stripeConfig);
 
         $priceId = get_stripe_price_id_for_plan($stripeConfig, $plan);
         if ($priceId === '') {
@@ -11168,8 +11739,10 @@ if ($action === 'create_gift_stripe_checkout_session') {
                 [
                     'purchase_kind' => 'gift',
                     'giver_identifier' => $giverIdentifier,
+                    'gift_from_name' => $giftFromName,
                     'recipient_identifier' => $recipientIdentifier,
                     'recipient_email' => $recipientEmail,
+                    'stripe_environment' => $stripeEnvironment,
                     'target_identifier' => $recipientIdentifier
                 ]
             ),
@@ -11186,6 +11759,7 @@ if ($action === 'create_gift_stripe_checkout_session') {
             'url' => trim((string) ($sessionResponse['url'] ?? '')),
             'plan' => $plan,
             'giver_identifier' => $giverIdentifier,
+            'gift_from_name' => $giftFromName,
             'recipient_identifier' => $recipientIdentifier,
             'recipient_email' => $recipientEmail
         ],
@@ -11215,6 +11789,7 @@ if ($action === 'create_stripe_checkout_session') {
         if (!($stripeConfig['available'] ?? false)) {
             throw new RuntimeException((string) ($stripeConfig['message'] ?? 'Stripe configuration is unavailable.'));
         }
+        $stripeEnvironment = get_current_stripe_environment($stripeConfig);
 
         $priceId = get_stripe_price_id_for_plan($stripeConfig, $plan);
         if ($priceId === '') {
@@ -11224,7 +11799,13 @@ if ($action === 'create_stripe_checkout_session') {
         $sessionResponse = stripe_api_request(
             'POST',
             '/v1/checkout/sessions',
-            build_stripe_checkout_session_fields($stripeConfig, $priceId, $appUserIdentifier, $plan),
+            build_stripe_checkout_session_fields(
+                $stripeConfig,
+                $priceId,
+                $appUserIdentifier,
+                $plan,
+                ['stripe_environment' => $stripeEnvironment]
+            ),
             (string) $stripeConfig['secretKey']
         );
     } catch (Throwable $exception) {
@@ -12436,6 +13017,23 @@ if ($action === 'list_all_identities' && $hasAdminAccess) {
         'pro_count' => $proCount,
         'std_count' => $stdCount
     ];
+}
+
+if ($action === 'list_admin_subscriptions' && $hasAdminAccess) {
+    $response['subscription_summary'] = build_admin_subscription_rows($state, $pairsDir);
+    $response['subscription_summary_meta'] = build_admin_subscription_meta($response['subscription_summary']);
+}
+
+if ($action === 'refresh_admin_subscription' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'subscription_id', 'secret_candidate'], 'request');
+        $subscriptionId = trim((string) ($input['subscription_id'] ?? ''));
+        refresh_admin_subscription_from_stripe($state, $configDir, $subscriptionId, $nowMs);
+        $response['subscription_summary'] = build_admin_subscription_rows($state, $pairsDir);
+        $response['subscription_summary_meta'] = build_admin_subscription_meta($response['subscription_summary']);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
 }
 
 if ($action === 'start_round') {

@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260706x">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260706am">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260706x">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260706x">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260706x">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260706am">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260706am">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260706am">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260706x">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260706x">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260706x">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260706am">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260706am">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260706am">
   <script>
     (function () {
-      var buildVersion = "20260706x";
+      var buildVersion = "20260706am";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -163,7 +163,7 @@
                   <p class="role-note-setup-wrap" data-role-setup-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-feature-setup="receiver">Click here to set up optional features for Telepathy Beginner</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-contact-inline="receiver">ESP GYM</button></p>
                 </div>
-                <label class="role-field">
+                <label class="role-field role-field-own">
                   <span class="role-field-label" data-own-identifier-label="receiver">You</span>
                   <div class="role-own-row">
                     <input
@@ -255,7 +255,7 @@
                   <p class="role-note-setup-wrap" data-role-setup-wrap="sender" hidden><button class="role-note-link" type="button" data-open-feature-setup="sender">Click here to set up optional features for Telepathy Beginner</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
                 </div>
-                <label class="role-field">
+                <label class="role-field role-field-own">
                   <span class="role-field-label" data-own-identifier-label="sender">You</span>
                   <div class="role-own-row">
                     <input
@@ -428,7 +428,7 @@
       </div>
 
       <div class="handle-overlay beginner-view-hidden" data-push-setup-overlay>
-        <div class="handle-dialog push-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="pushSetupDialogTitle">
+        <div class="handle-dialog push-setup-dialog partner-push-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="pushSetupDialogTitle">
           <h2 class="about-section-title" id="pushSetupDialogTitle">Enable Partner Messaging</h2>
           <p class="about-section-copy">Partner messaging in this build works only when ESP GYM is installed as an app on this device and notifications are allowed for that installed app.</p>
           <div class="settings-view-status push-setup-status" data-push-setup-status>Checking this device...</div>
@@ -438,9 +438,9 @@
           </div>
           <div class="contact-actions push-setup-actions">
             <button class="options-button contact-action-button" type="button" data-push-setup-install>INSTALL APP</button>
-            <button class="options-button contact-action-button" type="button" data-push-setup-enable>ALLOW NOTIFICATIONS</button>
+            <button class="options-button contact-action-button" type="button" data-push-setup-enable>ENABLE PARTNER MESSAGING</button>
             <button class="options-button contact-action-button" type="button" data-push-setup-test>TEST NOTIFICATION</button>
-            <button class="options-button contact-action-button" type="button" data-push-setup-close>NOT NOW</button>
+            <button class="options-button contact-action-button" type="button" data-push-setup-close>BACK / NOT NOW</button>
           </div>
         </div>
       </div>
@@ -531,7 +531,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260706x</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260706am</span>
           </div>
         </div>
 
@@ -1144,18 +1144,48 @@
               <p class="about-section-copy">$2.99 per month or $25 per year. Cancel at any time.</p>
             </div>
             <div class="about-section">
-              <h2 class="about-section-title">What PRO Will Include</h2>
-              <p class="about-section-copy">This page is the starting point for Stripe subscriptions. The PRO version can later unlock premium analysis, advanced visualization, expanded history tools, and subscriber-only training features.</p>
+              <button class="options-button" type="button" data-open-go-pro-includes>What PRO Includes</button>
             </div>
             <div class="about-section">
               <h2 class="about-section-title">Billing</h2>
-              <p class="about-section-copy">Payments will be handled securely through Stripe.</p>
+              <p class="about-section-copy">Payments are handled securely through Stripe.</p>
             </div>
             <div class="settings-view-note" data-go-pro-identifier-note></div>
             <div class="settings-view-status" data-go-pro-status></div>
             <div class="contact-actions">
               <button class="options-button contact-action-button" type="button" data-go-pro-monthly>Subscribe Monthly - $2.99</button>
               <button class="options-button contact-action-button" type="button" data-go-pro-annual>Subscribe Annual - $25.00</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="go-pro-includes" aria-labelledby="goProIncludesTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-go-pro-includes>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="goProIncludesTitle">What ESP PRO Includes</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy">ESP PRO is fully compatible with Telepathy Beginner. In addition to all the features of Telepathy Beginner, ESP PRO adds the following features:</p>
+            </div>
+            <div class="about-section">
+              <p class="about-section-copy"><strong>Instant notification/messaging</strong> When you send a notification message, whether to a PC or to a phone, if the user has allowed ESP Gym to receive notifications, there will be an instant distinctive sound and popup message on the device. This makes it easy to remind partners when its time to do some telepathy practice and also hold "spontaneous" telepathy sessions with partners interested in this possibility.</p>
+            </div>
+            <div class="about-section">
+              <p class="about-section-copy"><strong>Level 4 - Real-world Images</strong> Levels 1 - 3 use basic images designed to be easy to send and receive telepathically. Level 4 brings in real-world scenes which are much more complex than the basic cone arrangements.</p>
+            </div>
+            <div class="about-section">
+              <p class="about-section-copy"><strong>Clairvoyance / Remote Viewing</strong> Telepathy is usually easier to relate to than clairvoyance and remote viewing. We all are familiar with radio, where there is a transmitter which uses energy to transmit signals across space which are then picked up and decoded by a receiver. But it is harder to understand how, even when there is no obvious transmitter, a clairvoyant receiver can still pick up information as surely as a receiver of telepathic information. The clairvoyance / remote viewing tool does not have a partner for practice sessions. Using two devices, for example, a laptop and a cellphone, the app sets up trials in which images are displayed on a device in another room or country, and a remote viewer tries to see what is on the display in their mind's eye.</p>
+            </div>
+            <div class="about-section">
+              <p class="about-section-copy"><strong>Globe</strong> This feature shows a globe that can be adjusted and zoomed which shows connecting lines between this user's location and the location on earth of other telepathy partners. Globe is a fun way of visualizing the reality that in telepathy, distance is not a factor.</p>
+            </div>
+            <div class="about-section">
+              <p class="about-section-copy"><strong>Access to Ongoing Research</strong> PRO subscribers can operate at a higher level of involvement and contribution. PRO-associated research is a growing area.</p>
             </div>
           </section>
         </section>
@@ -1234,7 +1264,7 @@
                     <p class="role-note-setup-wrap" data-role-setup-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-feature-setup="remote-viewer">Click here to set up optional features for Telepathy Beginner</button></p>
                     <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
                   </div>
-                  <label class="role-field">
+                  <label class="role-field role-field-own">
                     <div class="remote-viewer-label-row">
                       <span class="role-field-label" data-remote-viewer-own-label>You</span>
                       <label class="settings-view-checkbox remote-viewer-display-toggle">
@@ -1347,7 +1377,7 @@
               <div class="baseline-trial-summary-grid">
                 <div class="settings-view-field">
                   <label class="settings-view-label" for="giftProGiverIdentifier">Gift from:</label>
-                  <input class="settings-view-input" id="giftProGiverIdentifier" type="text" data-gift-pro-giver readonly>
+                  <input class="settings-view-input" id="giftProGiverIdentifier" type="text" autocomplete="off" spellcheck="false" placeholder="optional display name" data-gift-pro-giver>
                 </div>
                 <div class="settings-view-field">
                   <label class="settings-view-label" for="giftProRecipientIdentifier">Recipient unique name:</label>
@@ -1529,9 +1559,93 @@
           <h1 class="beginner-title" id="beginnerUserManualTitle">Telepathy Beginner User Manual</h1>
 
           <section class="settings-view-panel about-view-panel">
-            <div class="about-section">
-              <h2 class="about-section-title">Overview</h2>
-              <p class="about-section-copy">Telepathy Beginner is a two-person practice and experiment app. One participant acts as the sender and the other acts as the receiver. The app supports three difficulty levels. The remainder of this manual is currently under development.</p>
+            <div class="about-section manual-section">
+              <p class="manual-kicker">Telepathy Practice</p>
+              <h2 class="about-section-title manual-section-title">The Receiver Experience</h2>
+              <p class="about-section-copy manual-lead">As the receiver, your role is to quiet down, wait for the sender to begin, and then carefully inspect whatever shows up in your mind's eye. At Level 1, the goal is not to force a sharp image, but to notice subtle impressions such as whether there was one object or more than one, where they appeared, and how stable they felt.</p>
+            </div>
+
+            <div class="about-section manual-section">
+              <div class="manual-step-list">
+                <article class="manual-step-card">
+                  <div class="manual-step-number">1</div>
+                  <div class="manual-step-copy">
+                    <h3 class="manual-step-title">Enter your name and press GO</h3>
+                    <p class="about-section-copy">Before the receiver can begin, a name must be entered in the <em>You</em> field. Visitors can use a temporary name. Recognized users should use their unique name. Then press <em>GO</em>.</p>
+                  </div>
+                </article>
+
+                <article class="manual-step-card">
+                  <div class="manual-step-number">2</div>
+                  <div class="manual-step-copy">
+                    <h3 class="manual-step-title">Wait for the sender</h3>
+                    <p class="about-section-copy">If the sender has not yet started, the receiver sees a waiting message. Once both partners are active, the receiver is told when the sender is ready and when it is time to prepare.</p>
+                  </div>
+                </article>
+
+                <article class="manual-step-card">
+                  <div class="manual-step-number">3</div>
+                  <div class="manual-step-copy">
+                    <h3 class="manual-step-title">Get ready to receive</h3>
+                    <p class="about-section-copy">When the receiver taps the readiness prompt, both devices synchronize for the countdown. At the end of the countdown, a short beep signals the start of the receiving interval.</p>
+                  </div>
+                </article>
+
+                <article class="manual-step-card">
+                  <div class="manual-step-number">4</div>
+                  <div class="manual-step-copy">
+                    <h3 class="manual-step-title">Inspect the mind's eye</h3>
+                    <p class="about-section-copy">Many receivers find it helpful to close their eyes around the beep and pay attention to faint visual impressions. The information may be dim, brief, fragmentary, or unstable. What matters is noticing what is actually there.</p>
+                  </div>
+                </article>
+
+                <article class="manual-step-card">
+                  <div class="manual-step-number">5</div>
+                  <div class="manual-step-copy">
+                    <h3 class="manual-step-title">Choose the closest match</h3>
+                    <p class="about-section-copy">After the receiving interval ends, the app shows choices. The receiver should select the option that best matches what was perceived rather than what seems most logical afterward.</p>
+                  </div>
+                </article>
+
+                <article class="manual-step-card">
+                  <div class="manual-step-number">6</div>
+                  <div class="manual-step-copy">
+                    <h3 class="manual-step-title">Review the result and continue or stop</h3>
+                    <p class="about-section-copy">The app then reveals what was actually sent. If positive reinforcement is enabled, the reinforcement sound can confirm a correct choice. The receiver can then ask for another trial or end the session.</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <div class="about-section manual-section">
+              <h3 class="manual-subtitle">What the Receiver Is Looking For</h3>
+              <div class="manual-note-grid">
+                <article class="manual-note-card">
+                  <h4 class="manual-note-title">Shape Count</h4>
+                  <p class="about-section-copy">Was there one attention magnet or more than one? At Level 1, this is often the first useful clue.</p>
+                </article>
+                <article class="manual-note-card">
+                  <h4 class="manual-note-title">Arrangement</h4>
+                  <p class="about-section-copy">If there was more than one shape, were they arranged horizontally, vertically, or diagonally?</p>
+                </article>
+                <article class="manual-note-card">
+                  <h4 class="manual-note-title">Color and Brightness</h4>
+                  <p class="about-section-copy">Did any color show up? Did one area stand out more strongly than the rest?</p>
+                </article>
+                <article class="manual-note-card">
+                  <h4 class="manual-note-title">Stability</h4>
+                  <p class="about-section-copy">Some images hold steady. Others fade in and out. Either pattern can be meaningful.</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="about-section manual-section">
+              <h3 class="manual-subtitle">Important Notes</h3>
+              <ul class="manual-bullet-list">
+                <li>The receiver does not need to force a crisp picture. Telepathic impressions are often brief, low-resolution, and easy to overlook.</li>
+                <li>It is usually better to notice raw features than to name the image too soon.</li>
+                <li>Visitors have <em>(guest)</em> added to the name they use during temporary sessions.</li>
+              </ul>
             </div>
           </section>
         </section>
@@ -1600,17 +1714,9 @@
                   <p class="feature-setup-text">Partner messaging allows instant notification messages to and from partners when messaging is enabled for this device.</p>
                   <div class="feature-setup-status" data-feature-setup-messaging-status>Checking messaging status...</div>
                 </div>
-                <button class="options-button feature-setup-action" type="button" data-feature-setup-messaging-action>SET UP MESSAGING</button>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-messaging-action>ENABLE PARTNER MESSAGING</button>
               </section>
 
-              <section class="feature-setup-item" data-feature-setup-item="protection">
-                <div class="feature-setup-copy">
-                  <h2 class="feature-setup-title">Protection From Impersonators</h2>
-                  <p class="feature-setup-text">This planned feature will allow a password to be added to your unique identity so impersonators can be effectively blocked.</p>
-                  <div class="feature-setup-status" data-feature-setup-protection-status>Not yet available on this build.</div>
-                </div>
-                <button class="options-button feature-setup-action" type="button" data-feature-setup-protection-action>INFO</button>
-              </section>
             </div>
           </section>
         </section>
@@ -1622,27 +1728,26 @@
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="installGuideTitle">Install ESP GYM</h1>
-          <p class="beginner-subtitle">Install guidance is tailored to the browser and device you are using right now.</p>
+          <h1 class="beginner-title" id="installGuideTitle" data-install-guide-title>Install ESP GYM</h1>
+          <p class="beginner-subtitle" data-install-guide-subtitle>Install guidance is tailored to the browser and device you are using right now.</p>
 
           <section class="settings-view-panel install-guide-panel">
             <div class="settings-view-note" data-install-guide-environment>Detected platform: checking...</div>
             <div class="settings-view-status" data-install-guide-status>Checking install status...</div>
 
             <div class="about-section">
-              <h2 class="about-section-title">What To Do</h2>
+              <h2 class="about-section-title" data-install-guide-steps-title>What To Do</h2>
               <p class="about-section-copy" data-install-guide-summary>Loading the best installation path for this device...</p>
               <ol class="install-guide-steps" data-install-guide-steps></ol>
             </div>
 
             <div class="about-section" data-install-guide-after-section hidden>
-              <h2 class="about-section-title">After Installation</h2>
+              <h2 class="about-section-title" data-install-guide-after-title>After Installation</h2>
               <p class="about-section-copy" data-install-guide-after-copy></p>
             </div>
 
             <div class="contact-actions install-guide-actions">
               <button class="options-button contact-action-button" type="button" data-install-guide-primary hidden>OPEN INSTALL PROMPT</button>
-              <button class="options-button contact-action-button" type="button" data-install-guide-refresh>REFRESH STATUS</button>
             </div>
           </section>
         </section>
@@ -1764,15 +1869,14 @@
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
               <h2 class="about-section-title">About Telepathy Beginner</h2>
-              <p class="about-section-copy">Telepathy Beginner is an ESP Gym practice tool designed to help two people explore sender-receiver style telepathy exercises in a structured way. The app supports progressive difficulty levels, records practice history for review, and is intended to make repeated telepathy training sessions easy to run.</p>
-              <p class="about-section-copy">The goal of the app is training and experimentation. It is not presented as a medical, psychological, or scientific diagnostic instrument. Users should treat it as a practice environment for focused attention, perception, and partner-based ESP exercises.</p>
+              <p class="about-section-copy">Telepathy Beginner is an ESP Gym practice tool designed to help a pair of people explore telepathy exercises in a structured way. The app supports progressive difficulty levels, records practice history for review, and is intended to make repeated telepathy training sessions easy.</p>
+              <p class="about-section-copy">The goal of the app is training and experimentation. It is not presented as a medical, psychological, or scientific diagnostic instrument. Users should treat it as an optimized practice environment for focused attention, sustained intention, perception, and ESP exercises.</p>
             </div>
 
             <div class="about-section">
               <h2 class="about-section-title">Privacy Policy</h2>
-              <p class="about-section-copy">ESP Gym stores only the information needed to operate the app and preserve practice history. This may include names entered by users, trial results, timestamps, difficulty levels, and location information when location access is enabled for distance or reporting features.</p>
-              <p class="about-section-copy">Practice history may be stored on the ESP Gym server so users can review reports later and so administrators can manage the system. ESP Gym does not sell user data or intentionally share it for advertising purposes. Administrative access is limited to maintaining the service, reviewing technical status, and supporting users.</p>
-              <p class="about-section-copy">If you send a message through the contact form, the contents of that message will be delivered to ESP Gym by email so your question or feedback can be reviewed. Please do not include sensitive financial, medical, or other highly confidential information in app messages.</p>
+              <p class="about-section-copy">ESP Gym stores only the information needed to operate the app and preserve practice history and user continuity. Practice history for each sender-receiver pair is stored by ESP Gym to allow users to review performance reports later and also for administration and technical management of the system. ESP Gym does not sell user data or intentionally share it for advertising purposes. Administrative access is limited to maintaining the service, reviewing technical status, and supporting users.</p>
+              <p class="about-section-copy">If you send a message through the contact form, the contents of that message is delivered to ESP Gym via email. Please do not include sensitive financial, medical, or other highly confidential information in app messages.</p>
             </div>
           </section>
         </section>
@@ -1792,7 +1896,7 @@
             <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please select the "Research Participation" button on the ESP PRO menu and fill out the form. The research team wil get back to you.</p>
           </section>
           <div class="options-actions">
-            <button class="options-button" type="button" data-open-research-proposal>Research Proposal</button>
+            <button class="options-button" type="button" data-open-research-proposal>Research Proposal - Seeking Serious Donor</button>
           </div>
         </section>
 
@@ -1811,7 +1915,7 @@
             <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please click on <button class="role-note-link role-note-inline-link" type="button" data-open-research-interest-form>This link</button> and fill out the form. The research team will get back to you.</p>
           </section>
           <div class="options-actions">
-            <button class="options-button" type="button" data-open-research-proposal>Research Proposal</button>
+            <button class="options-button" type="button" data-open-research-proposal>Research Proposal - Seeking Serious Donor</button>
           </div>
         </section>
 
@@ -2052,6 +2156,7 @@
               <button class="options-button settings-view-save" type="button" data-open-handle-update-admin>Update a user handle</button>
               <button class="options-button settings-view-save" type="button" data-open-image-pair-admin>Add image pairs</button>
               <button class="options-button settings-view-save" type="button" data-open-messaging-parms-admin>Messaging Parms</button>
+              <button class="options-button settings-view-save" type="button" data-open-subscriptions-admin>Subscriptions</button>
               <button class="options-button settings-view-save" type="button" data-admin-open-14-day-trial>14-day Trial</button>
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
@@ -2063,8 +2168,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260706x'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260706x'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260706am'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260706am'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -2160,12 +2265,11 @@
                 <thead>
                   <tr>
                     <th>Identity</th>
-                    <th>Kind</th>
-                    <th>Subscription</th>
+                    <th>Type</th>
                     <th>Completed Trials</th>
                     <th>Distinct Partners</th>
-                    <th>First Activity</th>
-                    <th>Last Activity</th>
+                    <th>First Trial</th>
+                    <th>Last Trial</th>
                   </tr>
                 </thead>
                 <tbody data-admin-identity-list-body></tbody>
@@ -2187,6 +2291,135 @@
             <div class="report-summary" data-admin-email-list-summary></div>
             <div class="report-status" data-admin-email-list-status></div>
             <pre class="report-definition-debug admin-user-list-output" data-admin-email-list-output hidden></pre>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="subscriptions-admin" aria-labelledby="subscriptionsAdminTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-subscriptions-admin>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="subscriptionsAdminTitle">Subscriptions</h1>
+
+          <section class="report-panel admin-user-list-panel">
+            <div class="report-summary" data-admin-subscriptions-summary></div>
+            <div class="report-status" data-admin-subscriptions-status></div>
+            <div class="admin-report-filter-row">
+              <button class="role-note-link online-course-jump-link is-selected" type="button" data-admin-subscriptions-status-filter="all" aria-pressed="true">All Status</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-status-filter="active" aria-pressed="false">Active</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-status-filter="trialing" aria-pressed="false">Trialing</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-status-filter="canceled" aria-pressed="false">Canceled</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-status-filter="past_due" aria-pressed="false">Past Due</button>
+            </div>
+            <div class="admin-report-filter-row">
+              <button class="role-note-link online-course-jump-link is-selected" type="button" data-admin-subscriptions-environment-filter="live" aria-pressed="true">Live only</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-environment-filter="test" aria-pressed="false">Test only</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-environment-filter="both" aria-pressed="false">Both</button>
+            </div>
+            <div class="admin-report-filter-row">
+              <button class="role-note-link online-course-jump-link is-selected" type="button" data-admin-subscriptions-plan-filter="all" aria-pressed="true">All Plans</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-plan-filter="monthly" aria-pressed="false">Monthly</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-plan-filter="annual" aria-pressed="false">Annual</button>
+              <button class="role-note-link online-course-jump-link is-selected" type="button" data-admin-subscriptions-gift-filter="all" aria-pressed="true">All Purchases</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-gift-filter="self" aria-pressed="false">Self</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-gift-filter="gift" aria-pressed="false">Gift</button>
+              <button class="role-note-link online-course-jump-link" type="button" data-admin-subscriptions-mismatch-filter="mismatch" aria-pressed="false">Mismatch Only</button>
+            </div>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Search:</span>
+              <input
+                class="settings-view-input"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Search by unique name, email, Stripe id, or status"
+                data-admin-subscriptions-search
+              >
+            </label>
+            <div class="report-table-wrap admin-subscriptions-table-wrap">
+              <table class="report-table admin-report-table admin-subscriptions-table">
+                <thead>
+                  <tr>
+                    <th>Unique Name</th>
+                    <th>Mode</th>
+                    <th>Email</th>
+                    <th>Plan</th>
+                    <th>Stripe Status</th>
+                    <th>Gift</th>
+                    <th>Period End</th>
+                    <th>Local Type</th>
+                    <th>Sync Status</th>
+                  </tr>
+                </thead>
+                <tbody data-admin-subscriptions-body></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="settings-view-panel admin-subscriptions-detail-panel">
+            <h2 class="settings-view-subheading">Subscription Detail</h2>
+            <div class="settings-view-note" data-admin-subscriptions-detail-summary>Select a subscription row above to inspect and manage it.</div>
+            <div class="settings-view-status" data-admin-subscriptions-detail-status></div>
+            <div class="settings-view-note" data-admin-subscriptions-detail-notes></div>
+
+            <label class="settings-view-field">
+              <span class="settings-view-label">Unique Name:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-identifier readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Email:</span>
+              <input class="settings-view-input" type="email" autocomplete="off" spellcheck="false" data-admin-subscriptions-detail-email placeholder="subscriber email">
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Stripe customer id:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-customer-id readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Stripe subscription id:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-subscription-id readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Stripe status:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-stripe-status readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Stripe environment:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-environment readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Plan:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-plan readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Current period:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-period readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Gift mode:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-gift-mode readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Gift giver:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-giver readonly>
+            </label>
+            <label class="settings-view-field">
+              <span class="settings-view-label">Gift recipient:</span>
+              <input class="settings-view-input" type="text" data-admin-subscriptions-detail-recipient readonly>
+            </label>
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-admin-subscriptions-refresh>Refresh From Stripe</button>
+              <button class="options-button settings-view-save" type="button" data-admin-subscriptions-open-stripe>Open In Stripe</button>
+            </div>
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-admin-subscriptions-set-pro>Set Local PRO</button>
+              <button class="options-button user-type-admin-clear" type="button" data-admin-subscriptions-set-std>Set Local STD</button>
+              <button class="options-button settings-view-save" type="button" data-admin-subscriptions-update-email>Update Email</button>
+            </div>
+            <div class="user-type-admin-actions">
+              <button class="options-button settings-view-save" type="button" data-admin-subscriptions-relink>Relink Identity</button>
+            </div>
           </section>
         </section>
 
@@ -2654,8 +2887,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260706x"></script>
-<script src="telepathybeginner.js?v=20260706x"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260706am"></script>
+<script src="telepathybeginner.js?v=20260706am"></script>
 </body>
 </html>
 
