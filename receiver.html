@@ -49,11 +49,11 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="telepathy.css?v=20260706am">
+  <link rel="stylesheet" href="telepathy.css?v=20260707guided8">
 </head>
 <body data-role="receiver">
   <main class="screen">
-    <a class="home-link" href="telepathybeginner.html?v=20260706am&amp;open=launcher" aria-label="Go to Telepathy Beginner">&#8962;</a>
+    <a class="home-link" href="telepathybeginner.html?v=20260707guided8&amp;open=launcher" aria-label="Go to Telepathy Beginner">&#8962;</a>
     <button class="waiting-back-button hidden" id="waitingBackButton" type="button" aria-label="Return to Telepathy Beginner home">BACK</button>
     <button class="settings-gear" id="settingsGear" type="button" aria-label="Open settings">&#9881;</button>
     <div class="countdown-box" id="countdownBox" aria-live="polite">
@@ -61,8 +61,30 @@
     </div>
     <section class="stage" id="stage" aria-label="Receiver state"></section>
     <section class="settings-screen" id="settingsScreen" aria-label="Settings"></section>
+    <div class="guided-tour-runtime-overlay hidden" id="guidedTourOverlay" aria-live="polite">
+      <div class="guided-tour-runtime-balloon" id="guidedTourBalloon" role="dialog" aria-modal="true" aria-label="Guided Receiver tour step">
+        <p class="guided-tour-runtime-copy" id="guidedTourCopy"></p>
+        <p class="guided-tour-runtime-hint" id="guidedTourHint" hidden></p>
+        <div class="guided-tour-runtime-actions">
+          <button class="confidence-button guided-tour-runtime-secondary-button" id="guidedTourProbeButton" type="button" hidden>PROBE DEEPER</button>
+          <button class="confidence-button" id="guidedTourNextButton" type="button">NEXT</button>
+        </div>
+      </div>
+    </div>
+    <section class="guided-tour-probe-screen hidden" id="guidedTourProbeScreen" aria-label="Probe Deeper">
+      <div class="guided-tour-probe-panel">
+        <div class="guided-tour-probe-header">
+          <h2 class="guided-tour-probe-title">Probe Deeper</h2>
+          <button class="guided-tour-probe-back" id="guidedTourProbeBackButton" type="button">BACK</button>
+        </div>
+        <div class="guided-tour-probe-body">
+          <p>This is a placeholder page for deeper guidance about what may appear in the mind's eye during the receiving interval.</p>
+          <p>Additional explanation, examples, and illustrations can be added here later.</p>
+        </div>
+      </div>
+    </section>
   </main>
-    <script src="telepathy.js?v=20260706am"></script>
+    <script src="telepathy.js?v=20260707guided8"></script>
   </body>
   </html>
 

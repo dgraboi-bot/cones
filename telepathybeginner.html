@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260706am">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260707guided8">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260706am">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260706am">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260706am">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260707guided8">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260707guided8">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260707guided8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260706am">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260706am">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260706am">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260707guided8">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260707guided8">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260707guided8">
   <script>
     (function () {
-      var buildVersion = "20260706am";
+      var buildVersion = "20260707guided8";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -210,7 +210,7 @@
                 </label>
                 <div class="role-identifier-status" data-role-identifier-status="receiver" hidden></div>
                 <div class="role-location-status" data-location-status="receiver">
-                  <span class="role-location-text">Location: unknown</span>
+                  <span class="role-location-text">Reinforcement: On    Confidence: Off</span>
                   <div class="role-location-actions">
                     <button class="role-location-exact" type="button" data-open-exact-location="receiver">Review Location</button>
                   </div>
@@ -302,7 +302,7 @@
                 </label>
                 <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
                 <div class="role-location-status" data-location-status="sender">
-                  <span class="role-location-text">Location: unknown</span>
+                  <span class="role-location-text">Reinforcement: On    Confidence: Off</span>
                   <div class="role-location-actions">
                     <button class="role-location-exact" type="button" data-open-exact-location="sender">Review Location</button>
                   </div>
@@ -314,6 +314,16 @@
           </article>
 
         </section>
+
+        <div class="guided-tour-launcher-overlay" data-guided-tour-overlay hidden>
+          <div class="guided-tour-launcher-balloon" data-guided-tour-balloon role="dialog" aria-modal="true" aria-label="Guided Receiver tour step">
+            <p class="guided-tour-launcher-copy" data-guided-tour-copy></p>
+            <p class="guided-tour-launcher-hint" data-guided-tour-hint hidden></p>
+            <div class="guided-tour-launcher-actions">
+              <button class="options-button guided-tour-launcher-next" type="button" data-guided-tour-next>NEXT</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="beginner-view beginner-view-hidden messages-overlay-view" data-view="messages" aria-labelledby="messagesTitle">
@@ -531,7 +541,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260706am</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260707guided8</span>
           </div>
         </div>
 
@@ -1300,7 +1310,7 @@
                     >
                   </label>
                   <div class="role-location-status" data-location-status="remote-viewer">
-                    <span class="role-location-text">Location: unknown</span>
+                    <span class="role-location-text">Reinforcement: On    Confidence: Off</span>
                     <div class="role-location-actions">
                       <button class="role-location-exact" type="button" data-open-exact-location="remote-viewer">Review Location</button>
                     </div>
@@ -1556,96 +1566,17 @@
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="beginnerUserManualTitle">Telepathy Beginner User Manual</h1>
+          <h1 class="beginner-title" id="beginnerUserManualTitle">User Guide</h1>
 
           <section class="settings-view-panel about-view-panel">
             <div class="about-section manual-section">
-              <p class="manual-kicker">Telepathy Practice</p>
-              <h2 class="about-section-title manual-section-title">The Receiver Experience</h2>
-              <p class="about-section-copy manual-lead">As the receiver, your role is to quiet down, wait for the sender to begin, and then carefully inspect whatever shows up in your mind's eye. At Level 1, the goal is not to force a sharp image, but to notice subtle impressions such as whether there was one object or more than one, where they appeared, and how stable they felt.</p>
-            </div>
-
-            <div class="about-section manual-section">
-              <div class="manual-step-list">
-                <article class="manual-step-card">
-                  <div class="manual-step-number">1</div>
-                  <div class="manual-step-copy">
-                    <h3 class="manual-step-title">Enter your name and press GO</h3>
-                    <p class="about-section-copy">Before the receiver can begin, a name must be entered in the <em>You</em> field. Visitors can use a temporary name. Recognized users should use their unique name. Then press <em>GO</em>.</p>
-                  </div>
-                </article>
-
-                <article class="manual-step-card">
-                  <div class="manual-step-number">2</div>
-                  <div class="manual-step-copy">
-                    <h3 class="manual-step-title">Wait for the sender</h3>
-                    <p class="about-section-copy">If the sender has not yet started, the receiver sees a waiting message. Once both partners are active, the receiver is told when the sender is ready and when it is time to prepare.</p>
-                  </div>
-                </article>
-
-                <article class="manual-step-card">
-                  <div class="manual-step-number">3</div>
-                  <div class="manual-step-copy">
-                    <h3 class="manual-step-title">Get ready to receive</h3>
-                    <p class="about-section-copy">When the receiver taps the readiness prompt, both devices synchronize for the countdown. At the end of the countdown, a short beep signals the start of the receiving interval.</p>
-                  </div>
-                </article>
-
-                <article class="manual-step-card">
-                  <div class="manual-step-number">4</div>
-                  <div class="manual-step-copy">
-                    <h3 class="manual-step-title">Inspect the mind's eye</h3>
-                    <p class="about-section-copy">Many receivers find it helpful to close their eyes around the beep and pay attention to faint visual impressions. The information may be dim, brief, fragmentary, or unstable. What matters is noticing what is actually there.</p>
-                  </div>
-                </article>
-
-                <article class="manual-step-card">
-                  <div class="manual-step-number">5</div>
-                  <div class="manual-step-copy">
-                    <h3 class="manual-step-title">Choose the closest match</h3>
-                    <p class="about-section-copy">After the receiving interval ends, the app shows choices. The receiver should select the option that best matches what was perceived rather than what seems most logical afterward.</p>
-                  </div>
-                </article>
-
-                <article class="manual-step-card">
-                  <div class="manual-step-number">6</div>
-                  <div class="manual-step-copy">
-                    <h3 class="manual-step-title">Review the result and continue or stop</h3>
-                    <p class="about-section-copy">The app then reveals what was actually sent. If positive reinforcement is enabled, the reinforcement sound can confirm a correct choice. The receiver can then ask for another trial or end the session.</p>
-                  </div>
-                </article>
+              <p class="manual-kicker">Guided Experiences</p>
+              <h2 class="about-section-title manual-section-title">User Guide</h2>
+              <p class="about-section-copy manual-lead">Choose one of the guided practice experiences below. Each one walks through a real Robot practice round step by step so you can feel what the flow is like inside the app.</p>
+              <div class="manual-guide-launch">
+                <button class="options-button manual-guide-button" type="button" data-start-guided-receiver-tour>Experience What it's Like to be a Telepathic Receiver</button>
+                <button class="options-button manual-guide-button" type="button" data-start-guided-sender-tour>Experience What it's Like to be a Telepathic Sender</button>
               </div>
-            </div>
-
-            <div class="about-section manual-section">
-              <h3 class="manual-subtitle">What the Receiver Is Looking For</h3>
-              <div class="manual-note-grid">
-                <article class="manual-note-card">
-                  <h4 class="manual-note-title">Shape Count</h4>
-                  <p class="about-section-copy">Was there one attention magnet or more than one? At Level 1, this is often the first useful clue.</p>
-                </article>
-                <article class="manual-note-card">
-                  <h4 class="manual-note-title">Arrangement</h4>
-                  <p class="about-section-copy">If there was more than one shape, were they arranged horizontally, vertically, or diagonally?</p>
-                </article>
-                <article class="manual-note-card">
-                  <h4 class="manual-note-title">Color and Brightness</h4>
-                  <p class="about-section-copy">Did any color show up? Did one area stand out more strongly than the rest?</p>
-                </article>
-                <article class="manual-note-card">
-                  <h4 class="manual-note-title">Stability</h4>
-                  <p class="about-section-copy">Some images hold steady. Others fade in and out. Either pattern can be meaningful.</p>
-                </article>
-              </div>
-            </div>
-
-            <div class="about-section manual-section">
-              <h3 class="manual-subtitle">Important Notes</h3>
-              <ul class="manual-bullet-list">
-                <li>The receiver does not need to force a crisp picture. Telepathic impressions are often brief, low-resolution, and easy to overlook.</li>
-                <li>It is usually better to notice raw features than to name the image too soon.</li>
-                <li>Visitors have <em>(guest)</em> added to the name they use during temporary sessions.</li>
-              </ul>
             </div>
           </section>
         </section>
@@ -2888,7 +2819,7 @@
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
 <script src="vendor/leaflet/leaflet.js?v=20260706am"></script>
-<script src="telepathybeginner.js?v=20260706am"></script>
+<script src="telepathybeginner.js?v=20260707guided8"></script>
 </body>
 </html>
 

@@ -19,6 +19,15 @@
   const waitingBackButton = document.getElementById("waitingBackButton");
   const settingsGear = document.getElementById("settingsGear");
   const settingsScreen = document.getElementById("settingsScreen");
+  const guidedTourOverlay = document.getElementById("guidedTourOverlay");
+  const guidedTourBalloon = document.getElementById("guidedTourBalloon");
+  const guidedTourCopy = document.getElementById("guidedTourCopy");
+  const guidedTourHint = document.getElementById("guidedTourHint");
+  const guidedTourNextButton = document.getElementById("guidedTourNextButton");
+  const guidedTourProbeButton = document.getElementById("guidedTourProbeButton");
+  const guidedTourActions = guidedTourBalloon?.querySelector(".guided-tour-runtime-actions") || null;
+  const guidedTourProbeScreen = document.getElementById("guidedTourProbeScreen");
+  const guidedTourProbeBackButton = document.getElementById("guidedTourProbeBackButton");
   const coneSrc = "cone-lowglow-transparent.png";
   const arrangementNodes = new Map();
   const choiceNodes = new Map();
@@ -39,7 +48,8 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260706am";
+  const runtimeBuildVersion = "20260707guided8";
+  const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -48,7 +58,10 @@
     }
   })();
   const runtimeMode = String(runtimeQuery.get("runtime_mode") || "").trim().toLowerCase();
+  const guidedTourMode = String(runtimeQuery.get("guided_tour") || "").trim().toLowerCase();
   const launchedVisitorDisplayName = String(runtimeQuery.get("visitor_display_name") || "").trim();
+  const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
+  const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
     ? String(runtimeQuery.get("include_confidence") || "").trim() === "1"
@@ -57,12 +70,18 @@
     ? String(runtimeQuery.get("include_positive_reinforcement") || "").trim() === "1"
     : null;
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
+  let runtimePrefillSettingsOverride = null;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
   const isRobotSenderMode = runtimeMode === "robot-sender";
   const isRobotReceiverMode = runtimeMode === "robot-receiver";
   const isRobotSimulationMode = isRobotSenderMode || isRobotReceiverMode;
+  const isGuidedReceiverTour = role === "receiver" && guidedTourMode === "receiver-experience";
+  const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
+  const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
+  const guidedReturnTraceKey = "cones-guided-return-trace-v1";
+  const launcherBuildVersion = "20260707guided8";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -207,6 +226,7 @@
   let currentUiModeEnteredAtMs = 0;
   let robotLevelFourPairsPromise = null;
   let senderTrialBackSuppressed = false;
+  let guidedReceiverTourState = null;
 
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
@@ -218,6 +238,713 @@
   function isInternalVisitorIdentifier(name) {
     return /^visitor [a-z0-9]{4}$/i.test(String(name || "").trim());
   }
+
+  function getGuidedTourReturnSnapshotKey() {
+    return isGuidedSenderTour
+      ? guidedSenderTourReturnSnapshotKey
+      : guidedReceiverTourReturnSnapshotKey;
+  }
+
+  function readGuidedReceiverTourReturnSnapshot() {
+    try {
+      const raw = localStorage.getItem(getGuidedTourReturnSnapshotKey());
+      return raw ? JSON.parse(raw) : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function clearGuidedReceiverTourReturnSnapshot() {
+    try {
+      localStorage.removeItem(getGuidedTourReturnSnapshotKey());
+    } catch (_error) {
+      // Ignore cleanup failures.
+    }
+  }
+
+  function clearGuidedReceiverTourTargetClasses() {
+    document.querySelectorAll(".guided-tour-runtime-target, .guided-tour-runtime-muted").forEach((node) => {
+      node.classList.remove("guided-tour-runtime-target");
+      node.classList.remove("guided-tour-runtime-muted");
+    });
+  }
+
+  function setGuidedReceiverTourProbeVisible(visible) {
+    if (!guidedTourProbeButton) {
+      return;
+    }
+    guidedTourProbeButton.hidden = !visible;
+    guidedTourProbeButton.style.display = visible ? "" : "none";
+    guidedTourProbeButton.setAttribute("aria-hidden", visible ? "false" : "true");
+  }
+
+  function closeGuidedTourProbeScreen() {
+    guidedTourProbeScreen?.classList.add("hidden");
+    if (guidedReceiverTourState) {
+      guidedReceiverTourState.probeScreenOpen = false;
+    }
+  }
+
+  function openGuidedTourProbeScreen() {
+    if (!guidedReceiverTourState || guidedReceiverTourState.step?.id !== "receiving-observe" || !guidedTourProbeScreen) {
+      return;
+    }
+    guidedReceiverTourState.probeScreenOpen = true;
+    guidedTourProbeScreen.classList.remove("hidden");
+  }
+
+  function setGuidedReceiverTourHint(message) {
+    if (!guidedTourHint) {
+      return;
+    }
+    const text = String(message || "").trim();
+    guidedTourHint.textContent = text;
+    guidedTourHint.hidden = !text;
+  }
+
+  function getGuidedReceiverTourCorrectChoiceNodes() {
+    if (!activeRound) {
+      return [];
+    }
+    if (isLevelOneDifficulty()) {
+      const actualLayoutNumber = Number(activeRound.layout_number);
+      const count = Array.isArray(layouts[actualLayoutNumber]) ? layouts[actualLayoutNumber].length : 0;
+      if (count <= 1) {
+        return [levelOneChoiceNodes.get("count-1")].filter(Boolean);
+      }
+      return [levelOneChoiceNodes.get("count-3")].filter(Boolean);
+    }
+    return Array.from(getActiveSelectionNodesMap().values()).filter(Boolean);
+  }
+
+  function setGuidedReceiverTourChromeHidden(hidden) {
+    if (!isGuidedExperienceTour) {
+      return;
+    }
+    if (hidden) {
+      homeLink?.classList.add("hidden");
+      settingsGear?.classList.add("hidden");
+      waitingBackButton?.classList.add("hidden");
+      if (homeLink) {
+        homeLink.style.display = "none";
+      }
+      if (settingsGear) {
+        settingsGear.style.display = "none";
+      }
+      if (waitingBackButton) {
+        waitingBackButton.style.display = "none";
+      }
+      return;
+    }
+    homeLink?.classList.remove("hidden");
+    if (homeLink) {
+      homeLink.style.display = "";
+    }
+    if (settingsGear) {
+      settingsGear.style.display = "";
+    }
+    if (waitingBackButton) {
+      waitingBackButton.style.display = "";
+    }
+    updateSettingsGearVisibility();
+  }
+
+  function getGuidedReceiverTourAllowedNodes(step) {
+    if (!step) {
+      return [];
+    }
+    if (typeof step.allowed === "function") {
+      return (step.allowed() || []).filter(Boolean);
+    }
+    return Array.isArray(step.allowed) ? step.allowed.filter(Boolean) : [];
+  }
+
+  function positionGuidedReceiverTourBalloon(step) {
+    if (!guidedTourBalloon) {
+      return;
+    }
+    if (guidedReceiverTourState?.manualBalloonPosition?.stepId === step?.id) {
+      const manual = guidedReceiverTourState.manualBalloonPosition;
+      guidedTourBalloon.style.width = `${manual.width || guidedTourBalloon.offsetWidth || 320}px`;
+      guidedTourBalloon.style.left = `${manual.left}px`;
+      guidedTourBalloon.style.top = `${manual.top}px`;
+      guidedTourBalloon.style.right = "auto";
+      guidedTourBalloon.style.bottom = "auto";
+      return;
+    }
+
+    const viewportWidth = stage?.closest(".screen")?.clientWidth || window.innerWidth || 1280;
+    const viewportHeight = stage?.closest(".screen")?.clientHeight || window.innerHeight || 720;
+    const stageRect = stage?.getBoundingClientRect();
+    const countdownRect = countdownBox?.getBoundingClientRect();
+
+    let width = 320;
+    let left = 20;
+    let top = 20;
+
+    switch (step?.placement) {
+      case "top-center":
+        width = Math.min(Math.max(Math.round(viewportWidth * 0.42), 260), 420);
+        left = Math.max(16, Math.round((viewportWidth - width) / 2));
+        top = 20;
+        break;
+      case "top-center-wide":
+        width = Math.min(Math.max(Math.round(viewportWidth * 0.68), 460), 780);
+        left = Math.max(16, Math.round((viewportWidth - width) / 2));
+        top = 20;
+        break;
+      case "top-right":
+        width = Math.min(Math.max(Math.round(viewportWidth * 0.34), 240), 380);
+        left = Math.max(16, viewportWidth - width - 20);
+        top = 20;
+        break;
+      case "stage-top-center":
+        width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.5), 320), 500);
+        left = Math.max(16, Math.round(((stageRect?.left || 0) + ((stageRect?.width || viewportWidth) - width) / 2)));
+        top = Math.max(16, Math.round((stageRect?.top || 0) + 8));
+        break;
+      case "result-right-inline":
+        width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.3), 220), 360);
+        left = Math.max(16, Math.round((stageRect?.left || 0) + ((stageRect?.width || viewportWidth) * 0.56) - 60));
+        top = Math.max(16, Math.round((stageRect?.top || 0) + ((stageRect?.height || viewportHeight) * 0.22)));
+        break;
+      case "stage-top-left":
+      case "result-top-left":
+        width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.38), 250), 360);
+        left = Math.max(16, Math.round((stageRect?.left || 0) + 8));
+        top = Math.max(16, Math.round((stageRect?.top || 0) + 8));
+        break;
+      default:
+        width = Math.min(Math.max(Math.round((countdownRect?.width || viewportWidth) * 0.7), 250), 380);
+        left = Math.max(16, Math.round((countdownRect?.left || 16) + (((countdownRect?.width || width) - width) / 2)));
+        top = Math.max(16, Math.round((countdownRect?.top || 16) + 12));
+        break;
+    }
+
+    guidedTourBalloon.style.width = `${width}px`;
+    guidedTourBalloon.style.left = `${Math.min(Math.max(16, left), Math.max(16, viewportWidth - width - 16))}px`;
+    guidedTourBalloon.style.top = `${Math.min(Math.max(16, top), Math.max(16, viewportHeight - 140))}px`;
+    guidedTourBalloon.style.right = "auto";
+    guidedTourBalloon.style.bottom = "auto";
+  }
+
+  function renderGuidedReceiverTourStep(step) {
+    if (!isGuidedExperienceTour || !guidedTourOverlay || !guidedTourCopy || !guidedTourNextButton) {
+      return;
+    }
+
+    if (!step?.showProbeDeeper) {
+      closeGuidedTourProbeScreen();
+    }
+
+    setGuidedReceiverTourChromeHidden(true);
+    clearGuidedReceiverTourTargetClasses();
+    guidedTourOverlay.classList.remove("hidden");
+    guidedTourCopy.textContent = String(step?.text || "");
+    setGuidedReceiverTourHint(String(step?.hint || ""));
+    guidedTourNextButton.hidden = !step?.showNext;
+    guidedTourNextButton.style.display = step?.showNext ? "" : "none";
+    guidedTourNextButton.setAttribute("aria-hidden", step?.showNext ? "false" : "true");
+    guidedTourNextButton.textContent = String(step?.nextLabel || "NEXT");
+    setGuidedReceiverTourProbeVisible(!!step?.showProbeDeeper);
+
+    const allowedNodes = new Set(getGuidedReceiverTourAllowedNodes(step));
+    if (step?.target instanceof HTMLElement) {
+      step.target.classList.add("guided-tour-runtime-target");
+      if (allowedNodes.size === 0 && step.allowTargetByDefault !== false) {
+        allowedNodes.add(step.target);
+      }
+    }
+
+    const interactiveNodes = [countdownBox, settingsGear, waitingBackButton, homeLink, enoughButton, anotherButton]
+      .filter(Boolean);
+    getActiveSelectionNodesMap().forEach((node) => {
+      if (node) {
+        interactiveNodes.push(node);
+      }
+    });
+    interactiveNodes.forEach((node) => {
+      if (step?.keepTargetBright && step.target instanceof HTMLElement && node === step.target) {
+        return;
+      }
+      if (!allowedNodes.has(node)) {
+        node.classList.add("guided-tour-runtime-muted");
+      }
+    });
+    positionGuidedReceiverTourBalloon(step);
+  }
+
+  function setGuidedReceiverTourStep(step) {
+    if (!guidedReceiverTourState) {
+      return;
+    }
+    guidedReceiverTourState.step = step;
+    renderGuidedReceiverTourStep(step);
+  }
+
+  function beginGuidedReceiverTour() {
+    if (!isGuidedExperienceTour) {
+      return;
+    }
+    document.body.setAttribute("data-guided-tour-active", "1");
+    guidedReceiverTourState = {
+      phase: "waiting-online",
+      pendingPhase: null,
+      step: null,
+      waitingOnlineAcknowledged: false,
+      probeScreenOpen: false,
+      manualBalloonPosition: null,
+      pauseTimer: null
+    };
+    setGuidedReceiverTourChromeHidden(true);
+    if (currentUiMode === "receiver-waiting-online" || currentUiMode === "sender-waiting-online") {
+      notifyGuidedReceiverTourPhase("waiting-online");
+    } else if (currentUiMode === "receiver-ready" || currentUiMode === "sender-ready") {
+      notifyGuidedReceiverTourPhase("ready");
+    }
+  }
+
+  function clearGuidedReceiverTour() {
+    document.body.removeAttribute("data-guided-tour-active");
+    if (guidedReceiverTourState?.pauseTimer) {
+      window.clearTimeout(guidedReceiverTourState.pauseTimer);
+    }
+    guidedReceiverTourState = null;
+    clearGuidedReceiverTourTargetClasses();
+    setGuidedReceiverTourHint("");
+    setGuidedReceiverTourProbeVisible(false);
+    closeGuidedTourProbeScreen();
+    guidedTourOverlay?.classList.add("hidden");
+    setGuidedReceiverTourChromeHidden(false);
+  }
+
+  function dismissGuidedReceiverTourLiveStep(stepId) {
+    if (!guidedReceiverTourState || guidedReceiverTourState.step?.id !== stepId) {
+      return;
+    }
+    guidedReceiverTourState.step = null;
+    guidedTourOverlay?.classList.add("hidden");
+    setGuidedReceiverTourHint("");
+  }
+
+  function notifyGuidedReceiverTourPhase(phase) {
+    if (!guidedReceiverTourState) {
+      return;
+    }
+
+    guidedReceiverTourState.phase = phase;
+    if (isGuidedSenderTour) {
+      if (phase === "waiting-online") {
+        if (guidedReceiverTourState.waitingOnlineAcknowledged) {
+          return;
+        }
+        setGuidedReceiverTourStep({
+          id: "waiting-online",
+          text: "This message at the beginning means that the Receiver has not yet pressed GO button to start the session.",
+          target: countdownBox,
+          keepTargetBright: true,
+          showNext: true,
+          nextLabel: "NEXT",
+          allowed: [],
+          placement: "top-center"
+        });
+        return;
+      }
+      if (phase === "ready") {
+        if (
+          guidedReceiverTourState.step?.id === "waiting-online" &&
+          !guidedReceiverTourState.waitingOnlineAcknowledged
+        ) {
+          guidedReceiverTourState.pendingPhase = "ready";
+          return;
+        }
+        setGuidedReceiverTourStep({
+          id: "ready",
+          text: "When the receiver is ready, this prompt appears. Tap it when you are ready to begin sending.",
+          target: countdownBox,
+          keepTargetBright: true,
+          showNext: false,
+          allowed: [countdownBox],
+          placement: "top-center"
+        });
+        return;
+      }
+      if (phase === "sending") {
+        setGuidedReceiverTourStep({
+          id: "sending-intro",
+          text: "At the end of the countdown, the target image appears before you. Your task as sender is to focus all your attention on it and not on anything else. Your unconscious knows who your partner is, and your partner's unconscious knows that you are the sender. A telepathic connection exists between the two partners.",
+          target: stage,
+          keepTargetBright: true,
+          showNext: true,
+          nextLabel: "NEXT",
+          allowed: [],
+          placement: "top-center-wide"
+        });
+        return;
+      }
+      if (phase === "result") {
+        setGuidedReceiverTourStep({
+          id: "sender-result",
+          text: "This is the sender's result screen. It shows what you send and what choice the receiver picked. Since the receiver has selected, 'Another?' you can choose 'OK' and continue, or you can let the receiver know that you have had enough for now.",
+          target: messagePanel || stage,
+          showNext: false,
+          allowed: () => Array.from(messageActions?.querySelectorAll("button") || []).filter(Boolean),
+          allowTargetByDefault: false,
+          placement: "result-right-inline"
+        });
+      }
+      return;
+    }
+
+    if (phase === "waiting-online") {
+      if (guidedReceiverTourState.waitingOnlineAcknowledged) {
+        return;
+      }
+      setGuidedReceiverTourStep({
+        id: "waiting-online",
+        text: "This message at the beginning means that the Sender has not yet pressed his GO button to start the session.",
+        target: countdownBox,
+        keepTargetBright: true,
+        showNext: true,
+        nextLabel: "NEXT",
+        allowed: [],
+        placement: "top-center"
+      });
+      return;
+    }
+    if (phase === "ready") {
+      if (
+        guidedReceiverTourState.step?.id === "waiting-online" &&
+        !guidedReceiverTourState.waitingOnlineAcknowledged
+      ) {
+        guidedReceiverTourState.pendingPhase = "ready";
+        return;
+      }
+      setGuidedReceiverTourStep({
+        id: "ready",
+        text: "When the sender is ready, this prompt appears. Tap it when you are ready to begin receiving.",
+        target: countdownBox,
+        keepTargetBright: true,
+        showNext: false,
+        allowed: [countdownBox],
+        placement: "top-center"
+      });
+      return;
+    }
+
+    if (phase === "receiving") {
+      setGuidedReceiverTourStep({
+        id: "receiving-intro",
+        text: "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind’s eye at this time. The beep marks the time that an image appears before the sender’s eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is the best time to try to observe new visual information in your mind’s eye.",
+        target: countdownBox,
+        keepTargetBright: true,
+        showNext: true,
+        nextLabel: "NEXT",
+        allowed: [],
+        placement: "top-center-wide"
+      });
+      return;
+    }
+
+    if (phase === "done") {
+      setGuidedReceiverTourStep({
+        id: "done",
+        text: "After you have had a few seconds to inspect and remember the contents of your mind's eye, tap here to say you are done receiving.",
+        target: countdownBox,
+        keepTargetBright: true,
+        showNext: false,
+        allowed: [countdownBox],
+        placement: "top-center"
+      });
+      return;
+    }
+
+    if (phase === "choices") {
+      setGuidedReceiverTourStep({
+        id: "choices",
+        text: "For this tour, tap the highlighted correct answer so you can experience the instant positive reinforcement sound. Positive reinforcement has been proven to enhance learning.",
+        target: getGuidedReceiverTourCorrectChoiceNodes()[0] || stage,
+        showNext: false,
+        allowed: () => getGuidedReceiverTourCorrectChoiceNodes(),
+        allowTargetByDefault: false,
+        placement: "stage-top-center"
+      });
+      return;
+    }
+
+    if (phase === "result") {
+      setGuidedReceiverTourStep({
+        id: "result",
+        text: "This is the last screen of a trial. To do another trial, you would tap the word, \"Another?\" below. The sender will then decide whether the sender is also ready for another trial.",
+        target: decisionPanel || messagePanel || stage,
+        showNext: false,
+        allowed: [enoughButton, anotherButton].filter(Boolean),
+        allowTargetByDefault: false,
+        placement: "result-right-inline"
+      });
+    }
+  }
+
+  let lastGuidedReceiverTourNextActionMs = 0;
+
+  function handleGuidedReceiverTourNextAction() {
+    const now = Date.now();
+    if (now - lastGuidedReceiverTourNextActionMs < 120) {
+      return;
+    }
+    lastGuidedReceiverTourNextActionMs = now;
+    if (!guidedReceiverTourState) {
+      return;
+    }
+    const currentStep = guidedReceiverTourState.step;
+    if (isGuidedSenderTour) {
+      if (currentStep?.id === "waiting-online") {
+        guidedReceiverTourState.waitingOnlineAcknowledged = true;
+        guidedReceiverTourState.manualBalloonPosition = null;
+        if (guidedReceiverTourState.pendingPhase) {
+          const pendingPhase = guidedReceiverTourState.pendingPhase;
+          guidedReceiverTourState.pendingPhase = null;
+          if (pendingPhase === "ready") {
+            const prompt = getSenderReadyPrompt();
+            setPrompt(prompt, !isRemoteDisplayMode, prompt);
+            updateSettingsGearVisibility();
+          }
+          notifyGuidedReceiverTourPhase(pendingPhase);
+        } else if (currentUiMode === "sender-ready") {
+          const prompt = getSenderReadyPrompt();
+          setPrompt(prompt, !isRemoteDisplayMode, prompt);
+          updateSettingsGearVisibility();
+          notifyGuidedReceiverTourPhase("ready");
+        } else {
+          guidedReceiverTourState.step = null;
+          guidedTourOverlay.classList.add("hidden");
+          setGuidedReceiverTourHint("");
+        }
+        return;
+      }
+      if (currentStep?.id === "sending-intro") {
+        guidedReceiverTourState.manualBalloonPosition = null;
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay.classList.add("hidden");
+        setGuidedReceiverTourHint("");
+        if (typeof guidedReceiverTourState.resumeAfterStep === "function") {
+          const resume = guidedReceiverTourState.resumeAfterStep;
+          guidedReceiverTourState.resumeAfterStep = null;
+          resume();
+        }
+        return;
+      }
+      if (currentStep?.id === "sender-result") {
+        return;
+      }
+    }
+    if (currentStep?.id === "waiting-online") {
+      guidedReceiverTourState.waitingOnlineAcknowledged = true;
+      guidedReceiverTourState.manualBalloonPosition = null;
+      if (guidedReceiverTourState.pendingPhase) {
+        const pendingPhase = guidedReceiverTourState.pendingPhase;
+        guidedReceiverTourState.pendingPhase = null;
+        if (pendingPhase === "ready") {
+          const prompt = getReceiverPressReadyPrompt();
+          setPrompt(prompt, true, prompt);
+          updateSettingsGearVisibility();
+        }
+        notifyGuidedReceiverTourPhase(pendingPhase);
+      } else if (currentUiMode === "receiver-ready") {
+        const prompt = getReceiverPressReadyPrompt();
+        setPrompt(prompt, true, prompt);
+        updateSettingsGearVisibility();
+        notifyGuidedReceiverTourPhase("ready");
+      } else {
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay.classList.add("hidden");
+        setGuidedReceiverTourHint("");
+      }
+      return;
+    }
+    if (currentStep?.id === "receiving-intro") {
+      guidedReceiverTourState.manualBalloonPosition = null;
+      setGuidedReceiverTourStep({
+        id: "receiving-observe",
+        text: "Look carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mind’s eye about the time that the beep occurred. This is your task.",
+        target: countdownBox,
+        keepTargetBright: true,
+        showNext: true,
+        showProbeDeeper: true,
+        nextLabel: "NEXT",
+        allowed: [],
+        placement: "top-center-wide"
+      });
+      return;
+    }
+    if (currentStep?.id === "receiving-observe") {
+      guidedReceiverTourState.manualBalloonPosition = null;
+      guidedReceiverTourState.step = null;
+      guidedTourOverlay.classList.add("hidden");
+      setGuidedReceiverTourHint("");
+      if (guidedReceiverTourState.pauseTimer) {
+        window.clearTimeout(guidedReceiverTourState.pauseTimer);
+      }
+      guidedReceiverTourState.pauseTimer = window.setTimeout(() => {
+        if (!guidedReceiverTourState) {
+          return;
+        }
+        guidedReceiverTourState.pauseTimer = null;
+        showReceiverDoneButton();
+      }, 2000);
+      return;
+    }
+    if (currentStep?.id === "result") {
+      return;
+    }
+  }
+
+  guidedTourNextButton?.addEventListener("click", handleGuidedReceiverTourNextAction);
+  guidedTourNextButton?.addEventListener("pointerup", handleGuidedReceiverTourNextAction);
+  guidedTourProbeButton?.addEventListener("click", () => {
+    openGuidedTourProbeScreen();
+  });
+  guidedTourProbeBackButton?.addEventListener("click", () => {
+    closeGuidedTourProbeScreen();
+    if (guidedReceiverTourState?.step) {
+      renderGuidedReceiverTourStep(guidedReceiverTourState.step);
+    }
+  });
+
+  let guidedReceiverTourBalloonDrag = null;
+
+  guidedTourBalloon?.addEventListener("pointerdown", (event) => {
+    if (!guidedReceiverTourState) {
+      return;
+    }
+    const target = event.target;
+    if (target instanceof Element && target.closest("button, input, select, textarea, a, label")) {
+      return;
+    }
+    const rect = guidedTourBalloon.getBoundingClientRect();
+    guidedReceiverTourBalloonDrag = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    guidedTourBalloon.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  });
+
+  guidedTourBalloon?.addEventListener("pointermove", (event) => {
+    if (!guidedReceiverTourBalloonDrag || !guidedReceiverTourState || guidedReceiverTourBalloonDrag.pointerId !== event.pointerId) {
+      return;
+    }
+    const rect = guidedTourBalloon.getBoundingClientRect();
+    const viewportWidth = stage?.closest(".screen")?.clientWidth || window.innerWidth || 1280;
+    const viewportHeight = stage?.closest(".screen")?.clientHeight || window.innerHeight || 720;
+    const minVisibleX = 96;
+    const minVisibleY = 56;
+    const left = Math.min(
+      Math.max(minVisibleX - rect.width, event.clientX - guidedReceiverTourBalloonDrag.offsetX),
+      Math.max(minVisibleX, viewportWidth - minVisibleX)
+    );
+    const top = Math.min(
+      Math.max(minVisibleY - rect.height, event.clientY - guidedReceiverTourBalloonDrag.offsetY),
+      Math.max(minVisibleY, viewportHeight - minVisibleY)
+    );
+    guidedReceiverTourState.manualBalloonPosition = {
+      stepId: guidedReceiverTourState.step?.id || "",
+      left,
+      top,
+      width: rect.width
+    };
+    guidedTourBalloon.style.left = `${left}px`;
+    guidedTourBalloon.style.top = `${top}px`;
+    guidedTourBalloon.style.right = "auto";
+    guidedTourBalloon.style.bottom = "auto";
+  });
+
+  const clearGuidedReceiverTourBalloonDrag = () => {
+    guidedReceiverTourBalloonDrag = null;
+  };
+
+  guidedTourBalloon?.addEventListener("pointerup", clearGuidedReceiverTourBalloonDrag);
+  guidedTourBalloon?.addEventListener("pointercancel", clearGuidedReceiverTourBalloonDrag);
+  guidedTourActions?.addEventListener("pointerup", (event) => {
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+    if (event.target.closest("#guidedTourNextButton")) {
+      handleGuidedReceiverTourNextAction();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target.closest("#guidedTourNextButton")) {
+      handleGuidedReceiverTourNextAction();
+    }
+  }, true);
+
+  document.addEventListener("pointerup", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target.closest("#guidedTourNextButton")) {
+      handleGuidedReceiverTourNextAction();
+    }
+  }, true);
+
+  document.addEventListener("click", (event) => {
+    if (!guidedReceiverTourState) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (guidedTourProbeScreen?.contains(target)) {
+      return;
+    }
+    if (guidedTourOverlay?.contains(target)) {
+      return;
+    }
+
+    const currentStep = guidedReceiverTourState.step;
+    const allowedNodes = getGuidedReceiverTourAllowedNodes(currentStep);
+    const isAllowed = allowedNodes.some((node) => node === target || node.contains(target));
+
+    if (isAllowed) {
+      if (currentStep?.id === "ready") {
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay?.classList.add("hidden");
+        clearGuidedReceiverTourTargetClasses();
+        setGuidedReceiverTourHint("");
+      } else if (currentStep?.id === "done") {
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay?.classList.add("hidden");
+        clearGuidedReceiverTourTargetClasses();
+        setGuidedReceiverTourHint("");
+      } else if (currentStep?.id === "choices") {
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay?.classList.add("hidden");
+        clearGuidedReceiverTourTargetClasses();
+        setGuidedReceiverTourHint("");
+      } else if (currentStep?.id === "result" || currentStep?.id === "sender-result") {
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay?.classList.add("hidden");
+        clearGuidedReceiverTourTargetClasses();
+        setGuidedReceiverTourHint("");
+      }
+      return;
+    }
+
+    if (target.closest("button, [role=\"button\"], a, input, select, textarea")) {
+      event.preventDefault();
+      event.stopPropagation();
+      setGuidedReceiverTourHint('Please press "NEXT" to continue.');
+    }
+  }, true);
 
   function readLauncherVisitorDisplayName(preferredRole = role) {
     try {
@@ -260,8 +987,40 @@
     return normalizedIdentifier ? `${normalizedRole}::${normalizedIdentifier}::robot` : `${normalizedRole}::::robot`;
   }
 
-  async function syncLauncherReturnStateFromRuntime(reason = "") {
+  async function syncLauncherReturnStateFromRuntime(reason = "", guidedReturnSnapshot = null) {
     try {
+      appendGuidedReturnTrace("runtime_sync_launcher_return_state_start", {
+        page_instance_id: runtimePageInstanceId,
+        reason,
+        hasGuidedSnapshot: !!guidedReturnSnapshot
+      });
+      if (guidedReturnSnapshot && typeof guidedReturnSnapshot === "object") {
+        if (guidedReturnSnapshot.launcherState && typeof guidedReturnSnapshot.launcherState === "object") {
+          localStorage.setItem(launcherStorageKey, JSON.stringify(guidedReturnSnapshot.launcherState));
+        }
+        const snapshotRuntimeSettings = guidedReturnSnapshot.runtimeSettings && typeof guidedReturnSnapshot.runtimeSettings === "object"
+          ? guidedReturnSnapshot.runtimeSettings
+          : {};
+        ["sender", "receiver", "remote-viewer"].forEach((snapshotRole) => {
+          if (snapshotRuntimeSettings[snapshotRole] && typeof snapshotRuntimeSettings[snapshotRole] === "object") {
+            localStorage.setItem(`cones-settings-v2-${snapshotRole}`, JSON.stringify(snapshotRuntimeSettings[snapshotRole]));
+          }
+        });
+        if (typeof logDebugEvent === "function") {
+          await logDebugEvent("launcher_return_state_restored_from_guided_snapshot", {
+            reason,
+            role,
+            page_instance_id: runtimePageInstanceId
+          });
+        }
+        appendGuidedReturnTrace("runtime_sync_launcher_return_state_guided_snapshot_restored", {
+          page_instance_id: runtimePageInstanceId,
+          reason,
+          role
+        });
+        return;
+      }
+
       const settings = readSettings();
       const raw = localStorage.getItem(launcherStorageKey);
       const parsed = raw ? JSON.parse(raw) : {};
@@ -320,13 +1079,27 @@
         await logDebugEvent("launcher_return_state_synced", {
           reason,
           role: returnRole,
+          page_instance_id: runtimePageInstanceId,
           runtime_own_email: internalIdentifier,
           visitor_display_name: visitorDisplayName,
           difficulty_level: returnDifficulty,
           robot_mode: isRobotSimulationMode
         });
       }
-    } catch (_) {
+      appendGuidedReturnTrace("runtime_sync_launcher_return_state_saved", {
+        page_instance_id: runtimePageInstanceId,
+        reason,
+        role: returnRole,
+        returnDifficulty,
+        visitorDisplayName,
+        robotMode: !!isRobotSimulationMode
+      });
+    } catch (error) {
+      appendGuidedReturnTrace("runtime_sync_launcher_return_state_error", {
+        page_instance_id: runtimePageInstanceId,
+        reason,
+        message: String(error?.message || error || "").trim()
+      });
       // Ignore launcher sync failures so the runtime can still return home.
     }
   }
@@ -544,14 +1317,16 @@
     settingsGear?.classList.toggle("hidden", !shouldShow);
     homeLink?.classList.toggle("hidden", !shouldShow);
     waitingBackButton?.classList.toggle("hidden", !finalShouldShowWaitingBack);
+    if (guidedReceiverTourState) {
+      setGuidedReceiverTourChromeHidden(true);
+    }
   }
 
   function readSettings() {
     try {
       const raw = localStorage.getItem(settingsStorageKey);
       const parsed = raw ? JSON.parse(raw) : {};
-
-      return {
+      const settings = {
         own_email: typeof parsed?.own_email === "string" ? parsed.own_email : "",
         partner_email: typeof parsed?.partner_email === "string" ? parsed.partner_email : "",
         visitor_display_name: typeof parsed?.visitor_display_name === "string" ? parsed.visitor_display_name : "",
@@ -564,11 +1339,38 @@
         blink_image_on_seconds: typeof parsed?.blink_image_on_seconds === "string" ? parsed.blink_image_on_seconds : "0.35",
         blink_image_off_seconds: typeof parsed?.blink_image_off_seconds === "string" ? parsed.blink_image_off_seconds : "0.8",
         include_confidence: typeof parsed?.include_confidence === "boolean" ? parsed.include_confidence : false,
-        include_positive_reinforcement: typeof parsed?.include_positive_reinforcement === "boolean" ? parsed.include_positive_reinforcement : false,
+        include_positive_reinforcement: typeof parsed?.include_positive_reinforcement === "boolean" ? parsed.include_positive_reinforcement : true,
         difficulty_level: normalizeDifficultyLevel(parsed?.difficulty_level || "1")
       };
+      if (runtimePrefillSettingsOverride) {
+        settings.own_email = String(runtimePrefillSettingsOverride.own_email || settings.own_email || "").trim();
+        settings.partner_email = String(runtimePrefillSettingsOverride.partner_email || settings.partner_email || "").trim();
+        settings.visitor_display_name = String(runtimePrefillSettingsOverride.visitor_display_name || settings.visitor_display_name || "").trim();
+        settings.device_location = typeof runtimePrefillSettingsOverride.device_location === "string"
+          ? runtimePrefillSettingsOverride.device_location
+          : settings.device_location;
+        if (typeof runtimePrefillSettingsOverride.blink_sender_image === "boolean") {
+          settings.blink_sender_image = runtimePrefillSettingsOverride.blink_sender_image;
+        }
+        if (typeof runtimePrefillSettingsOverride.blink_image_on_seconds === "string" && runtimePrefillSettingsOverride.blink_image_on_seconds) {
+          settings.blink_image_on_seconds = runtimePrefillSettingsOverride.blink_image_on_seconds;
+        }
+        if (typeof runtimePrefillSettingsOverride.blink_image_off_seconds === "string" && runtimePrefillSettingsOverride.blink_image_off_seconds) {
+          settings.blink_image_off_seconds = runtimePrefillSettingsOverride.blink_image_off_seconds;
+        }
+        if (typeof runtimePrefillSettingsOverride.include_confidence === "boolean") {
+          settings.include_confidence = runtimePrefillSettingsOverride.include_confidence;
+        }
+        if (typeof runtimePrefillSettingsOverride.include_positive_reinforcement === "boolean") {
+          settings.include_positive_reinforcement = runtimePrefillSettingsOverride.include_positive_reinforcement;
+        }
+        if (typeof runtimePrefillSettingsOverride.difficulty_level === "string" && runtimePrefillSettingsOverride.difficulty_level) {
+          settings.difficulty_level = normalizeDifficultyLevel(runtimePrefillSettingsOverride.difficulty_level);
+        }
+      }
+      return settings;
     } catch (error) {
-      return {
+      const fallback = {
         own_email: "",
         partner_email: "",
         visitor_display_name: "",
@@ -581,9 +1383,36 @@
         blink_image_on_seconds: "0.35",
         blink_image_off_seconds: "0.8",
         include_confidence: false,
-        include_positive_reinforcement: false,
+        include_positive_reinforcement: true,
         difficulty_level: "1"
       };
+      if (runtimePrefillSettingsOverride) {
+        fallback.own_email = String(runtimePrefillSettingsOverride.own_email || "").trim();
+        fallback.partner_email = String(runtimePrefillSettingsOverride.partner_email || "").trim();
+        fallback.visitor_display_name = String(runtimePrefillSettingsOverride.visitor_display_name || "").trim();
+        fallback.device_location = typeof runtimePrefillSettingsOverride.device_location === "string"
+          ? runtimePrefillSettingsOverride.device_location
+          : "";
+        if (typeof runtimePrefillSettingsOverride.blink_sender_image === "boolean") {
+          fallback.blink_sender_image = runtimePrefillSettingsOverride.blink_sender_image;
+        }
+        if (typeof runtimePrefillSettingsOverride.blink_image_on_seconds === "string" && runtimePrefillSettingsOverride.blink_image_on_seconds) {
+          fallback.blink_image_on_seconds = runtimePrefillSettingsOverride.blink_image_on_seconds;
+        }
+        if (typeof runtimePrefillSettingsOverride.blink_image_off_seconds === "string" && runtimePrefillSettingsOverride.blink_image_off_seconds) {
+          fallback.blink_image_off_seconds = runtimePrefillSettingsOverride.blink_image_off_seconds;
+        }
+        if (typeof runtimePrefillSettingsOverride.include_confidence === "boolean") {
+          fallback.include_confidence = runtimePrefillSettingsOverride.include_confidence;
+        }
+        if (typeof runtimePrefillSettingsOverride.include_positive_reinforcement === "boolean") {
+          fallback.include_positive_reinforcement = runtimePrefillSettingsOverride.include_positive_reinforcement;
+        }
+        if (typeof runtimePrefillSettingsOverride.difficulty_level === "string" && runtimePrefillSettingsOverride.difficulty_level) {
+          fallback.difficulty_level = normalizeDifficultyLevel(runtimePrefillSettingsOverride.difficulty_level);
+        }
+      }
+      return fallback;
     }
   }
 
@@ -1071,68 +1900,88 @@
     const selectedArrangementCodes = String(round?.stimulus_kind || "") === "image_pair"
       ? []
       : [getArrangementCode(guess.guessLayoutNumber)];
+    const guidedSenderDelayProfile = isGuidedSenderTour
+      ? {
+          choicesDelay: randomInt(900, 1300),
+          resultsDelay: randomInt(2200, 3200),
+          postRoundDelay: randomInt(3600, 4600)
+        }
+      : null;
 
-    state.receiver_view = {
-      phase: includeConfidence ? "confidence" : "idle",
-      confidence_value: guess.confidence,
-      selection_limit: 1,
-      selected_arrangement_codes: [],
-      selected_layout_numbers: [],
-      confidence_locked_at_ms: null,
-      done_reaction_ms: null
-    };
-    state.post_round = null;
-    applyRemoteState(buildRobotSimulationPayload());
-
-    scheduleRobotSimulationStep(() => {
+    const startSimulation = () => {
       state.receiver_view = {
-        phase: "choices",
+        phase: includeConfidence ? "confidence" : "idle",
         confidence_value: guess.confidence,
         selection_limit: 1,
-        selected_arrangement_codes: includeConfidence ? selectedArrangementCodes : [],
-        selected_layout_numbers: includeConfidence ? [guess.guessLayoutNumber] : [],
+        selected_arrangement_codes: [],
+        selected_layout_numbers: [],
         confidence_locked_at_ms: null,
         done_reaction_ms: null
       };
+      state.post_round = null;
       applyRemoteState(buildRobotSimulationPayload());
-    }, randomInt(3600, 5600));
 
-    scheduleRobotSimulationStep(() => {
-      round.guess_layout_number = guess.guessLayoutNumber;
-      round.second_guess_layout_number = guess.secondGuessLayoutNumber;
-      round.guess_confidence = guess.confidence;
-      round.done_reaction_ms = randomInt(700, 2200);
-      round.guess_submitted_ms = estimatedServerNowMs();
-      round.completed_server_ms = round.guess_submitted_ms;
-      round.last_activity_ms = round.guess_submitted_ms;
-      state.round = round;
-      state.receiver_view = {
-        phase: "results",
-        confidence_value: guess.confidence,
-        selection_limit: 1,
-        selected_arrangement_codes: selectedArrangementCodes,
-        selected_layout_numbers: [guess.guessLayoutNumber],
-        confidence_locked_at_ms: estimatedServerNowMs(),
-        done_reaction_ms: round.done_reaction_ms
-      };
-      void appendTrialServerRecord(buildRobotSimulationPayload().state);
-      applyRemoteState(buildRobotSimulationPayload());
-    }, randomInt(13500, 19000));
+      scheduleRobotSimulationStep(() => {
+        state.receiver_view = {
+          phase: "choices",
+          confidence_value: guess.confidence,
+          selection_limit: 1,
+          selected_arrangement_codes: includeConfidence ? selectedArrangementCodes : [],
+          selected_layout_numbers: includeConfidence ? [guess.guessLayoutNumber] : [],
+          confidence_locked_at_ms: null,
+          done_reaction_ms: null
+        };
+        applyRemoteState(buildRobotSimulationPayload());
+      }, guidedSenderDelayProfile ? guidedSenderDelayProfile.choicesDelay : randomInt(3600, 5600));
 
-    scheduleRobotSimulationStep(() => {
-      const continueSession = robotSimulationRoundCounter < 2 ? true : Math.random() < 0.65;
-      state.post_round = {
-        receiver_choice: continueSession ? "another" : "enough",
-        sender_choice: null,
-        resolved: null,
-        updated_ms: estimatedServerNowMs()
-      };
-      applyRemoteState(buildRobotSimulationPayload());
-    }, randomInt(20500, 27000));
+      scheduleRobotSimulationStep(() => {
+        round.guess_layout_number = guess.guessLayoutNumber;
+        round.second_guess_layout_number = guess.secondGuessLayoutNumber;
+        round.guess_confidence = guess.confidence;
+        round.done_reaction_ms = randomInt(700, 2200);
+        round.guess_submitted_ms = estimatedServerNowMs();
+        round.completed_server_ms = round.guess_submitted_ms;
+        round.last_activity_ms = round.guess_submitted_ms;
+        state.round = round;
+        state.receiver_view = {
+          phase: "results",
+          confidence_value: guess.confidence,
+          selection_limit: 1,
+          selected_arrangement_codes: selectedArrangementCodes,
+          selected_layout_numbers: [guess.guessLayoutNumber],
+          confidence_locked_at_ms: estimatedServerNowMs(),
+          done_reaction_ms: round.done_reaction_ms
+        };
+        void appendTrialServerRecord(buildRobotSimulationPayload().state);
+        applyRemoteState(buildRobotSimulationPayload());
+      }, guidedSenderDelayProfile ? guidedSenderDelayProfile.resultsDelay : randomInt(13500, 19000));
+
+      scheduleRobotSimulationStep(() => {
+        const continueSession = robotSimulationRoundCounter < 2 ? true : Math.random() < 0.65;
+        state.post_round = {
+          receiver_choice: continueSession ? "another" : "enough",
+          sender_choice: null,
+          resolved: null,
+          updated_ms: estimatedServerNowMs()
+        };
+        applyRemoteState(buildRobotSimulationPayload());
+      }, guidedSenderDelayProfile ? guidedSenderDelayProfile.postRoundDelay : randomInt(20500, 27000));
+    };
+
+    if (isGuidedSenderTour && guidedReceiverTourState) {
+      guidedReceiverTourState.resumeAfterStep = startSimulation;
+      return;
+    }
+
+    startSimulation();
   }
 
   function usesBrowserStorageMode() {
     return platformInfo.family === "iphone" || platformInfo.family === "android";
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
   }
 
   function normalizeBlinkSecondsValue(value, fallbackSeconds) {
@@ -1256,6 +2105,18 @@
         settings.include_positive_reinforcement = includePositiveReinforcement === "1";
       }
       settings.difficulty_level = difficultyLevel;
+      runtimePrefillSettingsOverride = {
+        own_email: settings.own_email,
+        partner_email: settings.partner_email,
+        visitor_display_name: settings.visitor_display_name,
+        device_location: settings.device_location,
+        blink_sender_image: settings.blink_sender_image,
+        blink_image_on_seconds: settings.blink_image_on_seconds,
+        blink_image_off_seconds: settings.blink_image_off_seconds,
+        include_confidence: settings.include_confidence,
+        include_positive_reinforcement: settings.include_positive_reinforcement,
+        difficulty_level: settings.difficulty_level
+      };
       writeSettings(settings);
       currentPairDifficultyLevel = difficultyLevel;
 
@@ -2273,32 +3134,45 @@
     }
 
     const settings = readSettings();
-    const internalIdentifier = String(settings.own_email || "").trim();
-    if (settings.own_email || settings.partner_email) {
+    const ownIdentifier = String((options.ownIdentifier ?? settings.own_email) || "").trim();
+    const partnerIdentifier = String((options.partnerIdentifier ?? settings.partner_email) || "").trim();
+    const internalIdentifier = ownIdentifier;
+    if (ownIdentifier || partnerIdentifier) {
       params.set("prefill", "1");
-      if (settings.own_email) {
-        params.set("own_email", settings.own_email);
+      if (ownIdentifier) {
+        params.set("own_email", ownIdentifier);
       }
-      if (settings.partner_email) {
-        params.set("partner_email", settings.partner_email);
+      if (partnerIdentifier) {
+        params.set("partner_email", partnerIdentifier);
       }
     }
-    const visitorDisplayName = isInternalVisitorIdentifier(internalIdentifier)
-      ? String(settings.visitor_display_name || getPreferredVisitorDisplayName(getLauncherReturnRole()) || "").trim()
-      : "";
+    const visitorDisplayName = String(
+      options.visitorDisplayName ?? (
+        isInternalVisitorIdentifier(internalIdentifier)
+          ? settings.visitor_display_name || getPreferredVisitorDisplayName(getLauncherReturnRole()) || ""
+          : ""
+      )
+    ).trim();
     if (visitorDisplayName) {
       params.set("visitor_display_name", visitorDisplayName);
     }
-    params.set("difficulty_level", normalizeDifficultyLevel(currentPairDifficultyLevel || settings.difficulty_level || "1"));
-    params.set("v", runtimeBuildVersion);
+    params.set("difficulty_level", normalizeDifficultyLevel(options.difficultyLevel || currentPairDifficultyLevel || settings.difficulty_level || "1"));
+    params.set("v", launcherBuildVersion);
 
     return `telepathybeginner.html?${params.toString()}`;
   }
 
   function navigateToBeginnerFrontPage(options = {}) {
     const returnUrl = buildLauncherReturnUrl(options);
+    appendGuidedReturnTrace("runtime_before_launcher_nav", {
+      page_instance_id: runtimePageInstanceId,
+      href: String(window.location.href || "").trim(),
+      returnUrl,
+      difficulty_level: normalizeDifficultyLevel(currentPairDifficultyLevel || readSettings().difficulty_level || "1")
+    });
     void logDebugEvent("runtime_return_to_launcher", {
       role,
+      page_instance_id: runtimePageInstanceId,
       open: String(options.open || getLauncherReturnRole()).trim().toLowerCase(),
       runtime_mode: runtimeMode,
       visitor_display_name: getPreferredVisitorDisplayName(getLauncherReturnRole()),
@@ -2308,7 +3182,79 @@
     window.location.href = returnUrl;
   }
 
+  function appendGuidedReturnTrace(label, details = {}) {
+    try {
+      const raw = localStorage.getItem(guidedReturnTraceKey);
+      const entries = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : [];
+      entries.push({
+        label: String(label || "").trim(),
+        timestamp: new Date().toISOString(),
+        pageInstanceId: runtimePageInstanceId,
+        href: String(window.location.href || "").trim(),
+        details: details && typeof details === "object" ? details : {}
+      });
+      while (entries.length > 40) {
+        entries.shift();
+      }
+      localStorage.setItem(guidedReturnTraceKey, JSON.stringify(entries));
+    } catch (error) {
+      // Ignore local trace write failures.
+    }
+  }
+
+  function buildGuidedReturnDifficultyDebugPayload(guidedReturnSnapshot = null) {
+    const settings = readSettings();
+    let launcherState = {};
+    try {
+      launcherState = JSON.parse(localStorage.getItem(launcherStorageKey) || "{}") || {};
+    } catch (error) {
+      launcherState = {};
+    }
+
+    let receiverSettings = {};
+    let senderSettings = {};
+    try {
+      receiverSettings = JSON.parse(localStorage.getItem("cones-settings-v2-receiver") || "{}") || {};
+    } catch (error) {
+      receiverSettings = {};
+    }
+    try {
+      senderSettings = JSON.parse(localStorage.getItem("cones-settings-v2-sender") || "{}") || {};
+    } catch (error) {
+      senderSettings = {};
+    }
+
+    const guidedReturnView = guidedReturnSnapshot?.returnView && typeof guidedReturnSnapshot.returnView === "object"
+      ? guidedReturnSnapshot.returnView
+      : {};
+    const ownDisplayName = String(guidedReturnView.ownDisplayName || "").trim();
+    const receiverRobotKey = ownDisplayName ? `receiver::${ownDisplayName.toLowerCase()}::robot` : "";
+    const senderRobotKey = ownDisplayName ? `sender::${ownDisplayName.toLowerCase()}::robot` : "";
+    const robotLevels = launcherState && typeof launcherState.robotSimulationDifficultyLevels === "object"
+      ? launcherState.robotSimulationDifficultyLevels
+      : {};
+
+    return {
+      runtimeRole: role,
+      currentPairDifficultyLevel: normalizeDifficultyLevel(currentPairDifficultyLevel || "1"),
+      runtimeSettingsDifficulty: normalizeDifficultyLevel(settings.difficulty_level || "1"),
+      returnViewDifficulty: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1"),
+      returnViewOwnDisplayName: ownDisplayName,
+      launcherDifficultyLevel: normalizeDifficultyLevel(launcherState?.difficultyLevel || "1"),
+      launcherRoleDifficultySender: normalizeDifficultyLevel(launcherState?.roleDifficultyLevels?.sender || "1"),
+      launcherRoleDifficultyReceiver: normalizeDifficultyLevel(launcherState?.roleDifficultyLevels?.receiver || "1"),
+      launcherRobotDifficultyReceiver: receiverRobotKey ? normalizeDifficultyLevel(robotLevels?.[receiverRobotKey] || "") : "",
+      launcherRobotDifficultySender: senderRobotKey ? normalizeDifficultyLevel(robotLevels?.[senderRobotKey] || "") : "",
+      receiverSettingsDifficulty: normalizeDifficultyLevel(receiverSettings?.difficulty_level || "1"),
+      senderSettingsDifficulty: normalizeDifficultyLevel(senderSettings?.difficulty_level || "1"),
+      receiverRobotKey,
+      senderRobotKey
+    };
+  }
+
   function showExitedState() {
+    const guidedReturnSnapshot = isGuidedExperienceTour ? readGuidedReceiverTourReturnSnapshot() : null;
+    clearGuidedReceiverTour();
     appExited = true;
     currentUiMode = "exited";
     senderHoldingResult = false;
@@ -2324,8 +3270,26 @@
     hideDecisionPanel();
     hideMessagePanel();
     updateSettingsGearVisibility();
-    void syncLauncherReturnStateFromRuntime("showExitedState").finally(() => {
-      navigateToBeginnerFrontPage();
+    void syncLauncherReturnStateFromRuntime("showExitedState", guidedReturnSnapshot).finally(() => {
+      const guidedReturnView = guidedReturnSnapshot?.returnView && typeof guidedReturnSnapshot.returnView === "object"
+        ? guidedReturnSnapshot.returnView
+        : null;
+      if (guidedReturnSnapshot) {
+        const difficultyDebugPayload = buildGuidedReturnDifficultyDebugPayload(guidedReturnSnapshot);
+        appendGuidedReturnTrace("runtime_guided_return_exit", difficultyDebugPayload);
+        void logDebugEvent("guided_return_difficulty_debug", difficultyDebugPayload);
+      }
+      navigateToBeginnerFrontPage(guidedReturnView
+        ? {
+            open: String(guidedReturnView.role || "receiver").trim().toLowerCase() || "receiver",
+            directOpen: true,
+            ownIdentifier: String(guidedReturnView.ownDisplayName || "").trim(),
+            partnerIdentifier: String(guidedReturnView.partnerDisplayName || "").trim(),
+            visitorDisplayName: String(guidedReturnView.visitorDisplayName || "").trim(),
+            difficultyLevel: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1")
+          }
+        : {});
+      clearGuidedReceiverTourReturnSnapshot();
     });
   }
 
@@ -3544,6 +4508,9 @@
     showStage();
     grid.classList.add("visible");
     updateSettingsGearVisibility();
+    if (receiverMirrorPhase === "choices") {
+      notifyGuidedReceiverTourPhase("choices");
+    }
   }
 
   function hideChoiceGrid() {
@@ -4171,6 +5138,10 @@
       return;
     }
 
+    if (isGuidedReceiverTour) {
+      return;
+    }
+
     const aborted = options.aborted === true;
     const timedOut = options.timedOut === true;
 
@@ -4497,6 +5468,7 @@
     const prompt = getReceiverDonePrompt();
     setPrompt(prompt, true, prompt);
     updateSettingsGearVisibility();
+    notifyGuidedReceiverTourPhase("done");
   }
 
   function showReceiverRevealState() {
@@ -4519,6 +5491,16 @@
 
     if (doneTimeoutHandle !== null) {
       window.clearTimeout(doneTimeoutHandle);
+    }
+
+    notifyGuidedReceiverTourPhase("receiving");
+    if (
+      isGuidedReceiverTour &&
+      (guidedReceiverTourState?.step?.id === "receiving-intro" ||
+       guidedReceiverTourState?.step?.id === "receiving-observe")
+    ) {
+      doneTimeoutHandle = null;
+      return;
     }
 
     doneTimeoutHandle = window.setTimeout(() => {
@@ -4798,6 +5780,7 @@
       if (!postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
+      notifyGuidedReceiverTourPhase("result");
       return;
     }
 
@@ -4808,6 +5791,7 @@
       if (!postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
+      notifyGuidedReceiverTourPhase("result");
       return;
     }
 
@@ -4820,6 +5804,7 @@
       if (!postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
+      notifyGuidedReceiverTourPhase("result");
       return;
     }
 
@@ -4831,6 +5816,7 @@
     if (!postRoundChoiceSubmitted) {
       showDecisionPanel();
     }
+    notifyGuidedReceiverTourPhase("result");
   }
 
   function getResolvedActualArrangementCode(roundLike) {
@@ -4883,6 +5869,20 @@
   async function submitPostRoundChoice(choice) {
     if (!activeRound?.id || postRoundChoiceSubmitted) {
       return;
+    }
+    if (guidedReceiverTourState?.step?.id === "result") {
+      if (choice === "another") {
+        clearGuidedReceiverTourTargetClasses();
+        guidedReceiverTourState.step = null;
+        guidedReceiverTourState.pendingPhase = null;
+        guidedReceiverTourState.phase = "waiting-online";
+        guidedReceiverTourState.waitingOnlineAcknowledged = false;
+        guidedReceiverTourState.manualBalloonPosition = null;
+        guidedTourOverlay?.classList.add("hidden");
+        setGuidedReceiverTourHint("");
+      } else {
+        clearGuidedReceiverTour();
+      }
     }
 
     void logDebugEvent("post_round_choice_submit", {
@@ -5070,6 +6070,10 @@
       }
 
       if (postRound.resolved === "continue" && postRound.sender_choice === "another") {
+        if (isGuidedReceiverTour) {
+          void clearPostRound("continue");
+          return true;
+        }
         schedulePostRoundClear("continue");
       } else if (postRound.resolved === "end") {
         void clearPostRound("end", { preserveExited: true })
@@ -5087,6 +6091,10 @@
     if (!postRound.receiver_choice) {
       hideMessagePanel();
       return false;
+    }
+
+    if (isGuidedSenderTour) {
+      notifyGuidedReceiverTourPhase("result");
     }
 
     if (postRound.receiver_choice === "enough") {
@@ -5172,6 +6180,7 @@
     if (!activeRound || !activeRound.id || !receiverChoiceOpen) {
       return;
     }
+    dismissGuidedReceiverTourLiveStep("choices");
 
     const arrangementCode = getArrangementCode(layoutNumber);
 
@@ -5408,6 +6417,9 @@
           });
           void preloadLevelFourRoundAssets(round).finally(() => {
             showImageDisplay(imageUrl);
+            if (isGuidedSenderTour) {
+              notifyGuidedReceiverTourPhase("sending");
+            }
           });
           if (activeRound) {
             activeRound.stimulus_kind = "image_pair";
@@ -5427,6 +6439,9 @@
             arrangement_code: arrangementCode
           });
           showArrangement(layoutNumber);
+          if (isGuidedSenderTour) {
+            notifyGuidedReceiverTourPhase("sending");
+          }
           if (activeRound) {
             activeRound.layout_number = layoutNumber;
             activeRound.arrangement_code = arrangementCode;
@@ -5572,6 +6587,7 @@
     }
 
     if (role === "receiver" && currentUiMode === "receiver-ready") {
+      dismissGuidedReceiverTourLiveStep("ready");
       receiverReady = true;
       showReceiverReadyState();
       void ensureReceiverAudioUnlocked();
@@ -5586,6 +6602,7 @@
       awaitingReceiverDone &&
       (currentUiMode === "receiver-done" || currentUiMode === "receiver-reveal")
     ) {
+      dismissGuidedReceiverTourLiveStep("done");
       receiverPressedDoneEarly = currentUiMode === "receiver-reveal";
       if (doneTimeoutHandle !== null) {
         window.clearTimeout(doneTimeoutHandle);
@@ -5627,6 +6644,9 @@
     if (mode === "sender-waiting-online") {
       setPrompt(getWaitingOnlinePrompt(), false);
       updateSettingsGearVisibility();
+      if (isGuidedSenderTour) {
+        notifyGuidedReceiverTourPhase("waiting-online");
+      }
       return;
     }
 
@@ -5640,19 +6660,30 @@
       const prompt = getSenderReadyPrompt();
       setPrompt(prompt, !isRemoteDisplayMode, prompt);
       updateSettingsGearVisibility();
+      if (isGuidedSenderTour) {
+        notifyGuidedReceiverTourPhase("ready");
+      }
       return;
     }
 
     if (mode === "receiver-waiting-online") {
       setPrompt(getWaitingOnlinePrompt(), false);
       updateSettingsGearVisibility();
+      notifyGuidedReceiverTourPhase("waiting-online");
       return;
     }
 
     if (mode === "receiver-ready") {
+      if (isGuidedReceiverTour && guidedReceiverTourState && !guidedReceiverTourState.waitingOnlineAcknowledged) {
+        setPrompt(getWaitingOnlinePrompt(), false);
+        updateSettingsGearVisibility();
+        notifyGuidedReceiverTourPhase("ready");
+        return;
+      }
       const prompt = getReceiverPressReadyPrompt();
       setPrompt(prompt, true, prompt);
       updateSettingsGearVisibility();
+      notifyGuidedReceiverTourPhase("ready");
       return;
     }
 
@@ -5925,6 +6956,7 @@
   }
 
     async function boot() {
+      applyLauncherPrefillFromQuery();
       void traceClientEvent("boot_client", {
         role,
         page: role === "sender" ? "sender.html" : "receiver.html",
@@ -5952,7 +6984,6 @@
     window.addEventListener("pointerdown", noteUserInteraction, { passive: true });
     window.addEventListener("keydown", noteUserInteraction);
 
-    applyLauncherPrefillFromQuery();
     await preloadConeAsset().catch(() => null);
     receiverSkipInstructions = readReceiverSkipInstructions();
     resetVisualState();
@@ -5993,6 +7024,10 @@
       if (!settingsOpen && hasRequiredSettings()) {
         setUiMode("receiver-waiting-online");
       }
+    }
+
+    if (isGuidedExperienceTour && !settingsOpen && hasRequiredSettings()) {
+      beginGuidedReceiverTour();
     }
 
     window.addEventListener("resize", updateChoiceGridLayout);

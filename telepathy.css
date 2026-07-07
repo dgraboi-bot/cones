@@ -24,6 +24,12 @@ body {
   overflow: hidden;
 }
 
+body[data-guided-tour-active="1"] .home-link,
+body[data-guided-tour-active="1"] .waiting-back-button,
+body[data-guided-tour-active="1"] .settings-gear {
+  display: none !important;
+}
+
 .screen {
   position: relative;
   width: 100vw;
@@ -103,6 +109,200 @@ body {
 
 .waiting-back-button.hidden {
   display: none;
+}
+
+.guided-tour-runtime-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.14);
+  pointer-events: none;
+}
+
+.guided-tour-runtime-overlay.hidden {
+  display: none;
+}
+
+.guided-tour-runtime-balloon {
+  position: absolute;
+  z-index: 91;
+  top: 20px;
+  left: 20px;
+  width: min(88vw, 420px);
+  min-width: 240px;
+  max-width: min(90vw, 520px);
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(106, 217, 167, 0.45);
+  background:
+    linear-gradient(180deg, rgba(18, 62, 48, 0.97), rgba(8, 30, 22, 0.98)),
+    rgba(8, 20, 16, 0.97);
+  box-shadow:
+    0 22px 48px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  pointer-events: auto;
+  resize: both;
+  overflow: auto;
+  cursor: move;
+}
+
+.guided-tour-runtime-kicker {
+  margin: 0;
+  color: rgba(142, 194, 255, 0.92);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.guided-tour-runtime-title {
+  margin: 0;
+  color: rgba(250, 244, 238, 0.98);
+  font-size: clamp(1.2rem, 3vw, 1.4rem);
+  line-height: 1.2;
+}
+
+.guided-tour-runtime-copy,
+.guided-tour-runtime-hint {
+  margin: 0;
+  color: rgba(244, 238, 232, 0.96);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.guided-tour-runtime-hint {
+  color: rgba(255, 210, 152, 0.98);
+}
+
+.guided-tour-runtime-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-top: 2px;
+}
+
+.guided-tour-runtime-actions .confidence-button {
+  min-width: 96px;
+  min-height: 32px;
+  height: 32px;
+  padding: 4px 14px;
+  border-color: rgba(106, 217, 167, 0.45);
+  background:
+    linear-gradient(180deg, rgba(42, 159, 99, 0.96), rgba(18, 106, 62, 0.98)),
+    rgba(19, 109, 63, 0.98);
+  color: rgba(248, 250, 244, 0.98);
+  align-self: center;
+}
+
+.guided-tour-runtime-secondary-button[hidden] {
+  display: none;
+}
+
+.guided-tour-runtime-actions .guided-tour-runtime-secondary-button {
+  min-width: 136px;
+  height: 32px;
+  background:
+    linear-gradient(180deg, rgba(56, 102, 184, 0.96), rgba(32, 63, 120, 0.98)),
+    rgba(30, 63, 126, 0.98);
+  border-color: rgba(132, 177, 255, 0.48);
+}
+
+.guided-tour-probe-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at center, rgba(34, 52, 84, 0.22), transparent 56%),
+    rgba(0, 0, 0, 0.95);
+}
+
+.guided-tour-probe-screen.hidden {
+  display: none;
+}
+
+.guided-tour-probe-panel {
+  width: min(92vw, 860px);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 26px 28px 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(132, 177, 255, 0.34);
+  background:
+    linear-gradient(180deg, rgba(17, 26, 44, 0.97), rgba(9, 14, 24, 0.98)),
+    rgba(9, 14, 24, 0.98);
+  box-shadow:
+    0 28px 56px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.guided-tour-probe-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.guided-tour-probe-title {
+  margin: 0;
+  color: rgba(246, 248, 252, 0.98);
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  line-height: 1.1;
+}
+
+.guided-tour-probe-back {
+  position: static;
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(118, 171, 255, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(64, 123, 230, 0.95), rgba(30, 86, 186, 0.95));
+  box-shadow: 0 8px 18px rgba(24, 66, 140, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+}
+
+.guided-tour-probe-back:hover,
+.guided-tour-probe-back:focus-visible {
+  outline: none;
+  background: linear-gradient(180deg, rgba(79, 139, 245, 0.98), rgba(39, 97, 201, 0.98));
+}
+
+.guided-tour-probe-body {
+  display: grid;
+  gap: 16px;
+  color: rgba(238, 242, 248, 0.96);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.guided-tour-probe-body p {
+  margin: 0;
+}
+
+.guided-tour-runtime-target {
+  position: relative;
+  z-index: 61;
+  box-shadow:
+    0 0 0 3px rgba(106, 184, 255, 0.7),
+    0 0 0 7px rgba(106, 184, 255, 0.16);
+  border-radius: 18px;
+}
+
+.guided-tour-runtime-muted {
+  opacity: 0.42;
+  filter: saturate(0.7);
 }
 
 .settings-screen {

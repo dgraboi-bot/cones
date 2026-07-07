@@ -233,17 +233,67 @@ For this app, the default answers should normally be:
 - branch: `main`
 - remote: `origin -> https://github.com/dgraboi-bot/cones.git`
 
+## Required Pre-Deployment Change Audit
+
+Before any live deployment, do not rely on memory of what is "probably" included.
+
+Always identify exactly what is about to go live.
+
+Required audit sequence:
+
+1. identify the last live baseline
+   - ideally the last live GitHub checkpoint commit
+   - if the exact commit is not known, stop and determine it first
+2. diff the current local state against that live baseline
+3. list all files that would be included in the deployment
+4. classify the outgoing changes into:
+   - current requested release work
+   - older unreleased local work
+   - version/cache-bump-only changes
+5. if older unreleased local work is present, explicitly say so before deploying
+6. do not describe a release as "small", "targeted", or "just this change" unless the diff confirms that is true
+
+Minimum required commands before deployment:
+
+```powershell
+git -C C:\xampp\htdocs\telepathyexperiment\cones status --short
+git -C C:\xampp\htdocs\telepathyexperiment\cones diff --stat <last-live-baseline>..HEAD
+git -C C:\xampp\htdocs\telepathyexperiment\cones diff --name-only <last-live-baseline>..HEAD
+```
+
+If there are also uncommitted working-tree edits, inspect those too:
+
+```powershell
+git -C C:\xampp\htdocs\telepathyexperiment\cones diff --stat
+git -C C:\xampp\htdocs\telepathyexperiment\cones diff --name-only
+```
+
+Release-boundary rule:
+
+- never push a new live build until the outgoing change set is explicitly known
+- if the user expects only one narrow feature to go live, either:
+  - deploy from a clean tree containing only that feature, or
+  - clearly warn that the deployment also includes other pending local changes
+
+Behavior-summary rule:
+
+- before deployment, summarize the outgoing changes in plain English at the feature level when there is any doubt
+- do not force the user to infer release scope from file names or code diffs
+
+This rule exists specifically to prevent old local changes from silently riding along with a later unrelated deployment.
+
 ## Required Deployment Discipline
 
 Every live deployment must do all of the following:
 
 1. identify the exact new build version string
-2. update every relevant local version marker first
-3. update the PWA cache/version surfaces whenever the build changes
-4. create a server-side backup snapshot of the currently live files before overwriting them
-5. mirror the changed local files to the live server
-6. verify the live files contain the new version markers and key code changes
-7. provide the user a clean cache-busted test URL
+2. complete the pre-deployment change audit against the last live baseline
+3. update every relevant local version marker first
+4. update the PWA cache/version surfaces whenever the build changes
+5. create a server-side backup snapshot of the currently live files before overwriting them
+6. mirror the changed local files to the live server
+7. verify the live files contain the new version markers and key code changes
+8. provide the user a clean cache-busted test URL
 
 ## Authoritative Deployment Helper
 
@@ -758,3 +808,7 @@ For ESP GYM live pushes:
 backup first, then deploy, then verify, then provide the clean URL
 
 Do not skip the backup step just because a patch seems small.
+
+## To Resolve:
+
+- Guided tour return has been visually stabilized, but there is still a potential remaining duplicate or double-load path in the launcher/runtime return handoff. If guided return blinking or a second post-return redraw reappears, inspect the guided return trace entries first before changing behavior again.

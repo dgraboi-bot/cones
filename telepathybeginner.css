@@ -1401,7 +1401,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 132px 132px;
   gap: 10px;
-  align-items: end;
+  align-items: start;
 }
 
 .role-own-row > .role-input {
@@ -3562,6 +3562,21 @@ body {
   line-height: 1.7;
 }
 
+.manual-guide-launch {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(142, 194, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(26, 56, 110, 0.3), rgba(9, 17, 30, 0.46)),
+    rgba(8, 10, 18, 0.58);
+}
+
+.manual-guide-button {
+  justify-self: start;
+}
+
 .manual-step-list {
   display: grid;
   gap: 14px;
@@ -3651,6 +3666,103 @@ body {
   color: rgba(142, 194, 255, 0.95);
 }
 
+.guided-tour-launcher-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
+html.launcher-direct-open-pending body {
+  opacity: 0;
+}
+
+.guided-tour-launcher-balloon {
+  position: absolute;
+  z-index: 91;
+  top: 24px;
+  left: 24px;
+  width: min(92vw, 420px);
+  min-width: 240px;
+  max-width: min(92vw, 520px);
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(106, 217, 167, 0.45);
+  background:
+    linear-gradient(180deg, rgba(18, 62, 48, 0.97), rgba(8, 30, 22, 0.98)),
+    rgba(8, 20, 16, 0.97);
+  box-shadow:
+    0 22px 48px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  pointer-events: auto;
+  resize: both;
+  overflow: auto;
+  cursor: move;
+}
+
+.guided-tour-launcher-kicker {
+  margin: 0;
+  color: rgba(142, 194, 255, 0.92);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.guided-tour-launcher-title {
+  margin: 0;
+  color: rgba(250, 244, 238, 0.98);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.guided-tour-launcher-copy,
+.guided-tour-launcher-hint {
+  margin: 0;
+  color: rgba(244, 238, 232, 0.96);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.guided-tour-launcher-hint {
+  color: rgba(255, 210, 152, 0.98);
+}
+
+.guided-tour-launcher-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.guided-tour-launcher-next {
+  min-width: 88px;
+  min-height: 38px;
+  padding-inline: 16px;
+  border-color: rgba(106, 217, 167, 0.45);
+  background:
+    linear-gradient(180deg, rgba(42, 159, 99, 0.96), rgba(18, 106, 62, 0.98)),
+    rgba(19, 109, 63, 0.98);
+  color: rgba(248, 250, 244, 0.98);
+}
+
+.guided-tour-launcher-target {
+  position: relative;
+  z-index: 81;
+  box-shadow:
+    0 0 0 3px rgba(106, 184, 255, 0.7),
+    0 0 0 7px rgba(106, 184, 255, 0.16);
+  border-radius: 18px;
+}
+
+.guided-tour-launcher-muted {
+  opacity: 0.48;
+  filter: saturate(0.7);
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
 @media (max-width: 700px) {
   .manual-section-title {
     font-size: 1.55rem;
@@ -3662,6 +3774,15 @@ body {
 
   .manual-note-grid {
     grid-template-columns: 1fr;
+  }
+
+  .guided-tour-launcher-overlay {
+    padding: 0;
+  }
+
+  .guided-tour-launcher-balloon {
+    width: min(94vw, 360px);
+    padding: 12px 14px 14px;
   }
 }
 

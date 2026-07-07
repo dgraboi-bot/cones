@@ -8,7 +8,8 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260706am";
+  const launcherBuildVersion = "20260707guided8";
+  const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   let suppressLauncherProfileSaves = false;
@@ -154,6 +155,15 @@
   const adminClearLocalStorageButton = document.querySelector("[data-admin-clear-localstorage]");
   const closeHelpButton = document.querySelector("[data-close-help]");
   const closeBeginnerUserManualButton = document.querySelector("[data-close-beginner-user-manual]");
+  const startGuidedReceiverTourButton = document.querySelector("[data-start-guided-receiver-tour]");
+  const startGuidedSenderTourButton = document.querySelector("[data-start-guided-sender-tour]");
+  const guidedTourOverlay = document.querySelector("[data-guided-tour-overlay]");
+  const guidedTourBalloon = document.querySelector("[data-guided-tour-balloon]");
+  const guidedTourCopy = document.querySelector("[data-guided-tour-copy]");
+  const guidedTourHint = document.querySelector("[data-guided-tour-hint]");
+  const guidedTourNextButton = document.querySelector("[data-guided-tour-next]");
+  const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
+  const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
   const closeProUserManualButton = document.querySelector("[data-close-pro-user-manual]");
   const closeFeatureSetupButton = document.querySelector("[data-close-feature-setup]");
   const closeInstallGuideButton = document.querySelector("[data-close-install-guide]");
@@ -587,6 +597,57 @@
   const adminIdentityListBody = document.querySelector("[data-admin-identity-list-body]");
   const adminIdentityFilterButtons = Array.from(document.querySelectorAll("[data-admin-identity-filter]"));
   const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
+  const guidedReturnTraceKey = "cones-guided-return-trace-v1";
+  let receiverOwnLabelMeasurementShownAt = 0;
+  try {
+    const initialLauncherParams = new URLSearchParams(window.location.search);
+    if (initialLauncherParams.get("direct_open") === "1") {
+      document.documentElement.classList.add("launcher-direct-open-pending");
+      try {
+        void fetch("api.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            action: "log_debug",
+            admin_secret: localStorage.getItem("cones-admin-secret") || "",
+            device_debug_enabled: true,
+            label: "launcher_direct_open:startup_pending_applied",
+            details: [{
+              href: String(window.location.href || "").trim(),
+              readyState: String(document.readyState || "").trim(),
+              open: String(initialLauncherParams.get("open") || "").trim(),
+              difficulty_level: String(initialLauncherParams.get("difficulty_level") || "").trim()
+            }]
+          })
+        });
+      } catch (_fetchTraceError) {
+        // Ignore startup trace failures.
+      }
+      try {
+        const raw = localStorage.getItem(guidedReturnTraceKey);
+        const entries = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : [];
+        entries.push({
+          label: "launcher_start_direct_open_pending",
+          timestamp: new Date().toISOString(),
+          href: String(window.location.href || "").trim(),
+          details: {
+            open: String(initialLauncherParams.get("open") || "").trim(),
+            difficulty_level: String(initialLauncherParams.get("difficulty_level") || "").trim()
+          }
+        });
+        while (entries.length > 40) {
+          entries.shift();
+        }
+        localStorage.setItem(guidedReturnTraceKey, JSON.stringify(entries));
+      } catch (_traceError) {
+        // Ignore local trace write failures.
+      }
+    }
+  } catch (_error) {
+    // Ignore malformed direct-open hints during startup.
+  }
   const exactLocationButtons = Array.from(document.querySelectorAll("[data-open-exact-location]"));
   const locationPickerOverlay = document.querySelector("[data-location-picker-overlay]");
   const locationPickerDialog = locationPickerOverlay?.querySelector(".location-picker-dialog") || null;
@@ -915,7 +976,7 @@ This is an alternate test message to show now.`;
   });
   const defaultConfidenceSettings = Object.freeze({
     include: false,
-    includePositiveReinforcement: false
+    includePositiveReinforcement: true
   });
   const defaultMessagingLimits = Object.freeze({
     max_messages_per_pair: 25,
@@ -5555,7 +5616,10 @@ This is an alternate test message to show now.`;
     }
     void launcherAdminApi("log_debug", {
       label: `launcher_direct_open:${label}`,
-      details: [details],
+      details: [{
+        page_instance_id: launcherPageInstanceId,
+        ...(details && typeof details === "object" ? details : {})
+      }],
       device_debug_enabled: !!launcherAdminState.debug_enabled
     }).catch(() => {
       // Ignore debug logging failures.
@@ -5573,6 +5637,26 @@ This is an alternate test message to show now.`;
     }).catch(() => {
       // Ignore debug logging failures.
     });
+  }
+
+  function appendGuidedReturnTrace(label, details = {}) {
+    try {
+      const raw = localStorage.getItem(guidedReturnTraceKey);
+      const entries = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : [];
+      entries.push({
+        label: String(label || "").trim(),
+        timestamp: new Date().toISOString(),
+        pageInstanceId: launcherPageInstanceId,
+        href: String(window.location.href || "").trim(),
+        details: details && typeof details === "object" ? details : {}
+      });
+      while (entries.length > 40) {
+        entries.shift();
+      }
+      localStorage.setItem(guidedReturnTraceKey, JSON.stringify(entries));
+    } catch (error) {
+      // Ignore local trace write failures.
+    }
   }
 
   function logGoProCheckoutDebug(label, details = {}) {
@@ -8131,6 +8215,14 @@ This is an alternate test message to show now.`;
     return document.querySelector(`[data-role-setup-wrap="${role}"]`);
   }
 
+  function saveGuidedTourReturnSnapshot(role, snapshot) {
+    try {
+      localStorage.setItem(getLauncherGuidedTourSnapshotKey(role), JSON.stringify(snapshot || {}));
+    } catch (_error) {
+      // Ignore snapshot-save failures so the guided launch can still continue.
+    }
+  }
+
   function getRoleMessageArea(role) {
     return roleMessageAreas.find((item) => item.dataset.roleMessageArea === role) || null;
   }
@@ -8331,7 +8423,7 @@ This is an alternate test message to show now.`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return 'As a visitor, you can experience what it is like to use this tool as a telepathic receiver or a sender, but your partner will not be an actual human being, but will be a simulation. To unlock these unique tools and practice telepathy with actual human partners that you choose, click "here" below to propose a unique identification name for yourself and use the free Telepathy Beginner app. You should then give this name to others to identify you when practicing telepathy with them. "PRO features" are unlocked by subscribing for $2.99 / month.';
+    return "To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To practice telepathy with actual human partners using this free Telepathy Beginner app, click here to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.";
   }
 
   function buildVisitorRoleNoteHtml(role) {
@@ -8339,7 +8431,7 @@ This is an alternate test message to show now.`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return 'As a visitor, you can experience what it is like to use this tool as a telepathic receiver or a sender, but your partner will not be an actual human being, but will be a simulation. To unlock these unique tools and practice telepathy with actual human partners that you choose, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to propose a unique identification name for yourself and use the free Telepathy Beginner app. You should then give this name to others to identify you when practicing telepathy with them. <button class="role-note-link role-note-inline-link" type="button" data-inline-open-visitor-pro="' + normalizedRole + '">PRO features</button> are unlocked by subscribing for $2.99 / month.';
+    return 'To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To practice telepathy with actual human partners using this free Telepathy Beginner app, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.';
   }
 
   function getHandleExplanation(role) {
@@ -12859,6 +12951,11 @@ This is an alternate test message to show now.`;
         continue;
       }
 
+      if (isRobotSimulationIdentifier(context.partnerName)) {
+        setRoleDifficultyLabel(role, localFallbackLevel);
+        continue;
+      }
+
         if (!cache.has(context.sessionCode)) {
           try {
             const pairParticipants = context.role === "sender"
@@ -13016,8 +13113,14 @@ This is an alternate test message to show now.`;
     params.set("blink_image_on_seconds", blinkSettings.onSeconds);
     params.set("blink_image_off_seconds", blinkSettings.offSeconds);
     const confidenceSettings = getConfidenceBehaviorSettings(state);
-    params.set("include_confidence", confidenceSettings.include ? "1" : "0");
-    params.set("include_positive_reinforcement", confidenceSettings.includePositiveReinforcement ? "1" : "0");
+    const includeConfidence = typeof options.includeConfidence === "boolean"
+      ? options.includeConfidence
+      : confidenceSettings.include;
+    const includePositiveReinforcement = typeof options.includePositiveReinforcement === "boolean"
+      ? options.includePositiveReinforcement
+      : confidenceSettings.includePositiveReinforcement;
+    params.set("include_confidence", includeConfidence ? "1" : "0");
+    params.set("include_positive_reinforcement", includePositiveReinforcement ? "1" : "0");
     params.set(
       "difficulty_level",
       normalizeDifficultyLevel(
@@ -13031,6 +13134,9 @@ This is an alternate test message to show now.`;
     }
     if (typeof options.runtimeMode === "string" && options.runtimeMode.trim()) {
       params.set("runtime_mode", options.runtimeMode.trim());
+    }
+    if (typeof options.guidedTour === "string" && options.guidedTour.trim()) {
+      params.set("guided_tour", options.guidedTour.trim());
     }
     if (options.remoteDisplayDevice === true) {
       params.set("remote_display_device", "1");
@@ -13084,9 +13190,23 @@ This is an alternate test message to show now.`;
       window.clearTimeout(finishDirectLauncherOpenHandle);
       finishDirectLauncherOpenHandle = null;
     }
+    appendGuidedReturnTrace("launcher_finish_direct_open_scheduled", { delayMs });
+    logLauncherDirectOpenDebug("finish_scheduled", {
+      delayMs,
+      href: String(window.location.href || "").trim(),
+      readyState: String(document.readyState || "").trim()
+    });
     const applyFinish = () => {
       finishDirectLauncherOpenHandle = null;
       document.documentElement.classList.remove("launcher-direct-open-pending");
+      appendGuidedReturnTrace("launcher_finish_direct_open_applied", { delayMs });
+      logLauncherDirectOpenDebug("finish_applied", {
+        delayMs,
+        href: String(window.location.href || "").trim(),
+        readyState: String(document.readyState || "").trim(),
+        activeRole: activeLauncherRole,
+        pendingClassPresent: document.documentElement.classList.contains("launcher-direct-open-pending")
+      });
     };
     if (delayMs > 0) {
       finishDirectLauncherOpenHandle = window.setTimeout(applyFinish, delayMs);
@@ -13322,16 +13442,17 @@ This is an alternate test message to show now.`;
 
   function renderLocationStatus() {
     const state = readLauncherState();
-    const presentation = getLocationPresentation(state);
+    const confidenceSettings = getConfidenceBehaviorSettings(state);
+    const statusText = `Reinforcement: ${confidenceSettings.includePositiveReinforcement ? "On" : "Off"}    Confidence: ${confidenceSettings.include ? "On" : "Off"}`;
 
     locationStatusBlocks.forEach((block) => {
       const textNode = block.querySelector(".role-location-text");
       const exactButton = block.querySelector(".role-location-exact");
       if (textNode) {
-        textNode.textContent = presentation.text;
+        textNode.textContent = statusText;
       }
       if (exactButton) {
-        exactButton.hidden = !presentation.showLocationButton;
+        exactButton.hidden = false;
         exactButton.disabled = locationRequestInFlight;
       }
     });
@@ -14397,6 +14518,13 @@ This is an alternate test message to show now.`;
     if (!ownInput) {
       return;
     }
+    const guidedOwnInput = launcherGuidedTourState?.ownInput;
+    if (launcherGuidedTourState && guidedOwnInput && ownInput === guidedOwnInput) {
+      ownInput.readOnly = false;
+      ownInput.setAttribute("aria-readonly", "false");
+      ownInput.title = "";
+      return;
+    }
     const isLocked = visitorMode && String(lockedName || "").trim() !== "";
     if (isLocked) {
       ownInput.value = formatGuestDisplayName(lockedName);
@@ -14528,6 +14656,9 @@ This is an alternate test message to show now.`;
     });
     ownInput.addEventListener("keydown", suppressIdentifierEnter);
     ownInput.addEventListener("keydown", (event) => {
+      if (launcherGuidedTourState && ownInput === launcherGuidedTourState.ownInput) {
+        return;
+      }
       if (!visitorMode || !isVisitorNameLocked()) {
         return;
       }
@@ -14543,6 +14674,9 @@ This is an alternate test message to show now.`;
       showVisitorNameLockedMessage();
     });
     ownInput.addEventListener("paste", (event) => {
+      if (launcherGuidedTourState && ownInput === launcherGuidedTourState.ownInput) {
+        return;
+      }
       if (!visitorMode || !isVisitorNameLocked()) {
         return;
       }
@@ -14615,14 +14749,16 @@ This is an alternate test message to show now.`;
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (await maybeHandleRecognizedVisitorIdentifier(role, form)) {
+      const guidedTourLaunch = !!launcherGuidedTourState && role === launcherGuidedTourState.role;
+      if (!guidedTourLaunch && await maybeHandleRecognizedVisitorIdentifier(role, form)) {
         return;
       }
       const submittedOwnDisplayName = stripGuestDisplaySuffix(ownInput.value);
       let ownName = submittedOwnDisplayName;
       let exactPartnerName = partnerInput.value.trim();
       const robotSimulationPartner = isRobotSimulationIdentifier(exactPartnerName);
-      const visitorRobotSession = isVisitorLauncherEntry() && robotSimulationPartner;
+      const guidedRobotSession = guidedTourLaunch && robotSimulationPartner;
+      const visitorRobotSession = (isVisitorLauncherEntry() && robotSimulationPartner) || guidedRobotSession;
 
       if (!submittedOwnDisplayName || !exactPartnerName) {
         if (!submittedOwnDisplayName) {
@@ -14638,12 +14774,17 @@ This is an alternate test message to show now.`;
       }
 
       try {
-        ownName = visitorRobotSession
-          ? getOrCreateVisitorSimulationIdentifier()
-          : assertValidParticipantIdentifier(ownName, "Your identifier");
-        exactPartnerName = robotSimulationPartner
-          ? "Robot"
-          : assertValidParticipantIdentifier(exactPartnerName, role === "sender" ? "Receiver identifier" : "Sender identifier");
+        if (guidedRobotSession) {
+          ownName = getOrCreateVisitorSimulationIdentifier();
+          exactPartnerName = "Robot";
+        } else {
+          ownName = visitorRobotSession
+            ? getOrCreateVisitorSimulationIdentifier()
+            : assertValidParticipantIdentifier(ownName, "Your identifier");
+          exactPartnerName = robotSimulationPartner
+            ? "Robot"
+            : assertValidParticipantIdentifier(exactPartnerName, role === "sender" ? "Receiver identifier" : "Sender identifier");
+        }
       } catch (error) {
         if (error instanceof Error) {
           alert(error.message);
@@ -14653,13 +14794,15 @@ This is an alternate test message to show now.`;
 
       let ownStatus = null;
       let partnerStatus = null;
-      try {
-        ownStatus = await fetchIdentifierStatus(ownName);
-        if (!robotSimulationPartner) {
-          partnerStatus = await fetchIdentifierStatus(exactPartnerName);
+      if (!guidedRobotSession) {
+        try {
+          ownStatus = await fetchIdentifierStatus(ownName);
+          if (!robotSimulationPartner) {
+            partnerStatus = await fetchIdentifierStatus(exactPartnerName);
+          }
+        } catch (error) {
+          // If lookup fails, continue with the identifiers as typed.
         }
-      } catch (error) {
-        // If lookup fails, continue with the identifiers as typed.
       }
 
       let latest = readLauncherState();
@@ -14671,18 +14814,20 @@ This is an alternate test message to show now.`;
       }
 
       try {
-        ownName = visitorRobotSession
-          ? ownName
-          : assertAcceptedLauncherIdentifier(ownName, ownStatus, "Your identifier");
-        if (!robotSimulationPartner) {
-          exactPartnerName = assertAcceptedLauncherIdentifier(
-            exactPartnerName,
-            partnerStatus,
-            role === "sender" ? "Receiver identifier" : "Sender identifier",
-            { allowClaimPrompt: false }
-          );
-        } else {
-          exactPartnerName = "Robot";
+        if (!guidedRobotSession) {
+          ownName = visitorRobotSession
+            ? ownName
+            : assertAcceptedLauncherIdentifier(ownName, ownStatus, "Your identifier");
+          if (!robotSimulationPartner) {
+            exactPartnerName = assertAcceptedLauncherIdentifier(
+              exactPartnerName,
+              partnerStatus,
+              role === "sender" ? "Receiver identifier" : "Sender identifier",
+              { allowClaimPrompt: false }
+            );
+          } else {
+            exactPartnerName = "Robot";
+          }
         }
       } catch (error) {
         if (error instanceof Error) {
@@ -14694,7 +14839,23 @@ This is an alternate test message to show now.`;
       const canonicalOwnName = getPreferredIdentifier(ownName, latest);
       const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
       const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
-      let selectedDifficultyLevel = String(getDifficultyLocalLevel(role));
+      const storedRoleDifficultyLevel = normalizeDifficultyLevel(
+        readRoleSettings(role).difficultyLevel ||
+        readRoleSettings(role === "receiver" ? "sender" : role === "sender" ? "receiver" : role).difficultyLevel ||
+        ""
+      );
+      const activeGuidedTourMode = guidedTourLaunch
+        ? (launcherGuidedTourState?.mode || (role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode))
+        : "";
+      const preTourDifficultyLevel = normalizeDifficultyLevel(String(
+        storedRoleDifficultyLevel ||
+        getDifficultyLocalLevel(role) ||
+        "1"
+      ));
+      let selectedDifficultyLevel = preTourDifficultyLevel;
+      if (guidedTourLaunch) {
+        selectedDifficultyLevel = "1";
+      }
 
       if (robotSimulationPartner) {
         const simulationLevel = Number(normalizeDifficultyLevel(selectedDifficultyLevel));
@@ -14720,41 +14881,83 @@ This is an alternate test message to show now.`;
         }
       }
 
-      latest.ownNames = latest.ownNames || {};
-      latest.visitorDisplayNames = latest.visitorDisplayNames || {};
-      if (visitorRobotSession) {
-        latest.ownNames[role] = "";
-        latest.visitorDisplayNames.sender = submittedOwnDisplayName;
-        latest.visitorDisplayNames.receiver = submittedOwnDisplayName;
-        latest.visitorLockedName = submittedOwnDisplayName;
-      } else {
-        latest.ownNames[role] = ownName;
-      }
-      writeLauncherState(latest);
-      const existingProfile = readLauncherProfileState(role, canonicalOwnName, latest);
-      const nextState = writeLauncherProfileState(role, ownName, {
-        currentPartner: canonicalPartnerName,
-        partnerHistory: robotSimulationPartner
-          ? uniqueNames(existingProfile.partnerHistory)
-          : uniqueNames([...existingProfile.partnerHistory, canonicalPartnerName]),
-        deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(canonicalPartnerName))
-      });
-      try {
-        await persistLauncherProfileForForm(role, form, nextState);
-      } catch (error) {
-        // Keep local progress even if the server save momentarily fails.
+      if (!guidedRobotSession) {
+        latest.ownNames = latest.ownNames || {};
+        latest.visitorDisplayNames = latest.visitorDisplayNames || {};
+        if (visitorRobotSession) {
+          latest.ownNames[role] = "";
+          latest.visitorDisplayNames.sender = submittedOwnDisplayName;
+          latest.visitorDisplayNames.receiver = submittedOwnDisplayName;
+          latest.visitorLockedName = submittedOwnDisplayName;
+        } else {
+          latest.ownNames[role] = ownName;
+        }
+        writeLauncherState(latest);
+        const existingProfile = readLauncherProfileState(role, canonicalOwnName, latest);
+        const nextState = writeLauncherProfileState(role, ownName, {
+          currentPartner: canonicalPartnerName,
+          partnerHistory: robotSimulationPartner
+            ? uniqueNames(existingProfile.partnerHistory)
+            : uniqueNames([...existingProfile.partnerHistory, canonicalPartnerName]),
+          deletedPartners: existingProfile.deletedPartners.filter((name) => normalizeIdentifierForStorage(name) !== normalizeIdentifierForStorage(canonicalPartnerName))
+        });
+        try {
+          await persistLauncherProfileForForm(role, form, nextState);
+        } catch (error) {
+          // Keep local progress even if the server save momentarily fails.
+        }
+
+        persistLauncherRuntimeIdentity(role, canonicalOwnName, canonicalPartnerName, {
+          device_location: getLocationForRuntimeState(latest)
+        });
       }
 
-      persistLauncherRuntimeIdentity(role, canonicalOwnName, canonicalPartnerName, {
-        device_location: getLocationForRuntimeState(latest)
-      });
-
+      if (guidedTourLaunch) {
+        const guidedSnapshotState = readLauncherState();
+        guidedSnapshotState.difficultyLevel = preTourDifficultyLevel;
+        guidedSnapshotState.roleDifficultyLevels = guidedSnapshotState.roleDifficultyLevels || {};
+        guidedSnapshotState.roleDifficultyLevels.sender = preTourDifficultyLevel;
+        guidedSnapshotState.roleDifficultyLevels.receiver = preTourDifficultyLevel;
+        guidedSnapshotState.roleDifficultyLevels["remote-viewer"] = normalizeDifficultyLevel(
+          guidedSnapshotState.roleDifficultyLevels["remote-viewer"] || readRoleSettings("remote-viewer").difficultyLevel || "1"
+        );
+        guidedSnapshotState.robotSimulationDifficultyLevels = guidedSnapshotState.robotSimulationDifficultyLevels || {};
+        guidedSnapshotState.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey("receiver", submittedOwnDisplayName)] = preTourDifficultyLevel;
+        guidedSnapshotState.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey("sender", submittedOwnDisplayName)] = preTourDifficultyLevel;
+        saveGuidedTourReturnSnapshot(role, {
+          launcherState: guidedSnapshotState,
+          runtimeSettings: {
+            sender: {
+              ...readRuntimeSettings("sender"),
+              difficulty_level: preTourDifficultyLevel
+            },
+            receiver: {
+              ...readRuntimeSettings("receiver"),
+              difficulty_level: preTourDifficultyLevel
+            },
+            "remote-viewer": readRuntimeSettings("remote-viewer")
+          },
+          returnView: {
+            role,
+            ownDisplayName: submittedOwnDisplayName,
+            partnerDisplayName: "Robot",
+            visitorDisplayName: submittedOwnDisplayName,
+            difficultyLevel: preTourDifficultyLevel
+          }
+        });
+        endLauncherGuidedTour();
+        setRoleDifficultyLabel("sender", selectedDifficultyLevel);
+        setRoleDifficultyLabel("receiver", selectedDifficultyLevel);
+      }
       const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName, {
         difficultyLevel: selectedDifficultyLevel,
         visitorDisplayName: visitorRobotSession ? submittedOwnDisplayName : "",
         runtimeMode: robotSimulationPartner
           ? (role === "sender" ? "robot-receiver" : "robot-sender")
-          : ""
+          : "",
+        guidedTour: guidedTourLaunch ? activeGuidedTourMode : "",
+        includeConfidence: guidedTourLaunch ? false : undefined,
+        includePositiveReinforcement: guidedTourLaunch ? true : undefined
       });
       if (!(await prepareLocationForGo(role, { targetUrl }))) {
         return;
@@ -14789,9 +14992,22 @@ This is an alternate test message to show now.`;
     }
   }
 
+  function captureReceiverOwnLabelMeasurement(card) {
+    return;
+  }
+
   function activateCard(card) {
     const shouldActivate = !card.classList.contains("active");
     const role = String(card.dataset.roleCard || "");
+    const guidedStep = getCurrentLauncherGuidedTourStep();
+    if (
+      launcherGuidedTourState &&
+      guidedStep?.id === "open-card" &&
+      role !== launcherGuidedTourState.role
+    ) {
+      cancelLauncherGuidedTourWithNotice("Guided Tour Cancelled");
+      return;
+    }
 
     roleCards.forEach((item) => {
       item.classList.remove("active");
@@ -14807,6 +15023,7 @@ This is an alternate test message to show now.`;
       card.classList.add("active");
       syncRoleCardTitle(card, true);
       activeLauncherRole = role;
+      maybeAdvanceLauncherGuidedOpenCardStep(card, role);
       if (launcherGuestEntryActive && (role === "sender" || role === "receiver")) {
         applyFreshEntryRoleNotes(role);
       }
@@ -14840,6 +15057,7 @@ This is an alternate test message to show now.`;
         sessionId: beginRoleLessonSession(role),
         autoAdvanceOnEntry: true
       });
+      captureReceiverOwnLabelMeasurement(card);
       return;
     }
 
@@ -14886,6 +15104,7 @@ This is an alternate test message to show now.`;
       sessionId: beginRoleLessonSession(role),
       autoAdvanceOnEntry: true
     });
+    captureReceiverOwnLabelMeasurement(card);
     if (shouldScrollIntoView) {
       window.setTimeout(() => {
         card.scrollIntoView({
@@ -14943,6 +15162,557 @@ This is an alternate test message to show now.`;
     return target instanceof Element &&
       !!target.closest("button, input, select, textarea, a, label, [data-open-handle-control], [name='managePartnerNames']");
   }
+
+  const guidedReceiverTourMode = "receiver-experience";
+  const guidedSenderTourMode = "sender-experience";
+  let launcherGuidedTourState = null;
+
+  function getGuideElements(role) {
+    const normalizedRole = String(role || "").trim().toLowerCase() === "sender" ? "sender" : "receiver";
+    const roleCard = findRoleCard(normalizedRole);
+    const toggleButton = roleCard?.querySelector(".role-card-toggle") || null;
+    const roleForm = roleCard?.querySelector(`[data-role-form="${normalizedRole}"]`) || null;
+    const emailNote = roleForm?.querySelector(".role-email-note") || null;
+    const ownInput = roleForm?.querySelector('input[name="ownName"]') || null;
+    const partnerInput = roleForm?.querySelector('input[name="partnerName"]') || null;
+    const levelStack = roleCard?.querySelector(`[data-role-difficulty-stack="${normalizedRole}"]`) || null;
+    const levelButtons = levelStack
+      ? Array.from(levelStack.querySelectorAll(`[data-role-difficulty-bump="${normalizedRole}"]`))
+      : [];
+    const goButton = roleForm?.querySelector('.role-go[type="submit"]') || null;
+    const cardHeader = roleCard?.querySelector(".role-card-header") || roleCard;
+    return {
+      role: normalizedRole,
+      roleCard,
+      toggleButton,
+      roleForm,
+      emailNote,
+      ownInput,
+      partnerInput,
+      levelStack,
+      levelButtons,
+      goButton,
+      cardHeader
+    };
+  }
+
+  function clearLauncherGuidedTourClasses() {
+    launcherView?.querySelectorAll(".guided-tour-launcher-target, .guided-tour-launcher-muted").forEach((node) => {
+      node.classList.remove("guided-tour-launcher-target");
+      node.classList.remove("guided-tour-launcher-muted");
+    });
+  }
+
+  function setGuidedTourHint(message) {
+    if (!guidedTourHint) {
+      return;
+    }
+    const text = String(message || "").trim();
+    guidedTourHint.textContent = text;
+    guidedTourHint.hidden = !text;
+  }
+
+  function clearLauncherGuidedBalloonPosition() {
+    if (!guidedTourBalloon) {
+      return;
+    }
+    guidedTourBalloon.style.top = "";
+    guidedTourBalloon.style.left = "";
+    guidedTourBalloon.style.right = "";
+    guidedTourBalloon.style.bottom = "";
+  }
+
+  function maybeAdvanceLauncherGuidedOpenCardStep(card, role) {
+    if (
+      !launcherGuidedTourState ||
+      role !== launcherGuidedTourState.role ||
+      getCurrentLauncherGuidedTourStep()?.id !== "open-card"
+    ) {
+      return;
+    }
+    const advance = () => {
+      if (
+        launcherGuidedTourState &&
+        getCurrentLauncherGuidedTourStep()?.id === "open-card" &&
+        card?.classList.contains("active")
+      ) {
+        launcherGuidedTourState.manualBalloonPosition = null;
+        launcherGuidedTourState.stepIndex = 1;
+        renderLauncherGuidedTourStep();
+      }
+    };
+    advance();
+    window.requestAnimationFrame?.(advance);
+    window.setTimeout(advance, 0);
+    window.setTimeout(advance, 120);
+  }
+
+  function getLauncherGuidedTourBoundsRect(step, elements) {
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+    if (step?.placement === "explanation" && elements?.emailNote instanceof HTMLElement) {
+      return elements.emailNote.getBoundingClientRect();
+    }
+    if (step?.target instanceof HTMLElement) {
+      return step.target.getBoundingClientRect();
+    }
+    return {
+      left: 24,
+      top: 24,
+      right: Math.max(24, viewportWidth - 24),
+      bottom: Math.max(24, viewportHeight - 24),
+      width: Math.max(280, viewportWidth - 48),
+      height: Math.max(120, viewportHeight - 48)
+    };
+  }
+
+  function positionLauncherGuidedBalloon(step, elements) {
+    if (!guidedTourBalloon || !launcherGuidedTourState) {
+      return;
+    }
+    if (launcherGuidedTourState.manualBalloonPosition?.stepId === step?.id) {
+      const manual = launcherGuidedTourState.manualBalloonPosition;
+      guidedTourBalloon.style.width = `${manual.width || guidedTourBalloon.offsetWidth || 320}px`;
+      guidedTourBalloon.style.left = `${manual.left}px`;
+      guidedTourBalloon.style.top = `${manual.top}px`;
+      guidedTourBalloon.style.right = "auto";
+      guidedTourBalloon.style.bottom = "auto";
+      return;
+    }
+    const rect = getLauncherGuidedTourBoundsRect(step, elements);
+    const balloonWidth = Math.min(Math.max(Math.round(Math.min((rect.width || 360), 420)), 260), Math.max(260, window.innerWidth - 32));
+    let left = 24;
+    let top = 24;
+    if (step?.placement === "explanation" && rect) {
+      left = Math.max(16, Math.round(rect.left + 8));
+      top = Math.max(16, Math.round(rect.top + 10));
+    } else if (step?.placement === "near-target" && rect) {
+      left = Math.max(16, Math.round(rect.left));
+      top = Math.max(16, Math.round(rect.bottom + 12));
+    } else if (step?.placement === "bottom-center") {
+      left = Math.max(16, Math.round((window.innerWidth - balloonWidth) / 2));
+      top = Math.max(16, window.innerHeight - 180);
+    }
+    guidedTourBalloon.style.width = `${balloonWidth}px`;
+    guidedTourBalloon.style.left = `${Math.min(Math.max(16, left), Math.max(16, window.innerWidth - balloonWidth - 16))}px`;
+    guidedTourBalloon.style.top = `${Math.min(Math.max(16, top), Math.max(16, window.innerHeight - 160))}px`;
+    guidedTourBalloon.style.right = "auto";
+    guidedTourBalloon.style.bottom = "auto";
+  }
+
+  function alignLauncherGuidedTargetAboveBalloon(step) {
+    if (!step?.keepCollapsed || step?.placement !== "bottom-center" || !(step.target instanceof HTMLElement) || !guidedTourBalloon) {
+      return;
+    }
+    const alignmentTarget = (() => {
+      if (launcherGuidedTourState?.role === "receiver") {
+        const senderCard = Array.from(document.querySelectorAll("[data-role-card]")).find((card) => String(card?.dataset.roleCard || "").trim() === "sender");
+        const senderToggle = senderCard?.querySelector(".role-card-toggle");
+        if (senderToggle instanceof HTMLElement) {
+          return senderToggle;
+        }
+      }
+      return step.target;
+    })();
+    const targetRect = alignmentTarget.getBoundingClientRect();
+    if (!targetRect || targetRect.height <= 0) {
+      return;
+    }
+    const balloonTop = Math.max(16, window.innerHeight - 180);
+    const desiredTargetTop = Math.max(16, Math.round(balloonTop - targetRect.height - 14));
+    const delta = targetRect.top - desiredTargetTop;
+    if (Math.abs(delta) < 4) {
+      return;
+    }
+    window.scrollTo({
+      top: Math.max(0, Math.round(window.scrollY + delta)),
+      left: 0,
+      behavior: "auto"
+    });
+  }
+
+  function getLauncherGuidedTourSteps(role) {
+    const elements = getGuideElements(role);
+    const roleLabel = role === "sender" ? "Sender" : "Receiver";
+    const partnerRoleLabel = role === "sender" ? "receiver" : "sender";
+    return [
+      {
+        id: "open-card",
+        text: `This guided tour will walk you through a ${roleLabel} session. Tap "I Will Be the ${roleLabel}" to open the session.`,
+        target: elements.toggleButton,
+        allowNext: false,
+        allowed: [elements.toggleButton],
+        keepCollapsed: true,
+        muteOthers: false,
+        placement: "bottom-center"
+      },
+      {
+        id: "overview",
+        text: "During this tour, you may move this box around as needed.",
+        target: elements.emailNote,
+        allowNext: true,
+        allowed: [],
+        muteOthers: false,
+        placement: "explanation"
+      },
+      {
+        id: "own-name",
+        text: "Type your first name in the \"You\" field.",
+        target: elements.ownInput,
+        allowNext: true,
+        allowed: [elements.ownInput],
+        canAdvance: () => String(elements.ownInput?.value || "").trim().length > 0,
+        muteOthers: false,
+        placement: "explanation"
+      },
+      {
+        id: "level",
+        text: "The Level control at the upper right allows changing the difficulty of the telepathy task. This tour demonstrates Level 1, the simplest level.",
+        target: elements.levelStack,
+        allowNext: true,
+        allowed: [],
+        allowTargetByDefault: false,
+        muteOthers: false,
+        placement: "explanation"
+      },
+      {
+        id: "partner",
+        text: `For this tour, your partner, Robot, is a simulated telepathic ${partnerRoleLabel}.`,
+        target: elements.partnerInput,
+        allowNext: true,
+        allowed: [],
+        muteOthers: false,
+        placement: "explanation"
+      },
+      {
+        id: "go",
+        text: "When you are ready, press GO to start a session.",
+        target: elements.goButton,
+        allowNext: false,
+        allowed: [elements.goButton],
+        muteOthers: false,
+        placement: "explanation"
+      }
+    ];
+  }
+
+  function getCurrentLauncherGuidedTourStep() {
+    if (!launcherGuidedTourState) {
+      return null;
+    }
+    return launcherGuidedTourState.steps[launcherGuidedTourState.stepIndex] || null;
+  }
+
+  function syncLauncherGuidedCard() {
+    const elements = getGuideElements(launcherGuidedTourState?.role || "receiver");
+    if (!elements.roleCard) {
+      return elements;
+    }
+    const step = getCurrentLauncherGuidedTourStep();
+    if (step?.keepCollapsed) {
+      collapseActiveLauncherCard();
+      return elements;
+    }
+    if (!elements.roleCard.classList.contains("active")) {
+      const toggle = elements.roleCard.querySelector(".role-card-toggle");
+      if (toggle instanceof HTMLElement && typeof toggle.click === "function") {
+        toggle.click();
+      }
+    }
+    if (!elements.roleCard.classList.contains("active")) {
+      ensureCardExpanded(elements.roleCard, { scrollIntoView: false });
+    }
+    alignLauncherCardNearTop(elements.roleCard, 24);
+    return elements;
+  }
+
+  function renderLauncherGuidedTourStep() {
+    if (!launcherGuidedTourState || !guidedTourOverlay || !guidedTourCopy || !guidedTourNextButton) {
+      return;
+    }
+
+    const elements = syncLauncherGuidedCard();
+
+    const step = getCurrentLauncherGuidedTourStep();
+    if (!step) {
+      endLauncherGuidedTour();
+      return;
+    }
+
+    clearLauncherGuidedTourClasses();
+    const allowed = Array.isArray(step.allowed) ? step.allowed.filter(Boolean) : [];
+    const interactiveNodes = Array.from(
+      launcherView?.querySelectorAll("button, input, select, textarea, a") || []
+    ).filter((node) => !guidedTourOverlay.contains(node));
+    const allowedSet = new Set(allowed);
+    if (step.target) {
+      step.target.classList.add("guided-tour-launcher-target");
+      if (
+        step.allowTargetByDefault !== false &&
+        step.target instanceof HTMLElement &&
+        (step.target.matches("input, button, select, textarea") || step.target.tabIndex >= 0)
+      ) {
+        allowedSet.add(step.target);
+      }
+    }
+    if (step.muteOthers !== false) {
+      interactiveNodes.forEach((node) => {
+        if (!allowedSet.has(node)) {
+          node.classList.add("guided-tour-launcher-muted");
+        }
+      });
+    }
+
+    guidedTourOverlay.hidden = false;
+    guidedTourCopy.textContent = step.text;
+    setGuidedTourHint("");
+    guidedTourNextButton.hidden = !step.allowNext;
+    guidedTourNextButton.disabled = !!(step.canAdvance && !step.canAdvance());
+    if (step.allowNext) {
+      guidedTourNextButton.textContent = "NEXT";
+    }
+    alignLauncherGuidedTargetAboveBalloon(step);
+    positionLauncherGuidedBalloon(step, elements);
+  }
+
+  function endLauncherGuidedTour() {
+    if (!launcherGuidedTourState) {
+      return;
+    }
+    const ownInput = launcherGuidedTourState.ownInput;
+    const partnerInput = launcherGuidedTourState.partnerInput;
+    if (ownInput instanceof HTMLInputElement) {
+      ownInput.readOnly = !!launcherGuidedTourState.previousOwnReadOnly;
+      ownInput.title = typeof launcherGuidedTourState.previousOwnTitle === "string"
+        ? launcherGuidedTourState.previousOwnTitle
+        : ownInput.title;
+      if (typeof launcherGuidedTourState.previousOwnValue === "string") {
+        ownInput.value = launcherGuidedTourState.previousOwnValue;
+      }
+    }
+    if (partnerInput instanceof HTMLInputElement) {
+      partnerInput.readOnly = !!launcherGuidedTourState.previousPartnerReadOnly;
+    }
+    launcherGuidedTourState = null;
+    guidedTourOverlay?.setAttribute("hidden", "");
+    if (guidedTourOverlay) {
+      guidedTourOverlay.hidden = true;
+    }
+    clearLauncherGuidedBalloonPosition();
+    clearLauncherGuidedTourClasses();
+    setGuidedTourHint("");
+  }
+
+  function cancelLauncherGuidedTourWithNotice(message = "Guided Tour Cancelled") {
+    endLauncherGuidedTour();
+    window.alert(message);
+  }
+
+  function isAllowedLauncherGuidedTarget(step, target) {
+    if (!(target instanceof Element) || !step) {
+      return false;
+    }
+    if (step.id === "open-card") {
+      const roleCard = getGuideElements(launcherGuidedTourState?.role || "receiver").roleCard;
+      if (roleCard instanceof Element && roleCard.contains(target)) {
+        return true;
+      }
+    }
+    const allowed = new Set((Array.isArray(step.allowed) ? step.allowed : []).filter(Boolean));
+    if (step.allowTargetByDefault !== false && step.target instanceof HTMLElement && allowed.size === 0) {
+      allowed.add(step.target);
+    }
+    return Array.from(allowed).some((node) => node === target || node.contains(target));
+  }
+
+  function advanceLauncherGuidedTourStep() {
+    if (!launcherGuidedTourState) {
+      return;
+    }
+    const step = getCurrentLauncherGuidedTourStep();
+    if (step?.canAdvance && !step.canAdvance()) {
+      setGuidedTourHint("Please complete the highlighted step first.");
+      renderLauncherGuidedTourStep();
+      return;
+    }
+    launcherGuidedTourState.manualBalloonPosition = null;
+    launcherGuidedTourState.stepIndex += 1;
+    renderLauncherGuidedTourStep();
+  }
+
+  function startLauncherGuidedTour(role) {
+    const initialElements = getGuideElements(role);
+    if (!initialElements.roleCard) {
+      return;
+    }
+
+    showLauncherView();
+    window.requestAnimationFrame(() => {
+      const elements = getGuideElements(role);
+      collapseActiveLauncherCard();
+      if (!elements.roleCard || !elements.roleForm || !elements.partnerInput || !elements.ownInput) {
+        return;
+      }
+      elements.partnerInput.value = "Robot";
+      const previousPartnerReadOnly = !!elements.partnerInput.readOnly;
+      elements.partnerInput.readOnly = true;
+      const previousOwnReadOnly = !!elements.ownInput.readOnly;
+      const previousOwnValue = elements.ownInput.value;
+      const previousOwnTitle = elements.ownInput.title;
+      elements.ownInput.readOnly = false;
+      elements.ownInput.setAttribute("aria-readonly", "false");
+      elements.ownInput.title = "";
+      elements.ownInput.value = "";
+
+      launcherGuidedTourState = {
+        active: true,
+        role,
+        mode: role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode,
+        stepIndex: 0,
+        steps: getLauncherGuidedTourSteps(role),
+        ownInput: elements.ownInput,
+        previousOwnReadOnly,
+        previousOwnValue,
+        previousOwnTitle,
+        partnerInput: elements.partnerInput,
+        previousPartnerReadOnly
+      };
+
+      renderLauncherGuidedTourStep();
+
+      window.setTimeout(() => {
+        if (launcherGuidedTourState) {
+          renderLauncherGuidedTourStep();
+        }
+      }, 120);
+    });
+  }
+
+  let launcherGuidedBalloonDrag = null;
+
+  guidedTourBalloon?.addEventListener("pointerdown", (event) => {
+    if (!launcherGuidedTourState) {
+      return;
+    }
+    const target = event.target;
+    if (target instanceof Element && target.closest("button, input, select, textarea, a, label")) {
+      return;
+    }
+    const rect = guidedTourBalloon.getBoundingClientRect();
+    launcherGuidedBalloonDrag = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    guidedTourBalloon.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  });
+
+  guidedTourBalloon?.addEventListener("pointermove", (event) => {
+    if (!launcherGuidedBalloonDrag || !launcherGuidedTourState || launcherGuidedBalloonDrag.pointerId !== event.pointerId) {
+      return;
+    }
+    const rect = guidedTourBalloon.getBoundingClientRect();
+    const minVisibleX = 96;
+    const minVisibleY = 56;
+    const left = Math.min(
+      Math.max(minVisibleX - rect.width, event.clientX - launcherGuidedBalloonDrag.offsetX),
+      Math.max(minVisibleX, window.innerWidth - minVisibleX)
+    );
+    const top = Math.min(
+      Math.max(minVisibleY - rect.height, event.clientY - launcherGuidedBalloonDrag.offsetY),
+      Math.max(minVisibleY, window.innerHeight - minVisibleY)
+    );
+    launcherGuidedTourState.manualBalloonPosition = {
+      stepId: getCurrentLauncherGuidedTourStep()?.id || "",
+      left,
+      top,
+      width: rect.width
+    };
+    guidedTourBalloon.style.left = `${left}px`;
+    guidedTourBalloon.style.top = `${top}px`;
+    guidedTourBalloon.style.right = "auto";
+    guidedTourBalloon.style.bottom = "auto";
+  });
+
+  const clearLauncherGuidedBalloonDrag = () => {
+    launcherGuidedBalloonDrag = null;
+  };
+
+  guidedTourBalloon?.addEventListener("pointerup", clearLauncherGuidedBalloonDrag);
+  guidedTourBalloon?.addEventListener("pointercancel", clearLauncherGuidedBalloonDrag);
+
+  document.addEventListener("pointerdown", (event) => {
+    if (!launcherGuidedTourState) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (guidedTourOverlay?.contains(target)) {
+      return;
+    }
+    const step = getCurrentLauncherGuidedTourStep();
+    if (!step || step.id !== "open-card") {
+      return;
+    }
+    if (isAllowedLauncherGuidedTarget(step, target)) {
+      return;
+    }
+    if (isLauncherInteractiveTarget(target)) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      cancelLauncherGuidedTourWithNotice("Guided Tour Cancelled");
+    }
+  }, true);
+
+  document.addEventListener("click", (event) => {
+    if (!launcherGuidedTourState) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (guidedTourOverlay?.contains(target)) {
+      return;
+    }
+
+    const step = getCurrentLauncherGuidedTourStep();
+    if (!step) {
+      return;
+    }
+    if (isAllowedLauncherGuidedTarget(step, target)) {
+      return;
+    }
+    const elements = getGuideElements(launcherGuidedTourState.role);
+    const activeRoleCard = elements.roleCard;
+    const insideActiveRoleCard = activeRoleCard instanceof Element &&
+      activeRoleCard.classList.contains("active") &&
+      activeRoleCard.contains(target);
+    if (
+      step.id === "open-card" &&
+      (
+        isLauncherInteractiveTarget(target)
+        || !!target.closest("[data-role-card], .role-card-toggle, .beginner-top-row, .beginner-top-button")
+      )
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      cancelLauncherGuidedTourWithNotice("Guided Tour Cancelled");
+      return;
+    }
+    if (insideActiveRoleCard || isLauncherInteractiveTarget(target)) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      setGuidedTourHint('Please press "NEXT" to continue.');
+      return;
+    }
+  }, true);
 
   function hidePartnerHistoryControls(role, form) {
     const select = form.querySelector('select[name="partnerHistory"]');
@@ -15120,6 +15890,8 @@ This is an alternate test message to show now.`;
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
@@ -20829,6 +21601,7 @@ This is an alternate test message to show now.`;
   }
 
   async function applyLauncherOpenRequest() {
+      let directOpenRevealHandled = false;
       try {
         consumeLauncherStateWriteLock();
         consumePendingFreshStartAnonymousReset();
@@ -20847,6 +21620,17 @@ This is an alternate test message to show now.`;
       const messageOwner = String(params.get("message_owner") || "").trim();
         const messagePartner = String(params.get("message_partner") || "").trim();
         const messageFocus = params.get("message_focus") === "1";
+        appendGuidedReturnTrace("launcher_apply_open_request_start", {
+          page_instance_id: launcherPageInstanceId,
+          requestedView,
+          directOpen,
+          href: String(window.location.href || "").trim()
+        });
+        logLauncherDirectOpenDebug("apply_request_start", {
+          requestedView,
+          directOpen,
+          href: String(window.location.href || "").trim()
+        });
         let launcherState = clearStaleDeviceTestModeArtifactsIfNeeded(readLauncherState());
         launcherState = await sanitizeRecognizedIdentityForLauncherEntry(launcherState);
         logLauncherUserTypeDebug("apply_launcher_open_request", {
@@ -21035,9 +21819,21 @@ This is an alternate test message to show now.`;
               visitorDisplayName: requestedVisitorDisplayName,
               difficultyLevel: requestedDifficultyLevel || ""
             };
+            appendGuidedReturnTrace("launcher_apply_direct_open", lastDirectLauncherOpenMeta);
             logLauncherDirectOpenDebug("apply", lastDirectLauncherOpenMeta);
             window.scrollTo({ top: 0, left: 0, behavior: "auto" });
             ensureCardExpanded(matchingCard, { scrollIntoView: false });
+            appendGuidedReturnTrace("launcher_direct_open_card_expanded", {
+              role: requestedView,
+              difficultyLevel: requestedDifficultyLevel || "",
+              activeRole: activeLauncherRole
+            });
+            logLauncherDirectOpenDebug("card_expanded", {
+              role: requestedView,
+              difficultyLevel: requestedDifficultyLevel || "",
+              activeRole: activeLauncherRole,
+              href: String(window.location.href || "").trim()
+            });
             window.requestAnimationFrame(() => {
               if (!matchingCard.classList.contains("active")) {
                 return;
@@ -21046,6 +21842,20 @@ This is an alternate test message to show now.`;
               window.setTimeout(() => {
                 if (matchingCard.classList.contains("active")) {
                   alignLauncherCardNearTop(matchingCard, 18);
+                }
+                if (!directOpenRevealHandled) {
+                  directOpenRevealHandled = true;
+                  appendGuidedReturnTrace("launcher_direct_open_reveal_after_align", {
+                    role: requestedView,
+                    difficultyLevel: requestedDifficultyLevel || ""
+                  });
+                  logLauncherDirectOpenDebug("reveal_after_align", {
+                    role: requestedView,
+                    difficultyLevel: requestedDifficultyLevel || "",
+                    href: String(window.location.href || "").trim(),
+                    scrollY: Number(window.scrollY || 0)
+                  });
+                  finishDirectLauncherOpen(0);
                 }
               }, 80);
             });
@@ -21061,7 +21871,13 @@ This is an alternate test message to show now.`;
         }
       }
     } catch (error) {
-      // Ignore malformed launcher open requests.
+      appendGuidedReturnTrace("launcher_apply_open_request_error", {
+        page_instance_id: launcherPageInstanceId,
+        message: String(error?.message || error || "").trim()
+      });
+      logLauncherDirectOpenDebug("apply_request_error", {
+        message: String(error?.message || error || "").trim()
+      });
     } finally {
       const directOpenInfo = (function () {
         try {
@@ -21077,11 +21893,26 @@ This is an alternate test message to show now.`;
           };
         }
       })();
-      const directOpenDelayMs = directOpenInfo.requested
+      const directOpenDelayMs = directOpenRevealHandled
+        ? 0
+        : directOpenInfo.requested
         ? directOpenInfo.role === "sender"
           ? 700
-          : 140
+          : 500
         : 0;
+      appendGuidedReturnTrace("launcher_apply_open_request_finally", {
+        page_instance_id: launcherPageInstanceId,
+        directOpenRequested: !!directOpenInfo.requested,
+        directOpenRole: String(directOpenInfo.role || "").trim(),
+        directOpenRevealHandled: !!directOpenRevealHandled,
+        directOpenDelayMs
+      });
+      logLauncherDirectOpenDebug("apply_request_finally", {
+        directOpenRequested: !!directOpenInfo.requested,
+        directOpenRole: String(directOpenInfo.role || "").trim(),
+        directOpenRevealHandled: !!directOpenRevealHandled,
+        directOpenDelayMs
+      });
       finishDirectLauncherOpen(directOpenDelayMs);
     }
   }
@@ -21365,6 +22196,8 @@ This is an alternate test message to show now.`;
     rewireView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
@@ -22663,11 +23496,26 @@ This is an alternate test message to show now.`;
   openHelpButton?.addEventListener("click", showHelpView);
   openTelepathyPracticeButton?.addEventListener("click", showLauncherView);
   openUserGuideButton?.addEventListener("click", () => {
-    if (getUserGuideTargetType() === "pro") {
-      showProUserManualView();
-      return;
-    }
     showBeginnerUserManualView();
+  });
+  startGuidedReceiverTourButton?.addEventListener("click", () => {
+    startLauncherGuidedTour("receiver");
+  });
+  startGuidedSenderTourButton?.addEventListener("click", () => {
+    startLauncherGuidedTour("sender");
+  });
+  guidedTourNextButton?.addEventListener("click", () => {
+    advanceLauncherGuidedTourStep();
+  });
+  getGuideElements("receiver").ownInput?.addEventListener("input", () => {
+    if (launcherGuidedTourState) {
+      renderLauncherGuidedTourStep();
+    }
+  });
+  getGuideElements("sender").ownInput?.addEventListener("input", () => {
+    if (launcherGuidedTourState) {
+      renderLauncherGuidedTourStep();
+    }
   });
   openAidsButton?.addEventListener("click", showAidsView);
   openTemporaryHomePageButton?.addEventListener("click", showTemporaryHomePageView);
@@ -24460,6 +25308,10 @@ This is an alternate test message to show now.`;
   }, { passive: true });
 
   document.addEventListener("pointerdown", (event) => {
+    if (launcherGuidedTourState) {
+      lastLauncherPointerDownInsideActiveCard = true;
+      return;
+    }
     const launcherVisible = launcherView && !launcherView.classList.contains("beginner-view-hidden");
     const activeCard = roleCards.find((card) => card.classList.contains("active"));
     if (!launcherVisible || !activeCard) {
@@ -24473,6 +25325,9 @@ This is an alternate test message to show now.`;
   }, true);
 
   document.addEventListener("click", (event) => {
+    if (launcherGuidedTourState) {
+      return;
+    }
     if (!reportPairPicker?.contains(event.target)) {
       closeReportPairMenu();
     }
@@ -24530,6 +25385,27 @@ This is an alternate test message to show now.`;
           return;
         }
         controllerReloadHandled = true;
+        const isDirectOpenReturn = (() => {
+          try {
+            return new URLSearchParams(window.location.search).get("direct_open") === "1";
+          } catch (error) {
+            return false;
+          }
+        })();
+        logLauncherDirectOpenDebug("service_worker_controllerchange", {
+          page_instance_id: launcherPageInstanceId,
+          href: String(window.location.href || "").trim(),
+          isDirectOpenReturn
+        });
+        if (isDirectOpenReturn) {
+          appendGuidedReturnTrace("launcher_service_worker_reload_suppressed", {
+            href: String(window.location.href || "").trim()
+          });
+          logLauncherDirectOpenDebug("service_worker_reload_suppressed", {
+            href: String(window.location.href || "").trim()
+          });
+          return;
+        }
         try {
           if (sessionStorage.getItem(controllerReloadKey) === "1") {
             sessionStorage.removeItem(controllerReloadKey);

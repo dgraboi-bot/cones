@@ -5,6 +5,26 @@ param(
   [switch]$AllowDirty
 )
 
+# IMPORTANT RELEASE-BOUNDARY SAFEGUARD
+#
+# This script handles version bumping, mirroring, snapshot backup, staged upload,
+# and live copy. It does NOT know by itself which local changes are intentionally
+# part of the release versus older unreleased work still sitting in the tree.
+#
+# Before using this script for a live push, always perform a pre-deployment
+# change audit against the last live baseline. At minimum, review:
+#
+#   git -C C:\xampp\htdocs\telepathyexperiment\cones status --short
+#   git -C C:\xampp\htdocs\telepathyexperiment\cones diff --stat <last-live-baseline>..HEAD
+#   git -C C:\xampp\htdocs\telepathyexperiment\cones diff --name-only <last-live-baseline>..HEAD
+#
+# If there are uncommitted edits, also review:
+#
+#   git -C C:\xampp\htdocs\telepathyexperiment\cones diff --stat
+#   git -C C:\xampp\htdocs\telepathyexperiment\cones diff --name-only
+#
+# Do not treat a deployment as "small" or "targeted" unless that audit confirms it.
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
@@ -113,6 +133,18 @@ if (-not $AllowDirty) {
   if ($gitStatus) {
     throw "Working tree is not clean. Commit or stash changes first, or rerun with -AllowDirty if that is intentional."
   }
+}
+
+Write-Host "PRE-DEPLOYMENT CHANGE AUDIT REQUIRED" -ForegroundColor Yellow
+Write-Host "Before trusting this live push, confirm the outgoing diff against the last live baseline." -ForegroundColor Yellow
+Write-Host "Suggested commands:" -ForegroundColor Yellow
+Write-Host "  git -C $repoRoot status --short" -ForegroundColor Yellow
+Write-Host "  git -C $repoRoot diff --stat <last-live-baseline>..HEAD" -ForegroundColor Yellow
+Write-Host "  git -C $repoRoot diff --name-only <last-live-baseline>..HEAD" -ForegroundColor Yellow
+if ($AllowDirty) {
+  Write-Host "WARNING: -AllowDirty is in use. Also review uncommitted working-tree diffs before accepting this release boundary." -ForegroundColor Yellow
+  Write-Host "  git -C $repoRoot diff --stat" -ForegroundColor Yellow
+  Write-Host "  git -C $repoRoot diff --name-only" -ForegroundColor Yellow
 }
 
 foreach ($relativePath in $deployFiles) {
