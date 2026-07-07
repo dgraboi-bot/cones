@@ -8,6 +8,10 @@ It is written to prevent three recurring problems:
 2. deploying only some of the changed files
 3. leaving mixed version strings in HTML, JS, CSS, manifest, or runtime entry points and causing cache fighting
 
+There is a fifth release-integrity problem to prevent:
+
+5. updating only some live assets while another stale HTML/CSS/JS file remains on the server and silently breaks the build
+
 There is a fourth practical cache trap to watch for:
 
 4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
@@ -294,6 +298,7 @@ Every live deployment must do all of the following:
 6. mirror the changed local files to the live server
 7. verify the live files contain the new version markers and key code changes
 8. provide the user a clean cache-busted test URL
+9. verify that the actual live files match the authoritative local files by SHA-256 hash for the audited deployment set
 
 ## Authoritative Deployment Helper
 
@@ -309,6 +314,7 @@ Its job is to make the live deployment process procedural instead of memory-base
 4. upload files by staged `pscp`
 5. copy the staged files into `/var/www/telepathyexperiment/cones`
 6. verify the deployed version markers live
+7. verify a post-deploy live SHA-256 file audit
 
 Preferred usage:
 
@@ -333,7 +339,8 @@ Preflight behavior now expected from the helper:
 7. upload by staged `pscp`
 8. copy staged files into the live tree
 9. verify the live version markers
-10. print both the canonical live root URL and the cache-busted launcher URL for testing
+10. verify the actual live file hashes against the authoritative local files for the audited set
+11. print both the canonical live root URL and the cache-busted launcher URL for testing
 
 Intentional override:
 
@@ -344,6 +351,50 @@ powershell -ExecutionPolicy Bypass -File scripts\deploy-live.ps1 -Version 202607
 `-AllowDirty` should be rare and used only when the operator deliberately wants to deploy an uncommitted working tree.
 
 If the helper ever fails, fix the helper or the environment rather than reverting to an undocumented ad hoc deployment path.
+
+## Required Post-Deploy Hash Audit
+
+Version-marker verification alone is not sufficient.
+
+A deployment can partially succeed and still leave one stale file on the server. For example:
+
+- updated `receiver.html`
+- updated `telepathy.js`
+- stale `telepathy.css`
+
+In that state, the live build may report the new version string while still rendering incorrectly.
+
+Required rule going forward:
+
+1. after copying files into the live tree, compare authoritative local SHA-256 hashes against the actual live files on the server
+2. if any audited file hash differs, treat the deployment as failed verification
+3. do not rely on zero exit codes from the transport alone
+4. do not rely on `grep` for the build string alone
+5. if the hash audit fails, stop and repair the live file set before telling the user the deployment is complete
+
+The authoritative helper now performs this audit directly.
+
+Minimum audited file set:
+
+- `telepathybeginner.html`
+- `telepathybeginner.js`
+- `telepathybeginner.css`
+- `telepathybeginner-sw.js`
+- `telepathybeginner.webmanifest`
+- `receiver.html`
+- `sender.html`
+- `telepathy.js`
+- `telepathy.css`
+- `api.php`
+- `index.html`
+- `.htaccess`
+- `globe/index.html`
+- `globe/globe.js`
+- `globe/globe.css`
+- `clairvoyance_rv_page.jpg`
+- `tada.wav`
+
+If the release materially affects another live asset not in that set, add it to the audit before deploying.
 
 ## Required Local Mirror Confirmation
 

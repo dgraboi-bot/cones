@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260707a";
+  const launcherBuildVersion = "20260707c";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -15291,7 +15291,16 @@ This is an alternate test message to show now.`;
       top = Math.max(16, Math.round(rect.bottom + 12));
     } else if (step?.placement === "bottom-center") {
       left = Math.max(16, Math.round((window.innerWidth - balloonWidth) / 2));
-      top = Math.max(16, window.innerHeight - 180);
+      if (step?.id === "open-card" && launcherGuidedTourState?.role === "receiver") {
+        const senderCard = Array.from(document.querySelectorAll("[data-role-card]")).find((card) => String(card?.dataset.roleCard || "").trim() === "sender");
+        const senderToggle = senderCard?.querySelector(".role-card-toggle");
+        const senderRect = senderToggle instanceof HTMLElement ? senderToggle.getBoundingClientRect() : null;
+        top = senderRect
+          ? Math.max(16, Math.round(senderRect.bottom + 8))
+          : Math.max(16, window.innerHeight - 180);
+      } else {
+        top = Math.max(16, window.innerHeight - 180);
+      }
     }
     guidedTourBalloon.style.width = `${balloonWidth}px`;
     guidedTourBalloon.style.left = `${Math.min(Math.max(16, left), Math.max(16, window.innerWidth - balloonWidth - 16))}px`;
@@ -15304,16 +15313,22 @@ This is an alternate test message to show now.`;
     if (!step?.keepCollapsed || step?.placement !== "bottom-center" || !(step.target instanceof HTMLElement) || !guidedTourBalloon) {
       return;
     }
-    const alignmentTarget = (() => {
-      if (launcherGuidedTourState?.role === "receiver") {
-        const senderCard = Array.from(document.querySelectorAll("[data-role-card]")).find((card) => String(card?.dataset.roleCard || "").trim() === "sender");
-        const senderToggle = senderCard?.querySelector(".role-card-toggle");
-        if (senderToggle instanceof HTMLElement) {
-          return senderToggle;
+    if (step?.id === "open-card" && launcherGuidedTourState?.role === "receiver") {
+      const hero = document.querySelector(".telepathy-hero");
+      if (hero instanceof HTMLElement) {
+        const heroRect = hero.getBoundingClientRect();
+        const targetScrollY = Math.max(0, Math.round(window.scrollY + heroRect.top));
+        if (Math.abs(window.scrollY - targetScrollY) >= 4) {
+          window.scrollTo({
+            top: targetScrollY,
+            left: 0,
+            behavior: "auto"
+          });
         }
+        return;
       }
-      return step.target;
-    })();
+    }
+    const alignmentTarget = step.target;
     const targetRect = alignmentTarget.getBoundingClientRect();
     if (!targetRect || targetRect.height <= 0) {
       return;

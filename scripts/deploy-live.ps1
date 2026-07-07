@@ -24,6 +24,15 @@ param(
 #   git -C C:\xampp\htdocs\telepathyexperiment\cones diff --name-only
 #
 # Do not treat a deployment as "small" or "targeted" unless that audit confirms it.
+#
+# POST-DEPLOY FILE INTEGRITY RULE
+#
+# A version-marker grep is not enough by itself. A partial live push can still leave
+# one stale CSS/JS/HTML file behind while other files update successfully.
+#
+# This helper therefore must also perform a post-deploy SHA-256 audit comparing the
+# authoritative local files with the actual live files on the server. If any audited
+# file hash differs, the deployment must be treated as failed verification.
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -52,8 +61,10 @@ $deployFiles = @(
   "receiver.html",
   "sender.html",
   "tada.wav",
+  "telepathy.css",
   "telepathy.js",
   "telepathybeginner-email-test.html",
+  "telepathybeginner-email-test.js",
   "telepathybeginner-sw.js",
   "telepathybeginner.css",
   "telepathybeginner.html",
@@ -83,6 +94,26 @@ $mirrorVerifyFiles = @(
   "scripts\deploy-live.ps1"
 )
 
+$liveHashAuditFiles = @(
+  "telepathybeginner.html",
+  "telepathybeginner.js",
+  "telepathybeginner.css",
+  "telepathybeginner-sw.js",
+  "telepathybeginner.webmanifest",
+  "receiver.html",
+  "sender.html",
+  "telepathy.js",
+  "telepathy.css",
+  "api.php",
+  "index.html",
+  ".htaccess",
+  "globe\index.html",
+  "globe\globe.js",
+  "globe\globe.css",
+  "clairvoyance_rv_page.jpg",
+  "tada.wav"
+)
+
 function Invoke-Plink([string]$Command) {
   & $plinkPath -batch -load $puttySession $Command
 }
@@ -109,6 +140,18 @@ function Assert-FileHashMatch([string]$LeftPath, [string]$RightPath, [string]$La
   if ($leftHash -ne $rightHash) {
     throw "Mirror verification failed for $Label"
   }
+}
+
+function Get-RemoteSha256([string]$RemotePath) {
+  $hashOutput = Invoke-Plink "sha256sum '$RemotePath'"
+  if (-not $hashOutput) {
+    throw "Unable to read remote hash for $RemotePath"
+  }
+  $firstLine = @($hashOutput)[0].ToString().Trim()
+  if (-not $firstLine) {
+    throw "Empty remote hash output for $RemotePath"
+  }
+  return ($firstLine -split '\s+')[0].ToUpperInvariant()
 }
 
 if (-not (Test-Path -LiteralPath $bumpScript)) {
@@ -212,10 +255,22 @@ foreach ($relativePath in $deployFiles) {
 $verifyTargets = ($verifyVersionFiles | ForEach-Object { "$liveRoot/" + (Convert-ToPosixPath $_) }) -join " "
 Invoke-Plink "grep -n '$Version' $verifyTargets"
 Invoke-Plink "test -f '$liveRoot/telepathybeginner.html' -a -f '$liveRoot/telepathybeginner.js' -a -f '$liveRoot/api.php'"
+
+foreach ($relativePath in $liveHashAuditFiles) {
+  $localPath = Join-Path $repoRoot $relativePath
+  $remotePath = "$liveRoot/" + (Convert-ToPosixPath $relativePath)
+  $localHash = (Get-FileHash -Algorithm SHA256 $localPath).Hash.ToUpperInvariant()
+  $remoteHash = Get-RemoteSha256 $remotePath
+  if ($localHash -ne $remoteHash) {
+    throw "Live hash audit failed for $relativePath"
+  }
+}
+
 Invoke-Plink "rm -rf '$stageRoot'" | Out-Null
 
 Write-Host "Deployed build $Version"
 Write-Host "Snapshot: $snapshotPath"
 Write-Host "Mirror synced: $mirrorRoot"
+Write-Host ("Live SHA-256 audit passed for {0} files" -f $liveHashAuditFiles.Count)
 Write-Host "Live root: https://espgym.com/"
 Write-Host ("Cache-busted launcher: https://espgym.com/telepathybeginner.html?v={0}&open=launcher" -f $Version)
