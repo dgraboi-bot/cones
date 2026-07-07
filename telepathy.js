@@ -48,7 +48,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260707guided8";
+  const runtimeBuildVersion = "20260707a";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -81,7 +81,7 @@
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
   const guidedReturnTraceKey = "cones-guided-return-trace-v1";
-  const launcherBuildVersion = "20260707guided8";
+  const launcherBuildVersion = "20260707a";
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -635,7 +635,7 @@
     if (phase === "receiving") {
       setGuidedReceiverTourStep({
         id: "receiving-intro",
-        text: "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind’s eye at this time. The beep marks the time that an image appears before the sender’s eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is the best time to try to observe new visual information in your mind’s eye.",
+        text: "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mindâ€™s eye at this time. The beep marks the time that an image appears before the senderâ€™s eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is the best time to try to observe new visual information in your mindâ€™s eye.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: true,
@@ -766,7 +766,7 @@
       guidedReceiverTourState.manualBalloonPosition = null;
       setGuidedReceiverTourStep({
         id: "receiving-observe",
-        text: "Look carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mind’s eye about the time that the beep occurred. This is your task.",
+        text: "Look carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mindâ€™s eye about the time that the beep occurred. This is your task.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: true,
