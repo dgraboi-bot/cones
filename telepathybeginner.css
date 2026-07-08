@@ -337,6 +337,26 @@ body {
   gap: 22px;
 }
 
+.temporary-home-tour-callout {
+  width: min(100%, 700px);
+  margin: 28px auto 0;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+}
+
+.temporary-home-tour-copy {
+  margin: 0;
+  color: rgba(246, 243, 239, 0.92);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.temporary-home-tour-button {
+  min-width: min(100%, 620px);
+}
+
 .temporary-home-card {
   padding: 24px 22px;
   border-radius: 22px;
@@ -3834,6 +3854,27 @@ html.launcher-direct-open-pending body {
   display: none;
 }
 
+.online-course-index-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.online-course-index-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.online-course-index-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
 .online-course-jump-links {
   display: flex;
   justify-content: center;
@@ -4173,6 +4214,10 @@ html.launcher-direct-open-pending body {
   .online-course-tab-button {
     min-height: 40px;
     padding-inline: 0.95rem;
+  }
+
+  .online-course-index-grid {
+    grid-template-columns: 1fr;
   }
 
   .report-definition-panel,

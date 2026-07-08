@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260707d">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260707j">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260707d">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260707d">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260707d">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260707j">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260707j">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260707j">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260707d">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260707d">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260707d">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260707j">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260707j">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260707j">
   <script>
     (function () {
-      var buildVersion = "20260707d";
+      var buildVersion = "20260707j";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -86,7 +86,6 @@
       <section class="beginner-view beginner-view-hidden" data-view="launcher">
         <div class="beginner-top-row launcher-top-row">
           <button class="beginner-top-button beginner-top-pill beginner-top-button-left beginner-top-arrow-button" type="button" data-open-landing-page aria-label="Return to landing page">&#8592;</button>
-          <button class="beginner-top-button beginner-top-pill beginner-top-button-left beginner-top-lessons-button" type="button" data-open-learn-more>EDIT LESSONS</button>
           <p class="beginner-kicker">ESP GYM</p>
           <button class="beginner-top-button beginner-top-pill beginner-top-menu-button" type="button" data-open-options aria-label="Open menu">
             <span>MENU</span>
@@ -541,7 +540,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260707d</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260707j</span>
           </div>
         </div>
 
@@ -612,6 +611,10 @@
                 <p class="temporary-home-section-copy">Individuals who demonstrate talent in Telepathy Beginner are encouraged to participate in the ongoing research program.</p>
                 <button class="options-button temporary-home-card-button" type="button" data-open-research-participation>Learn More</button>
               </article>
+            </div>
+            <div class="temporary-home-tour-callout">
+              <p class="temporary-home-tour-copy">New to ESP GYM? Try a guided experience of what it is like to be a telepathic receiver at ESP GYM.</p>
+              <button class="options-button temporary-home-card-button temporary-home-tour-button" type="button" data-start-guided-receiver-tour-landing>Experience What it's Like to Be a Telepathic Receiver</button>
             </div>
           </section>
 
@@ -689,7 +692,7 @@
                 <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="onlineCourseTabCourseStructure" id="onlineCourseTabButtonCourseStructure" data-online-course-tab="course-structure" tabindex="-1">Course</button>
                 <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="onlineCourseTabThree" id="onlineCourseTabButtonThree" data-online-course-tab="tab-3" tabindex="-1">Tab 3</button>
                 <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="onlineCourseTabFour" id="onlineCourseTabButtonFour" data-online-course-tab="tab-4" tabindex="-1">Tab 4</button>
-                <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="onlineCourseTabFive" id="onlineCourseTabButtonFive" data-online-course-tab="tab-5" tabindex="-1">Tab 5</button>
+                <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="onlineCourseTabFive" id="onlineCourseTabButtonFive" data-online-course-tab="tab-5" tabindex="-1">Index</button>
               </div>
 
               <section class="online-course-tab-panel" id="onlineCourseTabWelcome" role="tabpanel" aria-labelledby="onlineCourseTabButtonWelcome" data-online-course-panel="welcome">
@@ -731,8 +734,82 @@
 
               <section class="online-course-tab-panel online-course-tab-panel-hidden" id="onlineCourseTabFive" role="tabpanel" aria-labelledby="onlineCourseTabButtonFive" data-online-course-panel="tab-5" hidden>
                 <div class="about-section">
-                  <p class="about-section-copy">This tab is reserved for future Learning Center content.</p>
+                  <p class="about-section-copy">This index is a first-pass guide to many of the main ideas, pages, and actions currently available in ESP GYM.</p>
                 </div>
+
+                <section class="online-course-index-grid" aria-label="Learning Center index">
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Start Here</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="telepathy-practice">Telepathy Practice</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="guided-receiver-tour">Guided Receiver Tour</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="guided-sender-tour">Guided Sender Tour</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-baseline-questions>Baseline Questions</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-after-first-session-questions>After First Session Questions</button>
+                    </div>
+                  </article>
+
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Practice Roles</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="receiver">Receiver</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="sender">Sender</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="remote-viewing">Clairvoyance / Remote Viewing</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="confidence">Confidence and Reinforcement</button>
+                    </div>
+                  </article>
+
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Reports and Analysis</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-target="performance">Performance Reports</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="visualization">Performance Visualization</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="raw-data">Raw Data Report</button>
+                    </div>
+                  </article>
+
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Setup and Device Features</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="setup-features">Setup Website Features</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="claim-name">Claim Unique User Name</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="install-app">Install As App</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="review-location">Review Location</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="partner-messaging">Partner Messaging</button>
+                    </div>
+                  </article>
+
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Learning and Background</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-general-information>General Information</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-readings-videos>Readings and Videos</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-case-studies-list>Case Studies</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-peer-reviewed-list>Peer Reviewed Journal Articles</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-open-user-comments-list>Comments and Suggestions</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="user-guide">User Guide</button>
+                    </div>
+                  </article>
+
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Research and PRO</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="research-participation">Research Participation</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="research-proposal">Research Proposal - Seeking Sponsor</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="telepathy-pro">Telepathy PRO</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="telepathy-pro-includes">What ESP PRO Includes</button>
+                    </div>
+                  </article>
+
+                  <article class="online-course-index-card">
+                    <h3 class="about-section-title">Support and Orientation</h3>
+                    <div class="online-course-index-links">
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="about">About Telepathy Beginner</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="contact">Contact ESP Gym</button>
+                      <button class="role-note-link online-course-jump-link" type="button" data-online-course-index-action="other-settings">Other Settings and ESP Tasks</button>
+                    </div>
+                  </article>
+                </section>
               </section>
             </section>
           </section>
@@ -1827,7 +1904,7 @@
             <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please select the "Research Participation" button on the ESP PRO menu and fill out the form. The research team wil get back to you.</p>
           </section>
           <div class="options-actions">
-            <button class="options-button" type="button" data-open-research-proposal>Research Proposal - Seeking Serious Donor</button>
+            <button class="options-button" type="button" data-open-research-proposal>Research Proposal - Seeking Sponsor</button>
           </div>
         </section>
 
@@ -1846,7 +1923,7 @@
             <p class="about-section-copy">If you feel you have a high degree of ESP sensitivity, as shown by actual performance with the ESP Gym tools, and are interested in furthering science by participating in experimental research, please click on <button class="role-note-link role-note-inline-link" type="button" data-open-research-interest-form>This link</button> and fill out the form. The research team will get back to you.</p>
           </section>
           <div class="options-actions">
-            <button class="options-button" type="button" data-open-research-proposal>Research Proposal - Seeking Serious Donor</button>
+            <button class="options-button" type="button" data-open-research-proposal>Research Proposal - Seeking Sponsor</button>
           </div>
         </section>
 
@@ -2076,6 +2153,8 @@
             </div>
 
             <div class="admin-button-grid">
+              <button class="options-button settings-view-save" type="button" data-open-learn-more>EDIT LESSONS</button>
+              <button class="options-button settings-view-save" type="button" data-open-lesson-index-admin>Lesson Index</button>
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>All Pairs</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-identities>All Identities</button>
@@ -2092,15 +2171,14 @@
               <button class="options-button settings-view-save" type="button" data-admin-fresh-start>Fresh start</button>
               <button class="options-button settings-view-save" type="button" data-open-subscription-email-admin>Edit Subscription Emails</button>
               <button class="options-button settings-view-save" type="button" data-open-rotating-messages-editor>Edit Rotating Messages</button>
-              <button class="options-button settings-view-save" type="button" data-open-lesson-index-admin>Lesson Index</button>
               <button class="options-button settings-view-save" type="button" data-open-saved-links-admin>Saved Links</button>
               <button class="options-button settings-view-save" type="button" data-admin-email-list>Email List</button>
               <button class="options-button settings-view-save" type="button" data-admin-open-analyzer>Analyze Results</button>
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260707d'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260707d'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260707j'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260707j'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -2818,8 +2896,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260707d"></script>
-<script src="telepathybeginner.js?v=20260707d"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260707j"></script>
+<script src="telepathybeginner.js?v=20260707j"></script>
 </body>
 </html>
 

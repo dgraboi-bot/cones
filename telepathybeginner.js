@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260707d";
+  const launcherBuildVersion = "20260707j";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -103,6 +103,7 @@
   const openOnlineCourseButton = document.querySelector("[data-open-online-course]");
   const openOnlineCourseDirectButtons = Array.from(document.querySelectorAll("[data-open-online-course-direct]"));
   const onlineCourseTargetButtons = Array.from(document.querySelectorAll("[data-online-course-target]"));
+  const onlineCourseIndexActionButtons = Array.from(document.querySelectorAll("[data-online-course-index-action]"));
   const openBaselineQuestionsButtons = Array.from(document.querySelectorAll("[data-open-baseline-questions]"));
   const openAfterFirstSessionQuestionsButtons = Array.from(document.querySelectorAll("[data-open-after-first-session-questions]"));
   const openGeneralInformationButton = document.querySelector("[data-open-general-information]");
@@ -156,6 +157,7 @@
   const closeHelpButton = document.querySelector("[data-close-help]");
   const closeBeginnerUserManualButton = document.querySelector("[data-close-beginner-user-manual]");
   const startGuidedReceiverTourButton = document.querySelector("[data-start-guided-receiver-tour]");
+  const startGuidedReceiverTourLandingButton = document.querySelector("[data-start-guided-receiver-tour-landing]");
   const startGuidedSenderTourButton = document.querySelector("[data-start-guided-sender-tour]");
   const guidedTourOverlay = document.querySelector("[data-guided-tour-overlay]");
   const guidedTourBalloon = document.querySelector("[data-guided-tour-balloon]");
@@ -8423,7 +8425,7 @@ This is an alternate test message to show now.`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return "To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To practice telepathy with actual human partners using this free Telepathy Beginner app, click here to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.";
+    return "To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To take a guided tour to experience what it's like to be a telepathic receiver using this tool, click here. To practice telepathy with actual human partners using this free Telepathy Beginner app, click here to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.";
   }
 
   function buildVisitorRoleNoteHtml(role) {
@@ -8431,7 +8433,7 @@ This is an alternate test message to show now.`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return 'To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To practice telepathy with actual human partners using this free Telepathy Beginner app, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.';
+    return 'To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To take a guided tour to experience what it\'s like to be a telepathic receiver using this tool, click <button class="role-note-link role-note-inline-link" type="button" data-inline-start-receiver-tour="1">here</button>. To practice telepathy with actual human partners using this free Telepathy Beginner app, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.';
   }
 
   function getHandleExplanation(role) {
@@ -23516,8 +23518,70 @@ This is an alternate test message to show now.`;
   startGuidedReceiverTourButton?.addEventListener("click", () => {
     startLauncherGuidedTour("receiver");
   });
+  startGuidedReceiverTourLandingButton?.addEventListener("click", () => {
+    startLauncherGuidedTour("receiver");
+  });
   startGuidedSenderTourButton?.addEventListener("click", () => {
     startLauncherGuidedTour("sender");
+  });
+  onlineCourseIndexActionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = String(button.dataset.onlineCourseIndexAction || "").trim();
+      switch (action) {
+        case "telepathy-practice":
+          showLauncherView();
+          break;
+        case "guided-receiver-tour":
+          startLauncherGuidedTour("receiver");
+          break;
+        case "guided-sender-tour":
+          startLauncherGuidedTour("sender");
+          break;
+        case "remote-viewing":
+          showClairvoyanceViewingView();
+          break;
+        case "confidence":
+          showConfidenceBehaviorView();
+          break;
+        case "visualization":
+        case "raw-data":
+          showReportDefinitionView();
+          break;
+        case "setup-features":
+        case "claim-name":
+        case "install-app":
+        case "review-location":
+        case "partner-messaging":
+          showFeatureSetupView();
+          break;
+        case "user-guide":
+          showHelpView();
+          break;
+        case "research-participation":
+          showResearchParticipationView();
+          break;
+        case "research-proposal":
+          showResearchProposalView("research-participation");
+          break;
+        case "telepathy-pro":
+          showGoProView("online-course");
+          break;
+        case "telepathy-pro-includes":
+          showGoProIncludesView("online-course");
+          break;
+        case "about":
+          showAboutView();
+          break;
+        case "contact":
+          showContactView("online-course");
+          break;
+        case "other-settings":
+          showOtherSettingsView();
+          break;
+        default:
+          break;
+      }
+    });
   });
   guidedTourNextButton?.addEventListener("click", () => {
     advanceLauncherGuidedTourStep();
@@ -23711,6 +23775,13 @@ This is an alternate test message to show now.`;
         returnView: role === "remote-viewer" ? "remote-viewer" : "card",
         scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
       });
+      return;
+    }
+    const inlineReceiverTour = target.closest("[data-inline-start-receiver-tour]");
+    if (inlineReceiverTour instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      startLauncherGuidedTour("receiver");
       return;
     }
     const inlinePro = target.closest("[data-inline-open-visitor-pro]");
