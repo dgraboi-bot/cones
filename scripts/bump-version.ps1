@@ -11,6 +11,7 @@ $versionPattern = '20\d{6}[A-Za-z0-9]+'
 $files = @(
   (Join-Path $root ".htaccess"),
   (Join-Path $root "index.html"),
+  (Join-Path $root "telepathybeginner.css"),
   (Join-Path $root "telepathybeginner.html"),
   (Join-Path $root "telepathybeginner.js"),
   (Join-Path $root "telepathybeginner-sw.js"),
@@ -24,6 +25,7 @@ $files = @(
 )
 
 $versionRequiredFiles = @(
+  (Join-Path $root "telepathybeginner.css"),
   (Join-Path $root "telepathybeginner.html"),
   (Join-Path $root "telepathybeginner.js"),
   (Join-Path $root "telepathybeginner-sw.js"),
@@ -61,6 +63,9 @@ $replacements = @{
   (Join-Path $root "index.html") = @(
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"''\s]+(?:&amp;|&)open=landing'; Replacement = "telepathybeginner.html?open=landing" },
     @{ Pattern = 'telepathybeginner\.html\?open=landing'; Replacement = "telepathybeginner.html?open=landing" }
+  )
+  (Join-Path $root "telepathybeginner.css") = @(
+    @{ Pattern = 'learning-center-hero\.png\?v=[^)"''\s]+'; Replacement = "learning-center-hero.png?v=$Version" }
   )
   (Join-Path $root "telepathybeginner.html") = @(
     @{ Pattern = 'telepathybeginner\.webmanifest\?v=[^"]+'; Replacement = "telepathybeginner.webmanifest?v=$Version" },
@@ -105,6 +110,7 @@ $replacements = @{
   )
   (Join-Path $root "telepathy.js") = @(
     @{ Pattern = 'const runtimeBuildVersion = "[^"]+";'; Replacement = "const runtimeBuildVersion = `"$Version`";" },
+    @{ Pattern = 'const launcherBuildVersion = "[^"]+";'; Replacement = "const launcherBuildVersion = `"$Version`";" },
     @{ Pattern = 'params\.set\("v", "[A-Za-z0-9]+"\);'; Replacement = "params.set(`"v`", `"$Version`");" }
   )
   (Join-Path $root "globe\index.html") = @(

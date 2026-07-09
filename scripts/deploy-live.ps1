@@ -58,6 +58,7 @@ $deployFiles = @(
   "globe\globe.js",
   "globe\index.html",
   "index.html",
+  "learning-center-hero.png",
   "receiver.html",
   "sender.html",
   "tada.wav",
@@ -73,6 +74,7 @@ $deployFiles = @(
 )
 
 $verifyVersionFiles = @(
+  "telepathybeginner.css",
   "telepathybeginner.html",
   "telepathybeginner.js",
   "telepathybeginner-sw.js",
@@ -106,6 +108,7 @@ $liveHashAuditFiles = @(
   "telepathy.css",
   "api.php",
   "index.html",
+  "learning-center-hero.png",
   ".htaccess",
   "globe\index.html",
   "globe\globe.js",

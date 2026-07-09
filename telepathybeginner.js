@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260707j";
+  const launcherBuildVersion = "20260708a";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -63,6 +63,7 @@
   const messagingParmsAdminView = document.querySelector('[data-view="messaging-parms-admin"]');
   const savedLinksAdminActionButtons = Array.from((savedLinksAdminView && savedLinksAdminView.querySelectorAll("button")) || []);
   const onlineCourseView = document.querySelector('[data-view="online-course"]');
+  const learningCenterView = document.querySelector('[data-view="learning-center"]');
   const baselineQuestionsView = document.querySelector('[data-view="baseline-questions"]');
   const afterFirstSessionQuestionsView = document.querySelector('[data-view="after-first-session-questions"]');
   const contactView = document.querySelector('[data-view="contact"]');
@@ -82,7 +83,8 @@
   const beginnerPanel = document.querySelector(".beginner-panel");
   const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
-  const openLessonEditorButton = document.querySelector("[data-open-learn-more]");
+  const openOldLearningCenterButton = document.querySelector("[data-open-old-learning-center]");
+  const openLessonEditorButton = document.querySelector("[data-open-old-learn-more]");
   const appVersionLabel = document.querySelector("[data-app-version-label]");
   const closeOptionsButtons = Array.from(document.querySelectorAll("[data-close-options]"));
   const closeLessonEditorButton = document.querySelector("[data-close-learn-more]");
@@ -102,6 +104,11 @@
   const openAidsButton = document.querySelector("[data-open-aids]");
   const openOnlineCourseButton = document.querySelector("[data-open-online-course]");
   const openOnlineCourseDirectButtons = Array.from(document.querySelectorAll("[data-open-online-course-direct]"));
+  const openLearningCenterPracticeButton = document.querySelector("[data-open-learning-center-practice]");
+  const closeLearningCenterButton = document.querySelector("[data-close-learning-center]");
+  const learningCenterTabButtons = Array.from(document.querySelectorAll("[data-learning-center-tab]"));
+  const learningCenterTabPanels = Array.from(document.querySelectorAll("[data-learning-center-panel]"));
+  const learningCenterActionButtons = Array.from(document.querySelectorAll("[data-learning-center-action]"));
   const onlineCourseTargetButtons = Array.from(document.querySelectorAll("[data-online-course-target]"));
   const onlineCourseIndexActionButtons = Array.from(document.querySelectorAll("[data-online-course-index-action]"));
   const openBaselineQuestionsButtons = Array.from(document.querySelectorAll("[data-open-baseline-questions]"));
@@ -144,7 +151,7 @@
   const openHandleUpdateAdminButton = document.querySelector("[data-open-handle-update-admin]");
   const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
-  const openLessonIndexAdminButton = document.querySelector("[data-open-lesson-index-admin]");
+  const openLessonIndexAdminButton = document.querySelector("[data-open-old-lesson-index-admin]");
   const openSavedLinksAdminButton = document.querySelector("[data-open-saved-links-admin]");
   const openMessagingParmsAdminButton = document.querySelector("[data-open-messaging-parms-admin]");
   const openSubscriptionsAdminButton = document.querySelector("[data-open-subscriptions-admin]");
@@ -901,6 +908,7 @@ This is an alternate test message to show now.`;
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
   let onlineCourseReturnTarget = { view: "options", role: "", scrollY: 0 };
+  let learningCenterReturnTarget = { view: "options", role: "", scrollY: 0 };
   let baselineQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let activeEspLessonMode = "role";
@@ -908,6 +916,7 @@ This is an alternate test message to show now.`;
   let activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
   let pendingOnlineCourseRestoreFocusId = "";
   let activeOnlineCourseTab = "welcome";
+  let activeLearningCenterTab = "welcome";
   let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
   let learningCenterLessonIndex = [];
   let suppressLauncherAutoCollapseUntil = 0;
@@ -6814,16 +6823,9 @@ This is an alternate test message to show now.`;
       featureSetupMessagingActionButton.disabled = messagingActionDisabled;
     }
 
-    const missingCount = [
-      !recognizedUser,
-      !installed,
-      !locationSummary.ready,
-      isEffectiveLauncherUserPro() ? !messagingReady : false
-    ].filter(Boolean).length;
     if (featureSetupSummary) {
-      featureSetupSummary.textContent = missingCount > 0
-        ? `${missingCount} optional feature${missingCount === 1 ? "" : "s"} remain to be set up on this device.`
-        : "All currently available optional features are set up on this device.";
+      featureSetupSummary.textContent = "";
+      featureSetupSummary.hidden = true;
     }
 
     renderProOnlyLockedControls();
@@ -6831,6 +6833,7 @@ This is an alternate test message to show now.`;
   }
 
   function showFeatureSetupView(options = {}) {
+    learningCenterView?.classList.add("beginner-view-hidden");
     const role = String(options.role || activeLauncherRole || "sender").trim() || "sender";
     const originView = String(options.returnView || "").trim().toLowerCase();
     featureSetupReturnRole = role;
@@ -15894,6 +15897,7 @@ This is an alternate test message to show now.`;
   function showLauncherView() {
     activeDifficultyContext = null;
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     launcherView?.classList.remove("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
@@ -15939,6 +15943,7 @@ This is an alternate test message to show now.`;
 
   function showClairvoyanceViewingView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -15994,6 +15999,7 @@ This is an alternate test message to show now.`;
   function showOptionsView() {
     activeDifficultyContext = null;
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     optionsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -16035,6 +16041,7 @@ This is an alternate test message to show now.`;
   function showTemporaryHomePageView() {
     activeDifficultyContext = null;
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -16121,6 +16128,7 @@ This is an alternate test message to show now.`;
   function showReportDefinitionView() {
     clearReportPanelOffset();
     syncCurrentLauncherNamesToState();
+    learningCenterView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -16156,6 +16164,7 @@ This is an alternate test message to show now.`;
   }
 
   function showReportView(pairInfo = selectedReportPair) {
+    learningCenterView?.classList.add("beginner-view-hidden");
     beginnerPanel?.classList.add("report-pannable");
     reportView?.classList.remove("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -16191,6 +16200,7 @@ This is an alternate test message to show now.`;
 
   function showVisualizationView(pairInfo = selectedReportPair) {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.remove("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -16224,6 +16234,7 @@ This is an alternate test message to show now.`;
 
   function showAnalyzerView(pairInfo = selectedReportPair) {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.remove("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -16256,6 +16267,7 @@ This is an alternate test message to show now.`;
 
   function showHelpView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     helpView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -16289,6 +16301,7 @@ This is an alternate test message to show now.`;
 
   function showBeginnerUserManualView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     beginnerUserManualView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -16328,6 +16341,7 @@ This is an alternate test message to show now.`;
 
   function showProUserManualView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     proUserManualView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -17216,6 +17230,44 @@ This is an alternate test message to show now.`;
     });
   }
 
+  function normalizeLearningCenterTabId(tabId = "welcome") {
+    const normalizedTabId = String(tabId || "").trim().toLowerCase();
+    if (normalizedTabId === "start-here") {
+      return "start-here";
+    }
+    if (normalizedTabId === "course") {
+      return "course";
+    }
+    if (normalizedTabId === "key-concepts") {
+      return "key-concepts";
+    }
+    if (normalizedTabId === "index") {
+      return "index";
+    }
+    if (normalizedTabId === "advanced") {
+      return "advanced";
+    }
+    return "welcome";
+  }
+
+  function setLearningCenterTab(tabId = "welcome") {
+    const normalizedTabId = normalizeLearningCenterTabId(tabId);
+    activeLearningCenterTab = normalizedTabId;
+    learningCenterTabButtons.forEach((button) => {
+      const buttonTabId = normalizeLearningCenterTabId(button.dataset.learningCenterTab || "");
+      const isActive = buttonTabId === normalizedTabId;
+      button.classList.toggle("online-course-tab-button-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+      button.tabIndex = isActive ? 0 : -1;
+    });
+    learningCenterTabPanels.forEach((panel) => {
+      const panelTabId = normalizeLearningCenterTabId(panel.dataset.learningCenterPanel || "");
+      const isActive = panelTabId === normalizedTabId;
+      panel.classList.toggle("online-course-tab-panel-hidden", !isActive);
+      panel.hidden = !isActive;
+    });
+  }
+
   function openLearningCenterRowTarget(row) {
     if (!(row instanceof Element)) {
       return false;
@@ -17308,6 +17360,7 @@ This is an alternate test message to show now.`;
     renderOnlineCourseView();
     void refreshLearningCenterLessonIndex();
     onlineCourseView?.classList.remove("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
     afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -17415,6 +17468,93 @@ This is an alternate test message to show now.`;
       showOptionsView();
       return;
     }
+    if (targetView === "admin") {
+      showAdminView();
+      return;
+    }
+    if (targetView === "learning-center") {
+      showLearningCenterView({ view: "learning-center" });
+      return;
+    }
+    showOptionsView();
+  }
+
+  function showLearningCenterView(options = {}) {
+    clearReportPanelOffset();
+    const requestedScrollY = Number(options.scrollY);
+    const targetScrollY = Number.isFinite(requestedScrollY) ? Math.max(0, requestedScrollY) : 0;
+    learningCenterReturnTarget = {
+      view: String(options.view || "options").trim() || "options",
+      role: String(options.role || "").trim(),
+      scrollY: targetScrollY
+    };
+    const requestedTab = String(options.tab || "").trim();
+    if (requestedTab) {
+      setLearningCenterTab(requestedTab);
+    } else {
+      setLearningCenterTab(activeLearningCenterTab || "welcome");
+    }
+    learningCenterView?.classList.remove("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
+    afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: targetScrollY, behavior: targetScrollY > 0 ? "auto" : "smooth" });
+  }
+
+  function closeLearningCenterView() {
+    const targetView = String(learningCenterReturnTarget?.view || "options").trim();
+    const targetRole = String(learningCenterReturnTarget?.role || "").trim();
+    if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
+      showRoleCourseTarget(targetRole);
+      return;
+    }
+    if (targetView === "report-definition") {
+      showReportDefinitionView();
+      return;
+    }
+    if (targetView === "options") {
+      showOptionsView();
+      return;
+    }
     showOptionsView();
   }
 
@@ -17434,6 +17574,7 @@ This is an alternate test message to show now.`;
     baselineQuestionsView?.classList.remove("beginner-view-hidden");
     afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -17539,6 +17680,14 @@ This is an alternate test message to show now.`;
       showOptionsView();
       return;
     }
+    if (targetView === "learning-center") {
+      showLearningCenterView({
+        view: targetView,
+        role: targetRole,
+        scrollY: targetScrollY
+      });
+      return;
+    }
     pendingOnlineCourseRestoreFocusId = targetFocusId;
     showOnlineCourseView({
       view: targetView || "online-course",
@@ -17563,6 +17712,7 @@ This is an alternate test message to show now.`;
     afterFirstSessionQuestionsView?.classList.remove("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -17617,6 +17767,14 @@ This is an alternate test message to show now.`;
       showOptionsView();
       return;
     }
+    if (targetView === "learning-center") {
+      showLearningCenterView({
+        view: targetView,
+        role: targetRole,
+        scrollY: targetScrollY
+      });
+      return;
+    }
     pendingOnlineCourseRestoreFocusId = targetFocusId;
     showOnlineCourseView({
       view: targetView || "online-course",
@@ -17626,7 +17784,7 @@ This is an alternate test message to show now.`;
   }
 
   function showAidsView() {
-    showOnlineCourseView({ view: "options" });
+    showLearningCenterView({ view: "options" });
   }
 
   function showGeneralInformationView() {
@@ -17954,6 +18112,7 @@ This is an alternate test message to show now.`;
 
   function showToolsView(role = "") {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     activeToolsRole = role === "sender" || role === "receiver" ? role : "";
     toolsView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -17987,6 +18146,7 @@ This is an alternate test message to show now.`;
   function showContactView(returnView = "help") {
     contactReturnView = returnView;
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     contactView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -18038,6 +18198,7 @@ This is an alternate test message to show now.`;
 
   function showAboutView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     aboutView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -18227,6 +18388,7 @@ This is an alternate test message to show now.`;
   }
 
   function showSettingsView() {
+    learningCenterView?.classList.add("beginner-view-hidden");
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -19053,6 +19215,7 @@ This is an alternate test message to show now.`;
 
   function showAdminView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     adminView?.classList.remove("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
@@ -19297,6 +19460,7 @@ This is an alternate test message to show now.`;
 
   function showResearchParticipationView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.remove("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
@@ -19332,6 +19496,7 @@ This is an alternate test message to show now.`;
 
   function showResearchParticipationProView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.remove("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
@@ -22037,6 +22202,7 @@ This is an alternate test message to show now.`;
       returnScrollY: goProReturnScrollY
     });
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     goProView?.classList.remove("beginner-view-hidden");
     goProIncludesView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
@@ -22120,6 +22286,7 @@ This is an alternate test message to show now.`;
 
   function showOtherSettingsView() {
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.remove("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
@@ -22161,6 +22328,7 @@ This is an alternate test message to show now.`;
     });
     renderSubscriptionManagementState();
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.remove("beginner-view-hidden");
     giftProSubscriptionView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -22198,6 +22366,7 @@ This is an alternate test message to show now.`;
   function showGoProIncludesView(returnView = "go-pro") {
     goProIncludesReturnView = String(returnView || "go-pro").trim() || "go-pro";
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     goProIncludesView?.classList.remove("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -22256,6 +22425,7 @@ This is an alternate test message to show now.`;
   function showGiftProSubscriptionView() {
     renderGiftProSubscriptionState();
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     giftProSubscriptionView?.classList.remove("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -22294,6 +22464,7 @@ This is an alternate test message to show now.`;
   function showResearchProposalView(returnView = "research-participation") {
     researchProposalReturnView = String(returnView || "research-participation").trim() || "research-participation";
     clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
     researchProposalView?.classList.remove("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.add("beginner-view-hidden");
@@ -23372,16 +23543,101 @@ This is an alternate test message to show now.`;
   });
 
   openOptionsButton?.addEventListener("click", showOptionsView);
+  openOldLearningCenterButton?.addEventListener("click", () => {
+    showOnlineCourseView({ view: "admin" });
+  });
   openLessonEditorButton?.addEventListener("click", showLessonEditorView);
   openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
   openOnlineCourseButton?.addEventListener("click", () => {
-    showOnlineCourseView({ view: "aids" });
+    showLearningCenterView({ view: "aids" });
   });
   openOnlineCourseDirectButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const role = String(button.dataset.openOnlineCourseDirect || "").trim();
       const returnView = role === "remote-viewer" ? "clairvoyance-viewing" : "launcher";
-      showOnlineCourseView({ view: returnView, role });
+      showLearningCenterView({ view: returnView, role });
+    });
+  });
+  learningCenterTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setLearningCenterTab(button.dataset.learningCenterTab || "welcome");
+    });
+  });
+  learningCenterActionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = String(button.dataset.learningCenterAction || "").trim();
+      learningCenterView?.classList.add("beginner-view-hidden");
+      switch (action) {
+        case "telepathy-practice":
+          showLauncherView();
+          break;
+        case "guided-receiver-tour":
+          startLauncherGuidedTour("receiver");
+          break;
+        case "guided-sender-tour":
+          startLauncherGuidedTour("sender");
+          break;
+        case "baseline":
+          showBaselineQuestionsView({ view: "learning-center" });
+          break;
+        case "after-first-session":
+          showAfterFirstSessionQuestionsView({ view: "learning-center" });
+          break;
+        case "general-information":
+          showGeneralInformationView();
+          break;
+        case "case-studies":
+          showCaseStudiesListView();
+          break;
+        case "readings-videos":
+          showReadingsVideosView();
+          break;
+        case "setup-features":
+        case "claim-name":
+        case "install-app":
+        case "review-location":
+        case "partner-messaging":
+          showFeatureSetupView();
+          break;
+        case "receiver-role":
+          showRoleCourseTarget("receiver");
+          break;
+        case "sender-role":
+          showRoleCourseTarget("sender");
+          break;
+        case "remote-viewing":
+          showClairvoyanceViewingView();
+          break;
+        case "performance-reports":
+          showReportDefinitionView();
+          break;
+        case "research-participation":
+          showResearchParticipationView();
+          break;
+        case "research-proposal":
+          showResearchProposalView("learning-center");
+          break;
+        case "telepathy-pro":
+          showGoProView("learning-center");
+          break;
+        case "telepathy-pro-includes":
+          showGoProIncludesView("learning-center");
+          break;
+        case "user-guide":
+          showHelpView();
+          break;
+        case "about":
+          showAboutView();
+          break;
+        case "contact":
+          showContactView("learning-center");
+          break;
+        case "old-learning-center":
+          showOnlineCourseView({ view: "learning-center" });
+          break;
+        default:
+          break;
+      }
     });
   });
   onlineCourseTabButtons.forEach((button) => {
@@ -23809,6 +24065,8 @@ This is an alternate test message to show now.`;
   closeTemporaryHomePageButton?.addEventListener("click", showOptionsView);
   closeAidsButton?.addEventListener("click", showOptionsView);
   closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
+  closeLearningCenterButton?.addEventListener("click", closeLearningCenterView);
+  openLearningCenterPracticeButton?.addEventListener("click", showLauncherView);
   openOnlineCoursePracticeButton?.addEventListener("click", showLauncherView);
   closeBaselineQuestionsButton?.addEventListener("click", closeBaselineQuestionsView);
   closeAfterFirstSessionQuestionsButton?.addEventListener("click", closeAfterFirstSessionQuestionsView);
