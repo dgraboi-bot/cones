@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260708a";
+  const launcherBuildVersion = "20260710a";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -64,6 +64,7 @@
   const savedLinksAdminActionButtons = Array.from((savedLinksAdminView && savedLinksAdminView.querySelectorAll("button")) || []);
   const onlineCourseView = document.querySelector('[data-view="online-course"]');
   const learningCenterView = document.querySelector('[data-view="learning-center"]');
+  const learningCenterConceptDetailView = document.querySelector('[data-view="learning-center-concept-detail"]');
   const baselineQuestionsView = document.querySelector('[data-view="baseline-questions"]');
   const afterFirstSessionQuestionsView = document.querySelector('[data-view="after-first-session-questions"]');
   const contactView = document.querySelector('[data-view="contact"]');
@@ -106,9 +107,17 @@
   const openOnlineCourseDirectButtons = Array.from(document.querySelectorAll("[data-open-online-course-direct]"));
   const openLearningCenterPracticeButton = document.querySelector("[data-open-learning-center-practice]");
   const closeLearningCenterButton = document.querySelector("[data-close-learning-center]");
+  const closeLearningCenterConceptDetailButton = document.querySelector("[data-close-learning-center-concept-detail]");
   const learningCenterTabButtons = Array.from(document.querySelectorAll("[data-learning-center-tab]"));
   const learningCenterTabPanels = Array.from(document.querySelectorAll("[data-learning-center-panel]"));
   const learningCenterActionButtons = Array.from(document.querySelectorAll("[data-learning-center-action]"));
+  const learningCenterConceptCards = Array.from(document.querySelectorAll("[data-learning-center-concept-card]"));
+  const learningCenterConceptPagination = document.querySelector("[data-learning-center-concept-pagination]");
+  const learningCenterConceptPages = document.querySelector("[data-learning-center-concept-pages]");
+  const learningCenterConceptPreviousButton = document.querySelector("[data-learning-center-concept-previous]");
+  const learningCenterConceptNextButton = document.querySelector("[data-learning-center-concept-next]");
+  const learningCenterConceptTitle = document.querySelector("[data-learning-center-concept-title]");
+  const learningCenterConceptCopy = document.querySelector("[data-learning-center-concept-copy]");
   const onlineCourseTargetButtons = Array.from(document.querySelectorAll("[data-online-course-target]"));
   const onlineCourseIndexActionButtons = Array.from(document.querySelectorAll("[data-online-course-index-action]"));
   const openBaselineQuestionsButtons = Array.from(document.querySelectorAll("[data-open-baseline-questions]"));
@@ -173,6 +182,103 @@
   const guidedTourNextButton = document.querySelector("[data-guided-tour-next]");
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
+  const learningCenterConceptContent = {
+    "concept-telepathy": {
+      title: "Telepathy",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "For now, telepathy here means the apparent transfer of information between minds without the known senses."
+      ]
+    },
+    "concept-sender": {
+      title: "Sender",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "For now, the sender is the person who looks at the target and focuses sustained attention on it."
+      ]
+    },
+    "concept-receiver": {
+      title: "Receiver",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "For now, the receiver is the person who tries to detect the target information in the mind's eye."
+      ]
+    },
+    "concept-minds-eye": {
+      title: "Mind's Eye",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "For now, the mind's eye is the inner visual field where dim impressions, colors, or vague shapes may appear."
+      ]
+    },
+    "concept-chance-performance": {
+      title: "Chance Performance",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "Chance performance is the level of success expected if answers are being selected randomly."
+      ]
+    },
+    "concept-positive-reinforcement": {
+      title: "Positive Reinforcement",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "Positive reinforcement here means an immediate encouraging signal after a correct response."
+      ]
+    },
+    "concept-trouble-with-statistics": {
+      title: "The Trouble with Statistics",
+      paragraphs: [
+        "Statistics is based on computing whether something that could have happened by random chance has happened. Letâ€™s say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, each with a 50% chance of being right or wrong by chance alone, your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, it is not generally scientifically acceptable as a significant effect at the p < .01 level.",
+        "But the reality might be that you experienced true telepathy in the first 8 trials and then were tired or distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly. See the graphs below to see how many 50-50 trials are needed to cross the p < 0.01 threshold.",
+        "But IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell a correct story."
+      ]
+    },
+    "concept-everything-is-connected": {
+      title: "Everything is Connected",
+      paragraphs: [
+        "This concept page is still being developed.",
+        "Placeholder: this page will explore the idea that people, places, events, and things may be linked more deeply than ordinary sensory thinking suggests."
+      ]
+    },
+    "concept-dont-worry-how-this-works": {
+      title: "Don't Worry How This Works",
+      paragraphs: [
+        "HOW it is possible that out of the millions of people in the world, just by wanting to receive what one person you may not even know well is looking at it is possible to tune into that one person.",
+        "HOW this can happen is not important. The fact is that this is what DOES HAPPEN."
+      ]
+    },
+    "concept-lack-of-fusion": {
+      title: "Lack of Fusion",
+      paragraphs: [
+        "American psychic Ingo Swann suggested, referring to the visual perception of psi-encoded data: â€œa great deal of distortion and misrepresentation can and does take place while the mind seeks to translate the basic images into wordsâ€ [Swann, 1991/2017, p. 73)].",
+        "Swann called this difficulty in grouping of local elements into recognized objects lack of fusion: â€œAll parts are correctly perceived, but will not connect to form a wholeâ€ [Swann, 1991/2017, p. 229]."
+      ]
+    },
+    "concept-remember-objects-and-their-locations": {
+      title: "Remember Objects and their Locations",
+      paragraphs: [
+        "OBJECTS HAVE LOCATIONS IN THE VISUAL FIELD â€“ REMEMBER WHAT AND WHERE",
+        "The Receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. The receiver should try to REMEMBER WHAT WAS WHERE IN THE VISUAL FIELD. Some features of what pops in may have COLOR. REMEMBER the color and where it is noticed. Was it on the right side? The left side?",
+        "After seconds, the whole image (not just part of it) may fade. Then itâ€™s time to CONSOLODATE IN MEMORY whatever shreds or pieces you saw. Then, when the choice of images are shown to you, you will easily be able to decide which image was the actual target image."
+      ]
+    },
+    "concept-telepathy-is-real": {
+      title: "Telepathy is Real",
+      paragraphs: [
+        "IF YOU ARE THE RECEIVER, YOU MUST KNOW IN YOUR HEART THAT TELEPATHY IS REAL as strongly as you BELIEVE there is a REAL SUN IN THE SKY!",
+        "If you don't believe in it, it still might happen to you spontaneously, but it is not likely that you will show consistently good results. A Sender can be skeptical and still produce decent results for a Receiver."
+      ]
+    },
+    "concept-bits-and-pieces": {
+      title: "Bits And Pieces",
+      paragraphs: [
+        "BITS AND PIECES OF VAGUE IMPRESSIONISTIC VISUAL INFORMATION",
+        "Ingo Swann, a noted psychic [1991/2017, p. 33] mentioned, â€œâ€¦ what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear.â€ Hubbard & Langford (1986, pp. 6-7) mention, â€œAccomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. â€¦ correct visual impressions are largely indistinct in outline.â€",
+        "â€œBy subjective report, the â€œdata access windowâ€ is approximately 0.5 to 1 second in durationâ€ (Hubbard & Langford, 1986, p. 5). Swann noted that psi visual data is â€œsoftâ€ (1991/2017, p. 134). â€œSoftâ€ can be interpreted as â€œlow contrast, low intensity and low resolution.â€",
+        "Otto Reimann, a recognized Czech psychometrist mentioned that his â€œ â€¦ information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvasâ€ [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157]."
+      ]
+    }
+  };
   const closeProUserManualButton = document.querySelector("[data-close-pro-user-manual]");
   const closeFeatureSetupButton = document.querySelector("[data-close-feature-setup]");
   const closeInstallGuideButton = document.querySelector("[data-close-install-guide]");
@@ -443,10 +549,12 @@
   const featureSetupSummary = document.querySelector("[data-feature-setup-summary]");
   const featureSetupClaimStatus = document.querySelector("[data-feature-setup-claim-status]");
   const featureSetupInstallStatus = document.querySelector("[data-feature-setup-install-status]");
+  const featureSetupBeepStatus = document.querySelector("[data-feature-setup-beep-status]");
   const featureSetupLocationStatus = document.querySelector("[data-feature-setup-location-status]");
   const featureSetupMessagingStatus = document.querySelector("[data-feature-setup-messaging-status]");
   const featureSetupClaimActionButton = document.querySelector("[data-feature-setup-claim-action]");
   const featureSetupInstallActionButton = document.querySelector("[data-feature-setup-install-action]");
+  const featureSetupBeepActionButton = document.querySelector("[data-feature-setup-beep-action]");
   const featureSetupLocationActionButton = document.querySelector("[data-feature-setup-location-action]");
   const featureSetupMessagingActionButton = document.querySelector("[data-feature-setup-messaging-action]");
   const uniqueNameChangeView = document.querySelector('[data-view="unique-name-change"]');
@@ -471,6 +579,11 @@
   const installGuideAfterTitle = document.querySelector("[data-install-guide-after-title]");
   const installGuideAfterCopy = document.querySelector("[data-install-guide-after-copy]");
   const installGuidePrimaryButton = document.querySelector("[data-install-guide-primary]");
+  const beepTestView = document.querySelector('[data-view="beep-test"]');
+  const closeBeepTestButton = document.querySelector("[data-close-beep-test]");
+  const beepTestCountdown = document.querySelector("[data-beep-test-countdown]");
+  const beepTestStatus = document.querySelector("[data-beep-test-status]");
+  const startBeepTestButton = document.querySelector("[data-start-beep-test]");
   const openHandleButtons = Array.from(document.querySelectorAll("[data-open-handle-control]"));
   const openRoleMessagesButtons = Array.from(document.querySelectorAll("[data-open-role-messages]"));
   const roleMessageBadges = Array.from(document.querySelectorAll("[data-role-message-badge]"));
@@ -706,6 +819,11 @@
   let featureSetupReturnView = "card";
   let featureSetupReturnRole = "";
   let featureSetupReturnScrollY = 0;
+  let beepTestAudioContext = null;
+  let beepTestActiveOscillator = null;
+  let beepTestActiveGain = null;
+  let beepTestRunning = false;
+  let beepTestTimerIds = [];
   let locationPickerHidesFeatureSetupBackButton = false;
   let featureSetupOwnIdentifier = "";
   let featureSetupPendingHandleFlow = "";
@@ -917,6 +1035,10 @@ This is an alternate test message to show now.`;
   let pendingOnlineCourseRestoreFocusId = "";
   let activeOnlineCourseTab = "welcome";
   let activeLearningCenterTab = "welcome";
+  let activeLearningCenterConceptPage = 1;
+  const learningCenterConceptCardsPerPage = 6;
+  let learningCenterConceptDetailReturnTarget = { tab: "key-concepts", scrollY: 0, conceptPage: 1, conceptActionKey: "", conceptCardViewportTop: 0 };
+  const learningCenterConceptReturnKey = "cones-learning-center-concept-return-v1";
   let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
   let learningCenterLessonIndex = [];
   let suppressLauncherAutoCollapseUntil = 0;
@@ -6762,6 +6884,9 @@ This is an alternate test message to show now.`;
       featureSetupInstallActionButton.textContent = installed ? "UNINSTALL HELP" : "INSTALL APP";
       featureSetupInstallActionButton.disabled = false;
     }
+    if (featureSetupBeepStatus) {
+      featureSetupBeepStatus.textContent = "Use this test to confirm the countdown beep is audible on this device.";
+    }
 
     const locationSummary = getLocationFeatureSummary();
     if (featureSetupLocationStatus) {
@@ -6849,6 +6974,7 @@ This is an alternate test message to show now.`;
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     installGuideView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.remove("beginner-view-hidden");
@@ -7349,6 +7475,211 @@ This is an alternate test message to show now.`;
       });
       return;
     }
+    showFeatureSetupView({
+      role: featureSetupReturnRole || activeLauncherRole || "sender",
+      returnView: featureSetupReturnView || "card",
+      scrollY: featureSetupReturnScrollY
+    });
+  }
+
+  async function ensureBeepTestAudioUnlocked() {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+      return null;
+    }
+    if (!beepTestAudioContext) {
+      beepTestAudioContext = new AudioContextCtor();
+    }
+    if (beepTestAudioContext.state === "suspended") {
+      try {
+        await beepTestAudioContext.resume();
+      } catch (_error) {
+        // Ignore resume failures here and let the caller surface a friendly message.
+      }
+    }
+    return beepTestAudioContext;
+  }
+
+  function stopBeepTestTone() {
+    try {
+      if (beepTestActiveOscillator) {
+        beepTestActiveOscillator.onended = null;
+        beepTestActiveOscillator.disconnect();
+      }
+    } catch (_error) {
+      // Ignore cleanup failures.
+    }
+    try {
+      if (beepTestActiveGain) {
+        beepTestActiveGain.disconnect();
+      }
+    } catch (_error) {
+      // Ignore cleanup failures.
+    }
+    beepTestActiveOscillator = null;
+    beepTestActiveGain = null;
+  }
+
+  function playBeepTestTone() {
+    if (!beepTestAudioContext) {
+      return false;
+    }
+
+    stopBeepTestTone();
+
+    const oscillator = beepTestAudioContext.createOscillator();
+    const gain = beepTestAudioContext.createGain();
+    const now = beepTestAudioContext.currentTime;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(1000, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+    gain.gain.setValueAtTime(0.18, now + 0.12);
+    gain.gain.linearRampToValueAtTime(0.0001, now + 0.15);
+
+    oscillator.connect(gain);
+    gain.connect(beepTestAudioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.15);
+
+    beepTestActiveOscillator = oscillator;
+    beepTestActiveGain = gain;
+    oscillator.onended = () => {
+      stopBeepTestTone();
+    };
+    return true;
+  }
+
+  function clearBeepTestTimers() {
+    beepTestTimerIds.forEach((timerId) => {
+      window.clearTimeout(timerId);
+    });
+    beepTestTimerIds = [];
+  }
+
+  function resetBeepTestViewState() {
+    clearBeepTestTimers();
+    stopBeepTestTone();
+    beepTestRunning = false;
+    if (beepTestCountdown) {
+      beepTestCountdown.textContent = "READY";
+      beepTestCountdown.classList.add("is-ready");
+      beepTestCountdown.classList.remove("is-blank");
+    }
+    if (beepTestStatus) {
+      beepTestStatus.textContent = "Press START TEST to hear the countdown beep.";
+    }
+    if (startBeepTestButton) {
+      startBeepTestButton.disabled = false;
+    }
+  }
+
+  async function runBeepTestCountdown() {
+    if (beepTestRunning) {
+      return;
+    }
+
+    const audioContext = await ensureBeepTestAudioUnlocked();
+    if (!audioContext) {
+      if (beepTestStatus) {
+        beepTestStatus.textContent = "This browser cannot play the countdown beep test.";
+      }
+      return;
+    }
+    if (audioContext.state !== "running") {
+      if (beepTestStatus) {
+        beepTestStatus.textContent = "Audio could not be started. Check browser audio permissions and try again.";
+      }
+      return;
+    }
+
+    clearBeepTestTimers();
+    stopBeepTestTone();
+    beepTestRunning = true;
+    if (startBeepTestButton) {
+      startBeepTestButton.disabled = true;
+    }
+    if (beepTestStatus) {
+      beepTestStatus.textContent = "Listen for the beep after the countdown reaches 1.";
+    }
+
+    const setCountdownValue = (value) => {
+      if (beepTestCountdown) {
+        beepTestCountdown.textContent = value;
+        const showReady = String(value || "").trim().toUpperCase() === "READY";
+        const showBlank = !String(value || "").trim();
+        beepTestCountdown.classList.toggle("is-ready", showReady);
+        beepTestCountdown.classList.toggle("is-blank", showBlank);
+      }
+    };
+
+    setCountdownValue("");
+    beepTestTimerIds.push(window.setTimeout(() => {
+      setCountdownValue("3");
+    }, 2000));
+    beepTestTimerIds.push(window.setTimeout(() => {
+      setCountdownValue("2");
+    }, 4000));
+    beepTestTimerIds.push(window.setTimeout(() => {
+      setCountdownValue("1");
+    }, 6000));
+    beepTestTimerIds.push(window.setTimeout(() => {
+      playBeepTestTone();
+      setCountdownValue("");
+      if (beepTestStatus) {
+        beepTestStatus.textContent = "If you heard the beep clearly, this device is ready. If not, raise the device volume and try again.";
+      }
+    }, 8000));
+    beepTestTimerIds.push(window.setTimeout(() => {
+      beepTestRunning = false;
+      if (startBeepTestButton) {
+        startBeepTestButton.disabled = false;
+      }
+      if (beepTestCountdown) {
+        setCountdownValue("READY");
+      }
+      clearBeepTestTimers();
+    }, 9000));
+  }
+
+  function showBeepTestView() {
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.remove("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    resetBeepTestViewState();
+  }
+
+  function closeBeepTestView() {
+    resetBeepTestViewState();
     showFeatureSetupView({
       role: featureSetupReturnRole || activeLauncherRole || "sender",
       returnView: featureSetupReturnView || "card",
@@ -17266,6 +17597,139 @@ This is an alternate test message to show now.`;
       panel.classList.toggle("online-course-tab-panel-hidden", !isActive);
       panel.hidden = !isActive;
     });
+    if (learningCenterConceptPagination) {
+      learningCenterConceptPagination.hidden = normalizedTabId !== "key-concepts";
+    }
+    if (normalizedTabId === "key-concepts") {
+      renderLearningCenterConceptPage(activeLearningCenterConceptPage);
+    }
+  }
+
+  function getLearningCenterConceptPageCount() {
+    return Math.max(1, Math.ceil(learningCenterConceptCards.length / learningCenterConceptCardsPerPage));
+  }
+
+  function buildLearningCenterConceptPageSequence(pageCount, currentPage) {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, index) => index + 1);
+    }
+    const pages = new Set([1, pageCount, currentPage, currentPage - 1, currentPage + 1]);
+    const filteredPages = Array.from(pages)
+      .filter((page) => page >= 1 && page <= pageCount)
+      .sort((left, right) => left - right);
+    const sequence = [];
+    filteredPages.forEach((page, index) => {
+      if (index > 0 && page - filteredPages[index - 1] > 1) {
+        sequence.push("ellipsis");
+      }
+      sequence.push(page);
+    });
+    return sequence;
+  }
+
+  function renderLearningCenterConceptPagination(pageCount, currentPage) {
+    if (!learningCenterConceptPages) {
+      return;
+    }
+    learningCenterConceptPages.replaceChildren();
+    buildLearningCenterConceptPageSequence(pageCount, currentPage).forEach((entry) => {
+      if (entry === "ellipsis") {
+        const ellipsis = document.createElement("span");
+        ellipsis.className = "learning-center-pagination-ellipsis";
+        ellipsis.textContent = "...";
+        ellipsis.setAttribute("aria-hidden", "true");
+        learningCenterConceptPages.appendChild(ellipsis);
+        return;
+      }
+      const pageButton = document.createElement("button");
+      pageButton.type = "button";
+      pageButton.className = "learning-center-pagination-page";
+      pageButton.textContent = String(entry);
+      if (entry === currentPage) {
+        pageButton.classList.add("learning-center-pagination-page-active");
+        pageButton.setAttribute("aria-current", "page");
+      } else {
+        pageButton.addEventListener("click", () => {
+          renderLearningCenterConceptPage(entry);
+          const targetScrollY = getLearningCenterTabsTopScrollY();
+          window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+        });
+      }
+      learningCenterConceptPages.appendChild(pageButton);
+    });
+  }
+
+  function renderLearningCenterConceptPage(pageNumber = 1) {
+    const pageCount = getLearningCenterConceptPageCount();
+    const normalizedPage = Math.min(pageCount, Math.max(1, Number(pageNumber || 1) || 1));
+    activeLearningCenterConceptPage = normalizedPage;
+    const startIndex = (normalizedPage - 1) * learningCenterConceptCardsPerPage;
+    const endIndex = startIndex + learningCenterConceptCardsPerPage;
+    learningCenterConceptCards.forEach((card, index) => {
+      card.hidden = index < startIndex || index >= endIndex;
+    });
+    if (learningCenterConceptPagination && activeLearningCenterTab === "key-concepts") {
+      learningCenterConceptPagination.hidden = pageCount <= 1;
+    }
+    if (learningCenterConceptPreviousButton) {
+      learningCenterConceptPreviousButton.disabled = normalizedPage <= 1;
+    }
+    if (learningCenterConceptNextButton) {
+      learningCenterConceptNextButton.disabled = normalizedPage >= pageCount;
+    }
+    renderLearningCenterConceptPagination(pageCount, normalizedPage);
+  }
+
+  function getLearningCenterTabsTopScrollY() {
+    const tabsEl = document.querySelector(".learning-center-tabs");
+    if (!(tabsEl instanceof Element)) {
+      return 0;
+    }
+    const rect = tabsEl.getBoundingClientRect();
+    const currentScrollY = Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0);
+    return Math.max(0, Math.round(currentScrollY + rect.top));
+  }
+
+  function restoreLearningCenterScroll(scrollY = 0) {
+    const targetScrollY = Math.max(0, Number(scrollY || 0) || 0);
+    const applyScroll = () => {
+      window.scrollTo(0, targetScrollY);
+    };
+    applyScroll();
+    scheduleLearningCenterRestorePasses(applyScroll);
+  }
+
+  function scheduleLearningCenterRestorePasses(callback) {
+    if (typeof callback !== "function") {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      callback();
+      [60, 140, 260, 480].forEach((delayMs) => {
+        window.setTimeout(callback, delayMs);
+      });
+    });
+  }
+
+  function readLearningCenterConceptReturnTarget() {
+    let restoreTarget = learningCenterConceptDetailReturnTarget;
+    try {
+      const raw = window.sessionStorage?.getItem(learningCenterConceptReturnKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          restoreTarget = {
+            tab: String(parsed.tab || learningCenterConceptDetailReturnTarget?.tab || "key-concepts").trim() || "key-concepts",
+            scrollY: Math.max(0, Number(parsed.scrollY || 0) || 0),
+            conceptPage: Math.max(1, Number(parsed.conceptPage || learningCenterConceptDetailReturnTarget?.conceptPage || 1) || 1),
+            conceptActionKey: String(parsed.conceptActionKey || learningCenterConceptDetailReturnTarget?.conceptActionKey || "").trim(),
+            conceptCardViewportTop: Math.max(0, Number(parsed.conceptCardViewportTop || learningCenterConceptDetailReturnTarget?.conceptCardViewportTop || 0) || 0)
+          };
+        }
+      }
+      window.sessionStorage?.removeItem(learningCenterConceptReturnKey);
+    } catch (error) {}
+    return restoreTarget;
   }
 
   function openLearningCenterRowTarget(row) {
@@ -17509,6 +17973,7 @@ This is an alternate test message to show now.`;
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
@@ -17537,7 +18002,46 @@ This is an alternate test message to show now.`;
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    window.scrollTo({ top: targetScrollY, behavior: targetScrollY > 0 ? "auto" : "smooth" });
+    if (targetScrollY > 0) {
+      restoreLearningCenterScroll(targetScrollY);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function renderLearningCenterConceptDetail(actionKey) {
+    const content = learningCenterConceptContent[actionKey] || {
+      title: "Key Concept",
+      paragraphs: ["This concept page is still being developed."]
+    };
+    if (learningCenterConceptTitle) {
+      learningCenterConceptTitle.textContent = content.title;
+    }
+    if (learningCenterConceptCopy) {
+      learningCenterConceptCopy.innerHTML = content.paragraphs
+        .map((paragraph) => `<p class="about-section-copy">${escapeHtml(paragraph)}</p>`)
+        .join("");
+    }
+  }
+
+  function showLearningCenterConceptDetailView(actionKey, triggerButton = null) {
+    clearReportPanelOffset();
+    const conceptCard = triggerButton instanceof Element ? triggerButton.closest("[data-learning-center-concept-card]") : null;
+    const conceptCardViewportTop = conceptCard instanceof Element ? Math.round(conceptCard.getBoundingClientRect().top) : 0;
+    learningCenterConceptDetailReturnTarget = {
+      tab: activeLearningCenterTab || "key-concepts",
+      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0),
+      conceptPage: activeLearningCenterConceptPage,
+      conceptActionKey: String(actionKey || "").trim(),
+      conceptCardViewportTop
+    };
+    try {
+      window.sessionStorage?.setItem(learningCenterConceptReturnKey, JSON.stringify(learningCenterConceptDetailReturnTarget));
+    } catch (error) {}
+    renderLearningCenterConceptDetail(actionKey);
+    learningCenterView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.remove("beginner-view-hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function closeLearningCenterView() {
@@ -17556,6 +18060,35 @@ This is an alternate test message to show now.`;
       return;
     }
     showOptionsView();
+  }
+
+  function closeLearningCenterConceptDetailView() {
+    const restoreTarget = readLearningCenterConceptReturnTarget();
+    const targetScrollY = Math.max(0, Number(restoreTarget?.scrollY || 0) || 0);
+    if ((restoreTarget?.tab || "key-concepts") === "key-concepts") {
+      activeLearningCenterConceptPage = Math.max(1, Number(restoreTarget?.conceptPage || 1) || 1);
+    }
+    showLearningCenterView({
+      view: "learning-center",
+      tab: restoreTarget?.tab || "key-concepts",
+      scrollY: targetScrollY
+    });
+    const targetConceptActionKey = String(restoreTarget?.conceptActionKey || "").trim();
+    const targetCardViewportTop = Math.max(0, Number(restoreTarget?.conceptCardViewportTop || 0) || 0);
+    const applyConceptReturnScroll = () => {
+      if ((restoreTarget?.tab || "key-concepts") === "key-concepts" && targetConceptActionKey) {
+        const targetButton = document.querySelector(`#learningCenterTabKeyConcepts [data-learning-center-action="${targetConceptActionKey}"]`);
+        const targetCard = targetButton instanceof Element ? targetButton.closest("[data-learning-center-concept-card]") : null;
+        if (targetCard instanceof Element && !targetCard.hidden) {
+          const rect = targetCard.getBoundingClientRect();
+          const desiredScrollY = Math.max(0, Math.round((window.scrollY || window.pageYOffset || 0) + rect.top - targetCardViewportTop));
+          window.scrollTo(0, desiredScrollY);
+          return;
+        }
+      }
+      window.scrollTo(0, targetScrollY);
+    };
+    scheduleLearningCenterRestorePasses(applyConceptReturnScroll);
   }
 
   function showBaselineQuestionsView(options = {}) {
@@ -23560,16 +24093,55 @@ This is an alternate test message to show now.`;
   });
   learningCenterTabButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      setLearningCenterTab(button.dataset.learningCenterTab || "welcome");
+      const requestedTab = button.dataset.learningCenterTab || "welcome";
+      const normalizedTab = normalizeLearningCenterTabId(requestedTab);
+      setLearningCenterTab(requestedTab);
+      if (normalizedTab === "key-concepts" || normalizedTab === "start-here") {
+        const targetScrollY = getLearningCenterTabsTopScrollY();
+        window.setTimeout(() => {
+          window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+        }, 0);
+      }
     });
+  });
+  learningCenterConceptPreviousButton?.addEventListener("click", () => {
+    if (activeLearningCenterConceptPage <= 1) {
+      return;
+    }
+    renderLearningCenterConceptPage(activeLearningCenterConceptPage - 1);
+    const targetScrollY = getLearningCenterTabsTopScrollY();
+    window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+  });
+  learningCenterConceptNextButton?.addEventListener("click", () => {
+    const pageCount = getLearningCenterConceptPageCount();
+    if (activeLearningCenterConceptPage >= pageCount) {
+      return;
+    }
+    renderLearningCenterConceptPage(activeLearningCenterConceptPage + 1);
+    const targetScrollY = getLearningCenterTabsTopScrollY();
+    window.scrollTo({ top: targetScrollY, behavior: "smooth" });
   });
   learningCenterActionButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const action = String(button.dataset.learningCenterAction || "").trim();
-      learningCenterView?.classList.add("beginner-view-hidden");
       switch (action) {
         case "telepathy-practice":
           showLauncherView();
+          break;
+        case "concept-telepathy":
+        case "concept-sender":
+        case "concept-receiver":
+        case "concept-minds-eye":
+        case "concept-chance-performance":
+        case "concept-positive-reinforcement":
+        case "concept-trouble-with-statistics":
+        case "concept-everything-is-connected":
+        case "concept-dont-worry-how-this-works":
+        case "concept-lack-of-fusion":
+        case "concept-remember-objects-and-their-locations":
+        case "concept-telepathy-is-real":
+        case "concept-bits-and-pieces":
+          showLearningCenterConceptDetailView(action, button);
           break;
         case "guided-receiver-tour":
           startLauncherGuidedTour("receiver");
@@ -24066,6 +24638,7 @@ This is an alternate test message to show now.`;
   closeAidsButton?.addEventListener("click", showOptionsView);
   closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
   closeLearningCenterButton?.addEventListener("click", closeLearningCenterView);
+  closeLearningCenterConceptDetailButton?.addEventListener("click", closeLearningCenterConceptDetailView);
   openLearningCenterPracticeButton?.addEventListener("click", showLauncherView);
   openOnlineCoursePracticeButton?.addEventListener("click", showLauncherView);
   closeBaselineQuestionsButton?.addEventListener("click", closeBaselineQuestionsView);
@@ -24434,6 +25007,11 @@ This is an alternate test message to show now.`;
     event.stopPropagation();
     closeInstallGuideView();
   });
+  closeBeepTestButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeBeepTestView();
+  });
   featureSetupClaimActionButton?.addEventListener("click", () => {
     if (featureSetupOwnIdentifier) {
       showUniqueNameChangeView();
@@ -24471,6 +25049,12 @@ This is an alternate test message to show now.`;
       returnView: "feature-setup",
       mode: installed ? "uninstall" : "install"
     });
+  });
+  featureSetupBeepActionButton?.addEventListener("click", () => {
+    showBeepTestView();
+  });
+  startBeepTestButton?.addEventListener("click", () => {
+    void runBeepTestCountdown();
   });
   installGuidePrimaryButton?.addEventListener("click", () => {
     void handleInstallRequest().finally(() => {

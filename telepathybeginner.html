@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260708a">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260710a">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260708a">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260708a">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260708a">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260710a">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260710a">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260710a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260708a">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260708a">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260708a">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260710a">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260710a">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260710a">
   <script>
     (function () {
-      var buildVersion = "20260708a";
+      var buildVersion = "20260710a";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -540,7 +540,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260708a</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260710a</span>
           </div>
         </div>
 
@@ -834,6 +834,12 @@
               <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="learningCenterTabAdvanced" id="learningCenterTabButtonAdvanced" data-learning-center-tab="advanced" tabindex="-1">Advanced</button>
             </div>
 
+            <nav class="learning-center-pagination" aria-label="Key Concepts pages" data-learning-center-concept-pagination hidden>
+              <button class="learning-center-pagination-button learning-center-pagination-previous" type="button" data-learning-center-concept-previous>Previous</button>
+              <div class="learning-center-pagination-pages" data-learning-center-concept-pages></div>
+              <button class="learning-center-pagination-button learning-center-pagination-next" type="button" data-learning-center-concept-next>Next</button>
+            </nav>
+
             <section class="online-course-tab-panel" id="learningCenterTabWelcome" role="tabpanel" aria-labelledby="learningCenterTabButtonWelcome" data-learning-center-panel="welcome">
               <div class="about-section">
                 <p class="about-section-copy">Welcome to the Learning Center. This is the structured home for the ESP GYM course and its supporting tools.</p>
@@ -847,9 +853,11 @@
               <section class="online-course-index-grid" aria-label="Learning Center start here">
                 <article class="online-course-index-card">
                   <h3 class="about-section-title">I want to try the app right away</h3>
-                  <div class="online-course-index-links">
+                  <div class="online-course-index-links learning-center-featured-links">
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="guided-receiver-tour">Guided Receiver Tour</button>
+                    <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="guided-sender-tour">Guided Sender Tour</button>
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="telepathy-practice">Telepathy Practice</button>
+                    <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="performance-reports">Performance Reports</button>
                   </div>
                 </article>
                 <article class="online-course-index-card">
@@ -893,29 +901,96 @@
 
             <section class="online-course-tab-panel online-course-tab-panel-hidden" id="learningCenterTabKeyConcepts" role="tabpanel" aria-labelledby="learningCenterTabButtonKeyConcepts" data-learning-center-panel="key-concepts" hidden>
               <section class="online-course-index-grid" aria-label="Learning Center key concepts">
-                <article class="online-course-index-card">
-                  <h3 class="about-section-title">Telepathy</h3>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Telepathy</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-telepathy">Expand</button>
+                  </div>
                   <p class="about-section-copy">The transfer of information between minds without the known senses.</p>
                 </article>
-                <article class="online-course-index-card">
-                  <h3 class="about-section-title">Sender</h3>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Sender</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-sender">Expand</button>
+                  </div>
                   <p class="about-section-copy">The person who looks at the target and focuses attention on it.</p>
                 </article>
-                <article class="online-course-index-card">
-                  <h3 class="about-section-title">Receiver</h3>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Receiver</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-receiver">Expand</button>
+                  </div>
                   <p class="about-section-copy">The person who tries to detect the target information in the mind's eye.</p>
                 </article>
-                <article class="online-course-index-card">
-                  <h3 class="about-section-title">Mind's Eye</h3>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Mind's Eye</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-minds-eye">Expand</button>
+                  </div>
                   <p class="about-section-copy">The inner visual field where faint impressions, shapes, or colors may appear.</p>
                 </article>
-                <article class="online-course-index-card">
-                  <h3 class="about-section-title">Chance Performance</h3>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Chance Performance</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-chance-performance">Expand</button>
+                  </div>
                   <p class="about-section-copy">The level of success expected if choices are random.</p>
                 </article>
-                <article class="online-course-index-card">
-                  <h3 class="about-section-title">Positive Reinforcement</h3>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Positive Reinforcement</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-positive-reinforcement">Expand</button>
+                  </div>
                   <p class="about-section-copy">A reward sound that can occur when the receiver makes a correct choice.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">The Trouble with Statistics</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-trouble-with-statistics">Expand</button>
+                  </div>
+                  <p class="about-section-copy">Why numerical significance can miss what a receiver actually experienced during a run of trials.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Everything is Connected</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-everything-is-connected">Expand</button>
+                  </div>
+                  <p class="about-section-copy">A placeholder page for the broader idea that people, places, and things may be linked in ways deeper than the ordinary senses reveal.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Don't Worry How This Works</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-dont-worry-how-this-works">Expand</button>
+                  </div>
+                  <p class="about-section-copy">A placeholder page for practical reassurance that useful perception can be explored before the mechanism is fully understood.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Lack of Fusion</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-lack-of-fusion">Expand</button>
+                  </div>
+                  <p class="about-section-copy">A way of describing psi perception in which correct local elements may be seen but do not yet connect into a recognizable whole.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Remember Objects and their Locations</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-remember-objects-and-their-locations">Expand</button>
+                  </div>
+                  <p class="about-section-copy">The receiver should remember what appeared and where it appeared in the inner visual field.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Telepathy is Real</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-telepathy-is-real">Expand</button>
+                  </div>
+                  <p class="about-section-copy">A receiver works best when telepathy is accepted inwardly as real rather than merely hoped for.</p>
+                </article>
+                <article class="online-course-index-card" data-learning-center-concept-card>
+                  <div class="learning-center-concept-header">
+                    <h3 class="about-section-title">Bits And Pieces</h3>
+                    <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-bits-and-pieces">Expand</button>
+                  </div>
+                  <p class="about-section-copy">Psi perception often arrives as vague, low-resolution fragments that must be noticed and remembered before they fade.</p>
                 </article>
               </section>
             </section>
@@ -988,6 +1063,22 @@
                 </article>
               </section>
             </section>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="learning-center-concept-detail" aria-labelledby="learningCenterConceptDetailTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-learning-center-concept-detail>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="learningCenterConceptDetailTitle" data-learning-center-concept-title>Key Concept</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section" data-learning-center-concept-copy>
+              <p class="about-section-copy">This concept page is still being developed.</p>
+            </div>
           </section>
         </section>
 
@@ -1884,6 +1975,15 @@
                 <button class="options-button feature-setup-action" type="button" data-feature-setup-install-action>INSTALL APP</button>
               </section>
 
+              <section class="feature-setup-item" data-feature-setup-item="beep-test">
+                <div class="feature-setup-copy">
+                  <h2 class="feature-setup-title">Test Beep</h2>
+                  <p class="feature-setup-text">The receiver knows the moment when the sender starts seeing an image by hearing a beep at the end of a displayed countdown.</p>
+                  <div class="feature-setup-status" data-feature-setup-beep-status>Use this test to confirm the countdown beep is audible on this device.</div>
+                </div>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-beep-action>TEST BEEP</button>
+              </section>
+
               <section class="feature-setup-item" data-feature-setup-item="location">
                 <div class="feature-setup-copy">
                   <h2 class="feature-setup-title">Allow Location</h2>
@@ -1933,6 +2033,25 @@
 
             <div class="contact-actions install-guide-actions">
               <button class="options-button contact-action-button" type="button" data-install-guide-primary hidden>OPEN INSTALL PROMPT</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="beep-test" aria-labelledby="beepTestTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-beep-test>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="beepTestTitle">Test Beep</h1>
+
+          <section class="settings-view-panel">
+            <div class="settings-view-note">At the end of the countdown from 3 to 1, the same short beep used to mark the onset of the image displayed to the sender will be played. Use this page to test whether it is present and loud enough on this device.</div>
+            <div class="beep-test-countdown" data-beep-test-countdown>READY</div>
+            <div class="settings-view-status" data-beep-test-status>Press START TEST to hear the countdown beep.</div>
+            <div class="contact-actions">
+              <button class="options-button contact-action-button" type="button" data-start-beep-test>START TEST</button>
             </div>
           </section>
         </section>
@@ -2355,8 +2474,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260708a'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260708a'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260710a'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260710a'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3074,8 +3193,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260708a"></script>
-<script src="telepathybeginner.js?v=20260708a"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260710a"></script>
+<script src="telepathybeginner.js?v=20260710a"></script>
 </body>
 </html>
 

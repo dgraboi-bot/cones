@@ -3843,7 +3843,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.png?v=20260708a") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.png?v=20260710a") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
@@ -4003,10 +4003,123 @@ html.launcher-direct-open-pending body {
     0 10px 22px rgba(0, 0, 0, 0.18);
 }
 
+.learning-center-shell [data-learning-center-panel="key-concepts"] .online-course-index-card {
+  padding-top: 14px;
+  padding-bottom: 16px;
+}
+
+.learning-center-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -134px 22px 76px;
+  padding: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.learning-center-pagination-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.learning-center-pagination-button,
+.learning-center-pagination-page,
+.learning-center-pagination-ellipsis {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(189, 199, 219, 0.18);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(238, 242, 250, 0.95);
+  font-size: 0.95rem;
+}
+
+.learning-center-pagination-button,
+.learning-center-pagination-page {
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.learning-center-pagination-button:hover,
+.learning-center-pagination-button:focus-visible,
+.learning-center-pagination-page:hover,
+.learning-center-pagination-page:focus-visible {
+  border-color: rgba(172, 200, 244, 0.42);
+  background: rgba(104, 147, 214, 0.16);
+  transform: translateY(-1px);
+}
+
+.learning-center-pagination-button[disabled] {
+  cursor: default;
+  opacity: 0.42;
+  transform: none;
+}
+
+.learning-center-pagination-page-active {
+  border-color: rgba(235, 228, 204, 0.76);
+  background: rgba(247, 244, 235, 0.92);
+  color: rgba(17, 21, 28, 0.95);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+.learning-center-pagination-page-active:hover,
+.learning-center-pagination-page-active:focus-visible {
+  border-color: rgba(235, 228, 204, 0.76);
+  background: rgba(247, 244, 235, 0.92);
+  transform: none;
+}
+
+.learning-center-pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  min-width: 24px;
+  padding: 0 6px;
+}
+
+.learning-center-concept-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.learning-center-shell [data-learning-center-panel="key-concepts"] .learning-center-concept-header {
+  margin-bottom: 8px;
+}
+
 .online-course-index-links {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 12px;
+}
+
+.learning-center-shell .learning-center-featured-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+  align-items: stretch;
+}
+
+.learning-center-shell .learning-center-featured-links .online-course-jump-link {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .learning-center-shell .learning-center-featured-links {
+    grid-template-columns: 1fr;
+  }
 }
 
 .online-course-jump-links {
@@ -4025,9 +4138,17 @@ html.launcher-direct-open-pending body {
   color: rgba(255, 245, 228, 0.98);
 }
 
+.learning-center-shell .learning-center-concept-header .about-section-title {
+  margin: 0;
+}
+
 .learning-center-shell .about-section-copy,
 .learning-center-shell .online-course-lesson-subcopy {
   color: rgba(236, 231, 222, 0.9);
+}
+
+.learning-center-shell [data-learning-center-panel="key-concepts"] .about-section-copy {
+  margin: 0;
 }
 
 .learning-center-shell .role-note-link.online-course-jump-link {
@@ -4045,6 +4166,27 @@ html.launcher-direct-open-pending body {
   background: rgba(112, 164, 235, 0.12);
 }
 
+.online-course-panel.learning-center-shell .learning-center-expand-button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border-color: rgba(102, 224, 126, 0.62) !important;
+  background-color: rgba(34, 142, 62, 0.98) !important;
+  background-image: linear-gradient(180deg, rgba(58, 193, 95, 0.98), rgba(26, 129, 56, 0.98)) !important;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: 0 8px 18px rgba(10, 52, 22, 0.26);
+}
+
+.online-course-panel.learning-center-shell .learning-center-expand-button:hover,
+.online-course-panel.learning-center-shell .learning-center-expand-button:focus-visible {
+  border-color: rgba(162, 245, 183, 0.76) !important;
+  background-color: rgba(44, 155, 73, 0.98) !important;
+  background-image: linear-gradient(180deg, rgba(79, 212, 115, 0.98), rgba(36, 143, 66, 0.98)) !important;
+}
+
 .online-course-action-row {
   display: grid;
   gap: 14px;
@@ -4057,6 +4199,35 @@ html.launcher-direct-open-pending body {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.beep-test-countdown {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  margin: 10px 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(248, 240, 232, 0.96);
+  font-size: clamp(5rem, 16vw, 10rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.beep-test-countdown.is-ready {
+  color: rgba(248, 240, 232, 0.6);
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.beep-test-countdown.is-blank {
+  color: transparent;
 }
 
 .online-course-reference-title,
