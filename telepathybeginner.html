@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260710a">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260710b">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260710a">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260710a">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260710a">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260710b">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260710b">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260710b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260710a">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260710a">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260710a">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260710b">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260710b">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260710b">
   <script>
     (function () {
-      var buildVersion = "20260710a";
+      var buildVersion = "20260710b";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -540,7 +540,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260710a</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260710b</span>
           </div>
         </div>
 
@@ -827,7 +827,7 @@
 
             <div class="online-course-tabs learning-center-tabs" role="tablist" aria-label="Learning Center sections">
               <button class="online-course-tab-button online-course-tab-button-active" type="button" role="tab" aria-selected="true" aria-controls="learningCenterTabWelcome" id="learningCenterTabButtonWelcome" data-learning-center-tab="welcome">Welcome</button>
-              <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="learningCenterTabStartHere" id="learningCenterTabButtonStartHere" data-learning-center-tab="start-here" tabindex="-1">Start Here</button>
+              <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="learningCenterTabStartHere" id="learningCenterTabButtonStartHere" data-learning-center-tab="start-here" tabindex="-1">Quick Links</button>
               <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="learningCenterTabCourse" id="learningCenterTabButtonCourse" data-learning-center-tab="course" tabindex="-1">Course</button>
               <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="learningCenterTabKeyConcepts" id="learningCenterTabButtonKeyConcepts" data-learning-center-tab="key-concepts" tabindex="-1">Key Concepts</button>
               <button class="online-course-tab-button" type="button" role="tab" aria-selected="false" aria-controls="learningCenterTabIndex" id="learningCenterTabButtonIndex" data-learning-center-tab="index" tabindex="-1">Index</button>
@@ -840,12 +840,17 @@
               <button class="learning-center-pagination-button learning-center-pagination-next" type="button" data-learning-center-concept-next>Next</button>
             </nav>
 
+            <nav class="learning-center-pagination" aria-label="Course pages" data-learning-center-course-pagination hidden>
+              <button class="learning-center-pagination-button learning-center-pagination-previous" type="button" data-learning-center-course-previous>Previous</button>
+              <div class="learning-center-pagination-pages" data-learning-center-course-pages></div>
+              <button class="learning-center-pagination-button learning-center-pagination-next" type="button" data-learning-center-course-next>Next</button>
+            </nav>
+
             <section class="online-course-tab-panel" id="learningCenterTabWelcome" role="tabpanel" aria-labelledby="learningCenterTabButtonWelcome" data-learning-center-panel="welcome">
               <div class="about-section">
                 <p class="about-section-copy">Welcome to the Learning Center. This is the structured home for the ESP GYM course and its supporting tools.</p>
                 <p class="about-section-copy">Here you can learn the ideas behind the tools, follow a suggested path through the lessons, and jump directly to the tools and pages you want to visit at any given time.</p>
                 <p class="about-section-copy">The course focuses on recognizing subtle visual information in the mind's eye, understanding what affects telepathic performance, and building skill through knowledge and practice.</p>
-                <p class="about-section-copy"><strong>If you are just beginning, go next to Start Here.</strong></p>
               </div>
             </section>
 
@@ -891,11 +896,124 @@
 
             <section class="online-course-tab-panel online-course-tab-panel-hidden" id="learningCenterTabCourse" role="tabpanel" aria-labelledby="learningCenterTabButtonCourse" data-learning-center-panel="course" hidden>
               <div class="about-section">
-                <p class="about-section-copy">This new Learning Center will grow into the main structured course. During the transition, the preserved old course remains available under <strong>Old Learning Center</strong> in Admin.</p>
-                <p class="about-section-copy">For now, use the old course structure and lesson pages while the new lesson flow is being designed and written.</p>
-              </div>
-              <div class="online-course-index-links">
-                <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="old-learning-center">Open Old Learning Center</button>
+                <h2 class="about-section-title" data-learning-center-course-title>COURSE</h2>
+                <div data-learning-center-course-copy></div>
+                <div class="online-course-index-links" data-learning-center-course-actions hidden></div>
+                <section class="online-course-course-lesson-list-wrap" data-learning-center-course-lesson-list-section hidden>
+                  <div class="online-course-lesson-list" data-learning-center-course-lesson-list></div>
+                </section>
+                <section class="settings-view-panel about-view-panel baseline-questions-panel" data-learning-center-course-baseline-section hidden>
+                  <div class="online-course-reference baseline-questions-reference">
+                    <p class="online-course-reference-title">BASELINE</p>
+                    <p class="online-course-reference-meta">DATE: <span data-course-baseline-date></span> &nbsp;&nbsp;&nbsp; UNIQUE NAME: <span data-course-baseline-name></span></p>
+                  </div>
+
+                  <form class="baseline-questions-form" data-course-baseline-form>
+                    <div class="settings-view-field">
+                      <label class="settings-view-label" for="courseBaselineBeliefTelepathy">1. How strong is your current belief in the reality of telepathy?</label>
+                      <div class="baseline-scale-wrap">
+                        <input class="settings-view-input baseline-scale-input" id="courseBaselineBeliefTelepathy" type="range" min="1" max="10" step="1" value="5" data-course-baseline-belief-telepathy>
+                        <div class="baseline-scale-meta">
+                          <span>1 = not at all</span>
+                          <strong data-course-baseline-belief-telepathy-value>5</strong>
+                          <span>10 = absolutely, without a doubt</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="settings-view-field">
+                      <label class="settings-view-label" for="courseBaselineBeliefPersonal">2. How strong is your current belief in the reality of telepathy for you?</label>
+                      <div class="baseline-scale-wrap">
+                        <input class="settings-view-input baseline-scale-input" id="courseBaselineBeliefPersonal" type="range" min="1" max="10" step="1" value="5" data-course-baseline-belief-personal>
+                        <div class="baseline-scale-meta">
+                          <span>1 = not at all</span>
+                          <strong data-course-baseline-belief-personal-value>5</strong>
+                          <span>10 = absolutely, without a doubt</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <fieldset class="baseline-question-group">
+                      <legend class="settings-view-label">3. Are you related to people with psi abilities?</legend>
+                      <div class="baseline-choice-grid">
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineRelatedPsi" value="Yes" data-course-baseline-related-psi> <span>Yes</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineRelatedPsi" value="No" data-course-baseline-related-psi> <span>No</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineRelatedPsi" value="Don't know" data-course-baseline-related-psi> <span>Don't know</span></label>
+                      </div>
+                    </fieldset>
+
+                    <fieldset class="baseline-question-group">
+                      <legend class="settings-view-label">4. Have you ever experienced telepathy or other ESP phenomena?</legend>
+                      <div class="baseline-choice-grid">
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineExperienceFrequency" value="Never" data-course-baseline-experience-frequency> <span>Never</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineExperienceFrequency" value="Once" data-course-baseline-experience-frequency> <span>Once</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineExperienceFrequency" value="A few times" data-course-baseline-experience-frequency> <span>A few times</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineExperienceFrequency" value="Frequently" data-course-baseline-experience-frequency> <span>Frequently</span></label>
+                      </div>
+                    </fieldset>
+
+                    <fieldset class="baseline-question-group">
+                      <legend class="settings-view-label">5. If so, which phenomena have you experienced?</legend>
+                      <div class="baseline-choice-grid baseline-choice-grid-multi">
+                        <label class="settings-view-checkbox"><input type="checkbox" value="Telepathy" data-course-baseline-phenomenon> <span>Telepathy</span></label>
+                        <label class="settings-view-checkbox"><input type="checkbox" value="Clairvoyance" data-course-baseline-phenomenon> <span>Clairvoyance</span></label>
+                        <label class="settings-view-checkbox"><input type="checkbox" value="Precognition" data-course-baseline-phenomenon> <span>Precognition</span></label>
+                        <label class="settings-view-checkbox"><input type="checkbox" value="Other" data-course-baseline-phenomenon> <span>Other</span></label>
+                      </div>
+                      <label class="settings-view-label" for="courseBaselinePhenomenaOther">If other, please specify</label>
+                      <input class="settings-view-input" id="courseBaselinePhenomenaOther" type="text" data-course-baseline-phenomena-other>
+                    </fieldset>
+
+                    <fieldset class="baseline-question-group">
+                      <legend class="settings-view-label">6. Have you undertaken to learn to be telepathic or to have other ESP skills before now?</legend>
+                      <div class="baseline-choice-grid">
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselinePriorTraining" value="Yes" data-course-baseline-prior-training> <span>Yes</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselinePriorTraining" value="No" data-course-baseline-prior-training> <span>No</span></label>
+                      </div>
+                      <label class="settings-view-label" for="courseBaselinePriorSkills">If yes, which skill(s)?</label>
+                      <input class="settings-view-input" id="courseBaselinePriorSkills" type="text" data-course-baseline-prior-skills>
+                    </fieldset>
+
+                    <fieldset class="baseline-question-group">
+                      <legend class="settings-view-label">7. Sex</legend>
+                      <div class="baseline-choice-grid">
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineSex" value="F" data-course-baseline-sex> <span>F</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineSex" value="M" data-course-baseline-sex> <span>M</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineSex" value="Rather not say" data-course-baseline-sex> <span>Rather not say</span></label>
+                      </div>
+                    </fieldset>
+
+                    <div class="settings-view-field">
+                      <label class="settings-view-label" for="courseBaselineAgeGroup">8. Approximate age</label>
+                      <select class="settings-view-input" id="courseBaselineAgeGroup" data-course-baseline-age>
+                        <option value="">Select one</option>
+                        <option value="1-6">1-6</option>
+                        <option value="7-12">7-12</option>
+                        <option value="13-18">13-18</option>
+                        <option value="19-22">19-22</option>
+                        <option value="23-30">23-30</option>
+                        <option value="31-45">31-45</option>
+                        <option value="45-60">45-60</option>
+                        <option value="61-75">61-75</option>
+                        <option value="75-90">75-90</option>
+                        <option value="91+">91+</option>
+                        <option value="Rather not say">Rather not say</option>
+                      </select>
+                    </div>
+
+                    <fieldset class="baseline-question-group">
+                      <legend class="settings-view-label">11. If you do exceptionally well, would you be available to participate in further research?</legend>
+                      <div class="baseline-choice-grid">
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineFurtherResearch" value="Yes" data-course-baseline-further-research> <span>Yes</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineFurtherResearch" value="No" data-course-baseline-further-research> <span>No</span></label>
+                        <label class="settings-view-checkbox"><input type="radio" name="courseBaselineFurtherResearch" value="Maybe" data-course-baseline-further-research> <span>Maybe</span></label>
+                      </div>
+                    </fieldset>
+                  </form>
+
+                  <p class="settings-view-status" data-course-baseline-status></p>
+                  <button class="options-button settings-view-save" type="button" data-save-course-baseline-questions>SAVE BASELINE QUESTIONS</button>
+                </section>
               </div>
             </section>
 
@@ -913,21 +1031,21 @@
                     <h3 class="about-section-title">Sender</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-sender">Expand</button>
                   </div>
-                  <p class="about-section-copy">The person who looks at the target and focuses attention on it.</p>
+                  <p class="about-section-copy">A sender can send telepathic information weakly or strongly.</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
                     <h3 class="about-section-title">Receiver</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-receiver">Expand</button>
                   </div>
-                  <p class="about-section-copy">The person who tries to detect the target information in the mind's eye.</p>
+                  <p class="about-section-copy">A person who engages in the perception of telepathic information.</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
                     <h3 class="about-section-title">Mind's Eye</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-minds-eye">Expand</button>
                   </div>
-                  <p class="about-section-copy">The inner visual field where faint impressions, shapes, or colors may appear.</p>
+                  <p class="about-section-copy">The inner visual field where faint telepathic impressions, shapes, and colors appear.</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
@@ -941,7 +1059,7 @@
                     <h3 class="about-section-title">Positive Reinforcement</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-positive-reinforcement">Expand</button>
                   </div>
-                  <p class="about-section-copy">A reward sound that can occur when the receiver makes a correct choice.</p>
+                  <p class="about-section-copy">Psychology research has found that rapid positive feedback ("reinforcement") helps learning.</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
@@ -955,21 +1073,21 @@
                     <h3 class="about-section-title">Everything is Connected</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-everything-is-connected">Expand</button>
                   </div>
-                  <p class="about-section-copy">A placeholder page for the broader idea that people, places, and things may be linked in ways deeper than the ordinary senses reveal.</p>
+                  <p class="about-section-copy">"There is an aspect of reality which we don't ordinarily see but nevertheless connects everything throughout space and time" - Dean Radin</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
                     <h3 class="about-section-title">Don't Worry How This Works</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-dont-worry-how-this-works">Expand</button>
                   </div>
-                  <p class="about-section-copy">A placeholder page for practical reassurance that useful perception can be explored before the mechanism is fully understood.</p>
+                  <p class="about-section-copy">"It's a matter internally of simply knowing I have to get this information and it happens immediately" - Dean Radin</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
-                    <h3 class="about-section-title">Lack of Fusion</h3>
+                    <h3 class="about-section-title">Telepathic Image Perception is in Bits and Pieces</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-lack-of-fusion">Expand</button>
                   </div>
-                  <p class="about-section-copy">A way of describing psi perception in which correct local elements may be seen but do not yet connect into a recognizable whole.</p>
+                  <p class="about-section-copy">"What I was perceiving were bits of shapes, forms, and colors which in themselves were not clear." - Ingo Swann</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
@@ -980,10 +1098,10 @@
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
-                    <h3 class="about-section-title">Telepathy is Real</h3>
+                    <h3 class="about-section-title">A Receiver of Telepathic Information Must Believe that Telepathy is Real</h3>
                     <button class="role-note-link online-course-jump-link learning-center-expand-button" type="button" data-learning-center-action="concept-telepathy-is-real">Expand</button>
                   </div>
-                  <p class="about-section-copy">A receiver works best when telepathy is accepted inwardly as real rather than merely hoped for.</p>
+                  <p class="about-section-copy">A receiver needs to fully believe that telepathy exists and fully trust that the right information is present in their mind's eye right after the countdown.</p>
                 </article>
                 <article class="online-course-index-card" data-learning-center-concept-card>
                   <div class="learning-center-concept-header">
@@ -2452,6 +2570,8 @@
               <button class="options-button settings-view-save" type="button" data-open-old-learning-center>Old Learning Center</button>
               <button class="options-button settings-view-save" type="button" data-open-old-learn-more>OLD EDIT LESSONS</button>
               <button class="options-button settings-view-save" type="button" data-open-old-lesson-index-admin>OLD LESSON INDEX</button>
+              <button class="options-button settings-view-save" type="button" data-open-new-learn-more>NEW EDIT LESSONS</button>
+              <button class="options-button settings-view-save" type="button" data-open-new-lesson-index-admin>NEW LESSON INDEX</button>
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>All Pairs</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-identities>All Identities</button>
@@ -2474,8 +2594,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260710a'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260710a'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260710b'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260710b'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3193,8 +3313,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260710a"></script>
-<script src="telepathybeginner.js?v=20260710a"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260710b"></script>
+<script src="telepathybeginner.js?v=20260710b"></script>
 </body>
 </html>
 

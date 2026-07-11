@@ -1,0 +1,5 @@
+TITLE=LESSON 4 - NEW COURSE TEST LESSON
+
+This is a new-course lesson page created during the UI verification pass.
+
+It confirms that Course Page 4 can open lesson content from the new lesson domain without using the old Learning Center lesson store.

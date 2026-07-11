@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260710a";
+  const launcherBuildVersion = "20260710b";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -116,6 +116,14 @@
   const learningCenterConceptPages = document.querySelector("[data-learning-center-concept-pages]");
   const learningCenterConceptPreviousButton = document.querySelector("[data-learning-center-concept-previous]");
   const learningCenterConceptNextButton = document.querySelector("[data-learning-center-concept-next]");
+  const learningCenterCoursePagination = document.querySelector("[data-learning-center-course-pagination]");
+  const learningCenterCoursePages = document.querySelector("[data-learning-center-course-pages]");
+  const learningCenterCoursePreviousButton = document.querySelector("[data-learning-center-course-previous]");
+  const learningCenterCourseNextButton = document.querySelector("[data-learning-center-course-next]");
+  const learningCenterCourseTitle = document.querySelector("[data-learning-center-course-title]");
+  const learningCenterCourseCopy = document.querySelector("[data-learning-center-course-copy]");
+  const learningCenterCourseActions = document.querySelector("[data-learning-center-course-actions]");
+  const learningCenterCourseBaselineSection = document.querySelector("[data-learning-center-course-baseline-section]");
   const learningCenterConceptTitle = document.querySelector("[data-learning-center-concept-title]");
   const learningCenterConceptCopy = document.querySelector("[data-learning-center-concept-copy]");
   const onlineCourseTargetButtons = Array.from(document.querySelectorAll("[data-online-course-target]"));
@@ -161,6 +169,8 @@
   const openImagePairAdminButton = document.querySelector("[data-open-image-pair-admin]");
   const openSubscriptionEmailAdminButton = document.querySelector("[data-open-subscription-email-admin]");
   const openLessonIndexAdminButton = document.querySelector("[data-open-old-lesson-index-admin]");
+  const openNewLessonEditorButton = document.querySelector("[data-open-new-learn-more]");
+  const openNewLessonIndexAdminButton = document.querySelector("[data-open-new-lesson-index-admin]");
   const openSavedLinksAdminButton = document.querySelector("[data-open-saved-links-admin]");
   const openMessagingParmsAdminButton = document.querySelector("[data-open-messaging-parms-admin]");
   const openSubscriptionsAdminButton = document.querySelector("[data-open-subscriptions-admin]");
@@ -193,92 +203,138 @@
     "concept-sender": {
       title: "Sender",
       paragraphs: [
-        "This concept page is still being developed.",
-        "For now, the sender is the person who looks at the target and focuses sustained attention on it."
+        "When a sender looks at a visual image while sending it telepathically, the sender needs to understand what it means to be be serious about \"putting it out there.\" This is most effective when sustained intention and attention are used.",
+        "When a sender is serious about sending, the receiver will pick up the features more clearly. A serious sender does not allow their mind to wander while sending.",
+        "It doesn't seem to matter whether a sender believes in the reality of telepathy or not. When they look at an image while a receiver knows they are looking at on, successful sending can occur."
       ]
     },
     "concept-receiver": {
       title: "Receiver",
       paragraphs: [
-        "This concept page is still being developed.",
-        "For now, the receiver is the person who tries to detect the target information in the mind's eye."
+        "The tool available in this app is designed to facilitates practicing and understanding visual telepathy. A receiver uses their mind's eye to observe the visual information that appears there at a specific time and remember it long enough to make an accurate decision about its content.",
+        "A receiver should not be thinking their own thoughts when looking into their mind's eye for telepathic visual information. They need to be open to whatever pops in when the countdown ends and an image is displayed to the sender. In the receiver's mind's eye, shreds of visual evidence can fade quickly, so they need to be grabbed quickly and remembered as well.",
+        "Some features of what pops in may have color. A receiver should remember the color and where it is noticed. Was it on the right side? The left side? After seconds, the whole image (not just part of it) may fade. Then it's time to make a deliberate effort to consolodate in memory whatever shreds of what was seen. Then, when the choices of images are displayed, it will easily to decide which image was the actual target image the sender was given.",
+        "The Receiver trains attention and sustained intention by learning to focus attention on the impressionistic contents of their \"mind's eye\" in real-time. The app provides a framework in which the receiver can do this in practice sessions."
       ]
     },
     "concept-minds-eye": {
       title: "Mind's Eye",
       paragraphs: [
-        "This concept page is still being developed.",
-        "For now, the mind's eye is the inner visual field where dim impressions, colors, or vague shapes may appear."
+        "Your mind's eye is where your visual imagination is. To understand what is meant by checking your \"mind's eye,\" visualize a white circle on a black background, or the Eiffel Tower or an Egyptian pyramid (or anything else you care to visualize). You are doing this in your \"mind's eye.\" Eyes do not have to be closed. You can move the \"location\" of attention from one location in the visualized image in your mind's eye to another location. You can do this by focusing attention at the top of, or at the bottom of your Eiffel Tower or pyramid.",
+        "In telepathically trying to discern what is in the mind's eye, when focusing attention inward on a new location in the image, it can be hard to remember what had been observed in the previous location(s), since different locations often hold relatively hard-to-remember shapes. That is why it is always better to try to remember the spatial alignment of the bits and pieces that are observed rather than fruitlessly spending precious time trying to work everything into something familiar. If you try to do this, you will be adding ideas from your own mind rather than focusing on what is actually there, and it is very likely that you will end up putting together a wrong impression.",
+        "Practice looking at what's in your mind's eye.",
+        "Practice tuning in quickly to your visual imagination. What is there now? When you are not deliberately visualizing and not trying to perceive any particular ESP-related visual information, there probably is nothing to see there - like what you see when you close your eyes."
       ]
     },
     "concept-chance-performance": {
       title: "Chance Performance",
       paragraphs: [
-        "This concept page is still being developed.",
-        "Chance performance is the level of success expected if answers are being selected randomly."
+        "Western science is based largely on finding and studying effects, and the whole notion of what is an effect is based on the concept of what is random - in other words - what can occur by chance alone. If it is highly probable that chance alone cannot account for what is measured, then it becomes safer to assume that there is a real effect. After being verified by replicating the test, ideally in an independent laboratory, if the effect holds up under replication, then it can safely be assumed to be \"real\" and \"reliable.\"",
+        "In this telepathy app, for example, in Level 1, the probability that there will be 1 cone or many cones shown to the sender is chosen randomly - it's like flipping a coin. Each time, the chance that it is one way or the other averages to 50%, but just like one can get a number of heads in a row in a coin flip because there is no memory for what came before each flip, it is possible to get \"many cones\" or \"one cone\" many times in a row.",
+        "So it is far better not to \"play the numbers\" when doing this task, thinking, \"well, there hasn't been one cone for a while, so I will guess there was one cone this time.\" The way to do this task is to look at and remember what pops into your mind's eye at around the time of the beep. Then, after a sufficient number of trials, see whether your performance cannot be explained by chance alone."
       ]
     },
     "concept-positive-reinforcement": {
       title: "Positive Reinforcement",
       paragraphs: [
-        "This concept page is still being developed.",
-        "Positive reinforcement here means an immediate encouraging signal after a correct response."
+        "The Importance of Instant Reinforcement in Skill Learning",
+        "When someone tries something new, if they get positive feedback when they produce a positive result, it improves learning. And research has shown that the more instant the feedback, the more effective learning becomes. Using the tool in this app, when one gets a telepathic communication successfully, instant positive feedback occurs.",
+        "Telepathy is subtle. Subtle skills are easy to miss without repetition, structure, and feedback. Practice gives the user repeated contact with a narrowly defined task, and immediate feedback allows users to improve through unconscious connections that form inside the learning process when rapid feedback is provided.",
+        "In operant-learning research, studies found that shorter delays in feedback generally produce faster or cleaner response acquisition. In plain terms: if the learner makes the correct choice and the system marks that success instantly, the brain has an easier time binding \"that was the right act\" to the outcome. That is the main rationale for playing the sound the moment the Receiver makes the correct selection.",
+        "Charles Tart found in a telepathy study that by providing instant feedback - he used a bell with a pleasant sound - it acted to neutralize a \"decline effect\" where performance may be good for a while, but later drops. Instant positive reinforcement appeared to neutralize this problem. See his discussion here.",
+        "A large feedback meta-analysis found feedback has a meaningful positive effect on learning overall, especially for cognitive and motor outcomes, and another meta-analysis found feedback is particularly effective when provided directly after task completion. For telepathy training, that suggests the best reinforcement is not vague encouragement, but a precise, immediate marker of a correct perceptual hit. In this app, the tone is a fast, clean signal that the fleeting mental impression just acted upon was correct."
       ]
     },
     "concept-trouble-with-statistics": {
       title: "The Trouble with Statistics",
       paragraphs: [
-        "Statistics is based on computing whether something that could have happened by random chance has happened. Letâ€™s say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, each with a 50% chance of being right or wrong by chance alone, your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, it is not generally scientifically acceptable as a significant effect at the p < .01 level.",
-        "But the reality might be that you experienced true telepathy in the first 8 trials and then were tired or distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly. See the graphs below to see how many 50-50 trials are needed to cross the p < 0.01 threshold.",
-        "But IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell a correct story."
+        "Statistics is based on computing whether something that could have happened by random chance has happened. Let's say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, each with a 50% chance of being right or wrong by chance alone, your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, it is not generally scientifically acceptable as a significant effect at the p < .01 level.",
+        "But the reality might be that you experienced true telepathy in the first 8 trials and then were tired or distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly.",
+        "IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell a correct story."
       ]
     },
     "concept-everything-is-connected": {
       title: "Everything is Connected",
       paragraphs: [
-        "This concept page is still being developed.",
-        "Placeholder: this page will explore the idea that people, places, events, and things may be linked more deeply than ordinary sensory thinking suggests."
+        "For centuries we believed that the world was flat. After all, it looks flat. It was hard to accept the idea that we are actually on a ball in space.",
+        "It is also hard to accept the idea that absolutely everything is connected. After all, everything does not look connected. And the connection appears to be two-way. How else can one explain the evidence that Harold McCoy, a prominent dowser in our time, was able to \"map douse\" (he could look at a map and pinpoint where to drill for water) and was also able to change the course of the flow of underground water? Read about this and more in his book here. <Link to book.>",
+        "The fact that ESP works is based on the notion that EVERYTHING IS CONNECTED. The connections are invisible, but they are there nevertheless, and a human mind in the right state has the ability to tune in to possibly everything. This becomes apparent as the evidence mounts from reported cases (see Lesson xxx)."
       ]
     },
     "concept-dont-worry-how-this-works": {
       title: "Don't Worry How This Works",
       paragraphs: [
-        "HOW it is possible that out of the millions of people in the world, just by wanting to receive what one person you may not even know well is looking at it is possible to tune into that one person.",
-        "HOW this can happen is not important. The fact is that this is what DOES HAPPEN."
+        "How it is possible that out of the millions of people in the world, just by wanting to receive what one person you may not even know well is looking at, it is possible to tune into that one person?",
+        "How this can happen is not important. The fact is that this is what DOES HAPPEN and it happens effortlessly, unconsciously."
       ]
     },
     "concept-lack-of-fusion": {
-      title: "Lack of Fusion",
+      title: "Telepathic Image Perception is in Bits and Pieces",
       paragraphs: [
-        "American psychic Ingo Swann suggested, referring to the visual perception of psi-encoded data: â€œa great deal of distortion and misrepresentation can and does take place while the mind seeks to translate the basic images into wordsâ€ [Swann, 1991/2017, p. 73)].",
-        "Swann called this difficulty in grouping of local elements into recognized objects lack of fusion: â€œAll parts are correctly perceived, but will not connect to form a wholeâ€ [Swann, 1991/2017, p. 229]."
+        "\"All parts are correctly perceived, but will not connect to form a whole\" - Ingo Swann",
+        "Swann called this difficulty in grouping of local elements into recognized objects lack of fusion.",
+        "Czech psychometrist Otto Reimann mentioned that his \"... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas\" - xxx Schmidt",
+        "Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as \"low contrast, low intensity and low resolution.\"",
+        "When observing the contents of your mind's eye during telepathic image perception, don't expect to see the whole image clearly by any means. What will be perceived will be somewhat disconnected bits and pieces, visual features, but not a connected whole like what is seen when using your eyes."
       ]
     },
     "concept-remember-objects-and-their-locations": {
       title: "Remember Objects and their Locations",
       paragraphs: [
-        "OBJECTS HAVE LOCATIONS IN THE VISUAL FIELD â€“ REMEMBER WHAT AND WHERE",
+        "OBJECTS HAVE LOCATIONS IN THE VISUAL FIELD - REMEMBER WHAT AND WHERE",
         "The Receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. The receiver should try to REMEMBER WHAT WAS WHERE IN THE VISUAL FIELD. Some features of what pops in may have COLOR. REMEMBER the color and where it is noticed. Was it on the right side? The left side?",
-        "After seconds, the whole image (not just part of it) may fade. Then itâ€™s time to CONSOLODATE IN MEMORY whatever shreds or pieces you saw. Then, when the choice of images are shown to you, you will easily be able to decide which image was the actual target image."
+        "After seconds, the whole image (not just part of it) may fade. Then it's time to CONSOLODATE IN MEMORY whatever shreds or pieces you saw. Then, when the choice of images are shown to you, you will easily be able to decide which image was the actual target image."
       ]
     },
     "concept-telepathy-is-real": {
-      title: "Telepathy is Real",
+      title: "A Receiver of Telepathic Information Must Believe that Telepathy is Real",
       paragraphs: [
-        "IF YOU ARE THE RECEIVER, YOU MUST KNOW IN YOUR HEART THAT TELEPATHY IS REAL as strongly as you BELIEVE there is a REAL SUN IN THE SKY!",
-        "If you don't believe in it, it still might happen to you spontaneously, but it is not likely that you will show consistently good results. A Sender can be skeptical and still produce decent results for a Receiver."
+        "Those who don't believe that telepathy exists are very less likely to experience it. A person who wants to be able to receive information telepathically must not only believe that telepathy works, but that it work for them.",
+        "It is easier to believe that \"it might work for others, but not for me.\" But that kind of belief is a lot less productive than, \"Yes! It can and will work for me!\"",
+        "Interestingly, it has been shown that a sender does not have to believe in telepathy in order to competently send telepathic information. This means that the information gets put out there independent of one's belief system."
       ]
     },
     "concept-bits-and-pieces": {
       title: "Bits And Pieces",
       paragraphs: [
         "BITS AND PIECES OF VAGUE IMPRESSIONISTIC VISUAL INFORMATION",
-        "Ingo Swann, a noted psychic [1991/2017, p. 33] mentioned, â€œâ€¦ what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear.â€ Hubbard & Langford (1986, pp. 6-7) mention, â€œAccomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. â€¦ correct visual impressions are largely indistinct in outline.â€",
-        "â€œBy subjective report, the â€œdata access windowâ€ is approximately 0.5 to 1 second in durationâ€ (Hubbard & Langford, 1986, p. 5). Swann noted that psi visual data is â€œsoftâ€ (1991/2017, p. 134). â€œSoftâ€ can be interpreted as â€œlow contrast, low intensity and low resolution.â€",
-        "Otto Reimann, a recognized Czech psychometrist mentioned that his â€œ â€¦ information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvasâ€ [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157]."
+        "Ingo Swann, a noted psychic [1991/2017, p. 33] mentioned, \"... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear.\" Hubbard & Langford (1986, pp. 6-7) mention, \"Accomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. ... correct visual impressions are largely indistinct in outline.\"",
+        "\"By subjective report, the \"data access window\" is approximately 0.5 to 1 second in duration\" (Hubbard & Langford, 1986, p. 5). Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as \"low contrast, low intensity and low resolution.\"",
+        "Otto Reimann, a recognized Czech psychometrist mentioned that his \" ... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas\" [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157]."
       ]
     }
   };
+  const learningCenterCoursePageContent = [
+    {
+      title: "COURSE: DEVELOPING TELEPATHIC ABILITY THROUGH KNOWLEDGE AND PRACTICE",
+      paragraphs: [
+        "This course starts by presenting information that leads to a deeper understanding of telepathy and what receivers and senders of telepathic information should expect. Since a receiver of telepathic information must believe completely in the reality of telepathy, we will examine a few documented case studies and look at examples of what a few exceptionally gifted people were able to do with telepathic sensitivity.",
+        "We will also get an understanding of how the mind's eye works and an idea of how and why telepathy might work. As the course progresses, early on we will become familiar with the simple Level 1 operation of the telepathy task. And understand the importance of finding a partner or partners to work with, and how to schedule simple, short practice sessions spontaneously, when it feels like the right time to do a few trials.",
+        "When you have found a partner to work with, actual short and simple telepathy practice sessions can start, and we can look at mathematically analyzed personalized performance reports and examine introspectively what our minds do during practice and identifying potential areas of improvement.",
+        "This is a course in learning how to be more sensitive specifically to the visual information that can manifest in your 'mind's eye.' Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become so familiar with it that you accept it as matter-of-fact and have lost all anxiety about performance and results. Noted psi adept Ingo Swann advised: \"[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best\" [Swann, 1991/2017, p. 124]"
+      ],
+      actions: []
+    },
+    {
+      title: "THE LESSONS",
+      paragraphs: [
+        "The lessons have concentrated information already known and understood about telepathy from diverse sources.",
+        "The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is tracked and analyzed for chance vs. better-than-chance performance, and can be viewed at any time by going to the Performance Reports menu item. Before one's performance can be understood to be unlikely to achieve by chance alone, you will need to complete a minimum of 20 trials, and beginners may start out performing at chance for many more trials before starting to get the hang of it - or not. Some will show natural talent and do well quickly. Others may take a while to do well, and others may never believe they can get the hang of it and give up.",
+        "Just know this: A sender cannot help but put the information out there when sending, whether they believe in telepathy or not. The information that is out there becomes available to everyone whether they believe in telepathy or not. It is just a question of perceiving it. Believe it. Try it. Do it.",
+        "The structured lessons are presented starting on Page 4 of this tab. They are presented as a set of checkpoints for each individual course objective in the suggested order. Simply come here click on each link and participate as called for in that lesson. Go at your own speed.",
+        "But before jumping in to the rest of this online course, it will be interesting to establish a baseline reference point. This is found on the next page (Page 3) of this tab. Please complete the questions in that questionnaire."
+      ],
+      actions: []
+    },
+    {
+      title: "LESSON 0 - ESTABLISH A BASELINE",
+      paragraphs: []
+    },
+    {
+      title: "COURSE LESSONS",
+      paragraphs: []
+    }
+  ];
   const closeProUserManualButton = document.querySelector("[data-close-pro-user-manual]");
   const closeFeatureSetupButton = document.querySelector("[data-close-feature-setup]");
   const closeInstallGuideButton = document.querySelector("[data-close-install-guide]");
@@ -287,6 +343,8 @@
   const closeOnlineCourseButton = document.querySelector("[data-close-online-course]");
   const openOnlineCoursePracticeButton = document.querySelector("[data-open-online-course-practice]");
   const onlineCourseLessonList = document.querySelector(".online-course-lesson-list");
+  const learningCenterCourseLessonListSection = document.querySelector("[data-learning-center-course-lesson-list-section]");
+  const learningCenterCourseLessonList = document.querySelector("[data-learning-center-course-lesson-list]");
   const onlineCourseTabButtons = Array.from(document.querySelectorAll("[data-online-course-tab]"));
   const onlineCourseTabPanels = Array.from(document.querySelectorAll("[data-online-course-panel]"));
   const closeBaselineQuestionsButton = document.querySelector("[data-close-baseline-questions]");
@@ -333,6 +391,24 @@
   const baselineFurtherResearchInputs = Array.from(document.querySelectorAll("[data-baseline-further-research]"));
   const baselineStatus = document.querySelector("[data-baseline-status]");
   const baselineSaveButton = document.querySelector("[data-save-baseline-questions]");
+  const courseBaselineDate = document.querySelector("[data-course-baseline-date]");
+  const courseBaselineName = document.querySelector("[data-course-baseline-name]");
+  const courseBaselineForm = document.querySelector("[data-course-baseline-form]");
+  const courseBaselineAgeInput = document.querySelector("[data-course-baseline-age]");
+  const courseBaselineSexInputs = Array.from(document.querySelectorAll("[data-course-baseline-sex]"));
+  const courseBaselineBeliefTelepathyInput = document.querySelector("[data-course-baseline-belief-telepathy]");
+  const courseBaselineBeliefTelepathyValue = document.querySelector("[data-course-baseline-belief-telepathy-value]");
+  const courseBaselineBeliefPersonalInput = document.querySelector("[data-course-baseline-belief-personal]");
+  const courseBaselineBeliefPersonalValue = document.querySelector("[data-course-baseline-belief-personal-value]");
+  const courseBaselineRelatedPsiInputs = Array.from(document.querySelectorAll("[data-course-baseline-related-psi]"));
+  const courseBaselineExperienceFrequencyInputs = Array.from(document.querySelectorAll("[data-course-baseline-experience-frequency]"));
+  const courseBaselinePhenomenonInputs = Array.from(document.querySelectorAll("[data-course-baseline-phenomenon]"));
+  const courseBaselinePhenomenaOtherInput = document.querySelector("[data-course-baseline-phenomena-other]");
+  const courseBaselinePriorTrainingInputs = Array.from(document.querySelectorAll("[data-course-baseline-prior-training]"));
+  const courseBaselinePriorSkillsInput = document.querySelector("[data-course-baseline-prior-skills]");
+  const courseBaselineFurtherResearchInputs = Array.from(document.querySelectorAll("[data-course-baseline-further-research]"));
+  const courseBaselineStatus = document.querySelector("[data-course-baseline-status]");
+  const courseBaselineSaveButton = document.querySelector("[data-save-course-baseline-questions]");
   const afterFirstSessionDate = document.querySelector("[data-after-first-session-date]");
   const afterFirstSessionReceiver = document.querySelector("[data-after-first-session-receiver]");
   const afterFirstSessionSender = document.querySelector("[data-after-first-session-sender]");
@@ -372,6 +448,44 @@
   const researchInterestStatus = document.querySelector("[data-research-interest-status]");
   const researchInterestSaveButton = document.querySelector("[data-save-research-interest]");
   const researchInterestCancelButton = document.querySelector("[data-cancel-research-interest]");
+  const standaloneBaselineFields = {
+    date: baselineDate,
+    name: baselineName,
+    form: baselineForm,
+    ageInput: baselineAgeInput,
+    sexInputs: baselineSexInputs,
+    beliefTelepathyInput: baselineBeliefTelepathyInput,
+    beliefTelepathyValue: baselineBeliefTelepathyValue,
+    beliefPersonalInput: baselineBeliefPersonalInput,
+    beliefPersonalValue: baselineBeliefPersonalValue,
+    relatedPsiInputs: baselineRelatedPsiInputs,
+    experienceFrequencyInputs: baselineExperienceFrequencyInputs,
+    phenomenonInputs: baselinePhenomenonInputs,
+    phenomenaOtherInput: baselinePhenomenaOtherInput,
+    priorTrainingInputs: baselinePriorTrainingInputs,
+    priorSkillsInput: baselinePriorSkillsInput,
+    furtherResearchInputs: baselineFurtherResearchInputs,
+    status: baselineStatus
+  };
+  const courseBaselineFields = {
+    date: courseBaselineDate,
+    name: courseBaselineName,
+    form: courseBaselineForm,
+    ageInput: courseBaselineAgeInput,
+    sexInputs: courseBaselineSexInputs,
+    beliefTelepathyInput: courseBaselineBeliefTelepathyInput,
+    beliefTelepathyValue: courseBaselineBeliefTelepathyValue,
+    beliefPersonalInput: courseBaselineBeliefPersonalInput,
+    beliefPersonalValue: courseBaselineBeliefPersonalValue,
+    relatedPsiInputs: courseBaselineRelatedPsiInputs,
+    experienceFrequencyInputs: courseBaselineExperienceFrequencyInputs,
+    phenomenonInputs: courseBaselinePhenomenonInputs,
+    phenomenaOtherInput: courseBaselinePhenomenaOtherInput,
+    priorTrainingInputs: courseBaselinePriorTrainingInputs,
+    priorSkillsInput: courseBaselinePriorSkillsInput,
+    furtherResearchInputs: courseBaselineFurtherResearchInputs,
+    status: courseBaselineStatus
+  };
   const otherSettingsHomeButton = document.querySelector("[data-other-settings-home]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
@@ -545,6 +659,7 @@
   const lessonIndexAdminBody = document.querySelector("[data-lesson-index-admin-body]");
   const lessonIndexAdminRefreshButton = document.querySelector("[data-lesson-index-admin-refresh]");
   const lessonIndexAdminSaveButton = document.querySelector("[data-lesson-index-admin-save]");
+  const lessonIndexAdminTitle = document.getElementById("lessonIndexAdminTitle");
   const featureSetupIdentifier = document.querySelector("[data-feature-setup-identifier]");
   const featureSetupSummary = document.querySelector("[data-feature-setup-summary]");
   const featureSetupClaimStatus = document.querySelector("[data-feature-setup-claim-status]");
@@ -627,6 +742,7 @@
   const lessonEditorStatus = document.querySelector("[data-learn-more-status]");
   const lessonEditorInlineStatus = document.querySelector("[data-learn-more-inline-status]");
   const lessonEditorPreview = document.querySelector("[data-learn-more-preview]");
+  const lessonEditorTitle = document.getElementById("learnMoreTitle");
   const clairvoyanceLearnMoreTextInput = document.querySelector("[data-clairvoyance-learn-more-text]");
   const clairvoyanceLearnMoreStatus = document.querySelector("[data-clairvoyance-learn-more-status]");
   const clairvoyanceLearnMoreInlineStatus = document.querySelector("[data-clairvoyance-learn-more-inline-status]");
@@ -1031,16 +1147,21 @@ This is an alternate test message to show now.`;
   let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let activeEspLessonMode = "role";
   let activeLearningCenterLessonId = "";
-  let activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
+  let activeLearningCenterLessonReturnTarget = { view: "online-course", tab: "", scrollY: 0, focusId: "" };
   let pendingOnlineCourseRestoreFocusId = "";
   let activeOnlineCourseTab = "welcome";
   let activeLearningCenterTab = "welcome";
   let activeLearningCenterConceptPage = 1;
   const learningCenterConceptCardsPerPage = 6;
+  let activeLearningCenterCoursePage = 1;
   let learningCenterConceptDetailReturnTarget = { tab: "key-concepts", scrollY: 0, conceptPage: 1, conceptActionKey: "", conceptCardViewportTop: 0 };
   const learningCenterConceptReturnKey = "cones-learning-center-concept-return-v1";
   let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
   let learningCenterLessonIndex = [];
+  let newLearningCenterLessonIndex = [];
+  let activeLessonEditorDomain = "legacy";
+  let activeLessonIndexAdminDomain = "legacy";
+  let activeLearningCenterLessonDomain = "legacy";
   let suppressLauncherAutoCollapseUntil = 0;
   let inviteeRecordsCache = [];
   let inviteeLookupTimer = null;
@@ -2248,26 +2369,31 @@ This is an alternate test message to show now.`;
 
   async function showLearningCenterLessonDetail(lessonId, options = {}) {
     const normalizedLessonId = normalizeLearningCenterLessonId(lessonId);
-    const lessonRecord = getLearningCenterLessonRecordById(normalizedLessonId);
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || activeLearningCenterLessonDomain || "legacy");
+    const lessonRecord = getLearningCenterLessonRecordById(normalizedLessonId, getLessonDomainIndex(lessonDomain));
     const contentKey = buildLearningCenterLessonContentKey(normalizedLessonId);
     if (!normalizedLessonId || !lessonRecord || !contentKey) {
       return;
     }
     try {
-      const record = await fetchEditableContentFromServer(contentKey);
+      const record = await fetchEditableContentFromServer(contentKey, { lessonDomain });
       if (!record?.available) {
         return;
       }
       activeEspLessonMode = "learning-center";
       activeLearningCenterLessonId = normalizedLessonId;
+      activeLearningCenterLessonDomain = lessonDomain;
       activeLearningCenterLessonReturnTarget = {
         view: String(options.view || "online-course").trim() || "online-course",
+        tab: String(options.tab || "").trim(),
         scrollY: Math.max(0, Number(options.scrollY ?? window.scrollY ?? window.pageYOffset ?? 0) || 0),
         focusId: String(options.focusId || buildLearningCenterLessonRowId(normalizedLessonId)).trim()
       };
       renderLearningCenterLessonDetail(lessonRecord, String(record.content || ""));
       setEspLessonDetailStatus("");
       espLessonDetailView?.classList.remove("beginner-view-hidden");
+      learningCenterView?.classList.add("beginner-view-hidden");
+      onlineCourseView?.classList.add("beginner-view-hidden");
       launcherView?.classList.add("beginner-view-hidden");
       temporaryHomePageView?.classList.add("beginner-view-hidden");
       optionsView?.classList.add("beginner-view-hidden");
@@ -2377,18 +2503,27 @@ This is an alternate test message to show now.`;
   function closeEspLessonDetail() {
     if (activeEspLessonMode === "learning-center") {
       const targetView = String(activeLearningCenterLessonReturnTarget?.view || "online-course").trim();
+      const targetTab = String(activeLearningCenterLessonReturnTarget?.tab || "").trim();
       const returnScrollY = Math.max(0, Number(activeLearningCenterLessonReturnTarget.scrollY || 0) || 0);
       const returnFocusId = String(activeLearningCenterLessonReturnTarget.focusId || "").trim();
       activeEspLessonMode = "role";
       activeLearningCenterLessonId = "";
-      activeLearningCenterLessonReturnTarget = { view: "online-course", scrollY: 0, focusId: "" };
+      activeLearningCenterLessonReturnTarget = { view: "online-course", tab: "", scrollY: 0, focusId: "" };
       espLessonDetailView?.classList.add("beginner-view-hidden");
       pendingOnlineCourseRestoreFocusId = returnFocusId;
-      showOnlineCourseView({
-        view: targetView || "online-course",
-        role: "",
-        scrollY: returnScrollY
-      });
+      if (targetView === "learning-center") {
+        showLearningCenterView({
+          view: "learning-center",
+          tab: targetTab || "course",
+          scrollY: returnScrollY
+        });
+      } else {
+        showOnlineCourseView({
+          view: targetView || "online-course",
+          role: "",
+          scrollY: returnScrollY
+        });
+      }
       return;
     }
     const returnRole = activeEspLessonRole;
@@ -4137,26 +4272,30 @@ This is an alternate test message to show now.`;
     }
   }
 
-  async function fetchEditableContentFromServer(contentKey) {
+  async function fetchEditableContentFromServer(contentKey, options = {}) {
     const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
     if (!/^main$|^clairvoyance$|^esp-lessons$|^learning-center-outline$|^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
       throw new Error("Learn More content key is invalid.");
     }
     const response = await postInfrastructureContentRequest("get_learn_more_content", {
-      content_key: normalizedKey
+      content_key: normalizedKey,
+      lesson_domain: lessonDomain
     }, {
       allowLocalFallback: true
     });
     return response?.learn_more_content || null;
   }
 
-  async function saveEditableContentToServer(contentKey, content) {
+  async function saveEditableContentToServer(contentKey, content, options = {}) {
     const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
     if (!/^main$|^clairvoyance$|^esp-lessons$|^learning-center-outline$|^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
       throw new Error("Learn More content key is invalid.");
     }
     const response = await postInfrastructureContentRequest("save_learn_more_content", {
       content_key: normalizedKey,
+      lesson_domain: lessonDomain,
       content: typeof content === "string" ? content : "",
       secret_candidate: getLauncherAdminSecretCandidate()
     }, {
@@ -4165,21 +4304,26 @@ This is an alternate test message to show now.`;
     return response?.learn_more_content || null;
   }
 
-  async function deleteEditableContentFromServer(contentKey) {
+  async function deleteEditableContentFromServer(contentKey, options = {}) {
     const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
     if (!/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
       throw new Error("Lesson content key is invalid.");
     }
     return postInfrastructureContentRequest("delete_learn_more_content", {
       content_key: normalizedKey,
+      lesson_domain: lessonDomain,
       secret_candidate: getLauncherAdminSecretCandidate()
     }, {
       mirrorToLocalWhenAvailable: true
     });
   }
 
-  async function fetchLearningCenterLessonIndex() {
-    const response = await postInfrastructureContentRequest("list_learning_center_lessons", {}, {
+  async function fetchLearningCenterLessonIndex(domain = "legacy") {
+    const lessonDomain = normalizeLessonDomain(domain);
+    const response = await postInfrastructureContentRequest("list_learning_center_lessons", {
+      lesson_domain: lessonDomain
+    }, {
       allowLocalFallback: true,
       preferLocalWhenCanonicalEmpty: (result) => {
         const lessons = result?.learning_center_lessons;
@@ -4197,9 +4341,11 @@ This is an alternate test message to show now.`;
       : [];
   }
 
-  async function fetchLearningCenterOutlineFromServer() {
+  async function fetchLearningCenterOutlineFromServer(domain = "legacy") {
+    const lessonDomain = normalizeLessonDomain(domain);
     const responseEnvelope = await postInfrastructureContentRequest("get_learn_more_content", {
-      content_key: "learning-center-outline"
+      content_key: "learning-center-outline",
+      lesson_domain: lessonDomain
     }, {
       allowLocalFallback: true,
       preferLocalWhenCanonicalEmpty: (result) => !result?.learn_more_content || !String(result.learn_more_content.content || "").trim()
@@ -4220,7 +4366,8 @@ This is an alternate test message to show now.`;
     };
   }
 
-  async function saveLearningCenterOutlineToServer(rows) {
+  async function saveLearningCenterOutlineToServer(rows, domain = "legacy") {
+    const lessonDomain = normalizeLessonDomain(domain);
     const normalizedRows = (Array.isArray(rows) ? rows : [])
       .map((record) => normalizeLearningCenterLessonRecord(record))
       .filter(Boolean)
@@ -4235,21 +4382,21 @@ This is an alternate test message to show now.`;
         type: record.type
       }))
     }, null, 2);
-    await saveEditableContentToServer("learning-center-outline", payload);
+    await saveEditableContentToServer("learning-center-outline", payload, { lessonDomain });
     return normalizedRows;
   }
 
-  async function upsertLearningCenterOutlineRecord(record) {
+  async function upsertLearningCenterOutlineRecord(record, domain = "legacy") {
     const normalizedRecord = normalizeLearningCenterLessonRecord(record);
     if (!normalizedRecord) {
       throw new Error("Learning Center lesson metadata is invalid.");
     }
-    const outline = await fetchLearningCenterOutlineFromServer();
+    const outline = await fetchLearningCenterOutlineFromServer(domain);
     const nextRows = [
       ...(Array.isArray(outline.rows) ? outline.rows : []).filter((item) => normalizeLearningCenterLessonId(item?.lesson_id) !== normalizedRecord.lesson_id),
       normalizedRecord
     ];
-    return saveLearningCenterOutlineToServer(nextRows);
+    return saveLearningCenterOutlineToServer(nextRows, domain);
   }
 
   async function refreshEspLessonsSourceText() {
@@ -4930,6 +5077,27 @@ This is an alternate test message to show now.`;
     return normalizeUserPreferencesFromServer(data?.user_preferences || null);
   }
 
+  function normalizeLessonDomain(value) {
+    return String(value || "").trim().toLowerCase() === "new-course" ? "new-course" : "legacy";
+  }
+
+  function getLessonDomainLabel(domain) {
+    return normalizeLessonDomain(domain) === "new-course" ? "New Learning Center" : "Old Learning Center";
+  }
+
+  function getLessonDomainIndex(domain) {
+    return normalizeLessonDomain(domain) === "new-course" ? newLearningCenterLessonIndex : learningCenterLessonIndex;
+  }
+
+  function setLessonDomainIndex(domain, rows) {
+    if (normalizeLessonDomain(domain) === "new-course") {
+      newLearningCenterLessonIndex = Array.isArray(rows) ? rows : [];
+      return newLearningCenterLessonIndex;
+    }
+    learningCenterLessonIndex = Array.isArray(rows) ? rows : [];
+    return learningCenterLessonIndex;
+  }
+
   function normalizeLearningCenterLessonId(value) {
     return String(value || "")
       .trim()
@@ -4956,12 +5124,12 @@ This is an alternate test message to show now.`;
     return String(row?.querySelector(".online-course-lesson-title")?.textContent || "").trim();
   }
 
-  function getLearningCenterLessonRowById(lessonId) {
+  function getLearningCenterLessonRowById(lessonId, listElement = onlineCourseLessonList) {
     const target = normalizeLearningCenterLessonId(lessonId);
-    if (!target || !onlineCourseLessonList) {
+    if (!target || !listElement) {
       return null;
     }
-    return onlineCourseLessonList.querySelector(`.online-course-lesson-row[data-lesson-id="${target}"]`);
+    return listElement.querySelector(`.online-course-lesson-row[data-lesson-id="${target}"]`);
   }
 
   function getLearningCenterLessonRecordById(lessonId, sourceIndex = learningCenterLessonIndex) {
@@ -5012,6 +5180,74 @@ This is an alternate test message to show now.`;
       content_key: contentKey,
       available
     };
+  }
+
+  function buildLearningCenterLessonRow(record, options = {}) {
+    const normalizedRecord = normalizeLearningCenterLessonRecord(record);
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
+    if (!normalizedRecord) {
+      return null;
+    }
+
+    const row = document.createElement("div");
+    row.className = "online-course-lesson-row";
+    row.id = buildLearningCenterLessonRowId(normalizedRecord.lesson_id);
+    row.dataset.lessonId = normalizedRecord.lesson_id;
+    row.dataset.lessonDomain = lessonDomain;
+    row.dataset.onlineCourseLaunch = normalizedRecord.type;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "online-course-lesson-checkbox";
+    checkbox.tabIndex = -1;
+
+    const main = document.createElement("div");
+    main.className = "online-course-lesson-main";
+    if (normalizedRecord.type === "lesson-page" && normalizedRecord.available) {
+      main.classList.add("online-course-lesson-row-clickable");
+      main.dataset.openLearningCenterLesson = normalizedRecord.lesson_id;
+      main.dataset.lessonDomain = lessonDomain;
+      main.tabIndex = 0;
+      main.setAttribute("role", "button");
+    } else if (normalizedRecord.type === "baseline" || normalizedRecord.type === "after-first-session") {
+      main.classList.add("online-course-lesson-row-clickable");
+      main.tabIndex = 0;
+      main.setAttribute("role", "button");
+    }
+
+    const title = document.createElement("span");
+    title.className = "online-course-lesson-title";
+    title.textContent = `LESSON ${normalizedRecord.display_number} - ${normalizedRecord.title}`;
+    main.appendChild(title);
+
+    if (normalizedRecord.subcopy) {
+      const subcopy = document.createElement("span");
+      subcopy.className = "online-course-lesson-subcopy";
+      subcopy.textContent = normalizedRecord.subcopy;
+      main.appendChild(subcopy);
+    }
+
+    row.appendChild(checkbox);
+    row.appendChild(main);
+    return row;
+  }
+
+  function renderLearningCenterLessonLinksInto(listElement, indexRecords = [], options = {}) {
+    if (!listElement) {
+      return;
+    }
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
+    listElement.innerHTML = "";
+    const normalizedRecords = (Array.isArray(indexRecords) ? indexRecords : [])
+      .map((record) => normalizeLearningCenterLessonRecord(record))
+      .filter(Boolean)
+      .sort((left, right) => compareLearningCenterDisplayNumbers(left.display_number, right.display_number));
+    normalizedRecords.forEach((record) => {
+      const row = buildLearningCenterLessonRow(record, { lessonDomain });
+      if (row) {
+        listElement.appendChild(row);
+      }
+    });
   }
 
   function parseLessonEditorDirective(value) {
@@ -16710,9 +16946,13 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showLessonEditorView() {
+  function showLessonEditorView(domain = "legacy") {
+    activeLessonEditorDomain = normalizeLessonDomain(domain);
     clearReportPanelOffset();
     resetLessonEditorToBlank("Start with lesson-id=<permanent-id>. You can also add number=, title=, subcopy=, and type=. Then press ENTER or SAVE.");
+    if (lessonEditorTitle) {
+      lessonEditorTitle.textContent = activeLessonEditorDomain === "new-course" ? "New Edit Lessons" : "Old Edit Lessons";
+    }
     lessonEditorView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -16777,7 +17017,8 @@ This is an alternate test message to show now.`;
       displayNumber: "",
       title: "",
       subcopy: "",
-      type: "lesson-page"
+      type: "lesson-page",
+      lessonDomain: activeLessonEditorDomain
     };
     if (lessonEditorTextInput) {
       lessonEditorTextInput.value = "";
@@ -16804,7 +17045,8 @@ This is an alternate test message to show now.`;
     const normalizedKey = String(contentKey || "main").trim().toLowerCase();
     const lessonMatch = normalizedKey.match(/^lesson-id:([a-z0-9-]{1,80})$/);
     const lessonId = lessonMatch ? normalizeLearningCenterLessonId(lessonMatch[1]) : "";
-    const lessonRecord = lessonId ? getLearningCenterLessonRecordById(lessonId) : null;
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || activeLessonEditorDomain || lessonEditorTarget?.lessonDomain || "legacy");
+    const lessonRecord = lessonId ? getLearningCenterLessonRecordById(lessonId, getLessonDomainIndex(lessonDomain)) : null;
     lessonEditorTarget = {
       kind: lessonId ? "lesson" : "main",
       contentKey: normalizedKey || "main",
@@ -16812,7 +17054,8 @@ This is an alternate test message to show now.`;
       displayNumber: String(options.displayNumber || lessonRecord?.display_number || "").trim(),
       title: String(options.title || lessonRecord?.title || "").trim(),
       subcopy: String(options.subcopy || lessonRecord?.subcopy || "").trim(),
-      type: String(options.type || lessonRecord?.type || "lesson-page").trim() || "lesson-page"
+      type: String(options.type || lessonRecord?.type || "lesson-page").trim() || "lesson-page",
+      lessonDomain
     };
     if (lessonEditorTextInput) {
       lessonEditorTextInput.value = typeof content === "string" ? content : "";
@@ -16823,9 +17066,10 @@ This is an alternate test message to show now.`;
     }
   }
 
-  async function populateLessonEditorFromServer(contentKey) {
+  async function populateLessonEditorFromServer(contentKey, options = {}) {
     const normalizedKey = String(contentKey || "").trim().toLowerCase();
     const isClairvoyance = normalizedKey === "clairvoyance";
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || activeLessonEditorDomain || "legacy");
     const input = isClairvoyance ? clairvoyanceLearnMoreTextInput : lessonEditorTextInput;
     const preview = isClairvoyance ? clairvoyanceLearnMorePreview : lessonEditorPreview;
     const status = isClairvoyance ? clairvoyanceLearnMoreStatus : lessonEditorStatus;
@@ -16848,13 +17092,14 @@ This is an alternate test message to show now.`;
         displayNumber: "",
         title: "",
         subcopy: "",
-        type: "lesson-page"
+        type: "lesson-page",
+        lessonDomain
       };
       setLearnMoreDraftText("main", null);
     }
 
     try {
-      const contentRecord = await fetchEditableContentFromServer(normalizedKey);
+      const contentRecord = await fetchEditableContentFromServer(normalizedKey, { lessonDomain });
       const serverValue = typeof contentRecord?.content === "string" ? contentRecord.content : "";
       if (contentRecord?.available) {
         cacheLearnMoreContentLocally(normalizedKey, serverValue);
@@ -16864,7 +17109,7 @@ This is an alternate test message to show now.`;
           }
           updateLearnMorePreview(preview, serverValue);
         } else {
-          applyMainLessonEditorContent("main", serverValue);
+          applyMainLessonEditorContent("main", serverValue, { lessonDomain });
         }
       }
     } catch (error) {
@@ -16885,16 +17130,17 @@ This is an alternate test message to show now.`;
         ? `Processing lesson ${directive.lessonId || directive.displayNumber || ""}...`
         : "Start with lesson-id=<permanent-id>, then press ENTER or SAVE.";
     }
+    const lessonDomain = normalizeLessonDomain(lessonEditorTarget?.lessonDomain || activeLessonEditorDomain || "legacy");
     try {
       if (directive) {
         let currentOutlineRecord = directive.lessonId
-          ? getLearningCenterLessonRecordById(directive.lessonId)
-          : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber);
+          ? getLearningCenterLessonRecordById(directive.lessonId, getLessonDomainIndex(lessonDomain))
+          : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber, getLessonDomainIndex(lessonDomain));
         if (!currentOutlineRecord && (directive.lessonId || directive.displayNumber)) {
           try {
-            const liveIndex = await fetchLearningCenterLessonIndex();
+            const liveIndex = await fetchLearningCenterLessonIndex(lessonDomain);
             if (Array.isArray(liveIndex) && liveIndex.length) {
-              learningCenterLessonIndex = liveIndex;
+              setLessonDomainIndex(lessonDomain, liveIndex);
               currentOutlineRecord = directive.lessonId
                 ? getLearningCenterLessonRecordById(directive.lessonId, liveIndex)
                 : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber, liveIndex);
@@ -16912,14 +17158,15 @@ This is an alternate test message to show now.`;
           const type = String(currentOutlineRecord.type || "lesson-page").trim() || "lesson-page";
           const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
           if (type === "lesson-page" && lessonKey) {
-            const existing = await fetchEditableContentFromServer(lessonKey);
+            const existing = await fetchEditableContentFromServer(lessonKey, { lessonDomain });
             if (existing?.available) {
               applyMainLessonEditorContent(lessonKey, String(existing.content || ""), {
                 status: `Loaded LESSON ${displayNumber} into the editor.`,
                 displayNumber,
                 title,
                 subcopy,
-                type
+                type,
+                lessonDomain
               });
               return;
             }
@@ -16936,7 +17183,8 @@ This is an alternate test message to show now.`;
             displayNumber,
             title,
             subcopy,
-            type
+            type,
+            lessonDomain
           });
           return;
         }
@@ -16959,51 +17207,69 @@ This is an alternate test message to show now.`;
         const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
         if (isDirectiveOnly) {
           if (type === "lesson-page") {
-            const existing = await fetchEditableContentFromServer(lessonKey);
+            const existing = await fetchEditableContentFromServer(lessonKey, { lessonDomain });
             if (existing?.available) {
               lessonRecord.available = true;
-              learningCenterLessonIndex = await upsertLearningCenterOutlineRecord(lessonRecord);
-              renderLearningCenterLessonLinks(learningCenterLessonIndex);
+              const updatedIndex = await upsertLearningCenterOutlineRecord(lessonRecord, lessonDomain);
+              setLessonDomainIndex(lessonDomain, updatedIndex);
+              if (lessonDomain === "new-course") {
+                renderNewCourseLessonLinks(updatedIndex);
+              } else {
+                renderLearningCenterLessonLinks(updatedIndex);
+              }
               applyMainLessonEditorContent(lessonKey, String(existing.content || ""), {
                 status: `Loaded LESSON ${displayNumber} into the editor.`,
                 displayNumber,
                 title,
                 subcopy,
-                type
+                type,
+                lessonDomain
               });
               return;
             }
           }
           const starterContent = buildStarterLessonContent(lessonRecord);
           lessonRecord.available = true;
-          learningCenterLessonIndex = await upsertLearningCenterOutlineRecord(lessonRecord);
+          const updatedIndex = await upsertLearningCenterOutlineRecord(lessonRecord, lessonDomain);
+          setLessonDomainIndex(lessonDomain, updatedIndex);
           if (type === "lesson-page") {
-            await saveEditableContentToServer(lessonKey, starterContent);
+            await saveEditableContentToServer(lessonKey, starterContent, { lessonDomain });
           }
-          renderLearningCenterLessonLinks(learningCenterLessonIndex);
+          if (lessonDomain === "new-course") {
+            renderNewCourseLessonLinks(updatedIndex);
+          } else {
+            renderLearningCenterLessonLinks(updatedIndex);
+          }
           applyMainLessonEditorContent(type === "lesson-page" ? lessonKey : "main", starterContent, {
             status: `Created LESSON ${displayNumber}. Add content, then press SAVE again.`,
             displayNumber,
             title,
             subcopy,
-            type
+            type,
+            lessonDomain
           });
           return;
         }
 
         lessonRecord.available = true;
-        learningCenterLessonIndex = await upsertLearningCenterOutlineRecord(lessonRecord);
+        const updatedIndex = await upsertLearningCenterOutlineRecord(lessonRecord, lessonDomain);
+        setLessonDomainIndex(lessonDomain, updatedIndex);
         const savedLesson = type === "lesson-page"
-          ? await saveEditableContentToServer(lessonKey, nextValue)
+          ? await saveEditableContentToServer(lessonKey, nextValue, { lessonDomain })
           : { content: nextValue };
         const savedLessonValue = typeof savedLesson?.content === "string" ? savedLesson.content : nextValue;
-        renderLearningCenterLessonLinks(learningCenterLessonIndex);
+        if (lessonDomain === "new-course") {
+          renderNewCourseLessonLinks(updatedIndex);
+        } else {
+          renderLearningCenterLessonLinks(updatedIndex);
+        }
         applyMainLessonEditorContent(type === "lesson-page" ? lessonKey : "main", savedLessonValue, {
           status: `LESSON ${displayNumber} saved to the server.`,
           displayNumber,
           title,
           subcopy,
-          type
+          type,
+          lessonDomain
         });
         showTemporaryInlineLearnMoreStatus(lessonEditorInlineStatus, `LESSON ${displayNumber} saved to the server.`);
         return;
@@ -17109,52 +17375,70 @@ This is an alternate test message to show now.`;
     output.textContent = String(input.value || "");
   }
 
-  function populateBaselineQuestionsForm(saved = null) {
-    const response = saved && typeof saved === "object" ? saved : {};
-    if (baselineAgeInput) {
-      baselineAgeInput.value = String(response.age_group || "");
+  function setBaselineQuestionsFormReadOnly(fields, isReadOnly) {
+    if (!fields?.form) {
+      return;
     }
-    setBaselineRadioValue(baselineSexInputs, response.sex);
-    if (baselineBeliefTelepathyInput) {
-      baselineBeliefTelepathyInput.value = String(response.belief_telepathy || "5");
-    }
-    updateBaselineScaleDisplay(baselineBeliefTelepathyInput, baselineBeliefTelepathyValue);
-    if (baselineBeliefPersonalInput) {
-      baselineBeliefPersonalInput.value = String(response.belief_personal || "5");
-    }
-    updateBaselineScaleDisplay(baselineBeliefPersonalInput, baselineBeliefPersonalValue);
-    setBaselineRadioValue(baselineRelatedPsiInputs, response.related_psi);
-    setBaselineRadioValue(baselineExperienceFrequencyInputs, response.experience_frequency);
-    const selectedPhenomena = Array.isArray(response.phenomena) ? response.phenomena.map((item) => String(item || "").trim()) : [];
-    baselinePhenomenonInputs.forEach((input) => {
-      input.checked = selectedPhenomena.includes(String(input.value || "").trim());
+    const disabled = !!isReadOnly;
+    const controls = Array.from(fields.form.querySelectorAll("input, select, textarea, button"));
+    controls.forEach((control) => {
+      control.disabled = disabled;
     });
-    if (baselinePhenomenaOtherInput) {
-      baselinePhenomenaOtherInput.value = String(response.phenomena_other || "");
-    }
-    setBaselineRadioValue(baselinePriorTrainingInputs, response.prior_training);
-    if (baselinePriorSkillsInput) {
-      baselinePriorSkillsInput.value = String(response.prior_skills || "");
-    }
-    setBaselineRadioValue(baselineFurtherResearchInputs, response.further_research);
   }
 
-  function collectBaselineQuestionsFormResponse() {
+  function populateBaselineQuestionsFormFields(fields, saved = null) {
+    if (!fields) {
+      return;
+    }
+    const response = saved && typeof saved === "object" ? saved : {};
+    if (fields.ageInput) {
+      fields.ageInput.value = String(response.age_group || "");
+    }
+    setBaselineRadioValue(fields.sexInputs || [], response.sex);
+    if (fields.beliefTelepathyInput) {
+      fields.beliefTelepathyInput.value = String(response.belief_telepathy || "5");
+    }
+    updateBaselineScaleDisplay(fields.beliefTelepathyInput, fields.beliefTelepathyValue);
+    if (fields.beliefPersonalInput) {
+      fields.beliefPersonalInput.value = String(response.belief_personal || "5");
+    }
+    updateBaselineScaleDisplay(fields.beliefPersonalInput, fields.beliefPersonalValue);
+    setBaselineRadioValue(fields.relatedPsiInputs || [], response.related_psi);
+    setBaselineRadioValue(fields.experienceFrequencyInputs || [], response.experience_frequency);
+    const selectedPhenomena = Array.isArray(response.phenomena) ? response.phenomena.map((item) => String(item || "").trim()) : [];
+    (fields.phenomenonInputs || []).forEach((input) => {
+      input.checked = selectedPhenomena.includes(String(input.value || "").trim());
+    });
+    if (fields.phenomenaOtherInput) {
+      fields.phenomenaOtherInput.value = String(response.phenomena_other || "");
+    }
+    setBaselineRadioValue(fields.priorTrainingInputs || [], response.prior_training);
+    if (fields.priorSkillsInput) {
+      fields.priorSkillsInput.value = String(response.prior_skills || "");
+    }
+    setBaselineRadioValue(fields.furtherResearchInputs || [], response.further_research);
+  }
+
+  function populateBaselineQuestionsForm(saved = null) {
+    populateBaselineQuestionsFormFields(standaloneBaselineFields, saved);
+  }
+
+  function collectBaselineQuestionsFormResponse(fields = standaloneBaselineFields) {
     return {
-      age_group: String(baselineAgeInput?.value || "").trim(),
-      sex: getBaselineRadioValue(baselineSexInputs),
-      belief_telepathy: String(baselineBeliefTelepathyInput?.value || "").trim(),
-      belief_personal: String(baselineBeliefPersonalInput?.value || "").trim(),
-      related_psi: getBaselineRadioValue(baselineRelatedPsiInputs),
-      experience_frequency: getBaselineRadioValue(baselineExperienceFrequencyInputs),
-      phenomena: baselinePhenomenonInputs
+      age_group: String(fields?.ageInput?.value || "").trim(),
+      sex: getBaselineRadioValue(fields?.sexInputs || []),
+      belief_telepathy: String(fields?.beliefTelepathyInput?.value || "").trim(),
+      belief_personal: String(fields?.beliefPersonalInput?.value || "").trim(),
+      related_psi: getBaselineRadioValue(fields?.relatedPsiInputs || []),
+      experience_frequency: getBaselineRadioValue(fields?.experienceFrequencyInputs || []),
+      phenomena: (fields?.phenomenonInputs || [])
         .filter((input) => input.checked)
         .map((input) => String(input.value || "").trim())
         .filter(Boolean),
-      phenomena_other: String(baselinePhenomenaOtherInput?.value || "").trim(),
-      prior_training: getBaselineRadioValue(baselinePriorTrainingInputs),
-      prior_skills: String(baselinePriorSkillsInput?.value || "").trim(),
-      further_research: getBaselineRadioValue(baselineFurtherResearchInputs)
+      phenomena_other: String(fields?.phenomenaOtherInput?.value || "").trim(),
+      prior_training: getBaselineRadioValue(fields?.priorTrainingInputs || []),
+      prior_skills: String(fields?.priorSkillsInput?.value || "").trim(),
+      further_research: getBaselineRadioValue(fields?.furtherResearchInputs || [])
     };
   }
 
@@ -17274,9 +17558,42 @@ This is an alternate test message to show now.`;
       baselineDate.textContent = displayDate;
     }
     populateBaselineQuestionsForm(saved);
+    setBaselineQuestionsFormReadOnly(standaloneBaselineFields, !!saved?.saved_at);
+    if (baselineSaveButton) {
+      baselineSaveButton.disabled = !!saved?.saved_at;
+    }
     if (baselineStatus) {
       baselineStatus.textContent = saved?.saved_at
-        ? `Baseline questions saved for ${displayIdentifier}.`
+        ? `Baseline questions already submitted for ${displayIdentifier}.`
+        : "";
+    }
+  }
+
+  async function renderCourseBaselineQuestionsView() {
+    const state = readLauncherState();
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    if (courseBaselineDate) {
+      courseBaselineDate.textContent = formatOnlineCourseDate();
+    }
+    if (courseBaselineName) {
+      courseBaselineName.textContent = displayIdentifier;
+    }
+    if (courseBaselineStatus) {
+      courseBaselineStatus.textContent = "Loading baseline questions...";
+    }
+    const saved = await readBaselineQuestionsResponse(displayIdentifier);
+    const displayDate = String(saved?.baseline_date || formatOnlineCourseDate()).trim();
+    if (courseBaselineDate) {
+      courseBaselineDate.textContent = displayDate;
+    }
+    populateBaselineQuestionsFormFields(courseBaselineFields, saved);
+    setBaselineQuestionsFormReadOnly(courseBaselineFields, !!saved?.saved_at);
+    if (courseBaselineSaveButton) {
+      courseBaselineSaveButton.disabled = !!saved?.saved_at;
+    }
+    if (courseBaselineStatus) {
+      courseBaselineStatus.textContent = saved?.saved_at
+        ? `Baseline questions already submitted for ${displayIdentifier}.`
         : "";
     }
   }
@@ -17294,10 +17611,42 @@ This is an alternate test message to show now.`;
       baselineStatus.textContent = `Saving baseline questions for ${displayIdentifier}...`;
     }
     await writeBaselineQuestionsResponse(displayIdentifier, payload);
+    setBaselineQuestionsFormReadOnly(standaloneBaselineFields, true);
+    if (baselineSaveButton) {
+      baselineSaveButton.disabled = true;
+    }
     if (baselineStatus) {
-      baselineStatus.textContent = `Baseline questions saved for ${displayIdentifier}.`;
+      baselineStatus.textContent = `Baseline questions submitted for ${displayIdentifier}.`;
     }
     closeBaselineQuestionsView();
+  }
+
+  async function saveCourseBaselineQuestions() {
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(readLauncherState());
+    const displayDate = formatOnlineCourseDate();
+    const payload = {
+      baseline_date: displayDate,
+      identifier: displayIdentifier,
+      saved_at: new Date().toISOString(),
+      ...collectBaselineQuestionsFormResponse(courseBaselineFields)
+    };
+    if (courseBaselineStatus) {
+      courseBaselineStatus.textContent = `Saving baseline questions for ${displayIdentifier}...`;
+    }
+    await writeBaselineQuestionsResponse(displayIdentifier, payload);
+    setBaselineQuestionsFormReadOnly(courseBaselineFields, true);
+    if (courseBaselineSaveButton) {
+      courseBaselineSaveButton.disabled = true;
+    }
+    if (courseBaselineDate) {
+      courseBaselineDate.textContent = displayDate;
+    }
+    if (courseBaselineName) {
+      courseBaselineName.textContent = displayIdentifier;
+    }
+    if (courseBaselineStatus) {
+      courseBaselineStatus.textContent = `Baseline questions submitted for ${displayIdentifier}.`;
+    }
   }
 
   function getAfterFirstSessionPairContext(state = readLauncherState()) {
@@ -17463,67 +17812,12 @@ This is an alternate test message to show now.`;
     closeAfterFirstSessionQuestionsView();
   }
 
-  function buildLearningCenterLessonRow(record) {
-    const normalizedRecord = normalizeLearningCenterLessonRecord(record);
-    if (!normalizedRecord) {
-      return null;
-    }
-    const row = document.createElement("label");
-    row.className = "online-course-lesson-row";
-    row.dataset.lessonId = normalizedRecord.lesson_id;
-    row.dataset.onlineCourseLaunch = normalizedRecord.type;
-    row.id = buildLearningCenterLessonRowId(normalizedRecord.lesson_id);
-
-    const checkbox = document.createElement("input");
-    checkbox.className = "online-course-lesson-checkbox";
-    checkbox.type = "checkbox";
-    checkbox.disabled = false;
-
-    const main = document.createElement("span");
-    main.className = "online-course-lesson-main";
-    if (normalizedRecord.type === "lesson-page" && normalizedRecord.available) {
-      main.classList.add("online-course-lesson-row-clickable");
-      main.tabIndex = 0;
-      main.setAttribute("role", "button");
-      main.dataset.openLearningCenterLesson = normalizedRecord.lesson_id;
-    } else if (normalizedRecord.type === "baseline" || normalizedRecord.type === "after-first-session") {
-      main.classList.add("online-course-lesson-row-clickable");
-      main.tabIndex = 0;
-      main.setAttribute("role", "button");
-    }
-
-    const title = document.createElement("span");
-    title.className = "online-course-lesson-title";
-    title.textContent = `LESSON ${normalizedRecord.display_number} - ${normalizedRecord.title}`;
-    main.appendChild(title);
-
-    if (normalizedRecord.subcopy) {
-      const subcopy = document.createElement("span");
-      subcopy.className = "online-course-lesson-subcopy";
-      subcopy.textContent = normalizedRecord.subcopy;
-      main.appendChild(subcopy);
-    }
-
-    row.appendChild(checkbox);
-    row.appendChild(main);
-    return row;
+  function renderLearningCenterLessonLinks(indexRecords = learningCenterLessonIndex) {
+    renderLearningCenterLessonLinksInto(onlineCourseLessonList, indexRecords, { lessonDomain: "legacy" });
   }
 
-  function renderLearningCenterLessonLinks(indexRecords = learningCenterLessonIndex) {
-    if (!onlineCourseLessonList) {
-      return;
-    }
-    onlineCourseLessonList.innerHTML = "";
-    const normalizedRecords = (Array.isArray(indexRecords) ? indexRecords : [])
-      .map((record) => normalizeLearningCenterLessonRecord(record))
-      .filter(Boolean)
-      .sort((left, right) => compareLearningCenterDisplayNumbers(left.display_number, right.display_number));
-    normalizedRecords.forEach((record) => {
-      const row = buildLearningCenterLessonRow(record);
-      if (row) {
-        onlineCourseLessonList.appendChild(row);
-      }
-    });
+  function renderNewCourseLessonLinks(indexRecords = newLearningCenterLessonIndex) {
+    renderLearningCenterLessonLinksInto(learningCenterCourseLessonList, indexRecords, { lessonDomain: "new-course" });
   }
 
   function normalizeOnlineCourseTabId(tabId = "") {
@@ -17600,9 +17894,200 @@ This is an alternate test message to show now.`;
     if (learningCenterConceptPagination) {
       learningCenterConceptPagination.hidden = normalizedTabId !== "key-concepts";
     }
+    if (learningCenterCoursePagination) {
+      learningCenterCoursePagination.hidden = normalizedTabId !== "course";
+    }
+    if (normalizedTabId === "course") {
+      renderLearningCenterCoursePage(activeLearningCenterCoursePage);
+    }
     if (normalizedTabId === "key-concepts") {
       renderLearningCenterConceptPage(activeLearningCenterConceptPage);
     }
+  }
+
+  function getLearningCenterCoursePageCount() {
+    return Math.max(1, learningCenterCoursePageContent.length);
+  }
+
+  function renderLearningCenterCoursePagination(pageCount, currentPage) {
+    if (!learningCenterCoursePages) {
+      return;
+    }
+    learningCenterCoursePages.replaceChildren();
+    buildLearningCenterConceptPageSequence(pageCount, currentPage).forEach((entry) => {
+      if (entry === "ellipsis") {
+        const ellipsis = document.createElement("span");
+        ellipsis.className = "learning-center-pagination-ellipsis";
+        ellipsis.textContent = "...";
+        ellipsis.setAttribute("aria-hidden", "true");
+        learningCenterCoursePages.appendChild(ellipsis);
+        return;
+      }
+      const pageButton = document.createElement("button");
+      pageButton.type = "button";
+      pageButton.className = "learning-center-pagination-page";
+      pageButton.textContent = String(entry);
+      if (entry === currentPage) {
+        pageButton.classList.add("learning-center-pagination-page-active");
+        pageButton.setAttribute("aria-current", "page");
+      } else {
+        pageButton.addEventListener("click", () => {
+          renderLearningCenterCoursePage(entry);
+          const targetScrollY = getLearningCenterTabsTopScrollY();
+          window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+        });
+      }
+      learningCenterCoursePages.appendChild(pageButton);
+    });
+  }
+
+  function handleLearningCenterAction(action, triggerButton = null) {
+    switch (action) {
+      case "telepathy-practice":
+        showLauncherView();
+        return;
+      case "concept-telepathy":
+      case "concept-sender":
+      case "concept-receiver":
+      case "concept-minds-eye":
+      case "concept-chance-performance":
+      case "concept-positive-reinforcement":
+      case "concept-trouble-with-statistics":
+      case "concept-everything-is-connected":
+      case "concept-dont-worry-how-this-works":
+      case "concept-lack-of-fusion":
+      case "concept-remember-objects-and-their-locations":
+      case "concept-telepathy-is-real":
+      case "concept-bits-and-pieces":
+        showLearningCenterConceptDetailView(action, triggerButton);
+        return;
+      case "guided-receiver-tour":
+        startLauncherGuidedTour("receiver");
+        return;
+      case "guided-sender-tour":
+        startLauncherGuidedTour("sender");
+        return;
+      case "baseline":
+        showLearningCenterView({ view: "learning-center", tab: "course" });
+        renderLearningCenterCoursePage(3);
+        window.setTimeout(() => {
+          window.scrollTo({ top: getLearningCenterTabsTopScrollY(), behavior: "smooth" });
+        }, 0);
+        return;
+      case "after-first-session":
+        showAfterFirstSessionQuestionsView({ view: "learning-center" });
+        return;
+      case "general-information":
+        showGeneralInformationView();
+        return;
+      case "case-studies":
+        showCaseStudiesListView();
+        return;
+      case "readings-videos":
+        showReadingsVideosView();
+        return;
+      case "setup-features":
+      case "claim-name":
+      case "install-app":
+      case "review-location":
+      case "partner-messaging":
+        showFeatureSetupView();
+        return;
+      case "receiver-role":
+        showRoleCourseTarget("receiver");
+        return;
+      case "sender-role":
+        showRoleCourseTarget("sender");
+        return;
+      case "remote-viewing":
+        showClairvoyanceViewingView();
+        return;
+      case "performance-reports":
+        showReportDefinitionView();
+        return;
+      case "research-participation":
+        showResearchParticipationView();
+        return;
+      case "research-proposal":
+        showResearchProposalView("learning-center");
+        return;
+      case "telepathy-pro":
+        showGoProView("learning-center");
+        return;
+      case "telepathy-pro-includes":
+        showGoProIncludesView("learning-center");
+        return;
+      case "user-guide":
+        showHelpView();
+        return;
+      case "about":
+        showAboutView();
+        return;
+      case "contact":
+        showContactView("learning-center");
+        return;
+      case "old-learning-center":
+        showOnlineCourseView({ view: "learning-center" });
+        return;
+      default:
+        return;
+    }
+  }
+
+  function renderLearningCenterCoursePage(pageNumber = 1) {
+    const pageCount = getLearningCenterCoursePageCount();
+    const normalizedPage = Math.min(pageCount, Math.max(1, Number(pageNumber || 1) || 1));
+    activeLearningCenterCoursePage = normalizedPage;
+    const content = learningCenterCoursePageContent[normalizedPage - 1] || learningCenterCoursePageContent[0];
+    const isBaselinePage = normalizedPage === 3;
+    const isLessonListPage = normalizedPage === 4;
+    if (learningCenterCourseTitle) {
+      learningCenterCourseTitle.hidden = isBaselinePage || isLessonListPage;
+      learningCenterCourseTitle.textContent = String(content?.title || "COURSE").trim() || "COURSE";
+    }
+    if (learningCenterCourseCopy) {
+      learningCenterCourseCopy.hidden = isBaselinePage || isLessonListPage;
+      learningCenterCourseCopy.innerHTML = (Array.isArray(content?.paragraphs) ? content.paragraphs : [])
+        .map((paragraph) => `<p class="about-section-copy">${escapeHtml(paragraph)}</p>`)
+        .join("");
+    }
+    if (learningCenterCourseActions) {
+      learningCenterCourseActions.replaceChildren();
+      const actions = Array.isArray(content?.actions) ? content.actions : [];
+      learningCenterCourseActions.hidden = isBaselinePage || isLessonListPage || actions.length === 0;
+      actions.forEach((actionItem) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "role-note-link online-course-jump-link";
+        button.textContent = String(actionItem?.label || "").trim();
+        button.addEventListener("click", () => {
+          handleLearningCenterAction(String(actionItem?.action || "").trim());
+        });
+        learningCenterCourseActions.appendChild(button);
+      });
+    }
+    if (learningCenterCourseBaselineSection) {
+      learningCenterCourseBaselineSection.hidden = !isBaselinePage;
+      if (isBaselinePage) {
+        void renderCourseBaselineQuestionsView();
+      }
+    }
+    if (learningCenterCourseLessonListSection) {
+      learningCenterCourseLessonListSection.hidden = !isLessonListPage;
+      if (isLessonListPage) {
+        renderNewCourseLessonLinks(newLearningCenterLessonIndex);
+      }
+    }
+    if (learningCenterCoursePagination && activeLearningCenterTab === "course") {
+      learningCenterCoursePagination.hidden = pageCount <= 1;
+    }
+    if (learningCenterCoursePreviousButton) {
+      learningCenterCoursePreviousButton.disabled = normalizedPage <= 1;
+    }
+    if (learningCenterCourseNextButton) {
+      learningCenterCourseNextButton.disabled = normalizedPage >= pageCount;
+    }
+    renderLearningCenterCoursePagination(pageCount, normalizedPage);
   }
 
   function getLearningCenterConceptPageCount() {
@@ -17741,6 +18226,15 @@ This is an alternate test message to show now.`;
       return false;
     }
     const launchMode = String(rowWrap.getAttribute("data-online-course-launch") || "").trim().toLowerCase();
+    const lessonDomain = normalizeLessonDomain(
+      rowWrap.getAttribute("data-lesson-domain")
+      || row.getAttribute?.("data-lesson-domain")
+      || activeLearningCenterLessonDomain
+      || "legacy"
+    );
+    const isNewCourseLesson = lessonDomain === "new-course" || !!rowWrap.closest("[data-learning-center-course-lesson-list-section]");
+    const returnView = isNewCourseLesson ? "learning-center" : "online-course";
+    const returnTab = isNewCourseLesson ? "course" : "";
     const rowFocusId = String(rowWrap.id || "").trim();
     const currentScrollY = Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0);
     if (launchMode === "baseline") {
@@ -17764,20 +18258,28 @@ This is an alternate test message to show now.`;
       return false;
     }
     void showLearningCenterLessonDetail(lessonId, {
-      view: "online-course",
+      view: returnView,
+      tab: returnTab,
       scrollY: currentScrollY,
-      focusId: rowFocusId || buildLearningCenterLessonRowId(lessonId)
+      focusId: rowFocusId || buildLearningCenterLessonRowId(lessonId),
+      lessonDomain
     });
     return true;
   }
 
   async function refreshLearningCenterLessonIndex() {
     try {
-      learningCenterLessonIndex = await fetchLearningCenterLessonIndex();
+      learningCenterLessonIndex = await fetchLearningCenterLessonIndex("legacy");
     } catch (error) {
       learningCenterLessonIndex = [];
     }
     renderLearningCenterLessonLinks(learningCenterLessonIndex);
+    try {
+      newLearningCenterLessonIndex = await fetchLearningCenterLessonIndex("new-course");
+    } catch (error) {
+      newLearningCenterLessonIndex = [];
+    }
+    renderNewCourseLessonLinks(newLearningCenterLessonIndex);
     if (pendingOnlineCourseRestoreFocusId) {
       const focusId = pendingOnlineCourseRestoreFocusId;
       pendingOnlineCourseRestoreFocusId = "";
@@ -17958,6 +18460,7 @@ This is an alternate test message to show now.`;
     } else {
       setLearningCenterTab(activeLearningCenterTab || "welcome");
     }
+    void refreshLearningCenterLessonIndex();
     learningCenterView?.classList.remove("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
@@ -18018,8 +18521,19 @@ This is an alternate test message to show now.`;
       learningCenterConceptTitle.textContent = content.title;
     }
     if (learningCenterConceptCopy) {
+      const isPositiveReinforcement = actionKey === "concept-positive-reinforcement";
+      learningCenterConceptCopy.classList.toggle("learning-center-positive-reinforcement-copy", isPositiveReinforcement);
       learningCenterConceptCopy.innerHTML = content.paragraphs
-        .map((paragraph) => `<p class="about-section-copy">${escapeHtml(paragraph)}</p>`)
+        .map((paragraph, index) => {
+          const classes = ["about-section-copy"];
+          if (isPositiveReinforcement) {
+            classes.push("learning-center-positive-reinforcement-paragraph");
+            if (index === 0) {
+              classes.push("learning-center-positive-reinforcement-lead");
+            }
+          }
+          return `<p class="${classes.join(" ")}">${escapeHtml(paragraph)}</p>`;
+        })
         .join("");
     }
   }
@@ -19348,9 +19862,14 @@ This is an alternate test message to show now.`;
 
     function renderLessonIndexAdminView() {
       const rows = Array.isArray(launcherAdminState.lesson_index) ? launcherAdminState.lesson_index : [];
+      const domainLabel = getLessonDomainLabel(activeLessonIndexAdminDomain);
+
+      if (lessonIndexAdminTitle) {
+        lessonIndexAdminTitle.textContent = activeLessonIndexAdminDomain === "new-course" ? "New Lesson Index" : "Old Lesson Index";
+      }
 
       if (lessonIndexAdminSummary) {
-        lessonIndexAdminSummary.textContent = `${rows.length} lesson row${rows.length === 1 ? "" : "s"} found. Lesson ids, numbers, titles, and subcopy can be edited here.`;
+        lessonIndexAdminSummary.textContent = `${rows.length} ${domainLabel} lesson row${rows.length === 1 ? "" : "s"} found. Lesson ids, numbers, titles, and subcopy can be edited here.`;
       }
       if (lessonIndexAdminStatus && !String(lessonIndexAdminStatus.textContent || "").trim()) {
         lessonIndexAdminStatus.textContent = rows.length ? "" : "No lesson-index rows are available right now.";
@@ -19394,7 +19913,7 @@ This is an alternate test message to show now.`;
         const originalLessonId = String(rowElement.getAttribute("data-lesson-index-original-id") || rowElement.getAttribute("data-lesson-index-row") || "").trim();
         const lessonId = String(rowElement.querySelector('[data-lesson-index-field="lesson_id"]')?.value || originalLessonId).trim();
         const normalizedOriginalLessonId = normalizeLearningCenterLessonId(originalLessonId);
-        const existingRecord = getLearningCenterLessonRecordById(normalizedOriginalLessonId, launcherAdminState.lesson_index || learningCenterLessonIndex) || {};
+        const existingRecord = getLearningCenterLessonRecordById(normalizedOriginalLessonId, launcherAdminState.lesson_index || getLessonDomainIndex(activeLessonIndexAdminDomain)) || {};
         const displayNumber = String(rowElement.querySelector('[data-lesson-index-field="display_number"]')?.value || "").trim();
         const title = String(rowElement.querySelector('[data-lesson-index-field="title"]')?.value || "").trim();
         const subcopy = String(rowElement.querySelector('[data-lesson-index-field="subcopy"]')?.value || "").trim();
@@ -19432,7 +19951,7 @@ This is an alternate test message to show now.`;
         if (!oldKey || contentByOldKey.has(oldKey)) {
           continue;
         }
-        const existing = await fetchEditableContentFromServer(oldKey);
+        const existing = await fetchEditableContentFromServer(oldKey, { lessonDomain: activeLessonIndexAdminDomain });
         contentByOldKey.set(oldKey, typeof existing?.content === "string" ? existing.content : "");
       }
       for (const row of renameRows) {
@@ -19441,7 +19960,7 @@ This is an alternate test message to show now.`;
         if (!oldKey || !newKey || oldKey === newKey) {
           continue;
         }
-        await saveEditableContentToServer(newKey, contentByOldKey.get(oldKey) || "");
+        await saveEditableContentToServer(newKey, contentByOldKey.get(oldKey) || "", { lessonDomain: activeLessonIndexAdminDomain });
       }
       return normalizedRows;
     }
@@ -19467,7 +19986,7 @@ This is an alternate test message to show now.`;
         if (!oldKey || finalKeys.has(oldKey)) {
           continue;
         }
-        await deleteEditableContentFromServer(oldKey);
+        await deleteEditableContentFromServer(oldKey, { lessonDomain: activeLessonIndexAdminDomain });
       }
     }
 
@@ -19750,6 +20269,10 @@ This is an alternate test message to show now.`;
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     adminView?.classList.remove("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
@@ -19778,6 +20301,8 @@ This is an alternate test message to show now.`;
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
@@ -20227,8 +20752,18 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function showLessonIndexAdminView() {
+  function showLessonIndexAdminView(domain = "legacy") {
+    activeLessonIndexAdminDomain = normalizeLessonDomain(domain);
     lessonIndexAdminView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
@@ -20241,18 +20776,48 @@ This is an alternate test message to show now.`;
     settingsView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    beginnerUserManualView?.classList.add("beginner-view-hidden");
+    proUserManualView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
+    goProIncludesView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    giftProSubscriptionView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
+    messagingParmsAdminView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
+    subscriptionsAdminView?.classList.add("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
+    afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.add("beginner-view-hidden");
+    messagesView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderLessonIndexAdminView();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -20263,9 +20828,9 @@ This is an alternate test message to show now.`;
     if (lessonIndexAdminStatus && !preserveStatus) {
       lessonIndexAdminStatus.textContent = "Loading lesson index...";
     }
-    const rows = await fetchLearningCenterLessonIndex();
+    const rows = await fetchLearningCenterLessonIndex(activeLessonIndexAdminDomain);
     launcherAdminState.lesson_index = Array.isArray(rows) ? rows : [];
-    learningCenterLessonIndex = Array.isArray(rows) ? rows : learningCenterLessonIndex;
+    setLessonDomainIndex(activeLessonIndexAdminDomain, Array.isArray(rows) ? rows : getLessonDomainIndex(activeLessonIndexAdminDomain));
     renderLessonIndexAdminView();
     if (lessonIndexAdminStatus) {
       lessonIndexAdminStatus.textContent = rows.length ? "" : "No lesson-index rows are available right now.";
@@ -24079,7 +24644,8 @@ This is an alternate test message to show now.`;
   openOldLearningCenterButton?.addEventListener("click", () => {
     showOnlineCourseView({ view: "admin" });
   });
-  openLessonEditorButton?.addEventListener("click", showLessonEditorView);
+  openLessonEditorButton?.addEventListener("click", () => showLessonEditorView("legacy"));
+  openNewLessonEditorButton?.addEventListener("click", () => showLessonEditorView("new-course"));
   openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
   openOnlineCourseButton?.addEventListener("click", () => {
     showLearningCenterView({ view: "aids" });
@@ -24121,95 +24687,27 @@ This is an alternate test message to show now.`;
     const targetScrollY = getLearningCenterTabsTopScrollY();
     window.scrollTo({ top: targetScrollY, behavior: "smooth" });
   });
+  learningCenterCoursePreviousButton?.addEventListener("click", () => {
+    if (activeLearningCenterCoursePage <= 1) {
+      return;
+    }
+    renderLearningCenterCoursePage(activeLearningCenterCoursePage - 1);
+    const targetScrollY = getLearningCenterTabsTopScrollY();
+    window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+  });
+  learningCenterCourseNextButton?.addEventListener("click", () => {
+    const pageCount = getLearningCenterCoursePageCount();
+    if (activeLearningCenterCoursePage >= pageCount) {
+      return;
+    }
+    renderLearningCenterCoursePage(activeLearningCenterCoursePage + 1);
+    const targetScrollY = getLearningCenterTabsTopScrollY();
+    window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+  });
   learningCenterActionButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const action = String(button.dataset.learningCenterAction || "").trim();
-      switch (action) {
-        case "telepathy-practice":
-          showLauncherView();
-          break;
-        case "concept-telepathy":
-        case "concept-sender":
-        case "concept-receiver":
-        case "concept-minds-eye":
-        case "concept-chance-performance":
-        case "concept-positive-reinforcement":
-        case "concept-trouble-with-statistics":
-        case "concept-everything-is-connected":
-        case "concept-dont-worry-how-this-works":
-        case "concept-lack-of-fusion":
-        case "concept-remember-objects-and-their-locations":
-        case "concept-telepathy-is-real":
-        case "concept-bits-and-pieces":
-          showLearningCenterConceptDetailView(action, button);
-          break;
-        case "guided-receiver-tour":
-          startLauncherGuidedTour("receiver");
-          break;
-        case "guided-sender-tour":
-          startLauncherGuidedTour("sender");
-          break;
-        case "baseline":
-          showBaselineQuestionsView({ view: "learning-center" });
-          break;
-        case "after-first-session":
-          showAfterFirstSessionQuestionsView({ view: "learning-center" });
-          break;
-        case "general-information":
-          showGeneralInformationView();
-          break;
-        case "case-studies":
-          showCaseStudiesListView();
-          break;
-        case "readings-videos":
-          showReadingsVideosView();
-          break;
-        case "setup-features":
-        case "claim-name":
-        case "install-app":
-        case "review-location":
-        case "partner-messaging":
-          showFeatureSetupView();
-          break;
-        case "receiver-role":
-          showRoleCourseTarget("receiver");
-          break;
-        case "sender-role":
-          showRoleCourseTarget("sender");
-          break;
-        case "remote-viewing":
-          showClairvoyanceViewingView();
-          break;
-        case "performance-reports":
-          showReportDefinitionView();
-          break;
-        case "research-participation":
-          showResearchParticipationView();
-          break;
-        case "research-proposal":
-          showResearchProposalView("learning-center");
-          break;
-        case "telepathy-pro":
-          showGoProView("learning-center");
-          break;
-        case "telepathy-pro-includes":
-          showGoProIncludesView("learning-center");
-          break;
-        case "user-guide":
-          showHelpView();
-          break;
-        case "about":
-          showAboutView();
-          break;
-        case "contact":
-          showContactView("learning-center");
-          break;
-        case "old-learning-center":
-          showOnlineCourseView({ view: "learning-center" });
-          break;
-        default:
-          break;
-      }
+      handleLearningCenterAction(action, button);
     });
   });
   onlineCourseTabButtons.forEach((button) => {
@@ -24284,6 +24782,27 @@ This is an alternate test message to show now.`;
     event.preventDefault();
     openLearningCenterRowTarget(target);
   });
+  learningCenterCourseLessonList?.addEventListener("click", (event) => {
+    const clickableMain = event.target instanceof Element ? event.target.closest(".online-course-lesson-main.online-course-lesson-row-clickable") : null;
+    if (!clickableMain) {
+      return;
+    }
+    if (event.target instanceof Element && event.target.closest(".online-course-lesson-checkbox")) {
+      return;
+    }
+    openLearningCenterRowTarget(clickableMain);
+  });
+  learningCenterCourseLessonList?.addEventListener("keydown", (event) => {
+    const target = event.target instanceof Element ? event.target.closest(".online-course-lesson-main.online-course-lesson-row-clickable") : null;
+    if (!target) {
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    openLearningCenterRowTarget(target);
+  });
   onlineCourseTargetButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const target = String(button.dataset.onlineCourseTarget || "").trim();
@@ -24314,7 +24833,7 @@ This is an alternate test message to show now.`;
   closeOptionsButtons.forEach((button) => {
     button.addEventListener("click", showLauncherView);
   });
-  closeLessonEditorButton?.addEventListener("click", showLauncherView);
+  closeLessonEditorButton?.addEventListener("click", showAdminView);
   saveLessonEditorButton?.addEventListener("click", saveLessonEditorContent);
   lessonEditorTextInput?.addEventListener("input", () => {
     if (lessonEditorStatus) {
@@ -24518,11 +25037,32 @@ This is an alternate test message to show now.`;
       if (adminStatus) {
         adminStatus.textContent = "Loading lesson index...";
       }
+      activeLessonIndexAdminDomain = "legacy";
       await refreshLessonIndexAdminView();
       if (adminStatus) {
         adminStatus.textContent = "";
       }
-      showLessonIndexAdminView();
+      showLessonIndexAdminView("legacy");
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to load the lesson index right now.";
+      }
+    }
+  });
+  openNewLessonIndexAdminButton?.addEventListener("click", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      if (adminStatus) {
+        adminStatus.textContent = "Loading lesson index...";
+      }
+      activeLessonIndexAdminDomain = "new-course";
+      await refreshLessonIndexAdminView();
+      if (adminStatus) {
+        adminStatus.textContent = "";
+      }
+      showLessonIndexAdminView("new-course");
     } catch (error) {
       if (adminStatus) {
         adminStatus.textContent = "Unable to load the lesson index right now.";
@@ -24797,7 +25337,14 @@ This is an alternate test message to show now.`;
   baselineBeliefPersonalInput?.addEventListener("input", () => {
     updateBaselineScaleDisplay(baselineBeliefPersonalInput, baselineBeliefPersonalValue);
   });
+  courseBaselineBeliefTelepathyInput?.addEventListener("input", () => {
+    updateBaselineScaleDisplay(courseBaselineBeliefTelepathyInput, courseBaselineBeliefTelepathyValue);
+  });
+  courseBaselineBeliefPersonalInput?.addEventListener("input", () => {
+    updateBaselineScaleDisplay(courseBaselineBeliefPersonalInput, courseBaselineBeliefPersonalValue);
+  });
   baselineSaveButton?.addEventListener("click", saveBaselineQuestions);
+  courseBaselineSaveButton?.addEventListener("click", saveCourseBaselineQuestions);
   afterFirstSessionSaveButton?.addEventListener("click", saveAfterFirstSessionQuestions);
   temporaryHomePageContinueButton?.addEventListener("click", () => {
     void continueFromLandingPage();
@@ -25955,10 +26502,15 @@ This is an alternate test message to show now.`;
       }
       const rows = collectLessonIndexAdminRows();
       const migratedRows = await applyLearningCenterLessonIdChanges(rows);
-      learningCenterLessonIndex = await saveLearningCenterOutlineToServer(migratedRows);
+      const savedIndex = await saveLearningCenterOutlineToServer(migratedRows, activeLessonIndexAdminDomain);
       await cleanupRenamedLearningCenterLessonContent(migratedRows);
-      launcherAdminState.lesson_index = Array.isArray(learningCenterLessonIndex) ? learningCenterLessonIndex : [];
-      renderLearningCenterLessonLinks(learningCenterLessonIndex);
+      setLessonDomainIndex(activeLessonIndexAdminDomain, savedIndex);
+      launcherAdminState.lesson_index = Array.isArray(savedIndex) ? savedIndex : [];
+      if (activeLessonIndexAdminDomain === "new-course") {
+        renderNewCourseLessonLinks(savedIndex);
+      } else {
+        renderLearningCenterLessonLinks(savedIndex);
+      }
       renderLessonIndexAdminView();
       if (lessonIndexAdminStatus) {
         lessonIndexAdminStatus.textContent = "Lesson index saved to the server.";
@@ -25978,7 +26530,7 @@ This is an alternate test message to show now.`;
     if (!lessonId) {
       return;
     }
-    const existingRecord = getLearningCenterLessonRecordById(lessonId, launcherAdminState.lesson_index || learningCenterLessonIndex);
+    const existingRecord = getLearningCenterLessonRecordById(lessonId, launcherAdminState.lesson_index || getLessonDomainIndex(activeLessonIndexAdminDomain));
     const displayNumber = String(existingRecord?.display_number || "").trim();
     const title = String(existingRecord?.title || "").trim();
     const confirmed = window.confirm(`Delete LESSON ${displayNumber || "?"} ${title ? `- ${title}` : ""}?\n\nThis removes the lesson from the Learning Center outline and deletes its saved lesson page content.`);
@@ -25989,13 +26541,18 @@ This is an alternate test message to show now.`;
       if (lessonIndexAdminStatus) {
         lessonIndexAdminStatus.textContent = `Deleting LESSON ${displayNumber || lessonId}...`;
       }
-      const remainingRows = (Array.isArray(launcherAdminState.lesson_index) ? launcherAdminState.lesson_index : learningCenterLessonIndex)
+      const remainingRows = (Array.isArray(launcherAdminState.lesson_index) ? launcherAdminState.lesson_index : getLessonDomainIndex(activeLessonIndexAdminDomain))
         .filter((row) => normalizeLearningCenterLessonId(row?.lesson_id) !== normalizeLearningCenterLessonId(lessonId));
-      await saveLearningCenterOutlineToServer(remainingRows);
-      await deleteEditableContentFromServer(buildLearningCenterLessonContentKey(lessonId));
-      learningCenterLessonIndex = await fetchLearningCenterLessonIndex();
-      launcherAdminState.lesson_index = Array.isArray(learningCenterLessonIndex) ? learningCenterLessonIndex : [];
-      renderLearningCenterLessonLinks(learningCenterLessonIndex);
+      await saveLearningCenterOutlineToServer(remainingRows, activeLessonIndexAdminDomain);
+      await deleteEditableContentFromServer(buildLearningCenterLessonContentKey(lessonId), { lessonDomain: activeLessonIndexAdminDomain });
+      const refreshedIndex = await fetchLearningCenterLessonIndex(activeLessonIndexAdminDomain);
+      setLessonDomainIndex(activeLessonIndexAdminDomain, refreshedIndex);
+      launcherAdminState.lesson_index = Array.isArray(refreshedIndex) ? refreshedIndex : [];
+      if (activeLessonIndexAdminDomain === "new-course") {
+        renderNewCourseLessonLinks(refreshedIndex);
+      } else {
+        renderLearningCenterLessonLinks(refreshedIndex);
+      }
       renderLessonIndexAdminView();
       if (lessonIndexAdminStatus) {
         lessonIndexAdminStatus.textContent = `LESSON ${displayNumber || lessonId} deleted from the server.`;

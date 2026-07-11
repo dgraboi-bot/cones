@@ -40,9 +40,13 @@ $contentDir = $privateRoot . DIRECTORY_SEPARATOR . 'content';
 $questionnaireResponsesDir = $contentDir . DIRECTORY_SEPARATOR . 'questionnaires';
 $learningCenterLessonsDir = $contentDir . DIRECTORY_SEPARATOR . 'learning-center-lessons';
 $learningCenterOutlineFile = $contentDir . DIRECTORY_SEPARATOR . 'learning-center-outline.json';
+$newLearningCenterLessonsDir = $contentDir . DIRECTORY_SEPARATOR . 'new-learning-center-lessons';
+$newLearningCenterOutlineFile = $contentDir . DIRECTORY_SEPARATOR . 'new-learning-center-outline.json';
 $contentRepoDir = __DIR__ . DIRECTORY_SEPARATOR . 'content_repo';
 $contentRepoLessonsDir = $contentRepoDir . DIRECTORY_SEPARATOR . 'learning-center-lessons';
 $learningCenterOutlineRepoFile = $contentRepoDir . DIRECTORY_SEPARATOR . 'learning-center-outline.json';
+$newContentRepoLessonsDir = $contentRepoDir . DIRECTORY_SEPARATOR . 'new-learning-center-lessons';
+$newLearningCenterOutlineRepoFile = $contentRepoDir . DIRECTORY_SEPARATOR . 'new-learning-center-outline.json';
 $pairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'pairs';
 $simulationPairsDir = $privateRoot . DIRECTORY_SEPARATOR . 'simulation_pairs';
 $webPushConfigFile = $configDir . DIRECTORY_SEPARATOR . 'webpush.json';
@@ -1492,7 +1496,12 @@ function get_default_learn_more_content(string $contentKey): string
 
 function get_learn_more_content_path(string $contentKey): string
 {
-    global $learnMoreContentFile, $clairvoyanceLearnMoreContentFile, $espLessonsContentFile, $learningCenterLessonsDir, $learningCenterOutlineFile;
+    global $learnMoreContentFile, $clairvoyanceLearnMoreContentFile, $espLessonsContentFile, $learningCenterLessonsDir, $learningCenterOutlineFile, $newLearningCenterLessonsDir, $newLearningCenterOutlineFile;
+
+    global $currentLessonDomain;
+    $lessonDomain = normalize_lesson_domain($currentLessonDomain ?? 'legacy');
+    $resolvedLessonsDir = $lessonDomain === 'new-course' ? $newLearningCenterLessonsDir : $learningCenterLessonsDir;
+    $resolvedOutlineFile = $lessonDomain === 'new-course' ? $newLearningCenterOutlineFile : $learningCenterOutlineFile;
 
     if ($contentKey === 'main') {
         return $learnMoreContentFile;
@@ -1504,26 +1513,31 @@ function get_learn_more_content_path(string $contentKey): string
         return $espLessonsContentFile;
     }
     if ($contentKey === 'learning-center-outline') {
-        return $learningCenterOutlineFile;
+        return $resolvedOutlineFile;
     }
     if (preg_match('/^lesson-(\d{1,4})$/', $contentKey, $matches)) {
-        if (!is_dir($learningCenterLessonsDir)) {
-            @mkdir($learningCenterLessonsDir, 0775, true);
+        if (!is_dir($resolvedLessonsDir)) {
+            @mkdir($resolvedLessonsDir, 0775, true);
         }
-        return $learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lesson-' . (string) ((int) $matches[1]) . '.txt';
+        return $resolvedLessonsDir . DIRECTORY_SEPARATOR . 'lesson-' . (string) ((int) $matches[1]) . '.txt';
     }
     if (preg_match('/^lesson-id:([a-z0-9-]{1,80})$/', $contentKey, $matches)) {
-        if (!is_dir($learningCenterLessonsDir)) {
-            @mkdir($learningCenterLessonsDir, 0775, true);
+        if (!is_dir($resolvedLessonsDir)) {
+            @mkdir($resolvedLessonsDir, 0775, true);
         }
-        return $learningCenterLessonsDir . DIRECTORY_SEPARATOR . trim((string) $matches[1]) . '.txt';
+        return $resolvedLessonsDir . DIRECTORY_SEPARATOR . trim((string) $matches[1]) . '.txt';
     }
     return '';
 }
 
 function get_learn_more_repo_content_path(string $contentKey): string
 {
-    global $learnMoreContentRepoFile, $clairvoyanceLearnMoreContentRepoFile, $espLessonsContentRepoFile, $contentRepoLessonsDir, $learningCenterOutlineRepoFile;
+    global $learnMoreContentRepoFile, $clairvoyanceLearnMoreContentRepoFile, $espLessonsContentRepoFile, $contentRepoLessonsDir, $learningCenterOutlineRepoFile, $newContentRepoLessonsDir, $newLearningCenterOutlineRepoFile;
+
+    global $currentLessonDomain;
+    $lessonDomain = normalize_lesson_domain($currentLessonDomain ?? 'legacy');
+    $resolvedLessonsDir = $lessonDomain === 'new-course' ? $newContentRepoLessonsDir : $contentRepoLessonsDir;
+    $resolvedOutlineFile = $lessonDomain === 'new-course' ? $newLearningCenterOutlineRepoFile : $learningCenterOutlineRepoFile;
 
     if ($contentKey === 'main') {
         return $learnMoreContentRepoFile;
@@ -1535,21 +1549,27 @@ function get_learn_more_repo_content_path(string $contentKey): string
         return $espLessonsContentRepoFile;
     }
     if ($contentKey === 'learning-center-outline') {
-        return $learningCenterOutlineRepoFile;
+        return $resolvedOutlineFile;
     }
     if (preg_match('/^lesson-(\d{1,4})$/', $contentKey, $matches)) {
-        if (!is_dir($contentRepoLessonsDir)) {
-            @mkdir($contentRepoLessonsDir, 0775, true);
+        if (!is_dir($resolvedLessonsDir)) {
+            @mkdir($resolvedLessonsDir, 0775, true);
         }
-        return $contentRepoLessonsDir . DIRECTORY_SEPARATOR . 'lesson-' . (string) ((int) $matches[1]) . '.txt';
+        return $resolvedLessonsDir . DIRECTORY_SEPARATOR . 'lesson-' . (string) ((int) $matches[1]) . '.txt';
     }
     if (preg_match('/^lesson-id:([a-z0-9-]{1,80})$/', $contentKey, $matches)) {
-        if (!is_dir($contentRepoLessonsDir)) {
-            @mkdir($contentRepoLessonsDir, 0775, true);
+        if (!is_dir($resolvedLessonsDir)) {
+            @mkdir($resolvedLessonsDir, 0775, true);
         }
-        return $contentRepoLessonsDir . DIRECTORY_SEPARATOR . trim((string) $matches[1]) . '.txt';
+        return $resolvedLessonsDir . DIRECTORY_SEPARATOR . trim((string) $matches[1]) . '.txt';
     }
     return '';
+}
+
+function normalize_lesson_domain($value): string
+{
+    $domain = strtolower(trim((string) $value));
+    return $domain === 'new-course' ? 'new-course' : 'legacy';
 }
 
 function ensure_parent_directory(string $path): void
@@ -1781,9 +1801,10 @@ function write_learning_center_outline_file(string $path, array $outline, string
     }
 }
 
-function load_learning_center_outline(): array
+function load_learning_center_outline(string $lessonDomain = 'legacy'): array
 {
     $contentKey = 'learning-center-outline';
+    $GLOBALS['currentLessonDomain'] = normalize_lesson_domain($lessonDomain);
     ensure_learn_more_content_seeded($contentKey);
     $record = read_learning_center_outline_file(get_learn_more_content_path($contentKey));
     return (array) ($record['outline'] ?? ['version' => 1, 'rows' => []]);
@@ -1817,29 +1838,37 @@ function get_learning_center_outline_row_by_display_number(array $outline, strin
     return null;
 }
 
-function ensure_learning_center_lessons_seeded(): void
+function ensure_learning_center_lessons_seeded(string $lessonDomain = 'legacy'): void
 {
-    global $learningCenterLessonsDir, $contentRepoLessonsDir;
+    global $learningCenterLessonsDir, $contentRepoLessonsDir, $newLearningCenterLessonsDir, $newContentRepoLessonsDir;
 
-    if (!is_dir($learningCenterLessonsDir)) {
-        @mkdir($learningCenterLessonsDir, 0775, true);
+    $normalizedDomain = normalize_lesson_domain($lessonDomain);
+    $resolvedPrivateDir = $normalizedDomain === 'new-course' ? $newLearningCenterLessonsDir : $learningCenterLessonsDir;
+    $resolvedRepoDir = $normalizedDomain === 'new-course' ? $newContentRepoLessonsDir : $contentRepoLessonsDir;
+
+    if (!is_dir($resolvedPrivateDir)) {
+        @mkdir($resolvedPrivateDir, 0775, true);
     }
-    if (!is_dir($contentRepoLessonsDir)) {
-        @mkdir($contentRepoLessonsDir, 0775, true);
+    if (!is_dir($resolvedRepoDir)) {
+        @mkdir($resolvedRepoDir, 0775, true);
     }
 
-    $privateMatches = glob($learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lesson-*.txt') ?: [];
+    $privateMatches = glob($resolvedPrivateDir . DIRECTORY_SEPARATOR . '*.txt') ?: [];
     foreach ($privateMatches as $privatePath) {
         $name = basename((string) $privatePath);
-        $repoPath = $contentRepoLessonsDir . DIRECTORY_SEPARATOR . $name;
+        $repoPath = $resolvedRepoDir . DIRECTORY_SEPARATOR . $name;
         copy_file_if_missing($privatePath, $repoPath);
     }
 
-    $repoMatches = glob($contentRepoLessonsDir . DIRECTORY_SEPARATOR . 'lesson-*.txt') ?: [];
+    $repoMatches = glob($resolvedRepoDir . DIRECTORY_SEPARATOR . '*.txt') ?: [];
     foreach ($repoMatches as $repoPath) {
         $name = basename((string) $repoPath);
-        $privatePath = $learningCenterLessonsDir . DIRECTORY_SEPARATOR . $name;
+        $privatePath = $resolvedPrivateDir . DIRECTORY_SEPARATOR . $name;
         copy_file_if_missing($repoPath, $privatePath);
+    }
+
+    if ($normalizedDomain === 'new-course') {
+        return;
     }
 
     $legacyLessonFourPrivatePath = $learningCenterLessonsDir . DIRECTORY_SEPARATOR . 'lesson-4.txt';
@@ -1854,6 +1883,8 @@ function ensure_learning_center_lessons_seeded(): void
 
 function ensure_learn_more_content_seeded(string $contentKey): void
 {
+    global $currentLessonDomain;
+    $lessonDomain = normalize_lesson_domain($currentLessonDomain ?? 'legacy');
     $privatePath = get_learn_more_content_path($contentKey);
     $repoPath = get_learn_more_repo_content_path($contentKey);
     if ($privatePath === '' || $repoPath === '') {
@@ -1872,7 +1903,9 @@ function ensure_learn_more_content_seeded(string $contentKey): void
         }
 
         if (!is_file($privatePath) && !is_file($repoPath)) {
-            $defaultContent = get_default_learn_more_content($contentKey);
+            $defaultContent = $lessonDomain === 'new-course'
+                ? json_encode(['version' => 1, 'rows' => []], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                : get_default_learn_more_content($contentKey);
             if ($defaultContent !== '') {
                 ensure_parent_directory($privatePath);
                 ensure_parent_directory($repoPath);
@@ -1884,7 +1917,7 @@ function ensure_learn_more_content_seeded(string $contentKey): void
     }
 
     if (preg_match('/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/', $contentKey)) {
-        ensure_learning_center_lessons_seeded();
+        ensure_learning_center_lessons_seeded($lessonDomain);
         return;
     }
 
@@ -9723,6 +9756,7 @@ if (!is_array($input)) {
 $action = isset($input['action'])
     ? (string) $input['action']
     : (isset($_GET['action']) ? (string) $_GET['action'] : 'heartbeat');
+$currentLessonDomain = normalize_lesson_domain($input['lesson_domain'] ?? ($_GET['lesson_domain'] ?? 'legacy'));
 $role = isset($input['role']) ? (string) $input['role'] : '';
 $clientId = isset($input['client_id']) ? (string) $input['client_id'] : '';
 $sessionCode = isset($input['session_code']) ? trim((string) $input['session_code']) : '';
@@ -10578,7 +10612,7 @@ if ($action === 'get_public_trial_mode') {
 
 if ($action === 'get_learn_more_content') {
     try {
-        require_allowed_keys($input, ['action', 'content_key'], 'request');
+        require_allowed_keys($input, ['action', 'content_key', 'lesson_domain'], 'request');
         $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
         $path = get_learn_more_content_path($contentKey);
         if ($contentKey === '' || $path === '') {
@@ -10698,8 +10732,8 @@ if ($action === 'save_questionnaire_response') {
 
 if ($action === 'list_learning_center_lessons') {
     try {
-        require_allowed_keys($input, ['action'], 'request');
-        $outline = load_learning_center_outline();
+        require_allowed_keys($input, ['action', 'lesson_domain'], 'request');
+        $outline = load_learning_center_outline($currentLessonDomain);
         $lessonRows = [];
         foreach ((array) ($outline['rows'] ?? []) as $row) {
             if (!is_array($row)) {
@@ -10750,7 +10784,7 @@ if ($action === 'save_learn_more_content') {
         fail_request($handle, $nowMs, 'Learn More saving is currently disabled.', 403);
     }
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key', 'content'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key', 'content', 'lesson_domain'], 'request');
         $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
         $path = get_learn_more_content_path($contentKey);
         $mirrorPath = get_learn_more_repo_content_path($contentKey);
@@ -10791,7 +10825,7 @@ if ($action === 'delete_learn_more_content') {
         fail_request($handle, $nowMs, 'Administrative access is required.', 403);
     }
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key', 'lesson_domain'], 'request');
         $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
         $path = get_learn_more_content_path($contentKey);
         $mirrorPath = get_learn_more_repo_content_path($contentKey);
