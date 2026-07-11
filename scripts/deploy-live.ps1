@@ -54,6 +54,7 @@ $deployFiles = @(
   ".htaccess",
   "api.php",
   "clairvoyance_rv_page.jpg",
+  "content_repo\new-learning-center-outline.json",
   "globe\globe.css",
   "globe\globe.js",
   "globe\index.html",
@@ -72,6 +73,16 @@ $deployFiles = @(
   "telepathybeginner.js",
   "telepathybeginner.webmanifest"
 )
+
+$newLearningCenterLessonFiles = @()
+$newLearningCenterLessonsRoot = Join-Path $repoRoot "content_repo\new-learning-center-lessons"
+if (Test-Path -LiteralPath $newLearningCenterLessonsRoot) {
+  $newLearningCenterLessonFiles = Get-ChildItem -LiteralPath $newLearningCenterLessonsRoot -File -Recurse |
+    ForEach-Object {
+      $_.FullName.Substring($repoRoot.Length + 1)
+    }
+}
+$deployFiles += $newLearningCenterLessonFiles
 
 $verifyVersionFiles = @(
   "telepathybeginner.css",
@@ -109,6 +120,7 @@ $liveHashAuditFiles = @(
   "api.php",
   "index.html",
   "learning-center-hero.png",
+  "content_repo\new-learning-center-outline.json",
   ".htaccess",
   "globe\index.html",
   "globe\globe.js",
@@ -116,6 +128,7 @@ $liveHashAuditFiles = @(
   "clairvoyance_rv_page.jpg",
   "tada.wav"
 )
+$liveHashAuditFiles += $newLearningCenterLessonFiles
 
 function Invoke-Plink([string]$Command) {
   & $plinkPath -batch -load $puttySession $Command

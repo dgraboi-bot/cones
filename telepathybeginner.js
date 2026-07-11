@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260710b";
+  const launcherBuildVersion = "20260711b";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -4969,6 +4969,7 @@ This is an alternate test message to show now.`;
     });
 
     let rendered = escapeHtml(source)
+      .replace(/\[u\]([\s\S]+?)\[\/u\]/gi, '<span class="learn-more-preview-underline">$1</span>')
       .replace(/\*\*([^*\n][^]*?)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>")
       .replace(/\n/g, "<br>");
@@ -4997,6 +4998,11 @@ This is an alternate test message to show now.`;
       const paragraph = paragraphLines.join("\n").trim();
       paragraphLines = [];
       if (!paragraph) {
+        return;
+      }
+      const centeredMatch = paragraph.match(/^\[center\]([\s\S]*?)\[\/center\]$/i);
+      if (centeredMatch) {
+        blocks.push(`<p class="learn-more-preview-centered">${renderLearnMoreInlineMarkup(String(centeredMatch[1] || "").trim())}</p>`);
         return;
       }
       blocks.push(`<p>${renderLearnMoreInlineMarkup(paragraph)}</p>`);
@@ -16949,7 +16955,7 @@ This is an alternate test message to show now.`;
   function showLessonEditorView(domain = "legacy") {
     activeLessonEditorDomain = normalizeLessonDomain(domain);
     clearReportPanelOffset();
-    resetLessonEditorToBlank("Start with lesson-id=<permanent-id>. You can also add number=, title=, subcopy=, and type=. Then press ENTER or SAVE.");
+    resetLessonEditorToBlank("Start with lesson-id=<permanent-id>. You can also add number=, title=, subcopy=, and type=. Use [center]...[/center] and [u]...[/u]. Then press ENTER or SAVE.");
     if (lessonEditorTitle) {
       lessonEditorTitle.textContent = activeLessonEditorDomain === "new-course" ? "New Edit Lessons" : "Old Edit Lessons";
     }
@@ -17128,7 +17134,7 @@ This is an alternate test message to show now.`;
     if (lessonEditorStatus) {
       lessonEditorStatus.textContent = directive
         ? `Processing lesson ${directive.lessonId || directive.displayNumber || ""}...`
-        : "Start with lesson-id=<permanent-id>, then press ENTER or SAVE.";
+        : "Start with lesson-id=<permanent-id>. Use [center]...[/center] and [u]...[/u], then press ENTER or SAVE.";
     }
     const lessonDomain = normalizeLessonDomain(lessonEditorTarget?.lessonDomain || activeLessonEditorDomain || "legacy");
     try {
@@ -17276,7 +17282,7 @@ This is an alternate test message to show now.`;
       }
 
       if (lessonEditorStatus) {
-        lessonEditorStatus.textContent = "Start with lesson-id=<permanent-id>. Add number= and title=, then press ENTER or SAVE.";
+        lessonEditorStatus.textContent = "Start with lesson-id=<permanent-id>. Add number= and title=. Use [center]...[/center] and [u]...[/u], then press ENTER or SAVE.";
       }
       showTemporaryInlineLearnMoreStatus(lessonEditorInlineStatus, "Enter lesson-id=<permanent-id> to load or create a lesson.");
     } catch (error) {

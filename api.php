@@ -9928,9 +9928,9 @@ prune_stripe_processed_events($state, $nowMs);
 if (!array_key_exists('debug_enabled', $state)) {
     $state['debug_enabled'] = false;
 }
-if (!array_key_exists('easy_admin_enabled', $state)) {
-    $state['easy_admin_enabled'] = false;
-}
+// Easy Admin is device-local only. The server no longer honors or persists
+// any server-side Easy Admin bypass state.
+$state['easy_admin_enabled'] = false;
 if (!array_key_exists('learn_more_save_enabled', $state)) {
     $state['learn_more_save_enabled'] = false;
 }
@@ -10104,8 +10104,7 @@ $debugEnabled = (bool) $state['debug_enabled'];
 $profileInput = isset($input['profile']) && is_array($input['profile']) ? normalize_profile($input['profile']) : default_profile();
 $secretCandidate = isset($input['secret_candidate']) ? (string) $input['secret_candidate'] : '';
 $isAdmin = is_admin_profile($profileInput, $adminSecret) || is_admin_secret_candidate($secretCandidate, $adminSecret);
-$easyAdminEnabled = !empty($state['easy_admin_enabled']);
-$hasAdminAccess = $isAdmin || $easyAdminEnabled;
+$hasAdminAccess = $isAdmin;
 $trialRecordAppendResult = null;
 
 $existingRegistry = is_array($state['session_registry'][$sessionCode] ?? null)
@@ -10518,9 +10517,7 @@ if ($action === 'get_user_preferences') {
 }
 
 if ($action === 'set_easy_admin_enabled' && $hasAdminAccess) {
-    $state['easy_admin_enabled'] = !empty($input['enabled']);
-    $easyAdminEnabled = !empty($state['easy_admin_enabled']);
-    $hasAdminAccess = $isAdmin || $easyAdminEnabled;
+    $state['easy_admin_enabled'] = false;
 }
 
 if ($action === 'set_learn_more_save_enabled' && $hasAdminAccess) {
@@ -10582,7 +10579,7 @@ if ($action === 'check_admin_secret') {
 if ($action === 'get_admin_access_mode') {
     $response = [
         'ok' => true,
-        'easy_admin_enabled' => !empty($state['easy_admin_enabled']),
+        'easy_admin_enabled' => false,
         'server_now_ms' => $nowMs
     ];
     rewind($handle);
@@ -12953,7 +12950,7 @@ $response = [
     'debug_enabled' => $debugEnabled,
     'subscription_emails_enabled' => !empty($state['subscription_emails_enabled']),
     'subscription_reminders_enabled' => !empty($state['subscription_reminders_enabled']),
-    'easy_admin_enabled' => !empty($state['easy_admin_enabled']),
+    'easy_admin_enabled' => false,
     'learn_more_save_enabled' => !empty($state['learn_more_save_enabled']),
     'explore_pro_test_duration_seconds' => max(0, (int) ($state['explore_pro_test_duration_seconds'] ?? 0)),
     'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled']),

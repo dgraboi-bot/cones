@@ -1090,6 +1090,10 @@ body {
   margin-bottom: 0;
 }
 
+.learn-more-preview-centered {
+  text-align: center;
+}
+
 .learn-more-preview-heading {
   margin: 18px 0 10px;
   color: rgba(255, 244, 224, 0.98);
@@ -1110,6 +1114,11 @@ body {
 .learn-more-preview strong {
   color: #ffffff;
   font-weight: 700;
+}
+
+.learn-more-preview-underline {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .learn-more-preview-link {
@@ -3843,7 +3852,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.png?v=20260710b") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.png?v=20260711b") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
