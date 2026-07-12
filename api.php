@@ -3472,9 +3472,9 @@ function get_demo_pair_seed_definitions(): array
 
     return [
         [
-            'receiver_name' => 'demo.level1.too-little.receiver@espgym.com',
-            'sender_name' => 'demo.level1.too-little.sender@espgym.com',
-            'records' => $buildRecords('demo.level1.too-little.receiver@espgym.com', 'demo.level1.too-little.sender@espgym.com', [
+            'receiver_name' => 'demo.level1.too-little.receiver',
+            'sender_name' => 'demo.level1.too-little.sender',
+            'records' => $buildRecords('demo.level1.too-little.receiver', 'demo.level1.too-little.sender', [
                 ['lvl1little0001', '7/7/2026', '10:00:00 AM', '2026-07-07T17:00:00Z', '1', '1', '1', '68', '4300'],
                 ['lvl1little0002', '7/7/2026', '10:02:00 AM', '2026-07-07T17:02:00Z', '6', '1', '1', '42', '4480'],
                 ['lvl1little0003', '7/7/2026', '10:04:00 AM', '2026-07-07T17:04:00Z', '7', '1', '3', '73', '4660'],
@@ -3488,9 +3488,9 @@ function get_demo_pair_seed_definitions(): array
             ])
         ],
         [
-            'receiver_name' => 'demo.level1.promising.receiver@espgym.com',
-            'sender_name' => 'demo.level1.promising.sender@espgym.com',
-            'records' => $buildRecords('demo.level1.promising.receiver@espgym.com', 'demo.level1.promising.sender@espgym.com', [
+            'receiver_name' => 'demo.level1.promising.receiver',
+            'sender_name' => 'demo.level1.promising.sender',
+            'records' => $buildRecords('demo.level1.promising.receiver', 'demo.level1.promising.sender', [
                 ['lvl1prom0001', '7/7/2026', '11:00:00 AM', '2026-07-07T18:00:00Z', '1', '1', '1', '74', '4200'],
                 ['lvl1prom0002', '7/7/2026', '11:02:00 AM', '2026-07-07T18:02:00Z', '6', '1', '3', '78', '4380'],
                 ['lvl1prom0003', '7/7/2026', '11:04:00 AM', '2026-07-07T18:04:00Z', '7', '1', '1', '36', '4560'],
@@ -3506,9 +3506,9 @@ function get_demo_pair_seed_definitions(): array
             ])
         ],
         [
-            'receiver_name' => 'demo.level1.not-telepathic.receiver@espgym.com',
-            'sender_name' => 'demo.level1.not-telepathic.sender@espgym.com',
-            'records' => $buildRecords('demo.level1.not-telepathic.receiver@espgym.com', 'demo.level1.not-telepathic.sender@espgym.com', [
+            'receiver_name' => 'demo.level1.not-telepathic.receiver',
+            'sender_name' => 'demo.level1.not-telepathic.sender',
+            'records' => $buildRecords('demo.level1.not-telepathic.receiver', 'demo.level1.not-telepathic.sender', [
                 ['lvl1not0001', '7/7/2026', '12:00:00 PM', '2026-07-07T19:00:00Z', '1', '1', '1', '61', '4400'],
                 ['lvl1not0002', '7/7/2026', '12:02:00 PM', '2026-07-07T19:02:00Z', '6', '1', '1', '47', '4560'],
                 ['lvl1not0003', '7/7/2026', '12:04:00 PM', '2026-07-07T19:04:00Z', '7', '1', '3', '58', '4720'],
@@ -3536,9 +3536,9 @@ function get_demo_pair_seed_definitions(): array
             ])
         ],
         [
-            'receiver_name' => 'demo.level1.telepathic.receiver@espgym.com',
-            'sender_name' => 'demo.level1.telepathic.sender@espgym.com',
-            'records' => $buildRecords('demo.level1.telepathic.receiver@espgym.com', 'demo.level1.telepathic.sender@espgym.com', [
+            'receiver_name' => 'demo.level1.telepathic.receiver',
+            'sender_name' => 'demo.level1.telepathic.sender',
+            'records' => $buildRecords('demo.level1.telepathic.receiver', 'demo.level1.telepathic.sender', [
                 ['lvl1tele0001', '7/7/2026', '1:30:00 PM', '2026-07-07T20:30:00Z', '1', '1', '1', '82', '4100'],
                 ['lvl1tele0002', '7/7/2026', '1:32:00 PM', '2026-07-07T20:32:00Z', '6', '1', '3', '84', '4250'],
                 ['lvl1tele0003', '7/7/2026', '1:34:00 PM', '2026-07-07T20:34:00Z', '7', '1', '3', '79', '4400'],
@@ -3566,9 +3566,9 @@ function get_demo_pair_seed_definitions(): array
             ])
         ],
         [
-            'receiver_name' => 'demo.mixed.level123.receiver@espgym.com',
-            'sender_name' => 'demo.mixed.level123.sender@espgym.com',
-            'records' => $buildRecords('demo.mixed.level123.receiver@espgym.com', 'demo.mixed.level123.sender@espgym.com', [
+            'receiver_name' => 'demo.mixed.level123.receiver',
+            'sender_name' => 'demo.mixed.level123.sender',
+            'records' => $buildRecords('demo.mixed.level123.receiver', 'demo.mixed.level123.sender', [
                 ['lvl123mix0001', '7/7/2026', '3:00:00 PM', '2026-07-07T22:00:00Z', '1', '1', '1', '80', '4200'],
                 ['lvl123mix0002', '7/7/2026', '3:02:00 PM', '2026-07-07T22:02:00Z', '6', '1', '3', '82', '4350'],
                 ['lvl123mix0003', '7/7/2026', '3:04:00 PM', '2026-07-07T22:04:00Z', '7', '1', '3', '79', '4500'],
@@ -3620,7 +3620,12 @@ function ensure_demo_pair_records(string $pairsDir, bool $force = false): void
         ['receiver_name' => 'demo.globe.receiver@espgym.com', 'sender_name' => 'demo.globe.sender@espgym.com'],
         ['receiver_name' => 'demo.random.level2.receiver@espgym.com', 'sender_name' => 'demo.random.level2.sender@espgym.com'],
         ['receiver_name' => 'demo.random.level3.receiver@espgym.com', 'sender_name' => 'demo.random.level3.sender@espgym.com'],
-        ['receiver_name' => 'demo.mixed.level12.receiver@espgym.com', 'sender_name' => 'demo.mixed.level12.sender@espgym.com']
+        ['receiver_name' => 'demo.mixed.level12.receiver@espgym.com', 'sender_name' => 'demo.mixed.level12.sender@espgym.com'],
+        ['receiver_name' => 'demo.level1.too-little.receiver@espgym.com', 'sender_name' => 'demo.level1.too-little.sender@espgym.com'],
+        ['receiver_name' => 'demo.level1.promising.receiver@espgym.com', 'sender_name' => 'demo.level1.promising.sender@espgym.com'],
+        ['receiver_name' => 'demo.level1.not-telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.not-telepathic.sender@espgym.com'],
+        ['receiver_name' => 'demo.level1.telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.telepathic.sender@espgym.com'],
+        ['receiver_name' => 'demo.mixed.level123.receiver@espgym.com', 'sender_name' => 'demo.mixed.level123.sender@espgym.com']
     ];
     foreach ($legacyDefinitions as $legacyDefinition) {
         $legacyReceiver = trim((string) ($legacyDefinition['receiver_name'] ?? ''));
@@ -4064,11 +4069,11 @@ function build_pair_match_key(string $receiverName, string $senderName): string
 function is_demo_report_pair(string $receiverName, string $senderName): bool
 {
     static $demoPairs = [
-        'demo.level1.too-little.receiver@espgym.com|||demo.level1.too-little.sender@espgym.com' => true,
-        'demo.level1.promising.receiver@espgym.com|||demo.level1.promising.sender@espgym.com' => true,
-        'demo.level1.not-telepathic.receiver@espgym.com|||demo.level1.not-telepathic.sender@espgym.com' => true,
-        'demo.level1.telepathic.receiver@espgym.com|||demo.level1.telepathic.sender@espgym.com' => true,
-        'demo.mixed.level123.receiver@espgym.com|||demo.mixed.level123.sender@espgym.com' => true
+        'demo.level1.too-little.receiver|||demo.level1.too-little.sender' => true,
+        'demo.level1.promising.receiver|||demo.level1.promising.sender' => true,
+        'demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender' => true,
+        'demo.level1.telepathic.receiver|||demo.level1.telepathic.sender' => true,
+        'demo.mixed.level123.receiver|||demo.mixed.level123.sender' => true
     ];
 
     return isset($demoPairs[build_pair_match_key($receiverName, $senderName)]);
@@ -6576,6 +6581,32 @@ function validate_identifier_list($value, string $field, int $maxItems = 200): a
     return array_values(array_unique($clean));
 }
 
+function validate_report_participant_identifier_string($value, string $field, bool $required = true): string
+{
+    $text = trim((string) $value);
+    if ($text === '') {
+        if ($required) {
+            throw new RuntimeException($field . ' is required.');
+        }
+        return '';
+    }
+
+    if (strlen($text) > 254) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+
+    if (filter_var($text, FILTER_VALIDATE_EMAIL)) {
+        return $text;
+    }
+
+    $normalized = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+    if (preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._ -]{0,252}[A-Za-z0-9])?$/', $normalized)) {
+        return $normalized;
+    }
+
+    throw new RuntimeException($field . ' must be a valid report identifier.');
+}
+
 function validate_selected_pair_payload($value, string $field = 'selected_pair'): array
 {
     if (!is_array($value)) {
@@ -6590,17 +6621,197 @@ function validate_selected_pair_payload($value, string $field = 'selected_pair')
     }
 
     return [
-        'receiver_name' => validate_participant_identifier_string($value['receiver_name'] ?? '', $field . '.receiver_name', true),
-        'sender_name' => validate_participant_identifier_string($value['sender_name'] ?? '', $field . '.sender_name', true),
+        'receiver_name' => validate_report_participant_identifier_string($value['receiver_name'] ?? '', $field . '.receiver_name', true),
+        'sender_name' => validate_report_participant_identifier_string($value['sender_name'] ?? '', $field . '.sender_name', true),
         'session_code' => validate_session_code_value($value['session_code'] ?? '', $field . '.session_code', false),
         'source' => $source !== '' ? $source : 'real',
         'alias_receiver_names' => isset($value['alias_receiver_names']) && is_array($value['alias_receiver_names'])
-            ? validate_identifier_list($value['alias_receiver_names'], $field . '.alias_receiver_names', 200)
+            ? array_values(array_unique(array_map(
+                static fn($item): string => validate_report_participant_identifier_string($item, $field . '.alias_receiver_names[]', true),
+                $value['alias_receiver_names']
+            )))
             : [],
         'alias_sender_names' => isset($value['alias_sender_names']) && is_array($value['alias_sender_names'])
-            ? validate_identifier_list($value['alias_sender_names'], $field . '.alias_sender_names', 200)
+            ? array_values(array_unique(array_map(
+                static fn($item): string => validate_report_participant_identifier_string($item, $field . '.alias_sender_names[]', true),
+                $value['alias_sender_names']
+            )))
             : []
     ];
+}
+
+function validate_named_report_title($value, string $field = 'title'): string
+{
+    $title = trim((string) $value);
+    if ($title === '') {
+        throw new RuntimeException($field . ' is required.');
+    }
+    if (strlen($title) > 80) {
+        throw new RuntimeException($field . ' is too long.');
+    }
+    return preg_replace('/\s+/', ' ', $title) ?? $title;
+}
+
+function validate_positive_trial_bound($value, string $field): int
+{
+    if (!is_numeric($value)) {
+        throw new RuntimeException($field . ' must be numeric.');
+    }
+    $number = (int) $value;
+    if ($number < 1) {
+        throw new RuntimeException($field . ' must be at least 1.');
+    }
+    return $number;
+}
+
+function normalize_named_report_record(array $record): array
+{
+    $selectedPair = validate_selected_pair_payload($record['selected_pair'] ?? [], 'named_report.selected_pair');
+    $title = validate_named_report_title($record['title'] ?? '', 'named_report.title');
+    $startTrial = validate_positive_trial_bound($record['start_trial'] ?? 1, 'named_report.start_trial');
+    $endTrial = validate_positive_trial_bound($record['end_trial'] ?? $startTrial, 'named_report.end_trial');
+    if ($endTrial < $startTrial) {
+        throw new RuntimeException('named_report.end_trial must be greater than or equal to named_report.start_trial.');
+    }
+    $completedTrialCount = isset($record['completed_trial_count']) && is_numeric($record['completed_trial_count'])
+        ? max(0, (int) $record['completed_trial_count'])
+        : max(0, $endTrial - $startTrial + 1);
+    $reportId = trim((string) ($record['id'] ?? ''));
+    if ($reportId === '') {
+        $reportId = 'named-report-' . bin2hex(random_bytes(6));
+    }
+    $createdMs = isset($record['created_ms']) && is_numeric($record['created_ms']) ? (int) $record['created_ms'] : 0;
+
+    return [
+        'id' => $reportId,
+        'title' => $title,
+        'selected_pair' => $selectedPair,
+        'start_trial' => $startTrial,
+        'end_trial' => $endTrial,
+        'completed_trial_count' => $completedTrialCount,
+        'created_ms' => $createdMs
+    ];
+}
+
+function named_report_visibility_matches(array $report, array $candidatePairs, array $associatedNames, bool $includeAll): bool
+{
+    if ($includeAll) {
+        return true;
+    }
+
+    $selectedPair = is_array($report['selected_pair'] ?? null) ? $report['selected_pair'] : [];
+    $receiver = normalize_identifier_for_lookup((string) ($selectedPair['receiver_name'] ?? ''));
+    $sender = normalize_identifier_for_lookup((string) ($selectedPair['sender_name'] ?? ''));
+    $source = trim((string) ($selectedPair['source'] ?? '')) === 'simulation' ? 'simulation' : 'real';
+    $sessionCode = trim((string) ($selectedPair['session_code'] ?? ''));
+    $receiverAliases = isset($selectedPair['alias_receiver_names']) && is_array($selectedPair['alias_receiver_names'])
+        ? array_values(array_filter(array_map(static fn($value): string => normalize_identifier_for_lookup((string) $value), $selectedPair['alias_receiver_names']), static fn(string $value): bool => $value !== ''))
+        : [];
+    $senderAliases = isset($selectedPair['alias_sender_names']) && is_array($selectedPair['alias_sender_names'])
+        ? array_values(array_filter(array_map(static fn($value): string => normalize_identifier_for_lookup((string) $value), $selectedPair['alias_sender_names']), static fn(string $value): bool => $value !== ''))
+        : [];
+
+    foreach ($candidatePairs as $pair) {
+        if (!is_array($pair)) {
+            continue;
+        }
+        $candidateReceiver = normalize_identifier_for_lookup((string) ($pair['receiver_name'] ?? ''));
+        $candidateSender = normalize_identifier_for_lookup((string) ($pair['sender_name'] ?? ''));
+        $candidateSource = trim((string) ($pair['source'] ?? '')) === 'simulation' ? 'simulation' : 'real';
+        $candidateSessionCode = trim((string) ($pair['session_code'] ?? ''));
+        if ($candidateReceiver === '' || $candidateSender === '') {
+            continue;
+        }
+        $receiverMatches = $candidateReceiver === $receiver || in_array($candidateReceiver, $receiverAliases, true);
+        $senderMatches = $candidateSender === $sender || in_array($candidateSender, $senderAliases, true);
+        if ($receiverMatches && $senderMatches && $candidateSource === $source) {
+            if ($sessionCode === '' || $candidateSessionCode === '' || $sessionCode === $candidateSessionCode) {
+                return true;
+            }
+        }
+    }
+
+    $associatedLookup = array_values(array_unique(array_filter(array_map(
+        static fn($value): string => normalize_identifier_for_lookup((string) $value),
+        $associatedNames
+    ), static fn(string $value): bool => $value !== '')));
+
+    if ($associatedLookup) {
+        $participants = array_values(array_unique(array_filter(array_merge([$receiver, $sender], $receiverAliases, $senderAliases), static fn(string $value): bool => $value !== '')));
+        foreach ($participants as $participant) {
+            if (in_array($participant, $associatedLookup, true)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function list_named_reports(array $state, array $candidatePairs, array $associatedNames, bool $includeAll): array
+{
+    $rows = is_array($state['named_reports'] ?? null) ? $state['named_reports'] : [];
+    $normalized = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        try {
+            $report = normalize_named_report_record($row);
+        } catch (Throwable $exception) {
+            continue;
+        }
+        if (!named_report_visibility_matches($report, $candidatePairs, $associatedNames, $includeAll)) {
+            continue;
+        }
+        $normalized[] = $report;
+    }
+
+    usort($normalized, static function (array $left, array $right): int {
+        $leftCreated = (int) ($left['created_ms'] ?? 0);
+        $rightCreated = (int) ($right['created_ms'] ?? 0);
+        if ($leftCreated === $rightCreated) {
+            return strcmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        }
+        return $rightCreated <=> $leftCreated;
+    });
+
+    return $normalized;
+}
+
+function save_named_report_record(array &$state, array $selectedPair, string $title, int $startTrial, int $endTrial, int $completedTrialCount, int $nowMs): array
+{
+    if (!is_array($state['named_reports'] ?? null)) {
+        $state['named_reports'] = [];
+    }
+
+    $record = [
+        'id' => 'named-report-' . bin2hex(random_bytes(6)),
+        'title' => $title,
+        'selected_pair' => $selectedPair,
+        'start_trial' => $startTrial,
+        'end_trial' => $endTrial,
+        'completed_trial_count' => max(0, $completedTrialCount),
+        'created_ms' => $nowMs
+    ];
+    $normalized = normalize_named_report_record($record);
+    $state['named_reports'][] = $normalized;
+    return $normalized;
+}
+
+function delete_named_report_record(array &$state, string $reportId): bool
+{
+    $cleanId = trim($reportId);
+    if ($cleanId === '' || !is_array($state['named_reports'] ?? null)) {
+        return false;
+    }
+
+    $before = count($state['named_reports']);
+    $state['named_reports'] = array_values(array_filter(
+        $state['named_reports'],
+        static fn($row): bool => trim((string) (($row['id'] ?? ''))) !== $cleanId
+    ));
+    return count($state['named_reports']) < $before;
 }
 
 function validate_launcher_profile_payload($value, string $field = 'launcher_profile'): array
@@ -9838,6 +10049,7 @@ if (!is_array($state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'named_reports' => [],
         'messaging_limits' => default_messaging_limits(),
         'esp_lessons' => [],
         'identifier_recovery_verifications' => [],
@@ -9881,6 +10093,7 @@ if (!array_key_exists('sessions', $state)) {
         'push_subscriptions' => [],
         'partner_message_threads' => [],
         'partner_message_reads' => [],
+        'named_reports' => [],
         'messaging_limits' => default_messaging_limits(),
         'esp_lessons' => [],
         'identifier_recovery_verifications' => [],
@@ -9937,6 +10150,9 @@ if (!is_array($state['partner_message_threads'] ?? null)) {
 }
 if (!is_array($state['partner_message_reads'] ?? null)) {
     $state['partner_message_reads'] = [];
+}
+if (!is_array($state['named_reports'] ?? null)) {
+    $state['named_reports'] = [];
 }
 ensure_messaging_limits_state($state);
 if (!is_array($state['invitees'] ?? null)) {
@@ -12438,6 +12654,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
     if (!$preservePairs) {
         $state['pair_difficulties'] = [];
         $state['level_four_receiver_pools'] = [];
+        $state['named_reports'] = [];
         clear_pair_trial_records($pairsDir);
         clear_pair_analysis_records($pairsDir);
         ensure_demo_pair_records($pairsDir, true);
@@ -13204,6 +13421,60 @@ if ($action === 'report_pair_csv_data') {
             ? ''
             : 'No trial records found for the current receiver-sender selection.'
     ];
+}
+
+if ($action === 'list_named_reports') {
+    try {
+        require_allowed_keys($input, ['action', 'candidate_pairs', 'associated_names', 'include_all', 'secret_candidate'], 'request');
+        $candidatePairs = isset($input['candidate_pairs']) && is_array($input['candidate_pairs'])
+            ? array_map(static fn($value): array => validate_selected_pair_payload($value, 'candidate_pairs[]'), $input['candidate_pairs'])
+            : [];
+        $associatedNames = isset($input['associated_names']) && is_array($input['associated_names'])
+            ? validate_identifier_list($input['associated_names'], 'associated_names', 500)
+            : [];
+        $includeAll = $hasAdminAccess && !empty($input['include_all']);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response['named_reports'] = list_named_reports($state, $candidatePairs, $associatedNames, $includeAll);
+}
+
+if ($action === 'save_named_report') {
+    try {
+        require_allowed_keys($input, ['action', 'selected_pair', 'title', 'start_trial', 'end_trial', 'completed_trial_count', 'secret_candidate'], 'request');
+        $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
+        $title = validate_named_report_title($input['title'] ?? '', 'title');
+        $startTrial = validate_positive_trial_bound($input['start_trial'] ?? 0, 'start_trial');
+        $endTrial = validate_positive_trial_bound($input['end_trial'] ?? 0, 'end_trial');
+        if ($endTrial < $startTrial) {
+            throw new RuntimeException('end_trial must be greater than or equal to start_trial.');
+        }
+        $completedTrialCount = isset($input['completed_trial_count']) && is_numeric($input['completed_trial_count'])
+            ? max(0, (int) $input['completed_trial_count'])
+            : max(0, $endTrial - $startTrial + 1);
+        $saved = save_named_report_record($state, $selectedPair, $title, $startTrial, $endTrial, $completedTrialCount, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response['named_report'] = $saved;
+}
+
+if ($action === 'delete_named_report') {
+    try {
+        require_allowed_keys($input, ['action', 'report_id', 'secret_candidate'], 'request');
+        $reportId = trim((string) ($input['report_id'] ?? ''));
+        if ($reportId === '') {
+            throw new RuntimeException('report_id is required.');
+        }
+        $deleted = delete_named_report_record($state, $reportId);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response['deleted'] = $deleted;
+    $response['report_id'] = $reportId;
 }
 
 if ($action === 'get_location_visualization') {

@@ -5,10 +5,11 @@
   const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
   const launcherStateWriteLockKey = "cones-launcher-state-write-lock-v1";
   const localFreshStartEpochKey = "cones-local-fresh-start-epoch-v1";
+  const namedReportsCacheKey = "cones-named-reports-cache-v1";
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260712b";
+  const launcherBuildVersion = "20260712c";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -554,6 +555,7 @@
   const reportPairMenu = document.querySelector("[data-report-pair-menu]");
   const reportPairOptions = document.querySelector("[data-report-pair-options]");
   const reportGoButton = document.querySelector("[data-report-go]");
+  const reportDeleteButton = document.querySelector("[data-report-delete]");
   const reportGlobeButton = document.querySelector("[data-report-globe]");
   const reportVisualizeButton = document.querySelector("[data-report-visualize]");
   const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
@@ -582,8 +584,20 @@
   const reportTable = document.querySelector("[data-report-table]");
   const visualizationSummary = document.querySelector("[data-visualization-summary]");
   const visualizationStatus = document.querySelector("[data-visualization-status]");
+  const visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
+  const visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
+  const visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
+  const visualizationSaveAsButton = document.querySelector("[data-visualization-save-as]");
   const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
   const visualizationChart = document.querySelector("[data-visualization-chart]");
+  const namedReportModal = document.querySelector("[data-named-report-modal]");
+  const namedReportTitleInput = document.querySelector("[data-named-report-title-input]");
+  const namedReportSourceSummary = document.querySelector("[data-named-report-source-summary]");
+  const namedReportRangeSummary = document.querySelector("[data-named-report-range-summary]");
+  const namedReportCountSummary = document.querySelector("[data-named-report-count-summary]");
+  const namedReportStatus = document.querySelector("[data-named-report-status]");
+  const namedReportSaveButton = document.querySelector("[data-named-report-save]");
+  const namedReportCancelButton = document.querySelector("[data-named-report-cancel]");
   const analyzerSummary = document.querySelector("[data-analyzer-summary]");
   const analyzerStatus = document.querySelector("[data-analyzer-status]");
   const analyzerOutput = document.querySelector("[data-analyzer-output]");
@@ -977,20 +991,30 @@
   let pendingOpenReportPair = null;
   let reportCsvRecordsCache = [];
   let reportCsvPathCache = "";
+  let availableNamedReports = [];
+  let selectedReportTarget = null;
+  let pendingSelectNamedReportId = "";
+  let visualizationRangeState = {
+    pairKey: "",
+    totalTrials: 0,
+    startValue: "",
+    endValue: ""
+  };
+  let latestVisualizationContext = null;
   const analysisStorageKey = "cones-results-analyzer-v1";
   const demoReportPairKeys = new Set([
-    "demo.level1.too-little.receiver@espgym.com|||demo.level1.too-little.sender@espgym.com",
-    "demo.level1.promising.receiver@espgym.com|||demo.level1.promising.sender@espgym.com",
-    "demo.level1.not-telepathic.receiver@espgym.com|||demo.level1.not-telepathic.sender@espgym.com",
-    "demo.level1.telepathic.receiver@espgym.com|||demo.level1.telepathic.sender@espgym.com",
-    "demo.mixed.level123.receiver@espgym.com|||demo.mixed.level123.sender@espgym.com"
+    "demo.level1.too-little.receiver|||demo.level1.too-little.sender",
+    "demo.level1.promising.receiver|||demo.level1.promising.sender",
+    "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender",
+    "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender",
+    "demo.mixed.level123.receiver|||demo.mixed.level123.sender"
   ]);
   const demoReportPairOrder = new Map([
-    ["demo.level1.too-little.receiver@espgym.com|||demo.level1.too-little.sender@espgym.com", 10],
-    ["demo.level1.promising.receiver@espgym.com|||demo.level1.promising.sender@espgym.com", 12],
-    ["demo.level1.not-telepathic.receiver@espgym.com|||demo.level1.not-telepathic.sender@espgym.com", 24],
-    ["demo.level1.telepathic.receiver@espgym.com|||demo.level1.telepathic.sender@espgym.com", 30],
-    ["demo.mixed.level123.receiver@espgym.com|||demo.mixed.level123.sender@espgym.com", 40]
+    ["demo.level1.too-little.receiver|||demo.level1.too-little.sender", 10],
+    ["demo.level1.promising.receiver|||demo.level1.promising.sender", 12],
+    ["demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender", 24],
+    ["demo.level1.telepathic.receiver|||demo.level1.telepathic.sender", 30],
+    ["demo.mixed.level123.receiver|||demo.mixed.level123.sender", 40]
   ]);
   let activeReportResize = null;
   let activeReportViewPan = null;
@@ -3688,6 +3712,87 @@ This is an alternate test message to show now.`;
     };
   }
 
+  async function fetchNamedReports() {
+    const payload = {
+      action: "list_named_reports"
+    };
+    const adminSecretCandidate = getLauncherAdminSecretCandidate();
+    if (adminSecretCandidate) {
+      payload.secret_candidate = adminSecretCandidate;
+      payload.include_all = true;
+    } else {
+      payload.candidate_pairs = collectReportCandidatePairs().map((pair) => ({
+        receiver_name: pair.receiverName,
+        sender_name: pair.senderName,
+        session_code: pair.sessionCode
+      }));
+      payload.associated_names = collectReportOwnNames();
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await parseApiResponse(response, `List named reports request failed with status ${response.status}`);
+    const rows = Array.isArray(data?.named_reports) ? data.named_reports : [];
+    const mergedRows = [...rows];
+    const seenIds = new Set(rows.map((row) => String(row?.id || "").trim()).filter(Boolean));
+    readNamedReportsCache().forEach((row) => {
+      const id = String(row?.id || "").trim();
+      if (id && !seenIds.has(id)) {
+        mergedRows.push(row);
+      }
+    });
+    availableNamedReports = mergedRows.map((row) => buildNamedReportTarget(row)).filter((row) => row.reportId && row.receiverName && row.senderName);
+    return availableNamedReports;
+  }
+
+  async function saveNamedReport(pairInfo, options = {}) {
+    const selectedPair = sanitizePairInfoForServer(pairInfo);
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "save_named_report",
+        selected_pair: selectedPair,
+        title: String(options.title || "").trim(),
+        start_trial: Number(options.startTrial || 0),
+        end_trial: Number(options.endTrial || 0),
+        completed_trial_count: Number(options.completedTrialCount || 0),
+        secret_candidate: getLauncherAdminSecretCandidate()
+      })
+    });
+    const data = await parseApiResponse(response, `Save named report request failed with status ${response.status}`);
+    const target = buildNamedReportTarget(data?.named_report || {});
+    cacheNamedReportTarget(target);
+    return target;
+  }
+
+  async function deleteNamedReport(reportId) {
+    const cleanId = String(reportId || "").trim();
+    if (!cleanId) {
+      throw new Error("Named report id is required.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "delete_named_report",
+        report_id: cleanId,
+        secret_candidate: getLauncherAdminSecretCandidate()
+      })
+    });
+    const data = await parseApiResponse(response, `Delete named report request failed with status ${response.status}`);
+    removeNamedReportFromCache(cleanId);
+    return !!data?.deleted;
+  }
+
   function getCurrentReportPairForGlobe() {
     if (!selectedReportPair?.receiverName || !selectedReportPair?.senderName) {
       return null;
@@ -3703,6 +3808,107 @@ This is an alternate test message to show now.`;
       sessionCode: String(selectedReportPair.sessionCode || "").trim(),
       source: String(selectedReportPair.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real"
     };
+  }
+
+  function closeNamedReportModal() {
+    if (!namedReportModal) {
+      return;
+    }
+    namedReportModal.hidden = true;
+    if (namedReportStatus) {
+      namedReportStatus.textContent = "";
+    }
+  }
+
+  function openNamedReportModal() {
+    const context = latestVisualizationContext;
+    if (!context?.pairInfo?.receiverName || !context?.pairInfo?.senderName) {
+      if (visualizationStatus) {
+        visualizationStatus.textContent = "Open a visualization with a valid trial range before using SAVE AS.";
+      }
+      return;
+    }
+    if (!context.range?.valid || context.completedTrialCount < 1) {
+      if (visualizationStatus) {
+        visualizationStatus.textContent = "Choose a valid trial range with at least one completed scored trial before using SAVE AS.";
+      }
+      return;
+    }
+    if (namedReportSourceSummary) {
+      namedReportSourceSummary.textContent = `Source: ${getPairInfoReceiverLabel(context.pairInfo) || "unknown"} - ${getPairInfoSenderLabel(context.pairInfo) || "unknown"}`;
+    }
+    if (namedReportRangeSummary) {
+      namedReportRangeSummary.textContent = `Trial range: ${context.range.start}-${context.range.end}`;
+    }
+    if (namedReportCountSummary) {
+      namedReportCountSummary.textContent = `Completed scored trials in file: ${context.completedTrialCount}`;
+    }
+    if (namedReportTitleInput) {
+      namedReportTitleInput.value = "";
+      window.setTimeout(() => namedReportTitleInput.focus(), 0);
+    }
+    if (namedReportStatus) {
+      namedReportStatus.textContent = "";
+    }
+    if (namedReportModal) {
+      namedReportModal.hidden = false;
+    }
+  }
+
+  async function handleNamedReportSave() {
+    const context = latestVisualizationContext;
+    if (!context?.pairInfo?.receiverName || !context?.pairInfo?.senderName || !context.range?.valid) {
+      if (namedReportStatus) {
+        namedReportStatus.textContent = "Open a valid visualization before saving a named file.";
+      }
+      return;
+    }
+    const title = String(namedReportTitleInput?.value ?? "").trim();
+    if (!title) {
+      if (namedReportStatus) {
+        namedReportStatus.textContent = "Please enter a name for this file.";
+      }
+      namedReportTitleInput?.focus();
+      return;
+    }
+
+    if (namedReportSaveButton) {
+      namedReportSaveButton.disabled = true;
+    }
+    if (namedReportCancelButton) {
+      namedReportCancelButton.disabled = true;
+    }
+    if (namedReportStatus) {
+      namedReportStatus.textContent = "Saving named file...";
+    }
+
+    try {
+      const savedTarget = await saveNamedReport(context.pairInfo, {
+        title,
+        startTrial: context.range.start,
+        endTrial: context.range.end,
+        completedTrialCount: context.completedTrialCount
+      });
+      pendingSelectNamedReportId = String(savedTarget.reportId || "");
+      await renderReportDefinition();
+      const selectedTarget = availableReportPairs.find((pairInfo) => pairInfo.key === savedTarget.key) || savedTarget;
+      setSelectedReportPair(selectedTarget);
+      closeNamedReportModal();
+      if (visualizationStatus) {
+        visualizationStatus.textContent = `Named file saved: ${savedTarget.reportTitle || title}.`;
+      }
+    } catch (error) {
+      if (namedReportStatus) {
+        namedReportStatus.textContent = error instanceof Error ? error.message : "Unable to save the named file right now.";
+      }
+    } finally {
+      if (namedReportSaveButton) {
+        namedReportSaveButton.disabled = false;
+      }
+      if (namedReportCancelButton) {
+        namedReportCancelButton.disabled = false;
+      }
+    }
   }
 
   async function getCurrentGlobeLaunchOptions() {
@@ -5044,6 +5250,28 @@ This is an alternate test message to show now.`;
     return isValidEmailAddress(text) ? text : text.replace(/\s+/g, " ").trim();
   }
 
+  function assertValidReportIdentifier(value, fieldName, options = {}) {
+    const required = options.required !== false;
+    const text = String(value || "").trim();
+    if (!text) {
+      if (required) {
+        throw new Error(`${fieldName} is required.`);
+      }
+      return "";
+    }
+    if (text.length > 254) {
+      throw new Error(`${fieldName} is too long.`);
+    }
+    if (isValidEmailAddress(text) || isValidUniqueHandle(text)) {
+      return isValidEmailAddress(text) ? text : text.replace(/\s+/g, " ").trim();
+    }
+    const normalized = text.replace(/\s+/g, " ").trim();
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9._ -]{0,252}[A-Za-z0-9])?$/.test(normalized)) {
+      throw new Error(`${fieldName} must be a valid report identifier.`);
+    }
+    return normalized;
+  }
+
   function assertValidSessionCode(value, fieldName = "session_code") {
     const text = String(value || "").trim();
     if (!text) {
@@ -5106,17 +5334,58 @@ This is an alternate test message to show now.`;
         ? pairInfo.alias_sender_names
         : [];
     return {
-      receiver_name: assertValidParticipantIdentifier(pairInfo?.receiverName, `${fieldName} receiver identifier`),
-      sender_name: assertValidParticipantIdentifier(pairInfo?.senderName, `${fieldName} sender identifier`),
+      receiver_name: assertValidReportIdentifier(pairInfo?.receiverName, `${fieldName} receiver identifier`),
+      sender_name: assertValidReportIdentifier(pairInfo?.senderName, `${fieldName} sender identifier`),
       session_code: assertValidSessionCode(pairInfo?.sessionCode, `${fieldName} session code`),
       source: String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real",
       alias_receiver_names: aliasReceiverNames
-        .map((value) => assertValidParticipantIdentifier(value, `${fieldName} alias receiver identifier`))
+        .map((value) => assertValidReportIdentifier(value, `${fieldName} alias receiver identifier`))
         .filter(Boolean),
       alias_sender_names: aliasSenderNames
-        .map((value) => assertValidParticipantIdentifier(value, `${fieldName} alias sender identifier`))
+        .map((value) => assertValidReportIdentifier(value, `${fieldName} alias sender identifier`))
         .filter(Boolean)
     };
+  }
+
+  function readNamedReportsCache() {
+    try {
+      const raw = localStorage.getItem(namedReportsCacheKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeNamedReportsCache(rows) {
+    const next = Array.isArray(rows) ? rows : [];
+    localStorage.setItem(namedReportsCacheKey, JSON.stringify(next));
+  }
+
+  function cacheNamedReportTarget(target) {
+    if (!target?.reportId) {
+      return;
+    }
+    const rows = readNamedReportsCache().filter((row) => String(row?.id || "") !== String(target.reportId || ""));
+    rows.unshift({
+      id: String(target.reportId || ""),
+      title: String(target.reportTitle || "").trim(),
+      selected_pair: sanitizePairInfoForServer(target),
+      start_trial: Number(target.startTrial || 1) || 1,
+      end_trial: Number(target.endTrial || 1) || 1,
+      completed_trial_count: Number(target.savedCompletedTrialCount || 0) || 0,
+      created_ms: Number(target.createdAtMs || Date.now()) || Date.now()
+    });
+    writeNamedReportsCache(rows.slice(0, 100));
+  }
+
+  function removeNamedReportFromCache(reportId) {
+    const cleanId = String(reportId || "").trim();
+    if (!cleanId) {
+      return;
+    }
+    const rows = readNamedReportsCache().filter((row) => String(row?.id || "") !== cleanId);
+    writeNamedReportsCache(rows);
   }
 
   function sanitizeLauncherProfileForServer(role, ownEmail, profileState) {
@@ -11080,10 +11349,10 @@ This is an alternate test message to show now.`;
       seen.add(sourceKey);
       const displayReceiverName = source === "simulation"
         ? getSimulationReportDisplayName(receiver, "receiver")
-        : receiver;
+        : (isDemoReportPair(receiver, sender) ? formatDemoReportDisplayName(receiver) : receiver);
       const displaySenderName = source === "simulation"
         ? getSimulationReportDisplayName(sender, "sender")
-        : sender;
+        : (isDemoReportPair(receiver, sender) ? formatDemoReportDisplayName(sender) : sender);
       candidates.push({
         key: sourceKey,
         baseKey: key,
@@ -11170,13 +11439,24 @@ This is an alternate test message to show now.`;
       return null;
     }
 
+    if (pendingSelectNamedReportId) {
+      const namedMatch = available.find((pairInfo) => isNamedReportTarget(pairInfo) && pairInfo.reportId === pendingSelectNamedReportId);
+      if (namedMatch) {
+        pendingSelectNamedReportId = "";
+        return namedMatch;
+      }
+      pendingSelectNamedReportId = "";
+    }
+
     const candidatePairs = collectReportCandidatePairs();
     for (const candidate of candidatePairs) {
       const match = available.find((pairInfo) =>
+        !isNamedReportTarget(pairInfo) && (
         pairInfo.key === candidate.key ||
         (
           pairInfo.baseKey === candidate.baseKey &&
           String(pairInfo.source || "real").trim().toLowerCase() === String(candidate.source || "real").trim().toLowerCase()
+        )
         )
       );
       if (match) {
@@ -11235,6 +11515,111 @@ This is an alternate test message to show now.`;
 
   function getPairInfoSenderLabel(pairInfo) {
     return String(pairInfo?.displaySenderName || pairInfo?.senderName || "").trim();
+  }
+
+  function formatDemoReportDisplayName(value) {
+    const text = String(value ?? "").trim();
+    if (!/^demo\./i.test(text)) {
+      return text;
+    }
+    return text.replace(/@espgym\.com$/i, "");
+  }
+
+  function isNamedReportTarget(target) {
+    return String(target?.reportTargetType || "").trim().toLowerCase() === "named-report";
+  }
+
+  function buildNamedReportTarget(record) {
+    const selectedPair = record?.selected_pair && typeof record.selected_pair === "object"
+      ? record.selected_pair
+      : {};
+    const receiverName = String(selectedPair.receiver_name || "").trim();
+    const senderName = String(selectedPair.sender_name || "").trim();
+    const sessionCode = String(selectedPair.session_code || "").trim();
+    const source = String(selectedPair.source || "real").trim().toLowerCase() === "simulation" ? "simulation" : "real";
+    const aliasReceiverNames = Array.isArray(selectedPair.alias_receiver_names) ? selectedPair.alias_receiver_names.slice(0) : [];
+    const aliasSenderNames = Array.isArray(selectedPair.alias_sender_names) ? selectedPair.alias_sender_names.slice(0) : [];
+    const displayReceiverName = source === "simulation"
+      ? getSimulationReportDisplayName(receiverName, "receiver")
+      : (isDemoReportPair(receiverName, senderName) ? formatDemoReportDisplayName(receiverName) : receiverName);
+    const displaySenderName = source === "simulation"
+      ? getSimulationReportDisplayName(senderName, "sender")
+      : (isDemoReportPair(receiverName, senderName) ? formatDemoReportDisplayName(senderName) : senderName);
+    const title = String(record?.title || "").trim();
+    const startTrial = Math.max(1, Number(record?.start_trial || 1) || 1);
+    const endTrial = Math.max(startTrial, Number(record?.end_trial || startTrial) || startTrial);
+    const reportId = String(record?.id || "").trim();
+    const key = `named-report::${reportId}`;
+    return {
+      key,
+      baseKey: buildPairMatchKey(receiverName, senderName),
+      receiverName,
+      senderName,
+      displayReceiverName,
+      displaySenderName,
+      sessionCode,
+      source,
+      aliasReceiverNames,
+      aliasSenderNames,
+      reportTargetType: "named-report",
+      reportId,
+      reportTitle: title,
+      startTrial,
+      endTrial,
+      savedCompletedTrialCount: Math.max(0, Number(record?.completed_trial_count || 0) || 0),
+      createdAtMs: Math.max(0, Number(record?.created_ms || 0) || 0)
+    };
+  }
+
+  function getReportTargetDisplayLabel(target) {
+    if (isNamedReportTarget(target)) {
+      return String(target?.reportTitle || "").trim() || "Unnamed named file";
+    }
+    const receiver = getPairInfoReceiverLabel(target) || "unknown";
+    const sender = getPairInfoSenderLabel(target) || "unknown";
+    return `${receiver}  ${sender}${target?.source === "simulation" ? "  (Simulation)" : ""}`;
+  }
+
+  function getEffectiveSourcePairInfo(target) {
+    if (!target) {
+      return null;
+    }
+    return {
+      key: String(target.baseKey || buildPairMatchKey(target.receiverName, target.senderName)),
+      baseKey: String(target.baseKey || buildPairMatchKey(target.receiverName, target.senderName)),
+      receiverName: String(target.receiverName || "").trim(),
+      senderName: String(target.senderName || "").trim(),
+      displayReceiverName: String(target.displayReceiverName || target.receiverName || "").trim(),
+      displaySenderName: String(target.displaySenderName || target.senderName || "").trim(),
+      sessionCode: String(target.sessionCode || "").trim(),
+      source: String(target.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real",
+      aliasReceiverNames: Array.isArray(target.aliasReceiverNames) ? target.aliasReceiverNames.slice(0) : [],
+      aliasSenderNames: Array.isArray(target.aliasSenderNames) ? target.aliasSenderNames.slice(0) : []
+    };
+  }
+
+  function getNamedReportRange(target) {
+    if (!isNamedReportTarget(target)) {
+      return null;
+    }
+    const start = Math.max(1, Number(target.startTrial || 1) || 1);
+    const end = Math.max(start, Number(target.endTrial || start) || start);
+    return { start, end };
+  }
+
+  function getRecordsForCompletedTrialRange(records, startTrial, endTrial) {
+    const sourceRecords = Array.isArray(records) ? records : [];
+    const start = Math.max(1, Number(startTrial || 1) || 1);
+    const end = Math.max(start, Number(endTrial || start) || start);
+    let scoredIndex = 0;
+    return sourceRecords.filter((record) => {
+      const model = getTrialScoreModel(record);
+      if (!Number.isFinite(model.observed) || !Number.isFinite(model.expected) || !Number.isFinite(model.variance)) {
+        return false;
+      }
+      scoredIndex += 1;
+      return scoredIndex >= start && scoredIndex <= end;
+    });
   }
 
   function syncCurrentLauncherNamesToState() {
@@ -11296,10 +11681,10 @@ This is an alternate test message to show now.`;
       const sourceKey = `${pairKey}|||${source}`;
       const displayReceiverName = source === "simulation"
         ? getSimulationReportDisplayName(receiverName, "receiver")
-        : receiverName;
+        : (isDemoReportPair(receiverName, senderName) ? formatDemoReportDisplayName(receiverName) : receiverName);
       const displaySenderName = source === "simulation"
         ? getSimulationReportDisplayName(senderName, "sender")
-        : senderName;
+        : (isDemoReportPair(receiverName, senderName) ? formatDemoReportDisplayName(senderName) : senderName);
 
       if (!includeAllPairs) {
         const candidateMatch = candidateKeys.size ? candidateKeys.has(pairKey) : false;
@@ -11376,20 +11761,25 @@ This is an alternate test message to show now.`;
   }
 
   function setSelectedReportPair(pairInfo) {
-    selectedReportPair = pairInfo || null;
+    selectedReportTarget = pairInfo || null;
+    selectedReportPair = pairInfo ? getEffectiveSourcePairInfo(pairInfo) : null;
     if (reportPairTriggerText) {
-      reportPairTriggerText.innerHTML = selectedReportPair
-        ? `${escapeHtml(getPairInfoReceiverLabel(selectedReportPair))}&nbsp;&nbsp;${escapeHtml(getPairInfoSenderLabel(selectedReportPair))}${selectedReportPair.source === "simulation" ? "&nbsp;&nbsp;(Simulation)" : ""}`
-        : "Select receiver and sender";
+      reportPairTriggerText.innerHTML = selectedReportTarget
+        ? escapeHtml(getReportTargetDisplayLabel(selectedReportTarget))
+        : "Select receiver-sender pair or named file";
     }
+    if (reportDeleteButton) {
+      reportDeleteButton.hidden = !isNamedReportTarget(selectedReportTarget);
+    }
+    reportPairPicker?.classList.toggle("has-inline-delete", isNamedReportTarget(selectedReportTarget));
     if (reportGoButton) {
-      reportGoButton.hidden = !selectedReportPair;
+      reportGoButton.hidden = !selectedReportTarget;
     }
     if (reportGlobeButton) {
-      reportGlobeButton.hidden = !selectedReportPair;
+      reportGlobeButton.hidden = !selectedReportTarget;
     }
     if (reportVisualizeButton) {
-      reportVisualizeButton.hidden = !selectedReportPair;
+      reportVisualizeButton.hidden = !selectedReportTarget;
     }
     renderReportPairOptions();
   }
@@ -11405,13 +11795,20 @@ This is an alternate test message to show now.`;
       const optionButton = document.createElement("button");
       optionButton.type = "button";
       optionButton.className = "report-pair-option";
-      if (selectedReportPair?.key === pairInfo.key) {
+      if (selectedReportTarget?.key === pairInfo.key) {
         optionButton.classList.add("is-selected");
       }
+      const isNamed = isNamedReportTarget(pairInfo);
+      const middleText = isNamed
+        ? `${getPairInfoReceiverLabel(pairInfo)} - ${getPairInfoSenderLabel(pairInfo)} | Trials ${pairInfo.startTrial}-${pairInfo.endTrial}`
+        : getPairInfoSenderLabel(pairInfo);
+      const rightText = isNamed
+        ? `Saved ${escapeHtml(String(pairInfo.savedCompletedTrialCount || 0))}`
+        : `${isDemoPairInfo(pairInfo) ? "Demo" : (pairInfo.source === "simulation" ? "Sim" : "Human")} ${escapeHtml(String(pairInfo.recordCount || 0))}`;
       optionButton.innerHTML = `
-        <span class="report-pair-option-value">${escapeHtml(getPairInfoReceiverLabel(pairInfo))}</span>
-        <span class="report-pair-option-value">${escapeHtml(getPairInfoSenderLabel(pairInfo))}</span>
-        <span class="report-pair-option-value">${isDemoPairInfo(pairInfo) ? "Demo" : (pairInfo.source === "simulation" ? "Sim" : "Human")} ${escapeHtml(String(pairInfo.recordCount || 0))}</span>
+        <span class="report-pair-option-value">${escapeHtml(isNamed ? (pairInfo.reportTitle || "Unnamed named file") : getPairInfoReceiverLabel(pairInfo))}</span>
+        <span class="report-pair-option-value">${escapeHtml(middleText)}</span>
+        <span class="report-pair-option-value">${rightText}</span>
       `;
       optionButton.addEventListener("click", () => {
         setSelectedReportPair(pairInfo);
@@ -11439,15 +11836,24 @@ This is an alternate test message to show now.`;
       };
     }
 
-    availableReportPairs = getAvailableReportPairs(csvResult.records);
+    const rawPairs = getAvailableReportPairs(csvResult.records);
+    let namedReports = [];
+    try {
+      namedReports = await fetchNamedReports();
+    } catch (error) {
+      namedReports = [];
+    }
+    availableReportPairs = [...namedReports, ...rawPairs];
     if (pendingOpenReportPair?.receiverName && pendingOpenReportPair?.senderName) {
       const requestedKey = buildPairMatchKey(pendingOpenReportPair.receiverName, pendingOpenReportPair.senderName);
       const matchedPair = availableReportPairs.find((pairInfo) =>
+        !isNamedReportTarget(pairInfo) && (
         (
           pairInfo.key === requestedKey ||
           buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName) === requestedKey
         ) &&
         (!pendingOpenReportPair.sessionCode || String(pairInfo.sessionCode || "").trim() === pendingOpenReportPair.sessionCode)
+        )
       );
       if (matchedPair) {
         setSelectedReportPair({
@@ -11484,7 +11890,7 @@ This is an alternate test message to show now.`;
       return;
     }
 
-    if (!selectedReportPair || !availableReportPairs.some((pairInfo) => pairInfo.key === selectedReportPair?.key)) {
+    if (!selectedReportTarget || !availableReportPairs.some((pairInfo) => pairInfo.key === selectedReportTarget?.key)) {
       setSelectedReportPair(getPreferredAvailableReportPair(availableReportPairs));
     } else {
       renderReportPairOptions();
@@ -11901,12 +12307,16 @@ This is an alternate test message to show now.`;
       return "unknown";
     }
     if (value === 0) {
-      return "< 1e-12";
+      return "< .000000000001";
     }
-    if (value < 0.001) {
-      return value.toExponential(2);
+    if (value < 1) {
+      const decimalText = value.toFixed(12).replace(/0+$/, "").replace(/\.$/, "");
+      if (decimalText && decimalText !== "0") {
+        return decimalText.replace(/^0\./, ".");
+      }
     }
-    return value.toFixed(4);
+    const fixedText = value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+    return fixedText;
   }
 
   function formatProbabilityPercent(value) {
@@ -12372,6 +12782,77 @@ This is an alternate test message to show now.`;
     };
   }
 
+  const highlyPersuasivePThreshold = 0.001;
+  const highlyPersuasiveMinimumTrials = 50;
+  const highlyPersuasiveProjectionCeiling = 500;
+
+  function isHighlyPersuasiveResult(totalTrials, pValue) {
+    return Number(totalTrials || 0) >= highlyPersuasiveMinimumTrials
+      && Number.isFinite(pValue)
+      && pValue < highlyPersuasivePThreshold;
+  }
+
+  function getProjectionPerTrialAverages(summaryStats) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const yourScore = Number(summaryStats?.yourScore || 0);
+    const chanceScore = Number(summaryStats?.chanceScore || 0);
+    const totalVariance = Number(summaryStats?.totalVariance || 0);
+    if (totalTrials < 1 || !Number.isFinite(yourScore) || !Number.isFinite(chanceScore) || !Number.isFinite(totalVariance) || totalVariance <= 0) {
+      return null;
+    }
+    return {
+      observedPerTrial: yourScore / totalTrials,
+      expectedPerTrial: chanceScore / totalTrials,
+      variancePerTrial: totalVariance / totalTrials
+    };
+  }
+
+  function getProjectedHighlyPersuasiveTrialCount(summaryStats) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const averages = getProjectionPerTrialAverages(summaryStats);
+    if (!averages || totalTrials < 1) {
+      return null;
+    }
+
+    for (let projectedTrials = Math.max(totalTrials, 1); projectedTrials <= highlyPersuasiveProjectionCeiling; projectedTrials += 1) {
+      const projectedSummary = {
+        totalTrials: projectedTrials,
+        yourScore: averages.observedPerTrial * projectedTrials,
+        chanceScore: averages.expectedPerTrial * projectedTrials,
+        totalVariance: averages.variancePerTrial * projectedTrials
+      };
+      const projectedPValue = getTelepathicSignificancePValue(projectedSummary);
+      if (isHighlyPersuasiveResult(projectedTrials, projectedPValue)) {
+        return projectedTrials;
+      }
+    }
+    return null;
+  }
+
+  function buildPersuasivenessProjectionLine(summaryStats, levelBreakdown = null) {
+    const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
+    const pValue = Number(significance?.pValue);
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (totalTrials < 1 || !Number.isFinite(pValue)) {
+      return "Projection: There are not enough completed scored trials yet to estimate when the result might become highly persuasive.";
+    }
+
+    if (isHighlyPersuasiveResult(totalTrials, pValue)) {
+      return "Projection: At the current level of performance, this result is already in the highly persuasive range.";
+    }
+
+    if (pValue < highlyPersuasivePThreshold && totalTrials < highlyPersuasiveMinimumTrials) {
+      return `Projection: If performance remains at approximately this level, the result would enter the highly persuasive range at ${highlyPersuasiveMinimumTrials} completed scored trials.`;
+    }
+
+    const projectedTrialCount = getProjectedHighlyPersuasiveTrialCount(summaryStats);
+    if (Number.isFinite(projectedTrialCount)) {
+      return `Projection: If performance continued at approximately this same level, the result would become highly persuasive at about ${projectedTrialCount} completed scored trials.`;
+    }
+
+    return "Projection: At the current level of performance, the data do not yet project a clear path to the highly persuasive range.";
+  }
+
   function buildReportSummaryLines(summaryStats, levelBreakdown = null) {
     const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
     const telepathicSignificance = significance.pValue;
@@ -12635,10 +13116,15 @@ This is an alternate test message to show now.`;
       return "No completed scored trials are available for interpretation.";
     }
     const makeup = classifyDatasetMakeup(levelStats, totalTrials);
-    const parts = levelStats
-      .filter((entry) => Number(entry.completed_trials || 0) > 0)
+    const activeLevels = levelStats
+      .filter((entry) => Number(entry.completed_trials || 0) > 0);
+    const parts = activeLevels
       .map((entry) => `Level ${entry.level}: ${entry.completed_trials}`);
     const countsText = parts.length ? parts.join(", ") : "no scored levels";
+
+    if (activeLevels.length === 1) {
+      return `Dataset makeup: ${countsText}. Level ${makeup.dominantLevel} contributes all the completed trials, so the overall interpretation is a Level ${makeup.dominantLevel} interpretation.`;
+    }
 
     if (makeup.type === "dominant") {
       return `Dataset makeup: ${countsText}. Level ${makeup.dominantLevel} contributes at least 80% of the completed trials, so the overall interpretation is mainly a Level ${makeup.dominantLevel} interpretation.`;
@@ -12730,8 +13216,12 @@ This is an alternate test message to show now.`;
   }
 
   function buildPatternInterpretation(levelStats, summaryStats) {
+    const activeLevels = levelStats.filter((entry) => Number(entry.completed_trials || 0) > 0);
     const testedLevels = levelStats.filter((entry) => hasInterpretationSizedSample(entry));
     const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (activeLevels.length <= 1) {
+      return [];
+    }
     if (!testedLevels.length) {
       return ["Not enough level-specific data are available yet to describe a pattern across levels."];
     }
@@ -12829,6 +13319,7 @@ This is an alternate test message to show now.`;
     const levelStats = getLevelStatsList(levelBreakdown);
     const overallInterpretation = buildOverallInterpretation(summaryStats, levelStats);
     const datasetMakeup = buildDatasetMakeupLine(levelStats, Number(summaryStats?.totalTrials || 0));
+    const persuasivenessProjection = buildPersuasivenessProjectionLine(summaryStats, levelBreakdown);
     const levelInterpretations = levelStats
       .filter((entry) => Number(entry.completed_trials || 0) > 0)
       .map((entry) => getLevelSpecificInterpretation(entry));
@@ -12855,6 +13346,7 @@ This is an alternate test message to show now.`;
     return {
       overall_interpretation: overallInterpretation,
       dataset_makeup: datasetMakeup,
+      persuasiveness_projection: persuasivenessProjection,
       level_interpretations: levelInterpretations,
       pattern_interpretations: patternInterpretations,
       recommendation,
@@ -12995,6 +13487,7 @@ This is an alternate test message to show now.`;
       "INTERPRETATION",
       `Overall interpretation: ${interpretation.overall_interpretation}`,
       interpretation.dataset_makeup,
+      `Projection: ${String(interpretation.persuasiveness_projection || "").replace(/^Projection:\s*/i, "")}`,
       ...interpretation.level_interpretations.map((line, index) => `Level note ${index + 1}: ${line}`),
       ...interpretation.pattern_interpretations.map((line, index) => `Pattern note ${index + 1}: ${line}`),
       `Recommendation: ${interpretation.recommendation}`,
@@ -13019,6 +13512,7 @@ This is an alternate test message to show now.`;
       "STATIC INTERPRETATION",
       interpretation.overall_interpretation,
       interpretation.dataset_makeup,
+      interpretation.persuasiveness_projection,
       ...interpretation.level_interpretations,
       ...interpretation.pattern_interpretations,
       interpretation.recommendation,
@@ -13040,6 +13534,7 @@ This is an alternate test message to show now.`;
     return [
       `Overall interpretation: ${interpretation.overall_interpretation || messages.headline || "unknown"}`,
       `${interpretation.dataset_makeup || "Dataset makeup: unknown"}`,
+      `${interpretation.persuasiveness_projection || "Projection: unknown"}`,
       ...(Array.isArray(interpretation.level_interpretations) && interpretation.level_interpretations.length
         ? ["", "Level-specific interpretation:", ...interpretation.level_interpretations.map((line) => `- ${line}`)]
         : []),
@@ -13077,9 +13572,9 @@ This is an alternate test message to show now.`;
     const levelBreakdown = buildLevelBreakdown(records);
     const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown);
     if (Number(summaryStats?.totalTrials || 0) < 1) {
-      return "AI Interpretation: There are not enough completed scored trials yet to interpret these results.";
+      return "Interpretation: There are not enough completed scored trials yet to interpret these results.";
     }
-    return `AI Interpretation: ${interpretation.overall_interpretation}`;
+    return `Interpretation: ${interpretation.overall_interpretation}`;
   }
 
   function getLevelOneReportScore(record) {
@@ -13091,7 +13586,120 @@ This is an alternate test message to show now.`;
     return getReportScore(record);
   }
 
-  function buildVisualizationSeries(records) {
+  function buildVisualizationPairKey(pairInfo) {
+    if (!pairInfo?.receiverName || !pairInfo?.senderName) {
+      return "";
+    }
+    return String(pairInfo.key || buildPairMatchKey(pairInfo.receiverName, pairInfo.senderName));
+  }
+
+  function syncVisualizationRangeInputs() {
+    if (visualizationRangeStartInput) {
+      visualizationRangeStartInput.value = visualizationRangeState.startValue;
+      visualizationRangeStartInput.max = visualizationRangeState.totalTrials > 0 ? String(visualizationRangeState.totalTrials) : "";
+    }
+    if (visualizationRangeEndInput) {
+      visualizationRangeEndInput.value = visualizationRangeState.endValue;
+      visualizationRangeEndInput.max = visualizationRangeState.totalTrials > 0 ? String(visualizationRangeState.totalTrials) : "";
+    }
+  }
+
+  function ensureVisualizationRangeState(pairInfo, totalTrials) {
+    const pairKey = buildVisualizationPairKey(pairInfo);
+    const normalizedTotalTrials = Math.max(0, Number(totalTrials || 0) || 0);
+    const pairChanged = visualizationRangeState.pairKey !== pairKey;
+    if (pairChanged) {
+      visualizationRangeState = {
+        pairKey,
+        totalTrials: normalizedTotalTrials,
+        startValue: normalizedTotalTrials > 0 ? "1" : "",
+        endValue: normalizedTotalTrials > 0 ? String(normalizedTotalTrials) : ""
+      };
+    } else {
+      visualizationRangeState.totalTrials = normalizedTotalTrials;
+    }
+    syncVisualizationRangeInputs();
+  }
+
+  function parseVisualizationRangeInteger(rawValue) {
+    const text = String(rawValue ?? "").trim();
+    if (!text) {
+      return null;
+    }
+    if (!/^\d+$/.test(text)) {
+      return Number.NaN;
+    }
+    const value = Number(text);
+    if (!Number.isFinite(value) || value < 1) {
+      return Number.NaN;
+    }
+    return Math.floor(value);
+  }
+
+  function getVisualizationEffectiveRange(totalTrials) {
+    const normalizedTotalTrials = Math.max(0, Number(totalTrials || 0) || 0);
+    if (normalizedTotalTrials < 1) {
+      return {
+        start: 0,
+        end: 0,
+        valid: false,
+        reason: "empty"
+      };
+    }
+
+    const parsedStart = parseVisualizationRangeInteger(visualizationRangeState.startValue);
+    const parsedEnd = parseVisualizationRangeInteger(visualizationRangeState.endValue);
+    if (Number.isNaN(parsedStart) || Number.isNaN(parsedEnd)) {
+      return {
+        start: 0,
+        end: 0,
+        valid: false,
+        reason: "invalid-format",
+        message: "Trial range must use positive whole numbers."
+      };
+    }
+
+    const start = Math.min(Math.max(parsedStart ?? 1, 1), normalizedTotalTrials);
+    const end = Math.min(Math.max(parsedEnd ?? normalizedTotalTrials, 1), normalizedTotalTrials);
+    if (start > end) {
+      return {
+        start,
+        end,
+        valid: false,
+        reason: "invalid-order",
+        message: "Start trial must be less than or equal to end trial."
+      };
+    }
+
+    return {
+      start,
+      end,
+      valid: true,
+      reason: "ok"
+    };
+  }
+
+  function buildVisualizationStatusLine(range, totalTrials) {
+    const normalizedTotalTrials = Math.max(0, Number(totalTrials || 0) || 0);
+    if (!range?.valid || normalizedTotalTrials < 1) {
+      return "";
+    }
+    if (range.start === range.end) {
+      return `Showing trial ${range.start} of ${normalizedTotalTrials} completed scored trial${normalizedTotalTrials === 1 ? "" : "s"}.`;
+    }
+    return `Showing trials ${range.start}-${range.end} of ${normalizedTotalTrials} completed scored trials.`;
+  }
+
+  function commitVisualizationRangeFromInputs() {
+    visualizationRangeState.startValue = String(visualizationRangeStartInput?.value ?? "").trim();
+    visualizationRangeState.endValue = String(visualizationRangeEndInput?.value ?? "").trim();
+    if (!selectedReportTarget || visualizationView?.classList.contains("beginner-view-hidden")) {
+      return;
+    }
+    void renderPerformanceVisualization(selectedReportTarget);
+  }
+
+  function buildVisualizationSeries(records, startTrialNumber = 1) {
     const series = [];
     let cumulativeExcess = 0;
     let cumulativeVariance = 0;
@@ -13108,7 +13716,7 @@ This is an alternate test message to show now.`;
       const sigma = Math.sqrt(cumulativeVariance);
 
       series.push({
-        trialNumber: series.length + 1,
+        trialNumber: Number(startTrialNumber || 1) + series.length,
         level: model.level,
         observed: model.observed,
         excess,
@@ -13310,12 +13918,19 @@ This is an alternate test message to show now.`;
     reportTableWrap.hidden = false;
   }
 
-  function renderVisualizationSummary(pairInfo, records, series) {
+  function renderVisualizationSummary(pairInfo, records, series, totalAvailableTrials, range) {
     if (!visualizationSummary || !visualizationStatus) {
       return;
     }
 
     visualizationSummary.replaceChildren();
+
+    if (isNamedReportTarget(pairInfo)) {
+      const titleLine = document.createElement("p");
+      titleLine.className = "report-summary-line";
+      titleLine.textContent = `Named file: ${String(pairInfo.reportTitle || "").trim() || "Unnamed named file"}`;
+      visualizationSummary.append(titleLine);
+    }
 
     const firstLine = document.createElement("p");
     firstLine.className = "report-summary-line";
@@ -13323,7 +13938,9 @@ This is an alternate test message to show now.`;
     visualizationSummary.append(firstLine);
 
     if (!series.length) {
-      visualizationStatus.textContent = "No scoreable trials are available for visualization.";
+      visualizationStatus.textContent = range?.valid && Number(totalAvailableTrials || 0) > 0
+        ? "No completed scored trials fall within the selected range."
+        : "No scoreable trials are available for visualization.";
       return;
     }
 
@@ -13345,7 +13962,7 @@ This is an alternate test message to show now.`;
     interpretationLine.className = "report-summary-line";
     interpretationLine.textContent = buildAiInterpretation(summaryStats, records);
     visualizationSummary.append(interpretationLine);
-    [interpretation.dataset_makeup, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
+    [interpretation.dataset_makeup, interpretation.persuasiveness_projection, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
       if (!text) {
         return;
       }
@@ -13355,7 +13972,7 @@ This is an alternate test message to show now.`;
       visualizationSummary.append(line);
     });
 
-    visualizationStatus.textContent = `${series.length} completed trial${series.length === 1 ? "" : "s"}.`;
+    visualizationStatus.textContent = buildVisualizationStatusLine(range, totalAvailableTrials);
   }
 
   function renderVisualizationChart(series) {
@@ -13375,7 +13992,8 @@ This is an alternate test message to show now.`;
     const margin = { top: 30, right: 34, bottom: 54, left: 74 };
     const plotWidth = width - margin.left - margin.right;
     const plotHeight = height - margin.top - margin.bottom;
-    const maxX = Math.max(series.length, 1);
+    const minTrialNumber = Number(series[0]?.trialNumber || 1);
+    const maxTrialNumber = Number(series[series.length - 1]?.trialNumber || minTrialNumber);
     const allYValues = [0];
     series.forEach((point) => {
       allYValues.push(point.cumulativeExcess, point.upperBand, point.lowerBand);
@@ -13385,7 +14003,7 @@ This is an alternate test message to show now.`;
     const yPadding = Math.max(1, (yMaxRaw - yMinRaw) * 0.08);
     const yMin = yMinRaw - yPadding;
     const yMax = yMaxRaw + yPadding;
-    const xToPx = (value) => margin.left + ((value - 1) / Math.max(maxX - 1, 1)) * plotWidth;
+    const xToPx = (value) => margin.left + ((value - minTrialNumber) / Math.max(maxTrialNumber - minTrialNumber, 1)) * plotWidth;
     const yToPx = (value) => margin.top + ((yMax - value) / Math.max(yMax - yMin, 0.0001)) * plotHeight;
 
     const bandPathParts = [];
@@ -13430,13 +14048,13 @@ This is an alternate test message to show now.`;
 
     const xTickValues = (() => {
       if (series.length <= 12) {
-        return Array.from({ length: series.length }, (_, index) => index + 1);
+        return series.map((point) => point.trialNumber);
       }
 
       const targetCount = 10;
-      const values = new Set([1, series.length]);
+      const values = new Set([minTrialNumber, maxTrialNumber]);
       for (let tick = 1; tick < targetCount - 1; tick += 1) {
-        values.add(Math.round(1 + (tick * (series.length - 1)) / (targetCount - 1)));
+        values.add(Math.round(minTrialNumber + (tick * (maxTrialNumber - minTrialNumber)) / (targetCount - 1)));
       }
       return [...values].sort((left, right) => left - right);
     })();
@@ -13674,11 +14292,24 @@ This is an alternate test message to show now.`;
     }
     const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
     const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
-    reportPairBanner.textContent = `Receiver: ${receiverLabel}      Sender: ${senderLabel}`;
+    if (isNamedReportTarget(pairInfo)) {
+      const title = String(pairInfo.reportTitle || "").trim() || "Unnamed named file";
+      reportPairBanner.textContent = `Named file: ${title}      Receiver: ${receiverLabel}      Sender: ${senderLabel}`;
+    } else {
+      reportPairBanner.textContent = `Receiver: ${receiverLabel}      Sender: ${senderLabel}`;
+    }
     reportPairBanner.hidden = false;
   }
 
-  async function renderPerformanceReport(pairInfo = selectedReportPair) {
+  function getNamedReportFilteredRecords(pairInfo, records) {
+    const range = getNamedReportRange(pairInfo);
+    if (!range) {
+      return Array.isArray(records) ? records : [];
+    }
+    return getRecordsForCompletedTrialRange(records, range.start, range.end);
+  }
+
+  async function renderPerformanceReport(pairInfo = selectedReportTarget || selectedReportPair) {
     let csvResult = {
       available: false,
       message: "",
@@ -13732,18 +14363,19 @@ This is an alternate test message to show now.`;
       return;
     }
 
-    renderReportSummary(pairInfo, records);
-    const hasLevelFourTrials = records.some((record) => String(record?.["difficulty level"] ?? "").trim() === "4");
+    const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
+    renderReportSummary(pairInfo, filteredRecords);
+    const hasLevelFourTrials = filteredRecords.some((record) => String(record?.["difficulty level"] ?? "").trim() === "4");
     const levelFourImagePairsIndex = hasLevelFourTrials
       ? await fetchLevelFourImagePairsIndex()
       : new Map();
-    renderReportTable(records, {
+    renderReportTable(filteredRecords, {
       hasLevelFourTrials,
       levelFourImagePairsIndex
     });
   }
 
-  async function renderPerformanceVisualization(pairInfo = selectedReportPair) {
+  async function renderPerformanceVisualization(pairInfo = selectedReportTarget || selectedReportPair) {
     let csvResult = {
       available: false,
       message: "",
@@ -13772,7 +14404,6 @@ This is an alternate test message to show now.`;
     }
 
     const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
-    const series = buildVisualizationSeries(records);
 
     if (!records.length) {
       visualizationSummary.replaceChildren();
@@ -13784,11 +14415,57 @@ This is an alternate test message to show now.`;
       return;
     }
 
-    renderVisualizationSummary(pairInfo, records, series);
+    const namedRange = getNamedReportRange(pairInfo);
+    const scoredRecords = getScoredRecords(records);
+    ensureVisualizationRangeState(pairInfo, scoredRecords.length);
+    if (namedRange && visualizationRangeState.pairKey === buildVisualizationPairKey(pairInfo)) {
+      const nextStart = String(namedRange.start);
+      const nextEnd = String(namedRange.end);
+      if (visualizationRangeState.startValue !== nextStart || visualizationRangeState.endValue !== nextEnd) {
+        visualizationRangeState.startValue = nextStart;
+        visualizationRangeState.endValue = nextEnd;
+        syncVisualizationRangeInputs();
+      }
+    }
+
+    if (!scoredRecords.length) {
+      visualizationSummary.replaceChildren();
+      const firstLine = document.createElement("p");
+      firstLine.className = "report-summary-line";
+      firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+      visualizationSummary.append(firstLine);
+      visualizationStatus.textContent = "No completed scored trials are available for visualization.";
+      visualizationChart.replaceChildren();
+      visualizationChartWrap.hidden = true;
+      return;
+    }
+
+    const range = getVisualizationEffectiveRange(scoredRecords.length);
+    if (!range.valid) {
+      visualizationSummary.replaceChildren();
+      const firstLine = document.createElement("p");
+      firstLine.className = "report-summary-line";
+      firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+      visualizationSummary.append(firstLine);
+      visualizationStatus.textContent = range.message || "Unable to apply the selected trial range.";
+      visualizationChart.replaceChildren();
+      visualizationChartWrap.hidden = true;
+      return;
+    }
+
+    const filteredRecords = scoredRecords.slice(range.start - 1, range.end);
+    const series = buildVisualizationSeries(filteredRecords, range.start);
+    latestVisualizationContext = {
+      pairInfo,
+      totalAvailableTrials: scoredRecords.length,
+      range,
+      completedTrialCount: filteredRecords.length
+    };
+    renderVisualizationSummary(pairInfo, filteredRecords, series, scoredRecords.length, range);
     renderVisualizationChart(series);
   }
 
-  async function renderResultsAnalysis(pairInfo = selectedReportPair) {
+  async function renderResultsAnalysis(pairInfo = selectedReportTarget || selectedReportPair) {
     if (!analyzerSummary || !analyzerStatus || !analyzerOutput || !analyzerText) {
       return;
     }
@@ -13825,7 +14502,8 @@ This is an alternate test message to show now.`;
       return;
     }
 
-    const analysis = buildResultsAnalysis(pairInfo, records, csvResult.path || reportCsvPathCache || "");
+    const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
+    const analysis = buildResultsAnalysis(pairInfo, filteredRecords, csvResult.path || reportCsvPathCache || "");
     saveAnalysisLocally(pairInfo, analysis);
 
     const titleLine = document.createElement("p");
@@ -13841,6 +14519,10 @@ This is an alternate test message to show now.`;
     makeupLine.className = "report-summary-line";
     makeupLine.textContent = analysis.interpretation?.dataset_makeup || "";
     analyzerSummary.append(makeupLine);
+    const projectionLine = document.createElement("p");
+    projectionLine.className = "report-summary-line";
+    projectionLine.textContent = analysis.interpretation?.persuasiveness_projection || "";
+    analyzerSummary.append(projectionLine);
 
     analyzerStatus.textContent = `${analysis.metrics.completed_trial_count} completed trial record${analysis.metrics.completed_trial_count === 1 ? "" : "s"} analyzed.`;
     analyzerOutput.textContent = formatAnalysisDisplay(analysis);
@@ -17114,7 +17796,7 @@ This is an alternate test message to show now.`;
     updatePendingLearningCenterLessonReturnButtons();
   }
 
-  function showReportView(pairInfo = selectedReportPair) {
+  function showReportView(pairInfo = selectedReportTarget || selectedReportPair) {
     learningCenterView?.classList.add("beginner-view-hidden");
     beginnerPanel?.classList.add("report-pannable");
     reportView?.classList.remove("beginner-view-hidden");
@@ -17149,7 +17831,7 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showVisualizationView(pairInfo = selectedReportPair) {
+  function showVisualizationView(pairInfo = selectedReportTarget || selectedReportPair) {
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.remove("beginner-view-hidden");
@@ -17183,7 +17865,7 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showAnalyzerView(pairInfo = selectedReportPair) {
+  function showAnalyzerView(pairInfo = selectedReportTarget || selectedReportPair) {
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.remove("beginner-view-hidden");
@@ -26400,6 +27082,20 @@ This is an alternate test message to show now.`;
   closeReportButton?.addEventListener("click", showReportDefinitionView);
   closeVisualizationButton?.addEventListener("click", showReportDefinitionView);
   closeAnalyzerButton?.addEventListener("click", showReportDefinitionView);
+  visualizationRangeStartInput?.addEventListener("blur", commitVisualizationRangeFromInputs);
+  visualizationRangeEndInput?.addEventListener("blur", commitVisualizationRangeFromInputs);
+  visualizationRangeStartInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitVisualizationRangeFromInputs();
+    }
+  });
+  visualizationRangeEndInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitVisualizationRangeFromInputs();
+    }
+  });
   reportPairTrigger?.addEventListener("click", () => {
     if (!availableReportPairs.length) {
       return;
@@ -26411,22 +27107,66 @@ This is an alternate test message to show now.`;
     }
   });
   reportGoButton?.addEventListener("click", () => {
-    if (selectedReportPair) {
-      showReportView(selectedReportPair);
+    if (selectedReportTarget) {
+      showReportView(selectedReportTarget);
     }
+  });
+  reportDeleteButton?.addEventListener("click", () => {
+    if (!isNamedReportTarget(selectedReportTarget)) {
+      return;
+    }
+    const title = String(selectedReportTarget?.reportTitle || "").trim() || "this named file";
+    const confirmed = window.confirm(`DELETE - Are you sure?\n\nDeleting "${title}" is permanent.`);
+    if (!confirmed) {
+      return;
+    }
+    void (async () => {
+      try {
+        await deleteNamedReport(selectedReportTarget.reportId);
+        selectedReportTarget = null;
+        selectedReportPair = null;
+        await renderReportDefinition();
+        if (reportDefinitionStatus) {
+          reportDefinitionStatus.textContent = `Deleted named file: ${title}.`;
+        }
+      } catch (error) {
+        if (reportDefinitionStatus) {
+          reportDefinitionStatus.textContent = error instanceof Error ? error.message : "Unable to delete the named file right now.";
+        }
+      }
+    })();
   });
   reportGlobeButton?.addEventListener("click", handleGlobeLaunchClick);
   reportVisualizeButton?.addEventListener("click", () => {
-    if (selectedReportPair) {
-      showVisualizationView(selectedReportPair);
+    if (selectedReportTarget) {
+      showVisualizationView(selectedReportTarget);
     }
   });
   adminOpenAnalyzerButton?.addEventListener("click", () => {
-    showAnalyzerView(selectedReportPair);
+    showAnalyzerView(selectedReportTarget || selectedReportPair);
   });
   analyzerRefreshButton?.addEventListener("click", () => {
-    if (selectedReportPair) {
-      void renderResultsAnalysis(selectedReportPair);
+    if (selectedReportTarget) {
+      void renderResultsAnalysis(selectedReportTarget);
+    }
+  });
+  visualizationSaveAsButton?.addEventListener("click", openNamedReportModal);
+  namedReportSaveButton?.addEventListener("click", () => {
+    void handleNamedReportSave();
+  });
+  namedReportCancelButton?.addEventListener("click", closeNamedReportModal);
+  namedReportModal?.addEventListener("click", (event) => {
+    if (event.target === namedReportModal) {
+      closeNamedReportModal();
+    }
+  });
+  namedReportTitleInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void handleNamedReportSave();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeNamedReportModal();
     }
   });
   analyzerCopyButton?.addEventListener("click", async () => {

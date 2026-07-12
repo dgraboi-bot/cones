@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260712b">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260712c">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260712b">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260712b">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260712b">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260712c">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260712c">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260712c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260712b">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260712b">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260712b">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260712c">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260712c">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260712c">
   <script>
     (function () {
-      var buildVersion = "20260712b";
+      var buildVersion = "20260712c";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -540,7 +540,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260712b</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260712c</span>
           </div>
         </div>
 
@@ -2594,8 +2594,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260712b'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260712b'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260712c'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260712c'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3199,11 +3199,12 @@
 
         <section class="report-definition-panel">
           <div class="report-definition-field">
-            <span class="report-definition-label">Receiver-sender pair</span>
+            <span class="report-definition-label">Receiver-sender pair or named file</span>
             <div class="report-pair-picker" data-report-pair-picker>
               <button class="report-pair-trigger" type="button" data-report-pair-trigger aria-expanded="false">
-                <span data-report-pair-trigger-text>Select receiver and sender</span>
+                <span data-report-pair-trigger-text>Select receiver-sender pair or named file</span>
               </button>
+              <button class="options-button report-definition-delete" type="button" data-report-delete hidden><span class="report-definition-delete-text">DELETE</span></button>
               <div class="report-pair-menu" data-report-pair-menu hidden>
                 <div class="report-pair-menu-header">
                   <span>Receiver</span>
@@ -3265,11 +3266,38 @@
             <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-level4"></span>Level 4</span>
             <span class="visualization-legend-item"><span class="visualization-swatch visualization-swatch-band"></span>95% chance band</span>
           </div>
+          <div class="visualization-range-controls" data-visualization-range-controls>
+            <label class="visualization-range-label" for="visualizationRangeStart">Start at trial:</label>
+            <input class="visualization-range-input" id="visualizationRangeStart" type="number" inputmode="numeric" min="1" step="1" data-visualization-range-start>
+            <label class="visualization-range-label" for="visualizationRangeEnd">End at trial:</label>
+            <input class="visualization-range-input" id="visualizationRangeEnd" type="number" inputmode="numeric" min="1" step="1" data-visualization-range-end>
+            <button class="options-button visualization-save-as-button" type="button" data-visualization-save-as>SAVE AS</button>
+          </div>
           <div class="visualization-chart-wrap" data-visualization-chart-wrap hidden>
             <svg class="visualization-chart" data-visualization-chart viewBox="0 0 900 520" role="img" aria-label="Performance visualization chart"></svg>
           </div>
         </section>
       </section>
+
+      <div class="named-report-modal-backdrop" data-named-report-modal hidden>
+        <section class="named-report-modal" aria-labelledby="namedReportModalTitle">
+          <h2 class="named-report-modal-title" id="namedReportModalTitle">Save Named Report</h2>
+          <label class="settings-view-field">
+            <span class="settings-view-label">Name:</span>
+            <input class="settings-view-input" type="text" maxlength="80" data-named-report-title-input placeholder="Best run in August">
+          </label>
+          <div class="named-report-modal-summary">
+            <p class="named-report-modal-line" data-named-report-source-summary></p>
+            <p class="named-report-modal-line" data-named-report-range-summary></p>
+            <p class="named-report-modal-line" data-named-report-count-summary></p>
+          </div>
+          <div class="report-status named-report-modal-status" data-named-report-status></div>
+          <div class="report-definition-actions">
+            <button class="options-button report-definition-go" type="button" data-named-report-save>SAVE</button>
+            <button class="options-button report-definition-visualize" type="button" data-named-report-cancel>CANCEL</button>
+          </div>
+        </section>
+      </div>
 
       <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="analyzer" aria-labelledby="analyzerTitle">
         <div class="beginner-top-row">
@@ -3324,8 +3352,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260712b"></script>
-<script src="telepathybeginner.js?v=20260712b"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260712c"></script>
+<script src="telepathybeginner.js?v=20260712c"></script>
 </body>
 </html>
 

@@ -44,6 +44,7 @@ $pscpPath = "C:\Program Files\PuTTY\pscp.exe"
 $plinkPath = "C:\Program Files\PuTTY\plink.exe"
 $remoteUploadTarget = "ec2-user@13.57.83.174"
 $liveRoot = "/var/www/telepathyexperiment/cones"
+$privateContentRoot = "/var/www/telepathyexperiment_private/cones/content"
 $snapshotRoot = "/home/ec2-user/espgym_live_snapshots"
 $snapshotName = "{0}_pre_{1}" -f (Get-Date -Format "yyyyMMddHHmm"), $Version
 $snapshotPath = "$snapshotRoot/$snapshotName"
@@ -130,6 +131,11 @@ $liveHashAuditFiles = @(
 )
 $liveHashAuditFiles += $newLearningCenterLessonFiles
 
+$privateContentSyncFiles = @(
+  "content_repo\new-learning-center-outline.json"
+)
+$privateContentSyncFiles += $newLearningCenterLessonFiles
+
 $mojibakeGuardPatterns = @(
   ([string][char]0x00C3),
   ([string][char]0x00E2 + [char]0x20AC + [char]0x2122),
@@ -178,6 +184,18 @@ function Get-RemoteSha256([string]$RemotePath) {
     throw "Empty remote hash output for $RemotePath"
   }
   return ($firstLine -split '\s+')[0].ToUpperInvariant()
+}
+
+function Convert-ToPrivateContentPath([string]$RelativePath) {
+  $normalized = Convert-ToPosixPath $RelativePath
+  if ($normalized -eq "content_repo/new-learning-center-outline.json") {
+    return "$privateContentRoot/new-learning-center-outline.json"
+  }
+  if ($normalized -like "content_repo/new-learning-center-lessons/*") {
+    $suffix = $normalized.Substring("content_repo/new-learning-center-lessons/".Length)
+    return "$privateContentRoot/new-learning-center-lessons/$suffix"
+  }
+  return ""
 }
 
 function Test-IsTextDeployFile([string]$RelativePath) {
@@ -317,6 +335,18 @@ foreach ($relativePath in $deployFiles) {
   Invoke-Plink "cp '$stagePath' '$livePath'" | Out-Null
 }
 
+$privateDirs = @($privateContentRoot, "$privateContentRoot/new-learning-center-lessons")
+Invoke-Plink ("mkdir -p " + (($privateDirs | Sort-Object -Unique) -join " ")) | Out-Null
+foreach ($relativePath in $privateContentSyncFiles) {
+  $remoteRelative = Convert-ToPosixPath $relativePath
+  $livePath = "$liveRoot/$remoteRelative"
+  $privatePath = Convert-ToPrivateContentPath $relativePath
+  if (-not $privatePath) {
+    continue
+  }
+  Invoke-Plink "cp '$livePath' '$privatePath'" | Out-Null
+}
+
 $verifyTargets = ($verifyVersionFiles | ForEach-Object { "$liveRoot/" + (Convert-ToPosixPath $_) }) -join " "
 Invoke-Plink "grep -n '$Version' $verifyTargets"
 Invoke-Plink "test -f '$liveRoot/telepathybeginner.html' -a -f '$liveRoot/telepathybeginner.js' -a -f '$liveRoot/api.php'"
@@ -331,11 +361,25 @@ foreach ($relativePath in $liveHashAuditFiles) {
   }
 }
 
+foreach ($relativePath in $privateContentSyncFiles) {
+  $localPath = Join-Path $repoRoot $relativePath
+  $privatePath = Convert-ToPrivateContentPath $relativePath
+  if (-not $privatePath) {
+    continue
+  }
+  $localHash = (Get-FileHash -Algorithm SHA256 $localPath).Hash.ToUpperInvariant()
+  $remoteHash = Get-RemoteSha256 $privatePath
+  if ($localHash -ne $remoteHash) {
+    throw "Private content hash audit failed for $relativePath"
+  }
+}
+
 Invoke-Plink "rm -rf '$stageRoot'" | Out-Null
 
 Write-Host "Deployed build $Version"
 Write-Host "Snapshot: $snapshotPath"
 Write-Host "Mirror synced: $mirrorRoot"
 Write-Host ("Live SHA-256 audit passed for {0} files" -f $liveHashAuditFiles.Count)
+Write-Host ("Private content SHA-256 audit passed for {0} files" -f $privateContentSyncFiles.Count)
 Write-Host "Live root: https://espgym.com/"
 Write-Host ("Cache-busted launcher: https://espgym.com/telepathybeginner.html?v={0}&open=launcher" -f $Version)

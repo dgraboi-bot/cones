@@ -14,6 +14,10 @@ There is a fifth release-integrity problem to prevent:
 
 6. accidentally releasing mojibake or bad text-encoding corruption such as `Ã`, `â€™`, or similar broken character sequences
 
+There is a seventh content-promotion problem to prevent:
+
+7. deploying updated new-course lessons only into `content_repo` while leaving the authoritative private lesson store stale
+
 There is a fourth practical cache trap to watch for:
 
 4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
@@ -186,6 +190,42 @@ robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /X
 ```
 
 If the mirror tree contains intentional local-only folders that should survive, exclude them explicitly from the command instead of silently allowing drift.
+
+## New-Course Lesson Promotion Rule
+
+The new Learning Center lesson editor writes two copies when a lesson is saved:
+
+1. a private operational copy under the private content tree
+2. a repo-side mirror copy under `content_repo`
+
+On the live server, the app reads the authoritative lesson and outline files from:
+
+- `/var/www/telepathyexperiment_private/cones/content/new-learning-center-lessons/`
+- `/var/www/telepathyexperiment_private/cones/content/new-learning-center-outline.json`
+
+The deploy tree under:
+
+- `/var/www/telepathyexperiment/cones/content_repo/`
+
+is still important because it is the Git-tracked and deployable copy, but by itself it is not enough for the running app.
+
+Required rule going forward:
+
+1. every normal live deployment that includes new-course outline or lesson changes must also promote those files into the private content tree
+2. do not rely on a separate manual `cp` follow-up after release
+3. after deployment, verify hashes for both:
+   - repo/live files under `/var/www/telepathyexperiment/cones/content_repo/...`
+   - authoritative private files under `/var/www/telepathyexperiment_private/cones/content/...`
+4. if the repo-side file updated but the private content copy did not, treat the release as incomplete
+
+Practical meaning:
+
+- a lesson saved locally into `content_repo\new-learning-center-lessons\lesson-2.txt` must deploy not only to:
+  - `/var/www/telepathyexperiment/cones/content_repo/new-learning-center-lessons/lesson-2.txt`
+- but also to:
+  - `/var/www/telepathyexperiment_private/cones/content/new-learning-center-lessons/lesson-2.txt`
+
+The deploy helper is expected to enforce this automatically for normal live pushes.
 
 Primary live app path:
 
