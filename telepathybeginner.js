@@ -3714,11 +3714,16 @@ This is an alternate test message to show now.`;
     if (isInternalVisitorSimulationName(ownEmail)) {
       return null;
     }
-    const payload = sanitizeLauncherProfileForServer(role, ownEmail, {
-      currentPartner: "",
-      partnerHistory: [],
-      deletedPartners: []
-    });
+    let payload = null;
+    try {
+      payload = sanitizeLauncherProfileForServer(role, ownEmail, {
+        currentPartner: "",
+        partnerHistory: [],
+        deletedPartners: []
+      });
+    } catch (error) {
+      return null;
+    }
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
