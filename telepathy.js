@@ -83,6 +83,15 @@
   const robotSimulationIdentifier = "Robot";
   const guidedReturnTraceKey = "cones-guided-return-trace-v1";
   const launcherBuildVersion = "20260711b";
+  const suspiciousProbeTextFragments = [
+    String.fromCharCode(0x00C3),
+    String.fromCharCode(0x00E2, 0x20AC, 0x2122),
+    String.fromCharCode(0x00E2, 0x20AC, 0x201C),
+    String.fromCharCode(0x00E2, 0x20AC, 0x0153),
+    String.fromCharCode(0x00E2, 0x20AC),
+    String.fromCharCode(0x00C2),
+    String.fromCharCode(0x00E2, 0x20AC, 0x00A6)
+  ];
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -297,7 +306,7 @@
     guidedTourProbeBody.innerHTML = guidedReceiverTourProbeMarkup.trim();
     guidedTourProbeBody.dataset.probeHydrated = "1";
     const hydratedProbeText = String(guidedTourProbeBody.textContent || "");
-    if (/[ÃÂ]|â€™|â€“|â€œ|â€¦|â€/u.test(hydratedProbeText)) {
+    if (suspiciousProbeTextFragments.some((fragment) => fragment && hydratedProbeText.includes(fragment))) {
       void logDebugEvent("guided_tour_probe_mojibake_detected", {
         textPreview: hydratedProbeText.slice(0, 240)
       });
