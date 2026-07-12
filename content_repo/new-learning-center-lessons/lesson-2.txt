@@ -90,4 +90,7 @@ Assigned reading and optional video:
  [action:setup-features]Setup Website Features[/action]
 
 
+[action:after-first-session]After First Session Questions[/action]
+
+
  [action:test-sound]Test Sound[/action]

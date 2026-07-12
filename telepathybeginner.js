@@ -1149,6 +1149,7 @@ This is an alternate test message to show now.`;
   let learningCenterConceptDetailReturnTarget = { tab: "key-concepts", scrollY: 0, conceptPage: 1, conceptActionKey: "", conceptCardViewportTop: 0 };
   const learningCenterConceptReturnKey = "cones-learning-center-concept-return-v1";
   let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
+  let lessonEditorLoadedSnapshot = { contentKey: "main", lessonDomain: "legacy", content: "" };
   let learningCenterLessonIndex = [];
   let newLearningCenterLessonIndex = [];
   let activeLessonEditorDomain = "legacy";
@@ -2596,6 +2597,7 @@ This is an alternate test message to show now.`;
       proUserManualView?.classList.add("beginner-view-hidden");
       featureSetupView?.classList.add("beginner-view-hidden");
       installGuideView?.classList.add("beginner-view-hidden");
+      beepTestView?.classList.add("beginner-view-hidden");
       lessonEditorView?.classList.add("beginner-view-hidden");
       clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
       aidsView?.classList.add("beginner-view-hidden");
@@ -7504,6 +7506,8 @@ This is an alternate test message to show now.`;
     beepTestView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
+    afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.remove("beginner-view-hidden");
     setFeatureSetupBackButtonTemporarilyHidden(false);
     lessonEditorView?.classList.add("beginner-view-hidden");
@@ -8244,15 +8248,29 @@ This is an alternate test message to show now.`;
   function showBeepTestView() {
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     installGuideView?.classList.add("beginner-view-hidden");
     beepTestView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
+    generalInformationView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
+    websitesEventsListView?.classList.add("beginner-view-hidden");
+    caseStudiesListView?.classList.add("beginner-view-hidden");
+    peerReviewedListView?.classList.add("beginner-view-hidden");
+    userCommentsListView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
@@ -8268,6 +8286,8 @@ This is an alternate test message to show now.`;
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
+    baselineQuestionsView?.classList.add("beginner-view-hidden");
+    afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
@@ -17388,6 +17408,11 @@ This is an alternate test message to show now.`;
       type: "lesson-page",
       lessonDomain: activeLessonEditorDomain
     };
+    lessonEditorLoadedSnapshot = {
+      contentKey: "main",
+      lessonDomain: normalizeLessonDomain(activeLessonEditorDomain || "legacy"),
+      content: ""
+    };
     if (lessonEditorTextInput) {
       lessonEditorTextInput.value = "";
     }
@@ -17424,6 +17449,11 @@ This is an alternate test message to show now.`;
       subcopy: String(options.subcopy || lessonRecord?.subcopy || "").trim(),
       type: String(options.type || lessonRecord?.type || "lesson-page").trim() || "lesson-page",
       lessonDomain
+    };
+    lessonEditorLoadedSnapshot = {
+      contentKey: normalizedKey || "main",
+      lessonDomain,
+      content: typeof content === "string" ? content : ""
     };
     if (lessonEditorTextInput) {
       lessonEditorTextInput.value = typeof content === "string" ? content : "";
@@ -17622,6 +17652,22 @@ This is an alternate test message to show now.`;
         lessonRecord.available = true;
         const updatedIndex = await upsertLearningCenterOutlineRecord(lessonRecord, lessonDomain);
         setLessonDomainIndex(lessonDomain, updatedIndex);
+        if (type === "lesson-page" && lessonKey) {
+          const loadedSnapshotKey = String(lessonEditorLoadedSnapshot?.contentKey || "").trim().toLowerCase();
+          const loadedSnapshotDomain = normalizeLessonDomain(lessonEditorLoadedSnapshot?.lessonDomain || lessonDomain);
+          const currentServerRecord = await fetchEditableContentFromServer(lessonKey, { lessonDomain });
+          const currentServerValue = typeof currentServerRecord?.content === "string" ? currentServerRecord.content : "";
+          const loadedSnapshotValue = typeof lessonEditorLoadedSnapshot?.content === "string" ? lessonEditorLoadedSnapshot.content : "";
+          const isSameLessonSnapshot = loadedSnapshotKey === lessonKey && loadedSnapshotDomain === lessonDomain;
+          if (
+            currentServerRecord?.available &&
+            isSameLessonSnapshot &&
+            currentServerValue !== loadedSnapshotValue &&
+            currentServerValue !== nextValue
+          ) {
+            throw new Error("This lesson changed on the server after it was loaded into the editor. Please reload the lesson before saving so you do not overwrite newer lesson text.");
+          }
+        }
         const savedLesson = type === "lesson-page"
           ? await saveEditableContentToServer(lessonKey, nextValue, { lessonDomain })
           : { content: nextValue };
@@ -18850,8 +18896,12 @@ This is an alternate test message to show now.`;
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
     learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
@@ -18996,6 +19046,8 @@ This is an alternate test message to show now.`;
     afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     learningCenterView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -19008,12 +19060,17 @@ This is an alternate test message to show now.`;
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
@@ -19026,12 +19083,19 @@ This is an alternate test message to show now.`;
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
+    messagingParmsAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
+    subscriptionsAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
     updatePendingLearningCenterLessonReturnButtons();
@@ -19138,6 +19202,8 @@ This is an alternate test message to show now.`;
     baselineQuestionsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     learningCenterView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     generalInformationView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -19150,12 +19216,17 @@ This is an alternate test message to show now.`;
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    installGuideView?.classList.add("beginner-view-hidden");
+    beepTestView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
@@ -19169,12 +19240,18 @@ This is an alternate test message to show now.`;
     settingsView?.classList.add("beginner-view-hidden");
     adminView?.classList.add("beginner-view-hidden");
     lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
+    messagingParmsAdminView?.classList.add("beginner-view-hidden");
     userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
     adminEmailListView?.classList.add("beginner-view-hidden");
+    subscriptionsAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
     updatePendingLearningCenterLessonReturnButtons();
