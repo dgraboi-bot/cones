@@ -26,6 +26,26 @@ Authoritative runbook path:
 
 There should not be a second competing runbook copy elsewhere in the repo. If a backup copy is ever needed, it should be clearly marked as archival only and not treated as authoritative.
 
+## Absence-Check Discipline
+
+Before concluding that a safeguard, feature, backup path, or code path "is not there," check all plausible implementation layers first.
+
+Required rule going forward:
+
+1. do not conclude a protection is absent after checking only one file or one layer
+2. if the behavior involves saved content, verify the JS caller, the API/server write path, and the actual filesystem location before concluding anything
+3. if the behavior involves deployment or runtime rendering, verify the authoritative local file, the mirror file, and the live/server copy as appropriate
+4. if a previous discussion suggested that a safeguard exists, search Git history and the current codebase before stating that it was never implemented
+5. when reporting that something appears missing, phrase it as provisional until all likely locations have been checked
+
+Practical meaning:
+
+- lesson-save backup logic may live in `api.php` even if it is not visible in `telepathybeginner.js`
+- render behavior may come from HTML structure, JS view switching, cached browser assets, or mirrored copies
+- content may still exist in the private content tree or autobackup tree even when the current rendered page looks wrong
+
+Never state that a capability or safeguard does not exist until the relevant caller path, server path, and storage path have all been checked.
+
 ## GitHub Checkpoint Rule
 
 The current ESP GYM app **does** have its own git repository.
