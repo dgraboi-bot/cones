@@ -210,7 +210,7 @@ function Assert-NoMojibakeInDeployFiles([string[]]$RelativePaths) {
     if (-not (Test-Path -LiteralPath $fullPath)) {
       continue
     }
-    $content = Get-Content -LiteralPath $fullPath -Raw
+    $content = Get-Content -LiteralPath $fullPath -Raw -Encoding UTF8
     foreach ($pattern in $mojibakeGuardPatterns) {
       if ($content.Contains($pattern)) {
         $hits.Add(("{0} contains suspicious text pattern [{1}]" -f $relativePath, $pattern))
