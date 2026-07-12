@@ -130,11 +130,6 @@ $liveHashAuditFiles = @(
 )
 $liveHashAuditFiles += $newLearningCenterLessonFiles
 
-$optionalLiveHashAuditPrefixes = @(
-  "content_repo/new-learning-center-outline.json",
-  "content_repo/new-learning-center-lessons/"
-)
-
 $mojibakeGuardPatterns = @(
   ([string][char]0x00C3),
   ([string][char]0x00E2 + [char]0x20AC + [char]0x2122),
@@ -332,18 +327,6 @@ foreach ($relativePath in $liveHashAuditFiles) {
   $localHash = (Get-FileHash -Algorithm SHA256 $localPath).Hash.ToUpperInvariant()
   $remoteHash = Get-RemoteSha256 $remotePath
   if ($localHash -ne $remoteHash) {
-    $normalizedRelativePath = $relativePath.Replace("\", "/")
-    $isOptionalAuditPath = $false
-    foreach ($optionalPrefix in $optionalLiveHashAuditPrefixes) {
-      if ($normalizedRelativePath.StartsWith($optionalPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        $isOptionalAuditPath = $true
-        break
-      }
-    }
-    if ($isOptionalAuditPath) {
-      Write-Warning "Live hash audit skipped for $relativePath because the deploy account cannot update that live content_repo mirror path."
-      continue
-    }
     throw "Live hash audit failed for $relativePath"
   }
 }
