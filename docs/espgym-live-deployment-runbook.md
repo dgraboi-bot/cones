@@ -12,6 +12,8 @@ There is a fifth release-integrity problem to prevent:
 
 5. updating only some live assets while another stale HTML/CSS/JS file remains on the server and silently breaks the build
 
+6. accidentally releasing mojibake or bad text-encoding corruption such as `Ã`, `â€™`, or similar broken character sequences
+
 There is a fourth practical cache trap to watch for:
 
 4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
@@ -95,6 +97,25 @@ For example:
 - then GitHub must also receive a follow-up commit containing `20260706x`
 
 Otherwise GitHub is one version behind the actual recoverable live build, which is not acceptable.
+
+## Required Encoding Guard
+
+Large pasted content blocks are especially vulnerable to silent text-encoding corruption. A page can look fine in one source location while a duplicated static copy becomes mojibake such as:
+
+- `Ã`
+- `â€™`
+- `â€“`
+- `â€œ`
+- `Â`
+
+Required rule going forward:
+
+1. keep large content blocks in one authoritative source whenever possible instead of duplicating them across HTML and JS
+2. before deployment, run a mojibake scan across all text deploy files
+3. if the scan finds suspicious encoding fragments, stop the release and inspect the exact file before continuing
+4. do not assume a page is safe just because one runtime source looks clean; duplicated static copies can still be corrupted
+
+The deploy helper is expected to enforce this guard automatically for normal live pushes.
 
 ## Local Source Of Truth
 

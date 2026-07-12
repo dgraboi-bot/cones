@@ -25,9 +25,9 @@
   const guidedTourHint = document.getElementById("guidedTourHint");
   const guidedTourNextButton = document.getElementById("guidedTourNextButton");
   const guidedTourProbeButton = document.getElementById("guidedTourProbeButton");
-  const guidedTourActions = guidedTourBalloon?.querySelector(".guided-tour-runtime-actions") || null;
   const guidedTourProbeScreen = document.getElementById("guidedTourProbeScreen");
   const guidedTourProbeBackButton = document.getElementById("guidedTourProbeBackButton");
+  const guidedTourProbeBody = guidedTourProbeScreen?.querySelector(".guided-tour-probe-body") || null;
   const coneSrc = "cone-lowglow-transparent.png";
   const arrangementNodes = new Map();
   const choiceNodes = new Map();
@@ -62,6 +62,7 @@
   const launchedVisitorDisplayName = String(runtimeQuery.get("visitor_display_name") || "").trim();
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
+  const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
     ? String(runtimeQuery.get("include_confidence") || "").trim() === "1"
@@ -227,6 +228,47 @@
   let robotLevelFourPairsPromise = null;
   let senderTrialBackSuppressed = false;
   let guidedReceiverTourState = null;
+  const guidedReceiverTourProbeMarkup = `
+    <p>This is the crux of telepathic reception: learning to recognize more clearly the visual information that appears telepathically in the mind's eye. Below are key ideas to help you understand and strengthen this skill.</p>
+
+    <div class="guided-tour-probe-nav" aria-label="Probe Deeper sections">
+      <a class="guided-tour-probe-chip" href="#probe-peaceful-environment">Calm Environment</a>
+      <a class="guided-tour-probe-chip" href="#probe-vague-bits">Vague Bits</a>
+      <a class="guided-tour-probe-chip" href="#probe-detached-state">Detached State</a>
+      <a class="guided-tour-probe-chip" href="#probe-belief">Belief</a>
+      <a class="guided-tour-probe-chip" href="#probe-objects-locations">Objects and Locations</a>
+    </div>
+
+    <h3 id="probe-peaceful-environment">A Peaceful Environment</h3>
+    <p>One factor is the state of mind of the receiver. In order to be calm, the environment should not be noisy or otherwise distracting. It should be quiet and peaceful.</p>
+
+    <h3 id="probe-vague-bits">Bits And Pieces Of Vague Impressionistic Visual Information</h3>
+    <p>Ingo Swann, a noted psychic [1991/2017, p. 33] mentioned, "... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear." Hubbard &amp; Langford (1986, pp. 6-7) mention, "Accomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. ... correct visual impressions are largely indistinct in outline." "By subjective report, the 'data access window' is approximately 0.5 to 1 second in duration" (Hubbard &amp; Langford, 1986, p. 5). Swann noted that psi visual data is "soft" (1991/2017, p. 134). "Soft" can be interpreted as "low contrast, low intensity and low resolution." Otto Reimann, a recognized Czech psychometrist mentioned that his "... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas" [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157].</p>
+
+    <h3 id="probe-detached-state">Be Detached And Disinterested</h3>
+    <p>Swann mentioned, "[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best. (Swann, 1991/2017, p.124)." This essentially means: don't care about how you are performing. Get over it.</p>
+    <p>If you care a lot about how well you will do when you do it, it will tend not to work. The evidence indicates that it works better when you are in a more playful mood and you don't care a lot. In the beginning, you will care a lot and may find more than one or a few trials exhausting. Later, when you get more used to the whole thing, when and how to check the contents of your mind's eye, what types of things you fleetingly see, it will become routine and you won't care as much, and won't mind doing more than very few trials in one sitting.</p>
+
+    <h3>State Of Mind And How Much You Care</h3>
+    <p>A receiver must be able to not be thinking about their own thoughts but rather to be open to whatever pops into their mind's eye when the countdown ends and an image is displayed to the sender. At the receiver, shreds of visual evidence that can fade quickly are what must be perceived as best possible quickly and remembered. Remember just what the shreds look like. Don't try to name anything unless an obvious name pops out, like fence.</p>
+
+    <h3 id="probe-belief">A Certainty That Telepathy Is Real - And Real For Me</h3>
+    <p>A receiver needs to fully believe that telepathy exists and fully trust that the right information is present in their mind's eye right after the countdown. It has been shown that those who don't believe that telepathy exists are very less likely to experience it. However, it has also been shown that a sender does not have to believe in telepathy in order to competently send telepathic information.</p>
+    <p>If you are the receiver, you must know in your heart that telepathy is real as strongly as you believe there is a real sun in the sky. If you don't believe in it, it still might happen to you spontaneously, but it is not likely that you will show consistently good results. A sender can be skeptical and still produce decent results for a receiver.</p>
+
+    <h3>Don't Worry How This Works</h3>
+    <p>How it is possible that out of the millions of people in the world, just by wanting to receive what one person you may not even know well is looking at it is possible to tune into that one person? How this can happen is not important. The fact is that this is what does happen and it happens effortlessly, without conscious intention.</p>
+
+    <h3 id="probe-objects-locations">Objects Have Locations In The Visual Field - Remember What And Where</h3>
+    <p>The receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. The receiver should try to remember what was where in the visual field. Some features of what pops in may have color. Remember the color and where it is noticed. Was it on the right side? The left side? After seconds, the whole image, not just part of it, may fade. Then it's time to consolidate in memory whatever shreds or pieces you saw. Then, when the choice of images are shown to you, you will easily be able to decide which image was the actual target image.</p>
+
+    <h3>Lack Of Fusion</h3>
+    <p>American psychic Ingo Swann suggested, referring to the visual perception of psi-encoded data: "a great deal of distortion and misrepresentation can and does take place while the mind seeks to translate the basic images into words" [Swann, 1991/2017, p. 73]. Swann called this difficulty in grouping local elements into recognized objects lack of fusion: "All parts are correctly perceived, but will not connect to form a whole" [Swann, 1991/2017, p. 229].</p>
+
+    <h3>Don't Try To Name It - Describe Don't Identify</h3>
+    <p>In training remote viewing, a form of psi perception without a telepathic sender, Lori Williams, a longtime teacher of remote viewing emphasizes "the biggest mistake psychics and remote viewers make is naming things with nouns." "Our biggest mantra is, describe don't identify" [Williams, 2020].</p>
+    <p>Using cognitive effort in an attempt to put a name to fragmentary and unstable, poorly remembered fragments of visual evidence discovered tends to bring the receiver's biases and experience to bear. This interferes with the perception of the features actually present. By assuming the presence of features that aren't there and intentionally disregarding features actually present which do not make sense with current high-level cognitive assumptions about the target, the perception becomes colored by the receiver's experience.</p>
+  `;
 
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
@@ -244,6 +286,25 @@
       ? guidedSenderTourReturnSnapshotKey
       : guidedReceiverTourReturnSnapshotKey;
   }
+
+  function initializeGuidedReceiverTourProbeBody() {
+    if (!guidedTourProbeBody || role !== "receiver") {
+      return;
+    }
+    if (guidedTourProbeBody.dataset.probeHydrated === "1") {
+      return;
+    }
+    guidedTourProbeBody.innerHTML = guidedReceiverTourProbeMarkup.trim();
+    guidedTourProbeBody.dataset.probeHydrated = "1";
+    const hydratedProbeText = String(guidedTourProbeBody.textContent || "");
+    if (/[ÃÂ]|â€™|â€“|â€œ|â€¦|â€/u.test(hydratedProbeText)) {
+      void logDebugEvent("guided_tour_probe_mojibake_detected", {
+        textPreview: hydratedProbeText.slice(0, 240)
+      });
+    }
+  }
+
+  initializeGuidedReceiverTourProbeBody();
 
   function readGuidedReceiverTourReturnSnapshot() {
     try {
@@ -800,7 +861,6 @@
   }
 
   guidedTourNextButton?.addEventListener("click", handleGuidedReceiverTourNextAction);
-  guidedTourNextButton?.addEventListener("pointerup", handleGuidedReceiverTourNextAction);
   guidedTourProbeButton?.addEventListener("click", () => {
     openGuidedTourProbeScreen();
   });
@@ -866,35 +926,6 @@
 
   guidedTourBalloon?.addEventListener("pointerup", clearGuidedReceiverTourBalloonDrag);
   guidedTourBalloon?.addEventListener("pointercancel", clearGuidedReceiverTourBalloonDrag);
-  guidedTourActions?.addEventListener("pointerup", (event) => {
-    if (!(event.target instanceof Element)) {
-      return;
-    }
-    if (event.target.closest("#guidedTourNextButton")) {
-      handleGuidedReceiverTourNextAction();
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) {
-      return;
-    }
-    if (target.closest("#guidedTourNextButton")) {
-      handleGuidedReceiverTourNextAction();
-    }
-  }, true);
-
-  document.addEventListener("pointerup", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) {
-      return;
-    }
-    if (target.closest("#guidedTourNextButton")) {
-      handleGuidedReceiverTourNextAction();
-    }
-  }, true);
-
   document.addEventListener("click", (event) => {
     if (!guidedReceiverTourState) {
       return;
@@ -3182,6 +3213,36 @@
     window.location.href = returnUrl;
   }
 
+  function hasPendingLearningCenterLessonReturnTarget() {
+    try {
+      const raw = window.sessionStorage?.getItem(learningCenterLessonReturnKey);
+      if (!raw) {
+        return false;
+      }
+      const parsed = JSON.parse(raw);
+      return !!(parsed && typeof parsed === "object" && String(parsed.lessonId || "").trim());
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function restorePendingLearningCenterLessonReturnTargetFromSnapshot(snapshot = null) {
+    if (!snapshot || typeof snapshot !== "object") {
+      return false;
+    }
+    const target = snapshot.lessonReturnTarget;
+    const lessonId = String(target?.lessonId || "").trim();
+    if (!lessonId) {
+      return false;
+    }
+    try {
+      window.sessionStorage?.setItem(learningCenterLessonReturnKey, JSON.stringify(target));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function appendGuidedReturnTrace(label, details = {}) {
     try {
       const raw = localStorage.getItem(guidedReturnTraceKey);
@@ -3274,12 +3335,16 @@
       const guidedReturnView = guidedReturnSnapshot?.returnView && typeof guidedReturnSnapshot.returnView === "object"
         ? guidedReturnSnapshot.returnView
         : null;
+      const restoredLessonReturnTarget = restorePendingLearningCenterLessonReturnTargetFromSnapshot(guidedReturnSnapshot);
       if (guidedReturnSnapshot) {
         const difficultyDebugPayload = buildGuidedReturnDifficultyDebugPayload(guidedReturnSnapshot);
         appendGuidedReturnTrace("runtime_guided_return_exit", difficultyDebugPayload);
         void logDebugEvent("guided_return_difficulty_debug", difficultyDebugPayload);
       }
-      navigateToBeginnerFrontPage(guidedReturnView
+      const shouldResumeLesson = !!guidedReturnSnapshot && (restoredLessonReturnTarget || hasPendingLearningCenterLessonReturnTarget());
+      navigateToBeginnerFrontPage(shouldResumeLesson
+        ? { open: "lesson-return" }
+        : guidedReturnView
         ? {
             open: String(guidedReturnView.role || "receiver").trim().toLowerCase() || "receiver",
             directOpen: true,

@@ -192,6 +192,7 @@
   const guidedTourNextButton = document.querySelector("[data-guided-tour-next]");
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
+  const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const learningCenterConceptContent = {
     "concept-telepathy": {
       title: "Telepathy",
@@ -333,6 +334,13 @@
     {
       title: "COURSE LESSONS",
       paragraphs: []
+    },
+    {
+      title: "NOTES AND REFERENCES",
+      paragraphs: [
+        "This page is reserved for lesson notes and references.",
+        "Detailed citations, source notes, and reference material can be added here as the course develops."
+      ]
     }
   ];
   const closeProUserManualButton = document.querySelector("[data-close-pro-user-manual]");
@@ -1174,6 +1182,24 @@ This is an alternate test message to show now.`;
   let imagePairPreviewUrlB = "";
   let activeSubscriptionEmailTemplateKey = "welcome";
   const stripeReturnIdentifierStorageKey = "cones-stripe-return-identifier-v1";
+  const learningCenterLessonReturnActionSet = new Set([
+    "guided-receiver-tour",
+    "guided-sender-tour",
+    "performance-reports",
+    "setup-features",
+    "claim-name",
+    "install-app",
+    "review-location",
+    "partner-messaging",
+    "baseline",
+    "after-first-session"
+  ]);
+  const learningCenterLessonReturnButtons = [
+    closeFeatureSetupButton,
+    closeReportDefinitionButton,
+    closeBaselineQuestionsButton,
+    closeAfterFirstSessionQuestionsButton
+  ].filter(Boolean);
   let launcherAdminState = {
       debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
       subscription_emails_enabled: false,
@@ -1532,6 +1558,7 @@ This is an alternate test message to show now.`;
     }
     try {
       sessionStorage.removeItem(launcherKey);
+      sessionStorage.removeItem(learningCenterLessonReturnKey);
       sessionStorage.removeItem("cones-client-id-sender");
       sessionStorage.removeItem("cones-client-id-receiver");
       sessionStorage.removeItem("cones-client-id-remote-viewer");
@@ -2367,6 +2394,118 @@ This is an alternate test message to show now.`;
     espLessonDetailBody.hidden = true;
   }
 
+  function normalizeLearningCenterLessonReturnTarget(target = null) {
+    if (!target || typeof target !== "object") {
+      return null;
+    }
+    const lessonId = normalizeLearningCenterLessonId(target.lessonId || "");
+    const lessonDomain = normalizeLessonDomain(target.lessonDomain || "legacy");
+    if (!lessonId) {
+      return null;
+    }
+    return {
+      lessonId,
+      lessonDomain,
+      parentView: String(target.parentView || "online-course").trim() || "online-course",
+      parentTab: String(target.parentTab || "").trim(),
+      parentScrollY: Math.max(0, Number(target.parentScrollY || 0) || 0),
+      parentFocusId: String(target.parentFocusId || "").trim(),
+      lessonScrollY: Math.max(0, Number(target.lessonScrollY || 0) || 0)
+    };
+  }
+
+  function readPendingLearningCenterLessonReturnTarget() {
+    try {
+      return normalizeLearningCenterLessonReturnTarget(JSON.parse(window.sessionStorage?.getItem(learningCenterLessonReturnKey) || "null"));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function updatePendingLearningCenterLessonReturnButtons() {
+    const hasPendingReturn = !!readPendingLearningCenterLessonReturnTarget();
+    learningCenterLessonReturnButtons.forEach((button) => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+      if (!button.dataset.defaultLabel) {
+        button.dataset.defaultLabel = String(button.textContent || "BACK").trim() || "BACK";
+      }
+      button.textContent = hasPendingReturn ? "RETURN TO LESSON" : button.dataset.defaultLabel;
+    });
+  }
+
+  function writePendingLearningCenterLessonReturnTarget(target = null) {
+    const normalized = normalizeLearningCenterLessonReturnTarget(target);
+    try {
+      if (normalized) {
+        window.sessionStorage?.setItem(learningCenterLessonReturnKey, JSON.stringify(normalized));
+      } else {
+        window.sessionStorage?.removeItem(learningCenterLessonReturnKey);
+      }
+    } catch (error) {
+      // Ignore transient sessionStorage failures.
+    }
+    updatePendingLearningCenterLessonReturnButtons();
+    return normalized;
+  }
+
+  function clearPendingLearningCenterLessonReturnTarget() {
+    writePendingLearningCenterLessonReturnTarget(null);
+  }
+
+  function buildPendingLearningCenterLessonReturnTarget() {
+    if (!activeLearningCenterLessonId) {
+      return null;
+    }
+    return normalizeLearningCenterLessonReturnTarget({
+      lessonId: activeLearningCenterLessonId,
+      lessonDomain: activeLearningCenterLessonDomain || "legacy",
+      parentView: activeLearningCenterLessonReturnTarget?.view || "online-course",
+      parentTab: activeLearningCenterLessonReturnTarget?.tab || "",
+      parentScrollY: activeLearningCenterLessonReturnTarget?.scrollY || 0,
+      parentFocusId: activeLearningCenterLessonReturnTarget?.focusId || "",
+      lessonScrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    });
+  }
+
+  function shouldCaptureLearningCenterLessonReturn(action = "") {
+    return learningCenterLessonReturnActionSet.has(String(action || "").trim().toLowerCase());
+  }
+
+  async function resumePendingLearningCenterLessonReturnTarget() {
+    const pendingTarget = readPendingLearningCenterLessonReturnTarget();
+    if (!pendingTarget) {
+      updatePendingLearningCenterLessonReturnButtons();
+      return false;
+    }
+    await showLearningCenterLessonDetail(pendingTarget.lessonId, {
+      view: pendingTarget.parentView,
+      tab: pendingTarget.parentTab,
+      scrollY: pendingTarget.parentScrollY,
+      focusId: pendingTarget.parentFocusId || buildLearningCenterLessonRowId(pendingTarget.lessonId),
+      lessonDomain: pendingTarget.lessonDomain,
+      lessonScrollY: pendingTarget.lessonScrollY
+    });
+    const resumed = activeEspLessonMode === "learning-center"
+      && activeLearningCenterLessonId === pendingTarget.lessonId;
+    if (resumed) {
+      clearPendingLearningCenterLessonReturnTarget();
+    } else {
+      updatePendingLearningCenterLessonReturnButtons();
+    }
+    return resumed;
+  }
+
+  function triggerPendingLearningCenterLessonReturn() {
+    if (!readPendingLearningCenterLessonReturnTarget()) {
+      updatePendingLearningCenterLessonReturnButtons();
+      return false;
+    }
+    void resumePendingLearningCenterLessonReturnTarget();
+    return true;
+  }
+
   async function showLearningCenterLessonDetail(lessonId, options = {}) {
     const normalizedLessonId = normalizeLearningCenterLessonId(lessonId);
     const lessonDomain = normalizeLessonDomain(options.lessonDomain || activeLearningCenterLessonDomain || "legacy");
@@ -2440,7 +2579,13 @@ This is an alternate test message to show now.`;
       onlineCourseView?.classList.add("beginner-view-hidden");
       baselineQuestionsView?.classList.add("beginner-view-hidden");
       afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const lessonScrollY = Number(options.lessonScrollY);
+      if (Number.isFinite(lessonScrollY) && lessonScrollY > 0) {
+        window.scrollTo({ top: Math.max(0, lessonScrollY), left: 0, behavior: "auto" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      updatePendingLearningCenterLessonReturnButtons();
     } catch (error) {
       setEspLessonDetailStatus("Unable to load that lesson right now.", { isError: true });
     }
@@ -2509,6 +2654,7 @@ This is an alternate test message to show now.`;
       activeEspLessonMode = "role";
       activeLearningCenterLessonId = "";
       activeLearningCenterLessonReturnTarget = { view: "online-course", tab: "", scrollY: 0, focusId: "" };
+      clearPendingLearningCenterLessonReturnTarget();
       espLessonDetailView?.classList.add("beginner-view-hidden");
       pendingOnlineCourseRestoreFocusId = returnFocusId;
       if (targetView === "learning-center") {
@@ -4218,6 +4364,24 @@ This is an alternate test message to show now.`;
       action,
       ...(payload || {})
     };
+    const preferLocalFirst = Boolean(
+      isLocalInfrastructureHost()
+      && localMirrorUrl
+      && options?.allowLocalFallback
+      && canonicalUrl !== localMirrorUrl
+    );
+
+    if (preferLocalFirst) {
+      try {
+        return await postJsonApiRequest(
+          localMirrorUrl,
+          requestPayload,
+          `Local infrastructure preferred request failed`
+        );
+      } catch (localPreferredError) {
+        // Fall through to canonical, then local fallback logic below.
+      }
+    }
 
     try {
       const canonicalResponse = await postJsonApiRequest(
@@ -4958,6 +5122,17 @@ This is an alternate test message to show now.`;
       );
     });
 
+    source = source.replace(/\[action:([a-z0-9-]+)\]([\s\S]+?)\[\/action\]/gi, (match, actionText, labelText) => {
+      const action = String(actionText || "").trim().toLowerCase();
+      const label = String(labelText || "").trim();
+      if (!action || !label) {
+        return match;
+      }
+      return addPlaceholder(
+        `<button class="learn-more-preview-link learn-more-preview-action" type="button" data-lesson-action="${escapeHtml(action)}">${escapeHtml(label)}</button>`
+      );
+    });
+
     source = source.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, (match, linkText, urlText) => {
       const safeUrl = sanitizeLearnMorePreviewUrl(urlText);
       if (!safeUrl) {
@@ -4970,6 +5145,7 @@ This is an alternate test message to show now.`;
 
     let rendered = escapeHtml(source)
       .replace(/\[u\]([\s\S]+?)\[\/u\]/gi, '<span class="learn-more-preview-underline">$1</span>')
+      .replace(/\[sup\]([\s\S]+?)\[\/sup\]/gi, '<sup class="learn-more-preview-superscript">$1</sup>')
       .replace(/\*\*([^*\n][^]*?)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>")
       .replace(/\n/g, "<br>");
@@ -4994,6 +5170,7 @@ This is an alternate test message to show now.`;
     const lines = normalized.split("\n");
     const blocks = [];
     let paragraphLines = [];
+    let blankLineRun = 0;
     const flushParagraph = () => {
       const paragraph = paragraphLines.join("\n").trim();
       paragraphLines = [];
@@ -5005,13 +5182,30 @@ This is an alternate test message to show now.`;
         blocks.push(`<p class="learn-more-preview-centered">${renderLearnMoreInlineMarkup(String(centeredMatch[1] || "").trim())}</p>`);
         return;
       }
+      const indentedMatch = paragraph.match(/^\[indent\]([\s\S]*?)\[\/indent\]$/i);
+      if (indentedMatch) {
+        blocks.push(`<p class="learn-more-preview-indented">${renderLearnMoreInlineMarkup(String(indentedMatch[1] || "").trim())}</p>`);
+        return;
+      }
       blocks.push(`<p>${renderLearnMoreInlineMarkup(paragraph)}</p>`);
+    };
+    const flushExtraBlankLines = () => {
+      if (blankLineRun <= 1 || blocks.length === 0) {
+        blankLineRun = 0;
+        return;
+      }
+      const extraBlankLines = blankLineRun - 1;
+      blocks.push(`<div class="learn-more-preview-spacer" style="height:${extraBlankLines * 1.5}em" aria-hidden="true"></div>`);
+      blankLineRun = 0;
     };
 
     for (let index = 0; index < lines.length; index += 1) {
       const currentLine = String(lines[index] || "");
       const trimmedLine = currentLine.trim();
       const nextLine = String(lines[index + 1] || "");
+      if (trimmedLine) {
+        flushExtraBlankLines();
+      }
       if (trimmedLine && isDashedUnderlineLine(nextLine)) {
         flushParagraph();
         blocks.push(`<h3 class="learn-more-preview-heading">${renderLearnMoreInlineMarkup(getLearnMoreHeadingDisplayText(trimmedLine))}</h3>`);
@@ -5020,12 +5214,14 @@ This is an alternate test message to show now.`;
       }
       if (!trimmedLine) {
         flushParagraph();
+        blankLineRun += 1;
         continue;
       }
       paragraphLines.push(currentLine);
     }
 
     flushParagraph();
+    flushExtraBlankLines();
     return blocks.join("") || "<p></p>";
   }
 
@@ -7245,6 +7441,7 @@ This is an alternate test message to show now.`;
     adminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    updatePendingLearningCenterLessonReturnButtons();
     void refreshFeatureSetupView();
   }
 
@@ -7361,6 +7558,9 @@ This is an alternate test message to show now.`;
   }
 
   function closeFeatureSetupView() {
+    if (triggerPendingLearningCenterLessonReturn()) {
+      return;
+    }
     const returnRole = featureSetupReturnRole || activeLauncherRole || "sender";
     const returnView = featureSetupReturnView || "card";
     const returnScrollY = Math.max(0, Number(featureSetupReturnScrollY || 0) || 0);
@@ -15521,7 +15721,8 @@ This is an alternate test message to show now.`;
             partnerDisplayName: "Robot",
             visitorDisplayName: submittedOwnDisplayName,
             difficultyLevel: preTourDifficultyLevel
-          }
+          },
+          lessonReturnTarget: readPendingLearningCenterLessonReturnTarget()
         });
         endLauncherGuidedTour();
         setRoleDifficultyLabel("sender", selectedDifficultyLevel);
@@ -16734,6 +16935,7 @@ This is an alternate test message to show now.`;
     adminIdentityListView?.classList.add("beginner-view-hidden");
     void renderReportDefinition();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    updatePendingLearningCenterLessonReturnButtons();
   }
 
   function showReportView(pairInfo = selectedReportPair) {
@@ -16955,7 +17157,7 @@ This is an alternate test message to show now.`;
   function showLessonEditorView(domain = "legacy") {
     activeLessonEditorDomain = normalizeLessonDomain(domain);
     clearReportPanelOffset();
-    resetLessonEditorToBlank("Start with lesson-id=<permanent-id>. You can also add number=, title=, subcopy=, and type=. Use [center]...[/center] and [u]...[/u]. Then press ENTER or SAVE.");
+    resetLessonEditorToBlank("Start with lesson-id=<permanent-id>. You can also add number=, title=, subcopy=, and type=. Use [center]...[/center], [indent]...[/indent], [u]...[/u], and [sup]...[/sup]. Then press ENTER or SAVE.");
     if (lessonEditorTitle) {
       lessonEditorTitle.textContent = activeLessonEditorDomain === "new-course" ? "New Edit Lessons" : "Old Edit Lessons";
     }
@@ -17134,7 +17336,7 @@ This is an alternate test message to show now.`;
     if (lessonEditorStatus) {
       lessonEditorStatus.textContent = directive
         ? `Processing lesson ${directive.lessonId || directive.displayNumber || ""}...`
-        : "Start with lesson-id=<permanent-id>. Use [center]...[/center] and [u]...[/u], then press ENTER or SAVE.";
+        : "Start with lesson-id=<permanent-id>. Use [center]...[/center], [indent]...[/indent], [u]...[/u], and [sup]...[/sup], then press ENTER or SAVE.";
     }
     const lessonDomain = normalizeLessonDomain(lessonEditorTarget?.lessonDomain || activeLessonEditorDomain || "legacy");
     try {
@@ -17282,7 +17484,7 @@ This is an alternate test message to show now.`;
       }
 
       if (lessonEditorStatus) {
-        lessonEditorStatus.textContent = "Start with lesson-id=<permanent-id>. Add number= and title=. Use [center]...[/center] and [u]...[/u], then press ENTER or SAVE.";
+        lessonEditorStatus.textContent = "Start with lesson-id=<permanent-id>. Add number= and title=. Use [center]...[/center], [indent]...[/indent], [u]...[/u], and [sup]...[/sup], then press ENTER or SAVE.";
       }
       showTemporaryInlineLearnMoreStatus(lessonEditorInlineStatus, "Enter lesson-id=<permanent-id> to load or create a lesson.");
     } catch (error) {
@@ -18666,6 +18868,7 @@ This is an alternate test message to show now.`;
     adminEmailListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    updatePendingLearningCenterLessonReturnButtons();
   }
 
   function showRotatingMessagesEditorView() {
@@ -18721,6 +18924,9 @@ This is an alternate test message to show now.`;
   }
 
   function closeBaselineQuestionsView() {
+    if (triggerPendingLearningCenterLessonReturn()) {
+      return;
+    }
     const targetView = String(baselineQuestionsReturnTarget?.view || "online-course").trim();
     const targetRole = String(baselineQuestionsReturnTarget?.role || "").trim();
     const targetScrollY = Math.max(0, Number(baselineQuestionsReturnTarget?.scrollY || 0) || 0);
@@ -18805,9 +19011,13 @@ This is an alternate test message to show now.`;
     adminEmailListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    updatePendingLearningCenterLessonReturnButtons();
   }
 
   function closeAfterFirstSessionQuestionsView() {
+    if (triggerPendingLearningCenterLessonReturn()) {
+      return;
+    }
     const targetView = String(afterFirstSessionQuestionsReturnTarget?.view || "online-course").trim();
     const targetRole = String(afterFirstSessionQuestionsReturnTarget?.role || "").trim();
     const targetScrollY = Math.max(0, Number(afterFirstSessionQuestionsReturnTarget?.scrollY || 0) || 0);
@@ -20199,6 +20409,7 @@ This is an alternate test message to show now.`;
           anonymousState.pendingInviteeOnboarding = null;
           localStorage.setItem(launcherKey, JSON.stringify(normalizeLauncherIdentityState(anonymousState)));
           sessionStorage.removeItem(launcherKey);
+          sessionStorage.removeItem(learningCenterLessonReturnKey);
         } catch (error) {
           // Ignore last-ditch launcher reset failures.
         }
@@ -20262,6 +20473,7 @@ This is an alternate test message to show now.`;
     });
     try {
       sessionStorage.removeItem(launcherKey);
+      sessionStorage.removeItem(learningCenterLessonReturnKey);
       sessionStorage.removeItem("cones-client-id-sender");
       sessionStorage.removeItem("cones-client-id-receiver");
       sessionStorage.removeItem("cones-client-id-remote-viewer");
@@ -23042,6 +23254,13 @@ This is an alternate test message to show now.`;
         showReportDefinitionView();
         return;
       }
+      if (requestedView === "lesson-return") {
+        if (await resumePendingLearningCenterLessonReturnTarget()) {
+          return;
+        }
+        showLauncherView();
+        return;
+      }
       if (["sender", "receiver", "remote-viewer"].includes(requestedView)) {
         if (requestedView === "remote-viewer") {
           showClairvoyanceViewingView();
@@ -24404,6 +24623,21 @@ This is an alternate test message to show now.`;
     window.setTimeout(() => {
       closeEspLessonDetail();
     }, 0);
+  });
+  espLessonDetailPreview?.addEventListener("click", (event) => {
+    const actionButton = event.target instanceof Element ? event.target.closest("[data-lesson-action]") : null;
+    if (!(actionButton instanceof HTMLElement)) {
+      return;
+    }
+    event.preventDefault();
+    const action = String(actionButton.dataset.lessonAction || "").trim().toLowerCase();
+    if (!action) {
+      return;
+    }
+    if (shouldCaptureLearningCenterLessonReturn(action)) {
+      writePendingLearningCenterLessonReturnTarget(buildPendingLearningCenterLessonReturnTarget());
+    }
+    handleLearningCenterAction(action, actionButton);
   });
   exactLocationButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
@@ -25918,7 +26152,12 @@ This is an alternate test message to show now.`;
   openAboutButton?.addEventListener("click", showAboutView);
   closeAboutButton?.addEventListener("click", showHelpView);
   openReportButton?.addEventListener("click", showReportDefinitionView);
-  closeReportDefinitionButton?.addEventListener("click", showOptionsView);
+  closeReportDefinitionButton?.addEventListener("click", () => {
+    if (triggerPendingLearningCenterLessonReturn()) {
+      return;
+    }
+    showOptionsView();
+  });
   closeReportButton?.addEventListener("click", showReportDefinitionView);
   closeVisualizationButton?.addEventListener("click", showReportDefinitionView);
   closeAnalyzerButton?.addEventListener("click", showReportDefinitionView);
@@ -26704,10 +26943,11 @@ This is an alternate test message to show now.`;
     maybePromptForLocationFineTune(state);
   });
   renderContactWordCount();
-    updateInstallButtonLabel();
-    void recordLauncherVisit();
-    applyRememberedDifficultyLabels();
-    void refreshDifficultyLabels();
+  updateInstallButtonLabel();
+  void recordLauncherVisit();
+  applyRememberedDifficultyLabels();
+  void refreshDifficultyLabels();
+  updatePendingLearningCenterLessonReturnButtons();
   applyLauncherOpenRequest();
   window.setTimeout(() => {
     void refreshDifficultyLabels();

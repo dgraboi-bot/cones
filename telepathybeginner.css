@@ -1090,8 +1090,16 @@ body {
   margin-bottom: 0;
 }
 
+.learn-more-preview-spacer {
+  width: 100%;
+}
+
 .learn-more-preview-centered {
   text-align: center;
+}
+
+.learn-more-preview-indented {
+  text-indent: 2.25rem;
 }
 
 .learn-more-preview-heading {
@@ -1121,11 +1129,27 @@ body {
   text-underline-offset: 2px;
 }
 
+.learn-more-preview-superscript {
+  font-size: 0.72em;
+  vertical-align: super;
+  line-height: 0;
+}
+
 .learn-more-preview-link {
   color: #8fd3ff;
   text-decoration: underline;
   text-underline-offset: 2px;
   word-break: break-word;
+}
+
+.learn-more-preview-action {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
 }
 
 .learn-more-preview-image {

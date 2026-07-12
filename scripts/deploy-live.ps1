@@ -130,6 +130,21 @@ $liveHashAuditFiles = @(
 )
 $liveHashAuditFiles += $newLearningCenterLessonFiles
 
+$optionalLiveHashAuditPrefixes = @(
+  "content_repo/new-learning-center-outline.json",
+  "content_repo/new-learning-center-lessons/"
+)
+
+$mojibakeGuardPatterns = @(
+  "Ã",
+  "â€™",
+  "â€“",
+  "â€œ",
+  "â€",
+  "Â",
+  "â€¦"
+)
+
 function Invoke-Plink([string]$Command) {
   & $plinkPath -batch -load $puttySession $Command
 }
@@ -168,6 +183,43 @@ function Get-RemoteSha256([string]$RemotePath) {
     throw "Empty remote hash output for $RemotePath"
   }
   return ($firstLine -split '\s+')[0].ToUpperInvariant()
+}
+
+function Test-IsTextDeployFile([string]$RelativePath) {
+  $extension = [System.IO.Path]::GetExtension($RelativePath)
+  return @(
+    ".html",
+    ".js",
+    ".css",
+    ".json",
+    ".php",
+    ".txt",
+    ".md",
+    ".webmanifest",
+    ".htaccess"
+  ) -contains $extension.ToLowerInvariant()
+}
+
+function Assert-NoMojibakeInDeployFiles([string[]]$RelativePaths) {
+  $hits = New-Object System.Collections.Generic.List[string]
+  foreach ($relativePath in $RelativePaths) {
+    if (-not (Test-IsTextDeployFile $relativePath)) {
+      continue
+    }
+    $fullPath = Join-Path $repoRoot $relativePath
+    if (-not (Test-Path -LiteralPath $fullPath)) {
+      continue
+    }
+    $content = Get-Content -LiteralPath $fullPath -Raw
+    foreach ($pattern in $mojibakeGuardPatterns) {
+      if ($content.Contains($pattern)) {
+        $hits.Add(("{0} contains suspicious text pattern [{1}]" -f $relativePath, $pattern))
+      }
+    }
+  }
+  if ($hits.Count -gt 0) {
+    throw ("Mojibake guard failed:`n" + ($hits -join "`n"))
+  }
 }
 
 if (-not (Test-Path -LiteralPath $bumpScript)) {
@@ -212,6 +264,8 @@ foreach ($relativePath in $deployFiles) {
     throw "Missing deploy file: $fullPath"
   }
 }
+
+Assert-NoMojibakeInDeployFiles $deployFiles
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 
@@ -278,6 +332,18 @@ foreach ($relativePath in $liveHashAuditFiles) {
   $localHash = (Get-FileHash -Algorithm SHA256 $localPath).Hash.ToUpperInvariant()
   $remoteHash = Get-RemoteSha256 $remotePath
   if ($localHash -ne $remoteHash) {
+    $normalizedRelativePath = $relativePath.Replace("\", "/")
+    $isOptionalAuditPath = $false
+    foreach ($optionalPrefix in $optionalLiveHashAuditPrefixes) {
+      if ($normalizedRelativePath.StartsWith($optionalPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $isOptionalAuditPath = $true
+        break
+      }
+    }
+    if ($isOptionalAuditPath) {
+      Write-Warning "Live hash audit skipped for $relativePath because the deploy account cannot update that live content_repo mirror path."
+      continue
+    }
     throw "Live hash audit failed for $relativePath"
   }
 }
