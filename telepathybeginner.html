@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260711c">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260711d">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260711c">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260711c">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260711c">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260711d">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260711d">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260711d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260711c">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260711c">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260711c">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260711d">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260711d">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260711d">
   <script>
     (function () {
-      var buildVersion = "20260711c";
+      var buildVersion = "20260711d";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -540,7 +540,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260711c</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260711d</span>
           </div>
         </div>
 
@@ -2095,11 +2095,11 @@
 
               <section class="feature-setup-item" data-feature-setup-item="beep-test">
                 <div class="feature-setup-copy">
-                  <h2 class="feature-setup-title">Test Beep</h2>
-                  <p class="feature-setup-text">The receiver knows the moment when the sender starts seeing an image by hearing a beep at the end of a displayed countdown.</p>
-                  <div class="feature-setup-status" data-feature-setup-beep-status>Use this test to confirm the countdown beep is audible on this device.</div>
+                  <h2 class="feature-setup-title">Test Sound</h2>
+                  <p class="feature-setup-text">The receiver hears a beep at the end of the displayed countdown and also receives an instant positive reinforcing sound upon correctly identifying the image sent.</p>
+                  <div class="feature-setup-status" data-feature-setup-beep-status>Use this test to confirm the beep and reinforcement sound is audible on this device.</div>
                 </div>
-                <button class="options-button feature-setup-action" type="button" data-feature-setup-beep-action>TEST BEEP</button>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-beep-action>TEST SOUND</button>
               </section>
 
               <section class="feature-setup-item" data-feature-setup-item="location">
@@ -2162,12 +2162,12 @@
             <span class="beginner-top-spacer" aria-hidden="true"></span>
           </div>
 
-          <h1 class="beginner-title" id="beepTestTitle">Test Beep</h1>
+          <h1 class="beginner-title" id="beepTestTitle">Test Sound</h1>
 
           <section class="settings-view-panel">
-            <div class="settings-view-note">At the end of the countdown from 3 to 1, the same short beep used to mark the onset of the image displayed to the sender will be played. Use this page to test whether it is present and loud enough on this device.</div>
+            <div class="settings-view-note">At the end of the countdown from 3 to 1, the same short beep used to mark the onset of the image displayed to the sender will be played. Use this page to test whether it is present and loud enough on this device. One second later, the positive reinforcement sound will also play.</div>
             <div class="beep-test-countdown" data-beep-test-countdown>READY</div>
-            <div class="settings-view-status" data-beep-test-status>Press START TEST to hear the countdown beep.</div>
+            <div class="settings-view-status" data-beep-test-status>Press START TEST to hear the countdown beep and reinforcement sound.</div>
             <div class="contact-actions">
               <button class="options-button contact-action-button" type="button" data-start-beep-test>START TEST</button>
             </div>
@@ -2594,8 +2594,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260711c'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260711c'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260711d'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260711d'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3302,7 +3302,18 @@
     </section>
   </main>
   <script>
+    const shouldPreserveLaunchScroll = () => {
+      try {
+        const currentUrl = new URL(window.location.href);
+        return String(currentUrl.searchParams.get("open") || "").trim().toLowerCase() === "lesson-return";
+      } catch (_error) {
+        return false;
+      }
+    };
     const scrollToTopOnLaunch = () => {
+      if (shouldPreserveLaunchScroll()) {
+        return;
+      }
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
@@ -3313,8 +3324,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260711c"></script>
-<script src="telepathybeginner.js?v=20260711c"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260711d"></script>
+<script src="telepathybeginner.js?v=20260711d"></script>
 </body>
 </html>
 

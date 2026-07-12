@@ -1,12 +1,26 @@
 {
-    "version":  1,
-    "rows":  [
-                 {
-                     "display_number":  "4",
-                     "title":  "NEW COURSE TEST LESSON",
-                     "type":  "lesson-page",
-                     "id":  "new-course-test",
-                     "subcopy":  "Created for end-to-end verification"
-                 }
-             ]
+  "version": 1,
+  "rows": [
+    {
+      "id": "lesson-1",
+      "display_number": "1",
+      "title": "Achieving Success in Telepathy",
+      "subcopy": "",
+      "type": "lesson-page"
+    },
+    {
+      "id": "lesson-2",
+      "display_number": "2",
+      "title": "Everything is Connected",
+      "subcopy": "",
+      "type": "lesson-page"
+    },
+    {
+      "id": "new-course-test",
+      "display_number": "4",
+      "title": "NEW COURSE TEST LESSON",
+      "subcopy": "Created for end-to-end verification",
+      "type": "lesson-page"
+    }
+  ]
 }

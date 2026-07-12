@@ -48,7 +48,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260711c";
+  const runtimeBuildVersion = "20260711d";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -81,8 +81,7 @@
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const guidedReturnTraceKey = "cones-guided-return-trace-v1";
-  const launcherBuildVersion = "20260711c";
+  const launcherBuildVersion = "20260711d";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -237,47 +236,98 @@
   let robotLevelFourPairsPromise = null;
   let senderTrialBackSuppressed = false;
   let guidedReceiverTourState = null;
-  const guidedReceiverTourProbeMarkup = `
-    <p>This is the crux of telepathic reception: learning to recognize more clearly the visual information that appears telepathically in the mind's eye. Below are key ideas to help you understand and strengthen this skill.</p>
-
-    <div class="guided-tour-probe-nav" aria-label="Probe Deeper sections">
-      <a class="guided-tour-probe-chip" href="#probe-peaceful-environment">Calm Environment</a>
-      <a class="guided-tour-probe-chip" href="#probe-vague-bits">Vague Bits</a>
-      <a class="guided-tour-probe-chip" href="#probe-detached-state">Detached State</a>
-      <a class="guided-tour-probe-chip" href="#probe-belief">Belief</a>
-      <a class="guided-tour-probe-chip" href="#probe-objects-locations">Objects and Locations</a>
-    </div>
-
-    <h3 id="probe-peaceful-environment">A Peaceful Environment</h3>
-    <p>One factor is the state of mind of the receiver. In order to be calm, the environment should not be noisy or otherwise distracting. It should be quiet and peaceful.</p>
-
-    <h3 id="probe-vague-bits">Bits And Pieces Of Vague Impressionistic Visual Information</h3>
-    <p>Ingo Swann, a noted psychic [1991/2017, p. 33] mentioned, "... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear." Hubbard &amp; Langford (1986, pp. 6-7) mention, "Accomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. ... correct visual impressions are largely indistinct in outline." "By subjective report, the 'data access window' is approximately 0.5 to 1 second in duration" (Hubbard &amp; Langford, 1986, p. 5). Swann noted that psi visual data is "soft" (1991/2017, p. 134). "Soft" can be interpreted as "low contrast, low intensity and low resolution." Otto Reimann, a recognized Czech psychometrist mentioned that his "... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas" [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157].</p>
-
-    <h3 id="probe-detached-state">Be Detached And Disinterested</h3>
-    <p>Swann mentioned, "[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best. (Swann, 1991/2017, p.124)." This essentially means: don't care about how you are performing. Get over it.</p>
-    <p>If you care a lot about how well you will do when you do it, it will tend not to work. The evidence indicates that it works better when you are in a more playful mood and you don't care a lot. In the beginning, you will care a lot and may find more than one or a few trials exhausting. Later, when you get more used to the whole thing, when and how to check the contents of your mind's eye, what types of things you fleetingly see, it will become routine and you won't care as much, and won't mind doing more than very few trials in one sitting.</p>
-
-    <h3>State Of Mind And How Much You Care</h3>
-    <p>A receiver must be able to not be thinking about their own thoughts but rather to be open to whatever pops into their mind's eye when the countdown ends and an image is displayed to the sender. At the receiver, shreds of visual evidence that can fade quickly are what must be perceived as best possible quickly and remembered. Remember just what the shreds look like. Don't try to name anything unless an obvious name pops out, like fence.</p>
-
-    <h3 id="probe-belief">A Certainty That Telepathy Is Real - And Real For Me</h3>
-    <p>A receiver needs to fully believe that telepathy exists and fully trust that the right information is present in their mind's eye right after the countdown. It has been shown that those who don't believe that telepathy exists are very less likely to experience it. However, it has also been shown that a sender does not have to believe in telepathy in order to competently send telepathic information.</p>
-    <p>If you are the receiver, you must know in your heart that telepathy is real as strongly as you believe there is a real sun in the sky. If you don't believe in it, it still might happen to you spontaneously, but it is not likely that you will show consistently good results. A sender can be skeptical and still produce decent results for a receiver.</p>
-
-    <h3>Don't Worry How This Works</h3>
-    <p>How it is possible that out of the millions of people in the world, just by wanting to receive what one person you may not even know well is looking at it is possible to tune into that one person? How this can happen is not important. The fact is that this is what does happen and it happens effortlessly, without conscious intention.</p>
-
-    <h3 id="probe-objects-locations">Objects Have Locations In The Visual Field - Remember What And Where</h3>
-    <p>The receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. The receiver should try to remember what was where in the visual field. Some features of what pops in may have color. Remember the color and where it is noticed. Was it on the right side? The left side? After seconds, the whole image, not just part of it, may fade. Then it's time to consolidate in memory whatever shreds or pieces you saw. Then, when the choice of images are shown to you, you will easily be able to decide which image was the actual target image.</p>
-
-    <h3>Lack Of Fusion</h3>
-    <p>American psychic Ingo Swann suggested, referring to the visual perception of psi-encoded data: "a great deal of distortion and misrepresentation can and does take place while the mind seeks to translate the basic images into words" [Swann, 1991/2017, p. 73]. Swann called this difficulty in grouping local elements into recognized objects lack of fusion: "All parts are correctly perceived, but will not connect to form a whole" [Swann, 1991/2017, p. 229].</p>
-
-    <h3>Don't Try To Name It - Describe Don't Identify</h3>
-    <p>In training remote viewing, a form of psi perception without a telepathic sender, Lori Williams, a longtime teacher of remote viewing emphasizes "the biggest mistake psychics and remote viewers make is naming things with nouns." "Our biggest mantra is, describe don't identify" [Williams, 2020].</p>
-    <p>Using cognitive effort in an attempt to put a name to fragmentary and unstable, poorly remembered fragments of visual evidence discovered tends to bring the receiver's biases and experience to bear. This interferes with the perception of the features actually present. By assuming the presence of features that aren't there and intentionally disregarding features actually present which do not make sense with current high-level cognitive assumptions about the target, the perception becomes colored by the receiver's experience.</p>
-  `;
+  const guidedReceiverTourProbeIntro = "This is the crux of telepathic reception: learning to recognize more clearly the visual information that appears telepathically in the mind's eye. Below are key ideas to help you understand and strengthen this skill.";
+  const guidedReceiverTourProbeTopics = [
+    {
+      id: "peaceful-environment",
+      label: "Peaceful Environment",
+      title: "A Peaceful Environment",
+      teaser: "A quiet, undistracting setting helps the receiver remain calm and perceptually open.",
+      paragraphs: [
+        "One factor is the state of mind of the receiver. In order to be calm, the environment should not be noisy or otherwise distracting. It should be quiet and peaceful."
+      ]
+    },
+    {
+      id: "vague-bits",
+      label: "Vague Bits",
+      title: "Bits And Pieces Of Vague Impressionistic Visual Information",
+      teaser: "Psi impressions often arrive as faint fragments, not as a sharp finished picture.",
+      paragraphs: [
+        "Ingo Swann, a noted psychic [1991/2017, p. 33], mentioned, \"... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear.\" Hubbard and Langford (1986, pp. 6-7) mention, \"Accomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. ... correct visual impressions are largely indistinct in outline.\"",
+        "\"By subjective report, the data access window is approximately 0.5 to 1 second in duration\" (Hubbard and Langford, 1986, p. 5). Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as low contrast, low intensity, and low resolution. Otto Reimann, a recognized Czech psychometrist, said the information did not come all at once like a photograph, but more like building a mosaic from small pieces [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157]."
+      ]
+    },
+    {
+      id: "detached-state",
+      label: "Detached State",
+      title: "Be Detached And Disinterested",
+      teaser: "Caring too much about performance can tighten up the process and make it harder to receive clearly.",
+      paragraphs: [
+        "Swann mentioned, \"[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best\" (Swann, 1991/2017, p. 124). In practical terms, that means not caring too much about performance while you are doing the task.",
+        "If you care a great deal about how well you are doing, the process can tighten up and become less effective. The evidence suggests it works better when you are in a more playful mood and do not care too much. Over time, as the experience becomes familiar, it can feel routine rather than emotionally loaded."
+      ]
+    },
+    {
+      id: "state-of-mind",
+      label: "State Of Mind",
+      title: "State Of Mind And How Much You Care",
+      teaser: "The receiver needs to stay open to what appears, rather than be busy thinking personal thoughts.",
+      paragraphs: [
+        "A receiver should not be absorbed in their own thoughts, but open to whatever pops into the mind's eye when the countdown ends and an image is displayed to the sender. Shreds of visual evidence can fade quickly, so they must be noticed and remembered quickly. Remember what the shreds looked like. Do not rush to name them unless an obvious name pops out on its own."
+      ]
+    },
+    {
+      id: "belief",
+      label: "Belief",
+      title: "A Certainty That Telepathy Is Real - And Real For Me",
+      teaser: "A receiver does better when telepathy is accepted inwardly as real and immediately available.",
+      paragraphs: [
+        "A receiver needs to fully believe that telepathy exists and fully trust that the right information is present in the mind's eye right after the countdown. It has been shown that those who do not believe telepathy exists are much less likely to experience it. However, a sender does not have to believe in telepathy in order to competently send telepathic information.",
+        "If you are the receiver, you must know in your heart that telepathy is real as strongly as you believe there is a real sun in the sky. If you do not believe in it, it still might happen spontaneously, but it is less likely that you will show consistently good results. A sender can be skeptical and still produce decent results for a receiver."
+      ]
+    },
+    {
+      id: "dont-worry",
+      label: "Don't Worry How",
+      title: "Don't Worry How This Works",
+      teaser: "How the connection happens may remain mysterious, but the practical task is still to receive what appears.",
+      paragraphs: [
+        "How it is possible that, out of the millions of people in the world, by simply wanting to receive what one person may be looking at, it is possible to tune in to that one person? How this can happen is not the important thing. The important thing is that this is what does happen, and it can happen effortlessly, without conscious calculation."
+      ]
+    },
+    {
+      id: "objects-and-locations",
+      label: "Objects And Locations",
+      title: "Objects Have Locations In The Visual Field - Remember What And Where",
+      teaser: "Features may appear in different parts of the mind's eye. Remember both what appeared and where it appeared.",
+      paragraphs: [
+        "The receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. The receiver should try to remember what was where in the visual field. Some features of what pops in may have color. Remember the color and where it is noticed. Was it on the right side? The left side?",
+        "After a few seconds, the whole image, not just part of it, may fade. Then it is time to consolidate in memory whatever shreds or pieces you saw. When the choice of images is shown, that remembered information can help you choose the actual target image."
+      ]
+    },
+    {
+      id: "lack-of-fusion",
+      label: "Lack Of Fusion",
+      title: "Lack Of Fusion",
+      teaser: "Correct local elements may be present without joining together into a single recognizable whole.",
+      paragraphs: [
+        "American psychic Ingo Swann suggested, referring to the visual perception of psi-encoded data, that \"a great deal of distortion and misrepresentation can and does take place while the mind seeks to translate the basic images into words\" [Swann, 1991/2017, p. 73]. Swann called this difficulty in grouping local elements into recognized objects lack of fusion: \"All parts are correctly perceived, but will not connect to form a whole\" [Swann, 1991/2017, p. 229]."
+      ]
+    },
+    {
+      id: "describe-dont-identify",
+      label: "Describe, Don't Identify",
+      title: "Don't Try To Name It - Describe, Don't Identify",
+      teaser: "Stay with the actual visual bits instead of forcing them too quickly into a familiar object name.",
+      paragraphs: [
+        "In training remote viewing, Lori Williams emphasizes that \"the biggest mistake psychics and remote viewers make is naming things with nouns.\" Her mantra is: describe, don't identify [Williams, 2020].",
+        "If you use too much cognitive effort trying to put a name to fragmentary, unstable, poorly remembered bits of visual evidence, your own expectations and biases can take over. That interferes with the features actually present. It is better to stay with the pieces that are really there than to force them into a familiar object too early."
+      ]
+    }
+  ];
+  const guidedReceiverTourProbeTopicMap = new Map(
+    guidedReceiverTourProbeTopics.map((topic) => [topic.id, topic])
+  );
 
   const folderHandleDbName = "cones-folder-handles";
   const folderHandleStoreName = "handles";
@@ -285,6 +335,15 @@
   const localTrialRecordsKey = `cones-local-trials-v2-${role}`;
   const levelOneTargetLayoutNumbers = [1, 6, 7, 8, 9];
   const levelOneManyLayoutNumbers = [6, 7, 8, 9];
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
   function isInternalVisitorIdentifier(name) {
     return /^visitor [a-z0-9]{4}$/i.test(String(name || "").trim());
@@ -296,15 +355,72 @@
       : guidedReceiverTourReturnSnapshotKey;
   }
 
-  function initializeGuidedReceiverTourProbeBody() {
+  function renderGuidedReceiverTourProbeOverview() {
+    if (!guidedTourProbeBody) {
+      return;
+    }
+    const topicCards = guidedReceiverTourProbeTopics
+      .map((topic) => {
+        const teaser = escapeHtml(topic.teaser || "");
+        const label = escapeHtml(topic.label || topic.title || "");
+        return `
+          <article class="guided-tour-probe-topic-card">
+            <h3>${label}</h3>
+            <p>${teaser}</p>
+            <div class="guided-tour-probe-topic-actions">
+              <button class="guided-tour-probe-chip" type="button" data-probe-topic-open="${escapeHtml(topic.id)}">Open</button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+    guidedTourProbeBody.innerHTML = `
+      <div class="guided-tour-probe-overview">
+        <p class="guided-tour-probe-intro">${escapeHtml(guidedReceiverTourProbeIntro)}</p>
+        <div class="guided-tour-probe-topic-grid">
+          ${topicCards}
+        </div>
+      </div>
+    `.trim();
+    guidedTourProbeBody.scrollTop = 0;
+  }
+
+  function renderGuidedReceiverTourProbeDetail(topicId = "") {
+    if (!guidedTourProbeBody) {
+      return;
+    }
+    const topic = guidedReceiverTourProbeTopicMap.get(String(topicId || "").trim());
+    if (!topic) {
+      renderGuidedReceiverTourProbeOverview();
+      return;
+    }
+    const paragraphs = Array.isArray(topic.paragraphs)
+      ? topic.paragraphs
+          .map((paragraph) => `<p>${escapeHtml(String(paragraph || ""))}</p>`)
+          .join("")
+      : "";
+    guidedTourProbeBody.innerHTML = `
+      <div class="guided-tour-probe-detail">
+        <div class="guided-tour-probe-detail-actions">
+          <button class="guided-tour-probe-chip" type="button" data-probe-topic-back="1">All Topics</button>
+        </div>
+        <h3>${escapeHtml(topic.title || topic.label || "")}</h3>
+        ${paragraphs}
+      </div>
+    `.trim();
+    guidedTourProbeBody.scrollTop = 0;
+  }
+
+  function renderGuidedReceiverTourProbeView() {
     if (!guidedTourProbeBody || role !== "receiver") {
       return;
     }
-    if (guidedTourProbeBody.dataset.probeHydrated === "1") {
+    const topicId = String(guidedReceiverTourState?.probeTopicId || "").trim();
+    if (topicId) {
+      renderGuidedReceiverTourProbeDetail(topicId);
       return;
     }
-    guidedTourProbeBody.innerHTML = guidedReceiverTourProbeMarkup.trim();
-    guidedTourProbeBody.dataset.probeHydrated = "1";
+    renderGuidedReceiverTourProbeOverview();
     const hydratedProbeText = String(guidedTourProbeBody.textContent || "");
     if (suspiciousProbeTextFragments.some((fragment) => fragment && hydratedProbeText.includes(fragment))) {
       void logDebugEvent("guided_tour_probe_mojibake_detected", {
@@ -312,8 +428,6 @@
       });
     }
   }
-
-  initializeGuidedReceiverTourProbeBody();
 
   function readGuidedReceiverTourReturnSnapshot() {
     try {
@@ -352,6 +466,7 @@
     guidedTourProbeScreen?.classList.add("hidden");
     if (guidedReceiverTourState) {
       guidedReceiverTourState.probeScreenOpen = false;
+      guidedReceiverTourState.probeTopicId = "";
     }
   }
 
@@ -360,7 +475,13 @@
       return;
     }
     guidedReceiverTourState.probeScreenOpen = true;
+    guidedReceiverTourState.probeTopicId = "";
+    renderGuidedReceiverTourProbeView();
     guidedTourProbeScreen.classList.remove("hidden");
+    if (guidedTourProbeBody) {
+      guidedTourProbeBody.scrollTop = 0;
+    }
+    guidedTourProbeBackButton?.focus();
   }
 
   function setGuidedReceiverTourHint(message) {
@@ -563,6 +684,7 @@
       step: null,
       waitingOnlineAcknowledged: false,
       probeScreenOpen: false,
+      probeTopicId: "",
       manualBalloonPosition: null,
       pauseTimer: null
     };
@@ -874,10 +996,38 @@
     openGuidedTourProbeScreen();
   });
   guidedTourProbeBackButton?.addEventListener("click", () => {
+    if (guidedReceiverTourState?.probeTopicId) {
+      guidedReceiverTourState.probeTopicId = "";
+      renderGuidedReceiverTourProbeView();
+      guidedTourProbeBackButton?.focus();
+      return;
+    }
     closeGuidedTourProbeScreen();
     if (guidedReceiverTourState?.step) {
       renderGuidedReceiverTourStep(guidedReceiverTourState.step);
     }
+  });
+  guidedTourProbeBody?.addEventListener("click", (event) => {
+    const button = event.target instanceof Element
+      ? event.target.closest("[data-probe-topic-open], [data-probe-topic-back]")
+      : null;
+    if (!(button instanceof HTMLElement)) {
+      return;
+    }
+    event.preventDefault();
+    if (button.dataset.probeTopicBack === "1") {
+      if (guidedReceiverTourState) {
+        guidedReceiverTourState.probeTopicId = "";
+      }
+      renderGuidedReceiverTourProbeView();
+      return;
+    }
+    const topicId = String(button.dataset.probeTopicOpen || "").trim();
+    if (!topicId || !guidedReceiverTourState) {
+      return;
+    }
+    guidedReceiverTourState.probeTopicId = topicId;
+    renderGuidedReceiverTourProbeView();
   });
 
   let guidedReceiverTourBalloonDrag = null;
@@ -1029,11 +1179,6 @@
 
   async function syncLauncherReturnStateFromRuntime(reason = "", guidedReturnSnapshot = null) {
     try {
-      appendGuidedReturnTrace("runtime_sync_launcher_return_state_start", {
-        page_instance_id: runtimePageInstanceId,
-        reason,
-        hasGuidedSnapshot: !!guidedReturnSnapshot
-      });
       if (guidedReturnSnapshot && typeof guidedReturnSnapshot === "object") {
         if (guidedReturnSnapshot.launcherState && typeof guidedReturnSnapshot.launcherState === "object") {
           localStorage.setItem(launcherStorageKey, JSON.stringify(guidedReturnSnapshot.launcherState));
@@ -1053,11 +1198,6 @@
             page_instance_id: runtimePageInstanceId
           });
         }
-        appendGuidedReturnTrace("runtime_sync_launcher_return_state_guided_snapshot_restored", {
-          page_instance_id: runtimePageInstanceId,
-          reason,
-          role
-        });
         return;
       }
 
@@ -1126,20 +1266,7 @@
           robot_mode: isRobotSimulationMode
         });
       }
-      appendGuidedReturnTrace("runtime_sync_launcher_return_state_saved", {
-        page_instance_id: runtimePageInstanceId,
-        reason,
-        role: returnRole,
-        returnDifficulty,
-        visitorDisplayName,
-        robotMode: !!isRobotSimulationMode
-      });
     } catch (error) {
-      appendGuidedReturnTrace("runtime_sync_launcher_return_state_error", {
-        page_instance_id: runtimePageInstanceId,
-        reason,
-        message: String(error?.message || error || "").trim()
-      });
       // Ignore launcher sync failures so the runtime can still return home.
     }
   }
@@ -3204,12 +3331,6 @@
 
   function navigateToBeginnerFrontPage(options = {}) {
     const returnUrl = buildLauncherReturnUrl(options);
-    appendGuidedReturnTrace("runtime_before_launcher_nav", {
-      page_instance_id: runtimePageInstanceId,
-      href: String(window.location.href || "").trim(),
-      returnUrl,
-      difficulty_level: normalizeDifficultyLevel(currentPairDifficultyLevel || readSettings().difficulty_level || "1")
-    });
     void logDebugEvent("runtime_return_to_launcher", {
       role,
       page_instance_id: runtimePageInstanceId,
@@ -3252,76 +3373,6 @@
     }
   }
 
-  function appendGuidedReturnTrace(label, details = {}) {
-    try {
-      const raw = localStorage.getItem(guidedReturnTraceKey);
-      const entries = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : [];
-      entries.push({
-        label: String(label || "").trim(),
-        timestamp: new Date().toISOString(),
-        pageInstanceId: runtimePageInstanceId,
-        href: String(window.location.href || "").trim(),
-        details: details && typeof details === "object" ? details : {}
-      });
-      while (entries.length > 40) {
-        entries.shift();
-      }
-      localStorage.setItem(guidedReturnTraceKey, JSON.stringify(entries));
-    } catch (error) {
-      // Ignore local trace write failures.
-    }
-  }
-
-  function buildGuidedReturnDifficultyDebugPayload(guidedReturnSnapshot = null) {
-    const settings = readSettings();
-    let launcherState = {};
-    try {
-      launcherState = JSON.parse(localStorage.getItem(launcherStorageKey) || "{}") || {};
-    } catch (error) {
-      launcherState = {};
-    }
-
-    let receiverSettings = {};
-    let senderSettings = {};
-    try {
-      receiverSettings = JSON.parse(localStorage.getItem("cones-settings-v2-receiver") || "{}") || {};
-    } catch (error) {
-      receiverSettings = {};
-    }
-    try {
-      senderSettings = JSON.parse(localStorage.getItem("cones-settings-v2-sender") || "{}") || {};
-    } catch (error) {
-      senderSettings = {};
-    }
-
-    const guidedReturnView = guidedReturnSnapshot?.returnView && typeof guidedReturnSnapshot.returnView === "object"
-      ? guidedReturnSnapshot.returnView
-      : {};
-    const ownDisplayName = String(guidedReturnView.ownDisplayName || "").trim();
-    const receiverRobotKey = ownDisplayName ? `receiver::${ownDisplayName.toLowerCase()}::robot` : "";
-    const senderRobotKey = ownDisplayName ? `sender::${ownDisplayName.toLowerCase()}::robot` : "";
-    const robotLevels = launcherState && typeof launcherState.robotSimulationDifficultyLevels === "object"
-      ? launcherState.robotSimulationDifficultyLevels
-      : {};
-
-    return {
-      runtimeRole: role,
-      currentPairDifficultyLevel: normalizeDifficultyLevel(currentPairDifficultyLevel || "1"),
-      runtimeSettingsDifficulty: normalizeDifficultyLevel(settings.difficulty_level || "1"),
-      returnViewDifficulty: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1"),
-      returnViewOwnDisplayName: ownDisplayName,
-      launcherDifficultyLevel: normalizeDifficultyLevel(launcherState?.difficultyLevel || "1"),
-      launcherRoleDifficultySender: normalizeDifficultyLevel(launcherState?.roleDifficultyLevels?.sender || "1"),
-      launcherRoleDifficultyReceiver: normalizeDifficultyLevel(launcherState?.roleDifficultyLevels?.receiver || "1"),
-      launcherRobotDifficultyReceiver: receiverRobotKey ? normalizeDifficultyLevel(robotLevels?.[receiverRobotKey] || "") : "",
-      launcherRobotDifficultySender: senderRobotKey ? normalizeDifficultyLevel(robotLevels?.[senderRobotKey] || "") : "",
-      receiverSettingsDifficulty: normalizeDifficultyLevel(receiverSettings?.difficulty_level || "1"),
-      senderSettingsDifficulty: normalizeDifficultyLevel(senderSettings?.difficulty_level || "1"),
-      receiverRobotKey,
-      senderRobotKey
-    };
-  }
-
   function showExitedState() {
     const guidedReturnSnapshot = isGuidedExperienceTour ? readGuidedReceiverTourReturnSnapshot() : null;
     clearGuidedReceiverTour();
@@ -3345,11 +3396,6 @@
         ? guidedReturnSnapshot.returnView
         : null;
       const restoredLessonReturnTarget = restorePendingLearningCenterLessonReturnTargetFromSnapshot(guidedReturnSnapshot);
-      if (guidedReturnSnapshot) {
-        const difficultyDebugPayload = buildGuidedReturnDifficultyDebugPayload(guidedReturnSnapshot);
-        appendGuidedReturnTrace("runtime_guided_return_exit", difficultyDebugPayload);
-        void logDebugEvent("guided_return_difficulty_debug", difficultyDebugPayload);
-      }
       const shouldResumeLesson = !!guidedReturnSnapshot && (restoredLessonReturnTarget || hasPendingLearningCenterLessonReturnTarget());
       navigateToBeginnerFrontPage(shouldResumeLesson
         ? { open: "lesson-return" }

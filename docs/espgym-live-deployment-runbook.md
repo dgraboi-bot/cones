@@ -98,6 +98,26 @@ For example:
 
 Otherwise GitHub is one version behind the actual recoverable live build, which is not acceptable.
 
+## Temporary Local Version Labels
+
+During debugging or cleanup, temporary local version labels may be introduced only to help test cache behavior or isolate a local working state.
+
+Required rule going forward:
+
+1. temporary local debug/version labels must not be treated as meaningful release sequence numbers unless they were actually deployed
+2. if a cleanup pass intentionally normalizes files back to an earlier stable baseline before the next real release bump, that is acceptable and should be stated explicitly in status updates
+3. when describing release history, distinguish clearly between:
+   - temporary local labels used during debugging
+   - actual live deployed labels
+4. if a temporary label is abandoned before deployment, do not describe later deployed builds as if they descended sequentially from that temporary label
+
+Practical meaning:
+
+- a local label such as `20260711e` may exist briefly during debugging
+- if cleanup then restores the app to stable baseline `20260711b`
+- and the next real deployment becomes `20260711c`
+- then `20260711c` is the meaningful release version, while `20260711e` was only a temporary local working label
+
 ## Required Encoding Guard
 
 Large pasted content blocks are especially vulnerable to silent text-encoding corruption. A page can look fine in one source location while a duplicated static copy becomes mojibake such as:

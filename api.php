@@ -1589,6 +1589,39 @@ function copy_file_if_missing(string $sourcePath, string $destinationPath): void
     @copy($sourcePath, $destinationPath);
 }
 
+function build_content_backup_path(string $path, string $kind = 'content'): string
+{
+    global $backupDir, $privateRoot;
+
+    $label = preg_replace('/[^a-z0-9_-]+/i', '-', trim((string) $kind));
+    $label = $label !== '' ? trim((string) $label, '-') : 'content';
+    $timestamp = gmdate('Ymd_His');
+    $baseName = basename($path);
+    $nameInfo = pathinfo($baseName);
+    $fileName = (string) ($nameInfo['filename'] ?? 'snapshot');
+    $extension = isset($nameInfo['extension']) && $nameInfo['extension'] !== '' ? '.' . (string) $nameInfo['extension'] : '';
+    $relativePath = ltrim(str_replace([$privateRoot, '\\'], ['', '/'], $path), '/');
+    $relativeDir = trim((string) dirname($relativePath), './');
+    $suffix = substr(sha1($path . '|' . microtime(true)), 0, 8);
+
+    $backupPath = $backupDir . DIRECTORY_SEPARATOR . 'content-autobackup' . DIRECTORY_SEPARATOR . $label;
+    if ($relativeDir !== '') {
+        $backupPath .= DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativeDir);
+    }
+    $backupPath .= DIRECTORY_SEPARATOR . $fileName . '__' . $timestamp . '__' . $suffix . $extension;
+    return $backupPath;
+}
+
+function backup_existing_content_file(string $path, string $kind = 'content'): void
+{
+    if ($path === '' || !is_file($path)) {
+        return;
+    }
+    $backupPath = build_content_backup_path($path, $kind);
+    ensure_parent_directory($backupPath);
+    @copy($path, $backupPath);
+}
+
 function normalize_questionnaire_type($value): string
 {
     $type = strtolower(trim((string) $value));
@@ -1955,6 +1988,15 @@ function read_learn_more_content_file(string $path): array
 
 function write_learn_more_content_file(string $path, string $content, string $mirrorPath = ''): void
 {
+    $backupKind = str_contains(strtolower(str_replace('\\', '/', $path)), 'new-learning-center-outline')
+        ? 'new-course-outline'
+        : (str_contains(strtolower(str_replace('\\', '/', $path)), 'new-learning-center-lessons')
+            ? 'new-course-lesson'
+            : 'content');
+    backup_existing_content_file($path, $backupKind);
+    if ($mirrorPath !== '') {
+        backup_existing_content_file($mirrorPath, $backupKind . '-mirror');
+    }
     ensure_parent_directory($path);
     $result = @file_put_contents($path, $content, LOCK_EX);
     if ($result === false) {

@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260711c";
+  const launcherBuildVersion = "20260711d";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -190,6 +190,7 @@
   const guidedTourCopy = document.querySelector("[data-guided-tour-copy]");
   const guidedTourHint = document.querySelector("[data-guided-tour-hint]");
   const guidedTourNextButton = document.querySelector("[data-guided-tour-next]");
+  const roleCardInlineBackButtons = Array.from(document.querySelectorAll("[data-collapse-role-card]"));
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
@@ -843,7 +844,6 @@
   const adminIdentityListBody = document.querySelector("[data-admin-identity-list-body]");
   const adminIdentityFilterButtons = Array.from(document.querySelectorAll("[data-admin-identity-filter]"));
   const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
-  const guidedReturnTraceKey = "cones-guided-return-trace-v1";
   let receiverOwnLabelMeasurementShownAt = 0;
   try {
     const initialLauncherParams = new URLSearchParams(window.location.search);
@@ -870,25 +870,6 @@
         });
       } catch (_fetchTraceError) {
         // Ignore startup trace failures.
-      }
-      try {
-        const raw = localStorage.getItem(guidedReturnTraceKey);
-        const entries = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : [];
-        entries.push({
-          label: "launcher_start_direct_open_pending",
-          timestamp: new Date().toISOString(),
-          href: String(window.location.href || "").trim(),
-          details: {
-            open: String(initialLauncherParams.get("open") || "").trim(),
-            difficulty_level: String(initialLauncherParams.get("difficulty_level") || "").trim()
-          }
-        });
-        while (entries.length > 40) {
-          entries.shift();
-        }
-        localStorage.setItem(guidedReturnTraceKey, JSON.stringify(entries));
-      } catch (_traceError) {
-        // Ignore local trace write failures.
       }
     }
   } catch (_error) {
@@ -946,6 +927,9 @@
   let beepTestAudioContext = null;
   let beepTestActiveOscillator = null;
   let beepTestActiveGain = null;
+  let beepTestReinforcementBuffer = null;
+  let beepTestReinforcementLoadPromise = null;
+  let beepTestReinforcementAudioElement = null;
   let beepTestRunning = false;
   let beepTestTimerIds = [];
   let locationPickerHidesFeatureSetupBackButton = false;
@@ -1187,6 +1171,7 @@ This is an alternate test message to show now.`;
     "guided-sender-tour",
     "performance-reports",
     "setup-features",
+    "test-sound",
     "claim-name",
     "install-app",
     "review-location",
@@ -1195,7 +1180,9 @@ This is an alternate test message to show now.`;
     "after-first-session"
   ]);
   const learningCenterLessonReturnButtons = [
+    ...roleCardInlineBackButtons,
     closeFeatureSetupButton,
+    closeBeepTestButton,
     closeReportDefinitionButton,
     closeBaselineQuestionsButton,
     closeAfterFirstSessionQuestionsButton
@@ -2410,7 +2397,11 @@ This is an alternate test message to show now.`;
       parentTab: String(target.parentTab || "").trim(),
       parentScrollY: Math.max(0, Number(target.parentScrollY || 0) || 0),
       parentFocusId: String(target.parentFocusId || "").trim(),
-      lessonScrollY: Math.max(0, Number(target.lessonScrollY || 0) || 0)
+      lessonScrollY: Math.max(0, Number(target.lessonScrollY || 0) || 0),
+      lessonAction: String(target.lessonAction || "").trim().toLowerCase(),
+      lessonActionLabel: String(target.lessonActionLabel || "").trim(),
+      lessonActionIndex: Math.max(0, Number(target.lessonActionIndex || 0) || 0),
+      lessonActionViewportTop: Math.max(0, Number(target.lessonActionViewportTop || 0) || 0)
     };
   }
 
@@ -2424,6 +2415,7 @@ This is an alternate test message to show now.`;
 
   function updatePendingLearningCenterLessonReturnButtons() {
     const hasPendingReturn = !!readPendingLearningCenterLessonReturnTarget();
+    const launcherGuidedTourActive = !!launcherGuidedTourState;
     learningCenterLessonReturnButtons.forEach((button) => {
       if (!(button instanceof HTMLElement)) {
         return;
@@ -2432,6 +2424,14 @@ This is an alternate test message to show now.`;
         button.dataset.defaultLabel = String(button.textContent || "BACK").trim() || "BACK";
       }
       button.textContent = hasPendingReturn ? "RETURN TO LESSON" : button.dataset.defaultLabel;
+      const disableDuringLauncherGuidedTour = launcherGuidedTourActive && roleCardInlineBackButtons.includes(button);
+      if ("disabled" in button) {
+        button.disabled = disableDuringLauncherGuidedTour;
+      }
+      button.setAttribute("aria-disabled", disableDuringLauncherGuidedTour ? "true" : "false");
+      button.style.pointerEvents = disableDuringLauncherGuidedTour ? "none" : "";
+      button.style.cursor = disableDuringLauncherGuidedTour ? "default" : "";
+      button.classList.toggle("is-disabled-guided-return", disableDuringLauncherGuidedTour);
     });
   }
 
@@ -2454,6 +2454,20 @@ This is an alternate test message to show now.`;
     writePendingLearningCenterLessonReturnTarget(null);
   }
 
+  function getEspLessonDetailScrollContainer() {
+    return espLessonDetailBody?.closest(".esp-lesson-detail-panel")
+      || espLessonDetailPreview?.closest(".esp-lesson-detail-panel")
+      || null;
+  }
+
+  function getEspLessonDetailScrollTop() {
+    const container = getEspLessonDetailScrollContainer();
+    if (container instanceof HTMLElement) {
+      return Math.max(0, Number(container.scrollTop || 0) || 0);
+    }
+    return Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0);
+  }
+
   function buildPendingLearningCenterLessonReturnTarget() {
     if (!activeLearningCenterLessonId) {
       return null;
@@ -2465,7 +2479,7 @@ This is an alternate test message to show now.`;
       parentTab: activeLearningCenterLessonReturnTarget?.tab || "",
       parentScrollY: activeLearningCenterLessonReturnTarget?.scrollY || 0,
       parentFocusId: activeLearningCenterLessonReturnTarget?.focusId || "",
-      lessonScrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+      lessonScrollY: getEspLessonDetailScrollTop()
     });
   }
 
@@ -2485,7 +2499,11 @@ This is an alternate test message to show now.`;
       scrollY: pendingTarget.parentScrollY,
       focusId: pendingTarget.parentFocusId || buildLearningCenterLessonRowId(pendingTarget.lessonId),
       lessonDomain: pendingTarget.lessonDomain,
-      lessonScrollY: pendingTarget.lessonScrollY
+      lessonScrollY: pendingTarget.lessonScrollY,
+      lessonAction: pendingTarget.lessonAction,
+      lessonActionLabel: pendingTarget.lessonActionLabel,
+      lessonActionIndex: pendingTarget.lessonActionIndex,
+      lessonActionViewportTop: pendingTarget.lessonActionViewportTop
     });
     const resumed = activeEspLessonMode === "learning-center"
       && activeLearningCenterLessonId === pendingTarget.lessonId;
@@ -2498,7 +2516,8 @@ This is an alternate test message to show now.`;
   }
 
   function triggerPendingLearningCenterLessonReturn() {
-    if (!readPendingLearningCenterLessonReturnTarget()) {
+    const pendingTarget = readPendingLearningCenterLessonReturnTarget();
+    if (!pendingTarget) {
       updatePendingLearningCenterLessonReturnButtons();
       return false;
     }
@@ -2509,14 +2528,50 @@ This is an alternate test message to show now.`;
   async function showLearningCenterLessonDetail(lessonId, options = {}) {
     const normalizedLessonId = normalizeLearningCenterLessonId(lessonId);
     const lessonDomain = normalizeLessonDomain(options.lessonDomain || activeLearningCenterLessonDomain || "legacy");
-    const lessonRecord = getLearningCenterLessonRecordById(normalizedLessonId, getLessonDomainIndex(lessonDomain));
+    let lessonRecord = getLearningCenterLessonRecordById(normalizedLessonId, getLessonDomainIndex(lessonDomain));
     const contentKey = buildLearningCenterLessonContentKey(normalizedLessonId);
-    if (!normalizedLessonId || !lessonRecord || !contentKey) {
+    if (!normalizedLessonId || !contentKey) {
+      return;
+    }
+    if (!lessonRecord) {
+      try {
+        const refreshedIndex = await fetchLearningCenterLessonIndex(lessonDomain);
+        setLessonDomainIndex(lessonDomain, refreshedIndex);
+        if (lessonDomain === "new-course") {
+          renderNewCourseLessonLinks(refreshedIndex);
+        } else {
+          renderLearningCenterLessonLinks(refreshedIndex);
+        }
+        lessonRecord = getLearningCenterLessonRecordById(normalizedLessonId, refreshedIndex);
+        traceLauncherClient("learning_center_lesson_detail_rehydrated_index", {
+          lessonId: normalizedLessonId,
+          lessonDomain,
+          foundAfterRefresh: !!lessonRecord,
+          refreshedCount: Array.isArray(refreshedIndex) ? refreshedIndex.length : 0
+        });
+      } catch (error) {
+        traceLauncherClient("learning_center_lesson_detail_rehydration_failed", {
+          lessonId: normalizedLessonId,
+          lessonDomain,
+          message: String(error?.message || error || "").trim()
+        });
+      }
+    }
+    if (!lessonRecord) {
+      traceLauncherClient("learning_center_lesson_detail_missing_record", {
+        lessonId: normalizedLessonId,
+        lessonDomain
+      });
       return;
     }
     try {
       const record = await fetchEditableContentFromServer(contentKey, { lessonDomain });
       if (!record?.available) {
+        traceLauncherClient("learning_center_lesson_detail_missing_content", {
+          lessonId: normalizedLessonId,
+          lessonDomain,
+          contentKey
+        });
         return;
       }
       activeEspLessonMode = "learning-center";
@@ -2580,13 +2635,62 @@ This is an alternate test message to show now.`;
       baselineQuestionsView?.classList.add("beginner-view-hidden");
       afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
       const lessonScrollY = Number(options.lessonScrollY);
-      if (Number.isFinite(lessonScrollY) && lessonScrollY > 0) {
+      const lessonScrollContainer = getEspLessonDetailScrollContainer();
+      if (lessonScrollContainer instanceof HTMLElement) {
+        lessonScrollContainer.scrollTop = Number.isFinite(lessonScrollY) && lessonScrollY > 0
+          ? Math.max(0, lessonScrollY)
+          : 0;
+      } else if (Number.isFinite(lessonScrollY) && lessonScrollY > 0) {
         window.scrollTo({ top: Math.max(0, lessonScrollY), left: 0, behavior: "auto" });
       } else {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+      const lessonAction = String(options.lessonAction || "").trim().toLowerCase();
+      const lessonActionLabel = String(options.lessonActionLabel || "").trim();
+      const lessonActionIndex = Math.max(0, Number(options.lessonActionIndex || 0) || 0);
+      const lessonActionViewportTop = Math.max(0, Number(options.lessonActionViewportTop || 0) || 0);
+      if (lessonAction) {
+        window.requestAnimationFrame(() => {
+          const matchingButtons = Array.from(espLessonDetailPreview?.querySelectorAll("[data-lesson-action]") || [])
+            .filter((node) => String(node.getAttribute("data-lesson-action") || "").trim().toLowerCase() === lessonAction);
+          let targetButton = matchingButtons[lessonActionIndex] || null;
+          if (!targetButton && lessonActionLabel) {
+            targetButton = matchingButtons.find((node) => String(node.textContent || "").trim() === lessonActionLabel) || null;
+          }
+          if (!(targetButton instanceof HTMLElement)) {
+            traceLauncherClient("learning_center_lesson_detail_action_anchor_missing", {
+              lessonId: normalizedLessonId,
+              lessonDomain,
+              lessonAction,
+              lessonActionIndex,
+              lessonActionLabel
+            });
+            return;
+          }
+          const scrollContainer = getEspLessonDetailScrollContainer();
+          const rect = targetButton.getBoundingClientRect();
+          const desiredTop = lessonActionViewportTop > 0 ? lessonActionViewportTop : 180;
+          let targetScrollY = 0;
+          if (scrollContainer instanceof HTMLElement) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            targetScrollY = Math.max(
+              0,
+              Math.round((scrollContainer.scrollTop || 0) + (rect.top - containerRect.top) - desiredTop)
+            );
+            scrollContainer.scrollTop = targetScrollY;
+          } else {
+            targetScrollY = Math.max(0, Math.round((window.scrollY || window.pageYOffset || 0) + rect.top - desiredTop));
+            window.scrollTo({ top: targetScrollY, left: 0, behavior: "auto" });
+          }
+        });
+      }
       updatePendingLearningCenterLessonReturnButtons();
     } catch (error) {
+      traceLauncherClient("learning_center_lesson_detail_load_failed", {
+        lessonId: normalizedLessonId,
+        lessonDomain,
+        message: String(error?.message || error || "").trim()
+      });
       setEspLessonDetailStatus("Unable to load that lesson right now.", { isError: true });
     }
   }
@@ -6215,26 +6319,6 @@ This is an alternate test message to show now.`;
     });
   }
 
-  function appendGuidedReturnTrace(label, details = {}) {
-    try {
-      const raw = localStorage.getItem(guidedReturnTraceKey);
-      const entries = Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : [];
-      entries.push({
-        label: String(label || "").trim(),
-        timestamp: new Date().toISOString(),
-        pageInstanceId: launcherPageInstanceId,
-        href: String(window.location.href || "").trim(),
-        details: details && typeof details === "object" ? details : {}
-      });
-      while (entries.length > 40) {
-        entries.shift();
-      }
-      localStorage.setItem(guidedReturnTraceKey, JSON.stringify(entries));
-    } catch (error) {
-      // Ignore local trace write failures.
-    }
-  }
-
   function logGoProCheckoutDebug(label, details = {}) {
     const payload = {
       ...(details && typeof details === "object" ? details : {}),
@@ -7423,6 +7507,7 @@ This is an alternate test message to show now.`;
     featureSetupView?.classList.remove("beginner-view-hidden");
     setFeatureSetupBackButtonTemporarilyHidden(false);
     lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     rewireView?.classList.add("beginner-view-hidden");
@@ -7998,6 +8083,66 @@ This is an alternate test message to show now.`;
     return true;
   }
 
+  async function ensureBeepTestReinforcementLoaded() {
+    if (beepTestReinforcementBuffer || beepTestReinforcementLoadPromise) {
+      return beepTestReinforcementLoadPromise || beepTestReinforcementBuffer;
+    }
+
+    if (!beepTestAudioContext) {
+      return null;
+    }
+
+    beepTestReinforcementLoadPromise = (async () => {
+      try {
+        const response = await fetch(`tada.wav?v=${encodeURIComponent(launcherBuildVersion)}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Unable to load reinforcement audio (${response.status}).`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const decoded = await beepTestAudioContext.decodeAudioData(arrayBuffer.slice(0));
+        beepTestReinforcementBuffer = decoded;
+        return decoded;
+      } catch (_error) {
+        beepTestReinforcementBuffer = null;
+        return null;
+      } finally {
+        beepTestReinforcementLoadPromise = null;
+      }
+    })();
+
+    return beepTestReinforcementLoadPromise;
+  }
+
+  async function playBeepTestReinforcementSound() {
+    try {
+      await ensureBeepTestAudioUnlocked();
+      if (beepTestAudioContext) {
+        const buffer = beepTestReinforcementBuffer || await ensureBeepTestReinforcementLoaded();
+        if (buffer) {
+          const source = beepTestAudioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(beepTestAudioContext.destination);
+          source.start();
+          return true;
+        }
+      }
+    } catch (_error) {
+      // Fall through to audio element fallback.
+    }
+
+    try {
+      if (!beepTestReinforcementAudioElement) {
+        beepTestReinforcementAudioElement = new Audio(`tada.wav?v=${encodeURIComponent(launcherBuildVersion)}`);
+        beepTestReinforcementAudioElement.preload = "auto";
+      }
+      beepTestReinforcementAudioElement.currentTime = 0;
+      await beepTestReinforcementAudioElement.play();
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function clearBeepTestTimers() {
     beepTestTimerIds.forEach((timerId) => {
       window.clearTimeout(timerId);
@@ -8015,7 +8160,7 @@ This is an alternate test message to show now.`;
       beepTestCountdown.classList.remove("is-blank");
     }
     if (beepTestStatus) {
-      beepTestStatus.textContent = "Press START TEST to hear the countdown beep.";
+      beepTestStatus.textContent = "Press START TEST to hear the countdown beep and reinforcement sound.";
     }
     if (startBeepTestButton) {
       startBeepTestButton.disabled = false;
@@ -8030,7 +8175,7 @@ This is an alternate test message to show now.`;
     const audioContext = await ensureBeepTestAudioUnlocked();
     if (!audioContext) {
       if (beepTestStatus) {
-        beepTestStatus.textContent = "This browser cannot play the countdown beep test.";
+        beepTestStatus.textContent = "This browser cannot play the sound test.";
       }
       return;
     }
@@ -8048,7 +8193,7 @@ This is an alternate test message to show now.`;
       startBeepTestButton.disabled = true;
     }
     if (beepTestStatus) {
-      beepTestStatus.textContent = "Listen for the beep after the countdown reaches 1.";
+      beepTestStatus.textContent = "Listen for the beep after the countdown reaches 1 and for the reinforcement sound one second later.";
     }
 
     const setCountdownValue = (value) => {
@@ -8075,9 +8220,15 @@ This is an alternate test message to show now.`;
       playBeepTestTone();
       setCountdownValue("");
       if (beepTestStatus) {
-        beepTestStatus.textContent = "If you heard the beep clearly, this device is ready. If not, raise the device volume and try again.";
+        beepTestStatus.textContent = "The countdown beep just played. Listen for the reinforcement sound next.";
       }
     }, 8000));
+    beepTestTimerIds.push(window.setTimeout(() => {
+      playBeepTestReinforcementSound();
+      if (beepTestStatus) {
+        beepTestStatus.textContent = "If you heard both sounds clearly, this device is ready. If not, raise the device volume and try again.";
+      }
+    }, 9000));
     beepTestTimerIds.push(window.setTimeout(() => {
       beepTestRunning = false;
       if (startBeepTestButton) {
@@ -8087,7 +8238,7 @@ This is an alternate test message to show now.`;
         setCountdownValue("READY");
       }
       clearBeepTestTimers();
-    }, 9000));
+    }, 10200));
   }
 
   function showBeepTestView() {
@@ -13973,7 +14124,6 @@ This is an alternate test message to show now.`;
       window.clearTimeout(finishDirectLauncherOpenHandle);
       finishDirectLauncherOpenHandle = null;
     }
-    appendGuidedReturnTrace("launcher_finish_direct_open_scheduled", { delayMs });
     logLauncherDirectOpenDebug("finish_scheduled", {
       delayMs,
       href: String(window.location.href || "").trim(),
@@ -13982,7 +14132,6 @@ This is an alternate test message to show now.`;
     const applyFinish = () => {
       finishDirectLauncherOpenHandle = null;
       document.documentElement.classList.remove("launcher-direct-open-pending");
-      appendGuidedReturnTrace("launcher_finish_direct_open_applied", { delayMs });
       logLauncherDirectOpenDebug("finish_applied", {
         delayMs,
         href: String(window.location.href || "").trim(),
@@ -15841,6 +15990,7 @@ This is an alternate test message to show now.`;
         sessionId: beginRoleLessonSession(role),
         autoAdvanceOnEntry: true
       });
+      updatePendingLearningCenterLessonReturnButtons();
       captureReceiverOwnLabelMeasurement(card);
       return;
     }
@@ -15888,6 +16038,7 @@ This is an alternate test message to show now.`;
       sessionId: beginRoleLessonSession(role),
       autoAdvanceOnEntry: true
     });
+    updatePendingLearningCenterLessonReturnButtons();
     captureReceiverOwnLabelMeasurement(card);
     if (shouldScrollIntoView) {
       window.setTimeout(() => {
@@ -16300,6 +16451,7 @@ This is an alternate test message to show now.`;
     clearLauncherGuidedBalloonPosition();
     clearLauncherGuidedTourClasses();
     setGuidedTourHint("");
+    updatePendingLearningCenterLessonReturnButtons();
   }
 
   function cancelLauncherGuidedTourWithNotice(message = "Guided Tour Cancelled") {
@@ -16377,6 +16529,7 @@ This is an alternate test message to show now.`;
         previousPartnerReadOnly
       };
 
+      updatePendingLearningCenterLessonReturnButtons();
       renderLauncherGuidedTourStep();
 
       window.setTimeout(() => {
@@ -16718,6 +16871,7 @@ This is an alternate test message to show now.`;
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    updatePendingLearningCenterLessonReturnButtons();
   }
 
   function showClairvoyanceViewingView() {
@@ -16914,6 +17068,7 @@ This is an alternate test message to show now.`;
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -18202,9 +18357,15 @@ This is an alternate test message to show now.`;
       case "setup-features":
       case "claim-name":
       case "install-app":
+      case "test-sound":
       case "review-location":
       case "partner-messaging":
         showFeatureSetupView();
+        if (action === "test-sound") {
+          window.setTimeout(() => {
+            showBeepTestView();
+          }, 0);
+        }
         return;
       case "receiver-role":
         showRoleCourseTarget("receiver");
@@ -23123,12 +23284,6 @@ This is an alternate test message to show now.`;
       const messageOwner = String(params.get("message_owner") || "").trim();
         const messagePartner = String(params.get("message_partner") || "").trim();
         const messageFocus = params.get("message_focus") === "1";
-        appendGuidedReturnTrace("launcher_apply_open_request_start", {
-          page_instance_id: launcherPageInstanceId,
-          requestedView,
-          directOpen,
-          href: String(window.location.href || "").trim()
-        });
         logLauncherDirectOpenDebug("apply_request_start", {
           requestedView,
           directOpen,
@@ -23317,11 +23472,11 @@ This is an alternate test message to show now.`;
               }
             }
           }
-          if (directOpen) {
-            suppressLauncherAutoCollapseUntil = Date.now() + 1200;
-            lastLauncherPointerDownInsideActiveCard = true;
-            pendingDirectLauncherOutsideClickIgnore = true;
-            lastDirectLauncherOpenMeta = {
+        if (directOpen) {
+          suppressLauncherAutoCollapseUntil = Date.now() + 1200;
+          lastLauncherPointerDownInsideActiveCard = true;
+          pendingDirectLauncherOutsideClickIgnore = true;
+          lastDirectLauncherOpenMeta = {
               role: requestedView,
               openedAt: Date.now(),
               ownIdentifier: requestedOwnIdentifier,
@@ -23329,15 +23484,9 @@ This is an alternate test message to show now.`;
               visitorDisplayName: requestedVisitorDisplayName,
               difficultyLevel: requestedDifficultyLevel || ""
             };
-            appendGuidedReturnTrace("launcher_apply_direct_open", lastDirectLauncherOpenMeta);
             logLauncherDirectOpenDebug("apply", lastDirectLauncherOpenMeta);
             window.scrollTo({ top: 0, left: 0, behavior: "auto" });
             ensureCardExpanded(matchingCard, { scrollIntoView: false });
-            appendGuidedReturnTrace("launcher_direct_open_card_expanded", {
-              role: requestedView,
-              difficultyLevel: requestedDifficultyLevel || "",
-              activeRole: activeLauncherRole
-            });
             logLauncherDirectOpenDebug("card_expanded", {
               role: requestedView,
               difficultyLevel: requestedDifficultyLevel || "",
@@ -23355,10 +23504,6 @@ This is an alternate test message to show now.`;
                 }
                 if (!directOpenRevealHandled) {
                   directOpenRevealHandled = true;
-                  appendGuidedReturnTrace("launcher_direct_open_reveal_after_align", {
-                    role: requestedView,
-                    difficultyLevel: requestedDifficultyLevel || ""
-                  });
                   logLauncherDirectOpenDebug("reveal_after_align", {
                     role: requestedView,
                     difficultyLevel: requestedDifficultyLevel || "",
@@ -23381,10 +23526,6 @@ This is an alternate test message to show now.`;
         }
       }
     } catch (error) {
-      appendGuidedReturnTrace("launcher_apply_open_request_error", {
-        page_instance_id: launcherPageInstanceId,
-        message: String(error?.message || error || "").trim()
-      });
       logLauncherDirectOpenDebug("apply_request_error", {
         message: String(error?.message || error || "").trim()
       });
@@ -23410,13 +23551,6 @@ This is an alternate test message to show now.`;
           ? 700
           : 500
         : 0;
-      appendGuidedReturnTrace("launcher_apply_open_request_finally", {
-        page_instance_id: launcherPageInstanceId,
-        directOpenRequested: !!directOpenInfo.requested,
-        directOpenRole: String(directOpenInfo.role || "").trim(),
-        directOpenRevealHandled: !!directOpenRevealHandled,
-        directOpenDelayMs
-      });
       logLauncherDirectOpenDebug("apply_request_finally", {
         directOpenRequested: !!directOpenInfo.requested,
         directOpenRole: String(directOpenInfo.role || "").trim(),
@@ -24490,6 +24624,9 @@ This is an alternate test message to show now.`;
     inlineBack?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (triggerPendingLearningCenterLessonReturn()) {
+        return;
+      }
       collapseActiveLauncherCard();
     });
   });
@@ -24640,7 +24777,25 @@ This is an alternate test message to show now.`;
       return;
     }
     if (shouldCaptureLearningCenterLessonReturn(action)) {
-      writePendingLearningCenterLessonReturnTarget(buildPendingLearningCenterLessonReturnTarget());
+      const baseTarget = buildPendingLearningCenterLessonReturnTarget() || {};
+      const matchingActionButtons = Array.from(espLessonDetailPreview?.querySelectorAll("[data-lesson-action]") || [])
+        .filter((node) => String(node.getAttribute("data-lesson-action") || "").trim().toLowerCase() === action);
+      const actionIndex = Math.max(0, matchingActionButtons.indexOf(actionButton));
+      const actionRect = actionButton.getBoundingClientRect();
+      const actionScrollContainer = getEspLessonDetailScrollContainer();
+      const actionContainerRect = actionScrollContainer instanceof HTMLElement
+        ? actionScrollContainer.getBoundingClientRect()
+        : null;
+      const pendingTarget = writePendingLearningCenterLessonReturnTarget({
+        ...baseTarget,
+        lessonAction: action,
+        lessonActionLabel: String(actionButton.textContent || "").trim(),
+        lessonActionIndex: actionIndex,
+        lessonActionViewportTop: Math.max(
+          0,
+          Math.round(actionContainerRect ? (actionRect.top - actionContainerRect.top) : (actionRect.top || 0))
+        )
+      });
     }
     handleLearningCenterAction(action, actionButton);
   });
@@ -25792,6 +25947,9 @@ This is an alternate test message to show now.`;
   closeFeatureSetupButton?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (triggerPendingLearningCenterLessonReturn()) {
+      return;
+    }
     closeFeatureSetupView();
   });
   closeInstallGuideButton?.addEventListener("click", (event) => {
@@ -25802,6 +25960,9 @@ This is an alternate test message to show now.`;
   closeBeepTestButton?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (triggerPendingLearningCenterLessonReturn()) {
+      return;
+    }
     closeBeepTestView();
   });
   featureSetupClaimActionButton?.addEventListener("click", () => {
@@ -27134,9 +27295,6 @@ This is an alternate test message to show now.`;
           isDirectOpenReturn
         });
         if (isDirectOpenReturn) {
-          appendGuidedReturnTrace("launcher_service_worker_reload_suppressed", {
-            href: String(window.location.href || "").trim()
-          });
           logLauncherDirectOpenDebug("service_worker_reload_suppressed", {
             href: String(window.location.href || "").trim()
           });
