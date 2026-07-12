@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260712a";
+  const launcherBuildVersion = "20260712b";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
