@@ -136,13 +136,13 @@ $optionalLiveHashAuditPrefixes = @(
 )
 
 $mojibakeGuardPatterns = @(
-  "Ã",
-  "â€™",
-  "â€“",
-  "â€œ",
-  "â€",
-  "Â",
-  "â€¦"
+  ([string][char]0x00C3),
+  ([string][char]0x00E2 + [char]0x20AC + [char]0x2122),
+  ([string][char]0x00E2 + [char]0x20AC + [char]0x201C),
+  ([string][char]0x00E2 + [char]0x20AC + [char]0x0153),
+  ([string][char]0x00E2 + [char]0x20AC),
+  ([string][char]0x00C2),
+  ([string][char]0x00E2 + [char]0x20AC + [char]0x00A6)
 )
 
 function Invoke-Plink([string]$Command) {
