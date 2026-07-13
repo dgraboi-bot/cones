@@ -2166,10 +2166,14 @@ function read_learn_more_content_file(string $path): array
 {
     $exists = is_file($path);
     $content = $exists ? (string) file_get_contents($path) : '';
+    $lastModifiedEpoch = $exists ? (int) @filemtime($path) : 0;
+    $contentSha256 = $exists ? hash('sha256', $content) : '';
     return [
         'available' => $exists,
         'content' => $content,
-        'path' => $path
+        'path' => $path,
+        'last_modified_utc' => $lastModifiedEpoch > 0 ? gmdate('c', $lastModifiedEpoch) : '',
+        'content_sha256' => $contentSha256
     ];
 }
 
@@ -11096,7 +11100,9 @@ if ($action === 'get_learn_more_content') {
             'content_key' => $contentKey,
             'available' => !empty($contentRecord['available']),
             'content' => (string) ($contentRecord['content'] ?? ''),
-            'path' => (string) ($contentRecord['path'] ?? '')
+            'path' => (string) ($contentRecord['path'] ?? ''),
+            'last_modified_utc' => (string) ($contentRecord['last_modified_utc'] ?? ''),
+            'content_sha256' => (string) ($contentRecord['content_sha256'] ?? '')
         ],
         'server_now_ms' => $nowMs
     ];
@@ -11271,7 +11277,55 @@ if ($action === 'save_learn_more_content') {
             'content_key' => $contentKey,
             'available' => !empty($contentRecord['available']),
             'content' => (string) ($contentRecord['content'] ?? ''),
-            'path' => (string) ($contentRecord['path'] ?? '')
+            'path' => (string) ($contentRecord['path'] ?? ''),
+            'last_modified_utc' => (string) ($contentRecord['last_modified_utc'] ?? ''),
+            'content_sha256' => (string) ($contentRecord['content_sha256'] ?? '')
+        ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'sync_local_lesson_content') {
+    if (!is_localhost_request()) {
+        fail_request($handle, $nowMs, 'This lesson sync endpoint is available only to localhost requests.', 403);
+    }
+    try {
+        require_allowed_keys($input, ['action', 'content_key', 'content', 'lesson_domain'], 'request');
+        $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
+        $path = get_learn_more_content_path($contentKey);
+        $mirrorPath = get_learn_more_repo_content_path($contentKey);
+        $content = isset($input['content']) ? (string) $input['content'] : '';
+        if (!preg_match('/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/', $contentKey)) {
+            throw new RuntimeException('Only lesson-page content can be synchronized through this endpoint.');
+        }
+        if ($contentKey === '' || $path === '' || $mirrorPath === '') {
+            throw new RuntimeException('Learn More content key is invalid.');
+        }
+        ensure_learn_more_content_seeded($contentKey);
+        write_learn_more_content_file($path, $content, $mirrorPath, $contentKey);
+        $contentRecord = read_learn_more_content_file($path);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'learn_more_content' => [
+            'content_key' => $contentKey,
+            'available' => !empty($contentRecord['available']),
+            'content' => (string) ($contentRecord['content'] ?? ''),
+            'path' => (string) ($contentRecord['path'] ?? ''),
+            'last_modified_utc' => (string) ($contentRecord['last_modified_utc'] ?? ''),
+            'content_sha256' => (string) ($contentRecord['content_sha256'] ?? '')
         ],
         'server_now_ms' => $nowMs
     ];

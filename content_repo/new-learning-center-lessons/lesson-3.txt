@@ -1,0 +1,67 @@
+lesson-id=lesson-3
+number=3
+title=FIRST PRACTICE SESSION
+subcopy=Get familiar with the telapathy practice tool
+type=lesson-page
+
+[indent]Now is a good time to become familiar with the telepathy practice tool. You don’t need a partner for this introductory session – your partner will be virtual - a simulation. Before you start, it would be good to check the volume of the positive feedback sound that occurs when you correctly identify the image that was sent, and also the volume of the ‘beep’ that announces the end of the countdown and the time the sender first sees the image to send.[/indent]
+
+[indent]Please tap the action link below to go to the Test Sound page and check the volume of the beep and reinforcement sound (“tada!”) when you get a trial correct. To come back here, press the “RETURN TO LESSON” button.[/indent]
+
+
+ACTION LINK:     [action:test-sound]Check reinforcement sound and beep volume[/action] 
+
+
+[indent]OK, the volumes of the instant positive reinforcement sound and the beep should now be good.[/indent]
+
+ 
+[indent]As you move through a single trial in the Guided Receiver Tour, the countdown will end and the beep will sound. It’s suggested to close eyes a bit before the beep and tune into paying attention to the contents of the mind’s eye – the place where visual imagination lives. When working with a live partner later, if you are lucky, something will visibly appear at this time. It may be very dim and hard to pick out. If you catch anything at all in your mind’s eye at that time, be sure to make the effort to remember it, and then go on to perceive and remember another feature if present. We are looking for the first impressions, which typically are within 5 seconds or so after the beep.[/indent]
+
+[indent]Telepathic images are usually dim, indistinct, low contrast, and hard to pick out whole objects, much less, whole scenes. Level 1 of the practice tool keeps it very simple: It either shows one cone to the sender, or it shows three cones, which can be arranged in several arrangements, to the sender. Your task will simply be to discern if one cone or “many” cones (three cones) are being sent. All you need to do is see if there is one blob or more than one blob in your mind’s eye – a simple visual discrimination.[/indent]
+
+[indent]In the middle of the “Guided Receiver Tour” you will be invited to “PROBE DEEPER”.  The information there presents key ideas to help you understand and strengthen the skill of recognizing more clearly the visual information that appears telepathically in the mind's eye.[/indent]
+
+[indent]Since now your partner is a robot, it is unlikely that it will be the source of depositing any telepathic information in your mind’s eye. If you did see something, what is it that you saw?[/indent]
+
+
+[indent]OK, tap on the action link below to take the Guided Receiver Tour. It is suggested to do a few trials, so at the end of the first trial, tap the message, “Another?” . This informs the sender that you would like another trial. If the sender feels they have had enough, they can decline and both will then end the session.[/indent]
+
+
+ACTION LINK:  [action:guided-receiver-tour]Guided Receiver Tour[/action]
+
+
+[indent]By this point, you have experienced what a receiver experiences using the practice telepathy tool.[/indent]
+
+
+[indent]Now it’s time to consider what can be difficult: you need to find a partner (or partners) who is willing to, at a minimum, be a sender for you. That person can be a family member or friend who you are close enough with to ask them to do you the favor of working with you on practicing some telepathy. And you can always reverse roles and you can be a sender for them so they can test their telepathy if they want.[/indent] 
+
+[indent]The sending task is easy and does not take much time. The main thing while being a sender is to focus on the image when it is displayed and try not to be distracted and thinking about other things at that time.[/indent]
+
+[indent]To experience what it’s like to be a sender, take the Guided Sender Tour by tapping the action link below.[/indent]
+
+
+ACTION LINK:  [action:guided-sender-tour]Guided Sender Tour[/action]
+
+
+[indent]By this point, you have experienced what a sender experiences using the practice telepathy tool.[/indent]
+
+
+[indent]Especially at the beginning, it is a good idea not to try to force it – not to set up a rigorous schedule of set times when you force yourself to practice telepathy even when you do not feel like doing it at that time.  But, when you feel that it is a good time, it is ideal if you can be spontaneous and contact your partner on the spur of the moment and ask if they would mind doing some telepathy trials either right now, or at some agreeable time later.[/indent] 
+
+[indent]The PRO version of Telepathy Beginner, called ESP PRO, includes an instant messaging function where, if they have allowed notifications from the ESP Gym website on their device(s), you can send them a notification which they will receive instantly. This may be helpful in scheduling more or less spontaneous telepathy sessions. Without ESP PRO, a quick phone call or message can be used to schedule a quick session.[/indent]
+
+[indent]OK, your assignment now is to find a human partner and explore being at least a receiver, or, if your partner also wants to try, being a sender as well.[/indent]
+
+[indent]Steps for both you and your partner to take before the first live session:[/indent]
+
+[indent]1. On the device you will use and the device your partner will use, browse to espgym.com and enter the app through the “CONTINUE into the ESP GYM” button.[/indent]
+
+[indent]2. Go to the MENU and select ‘Setup Website Features’[/indent]
+
+[indent]3. Select CLAIM UNIQUE NAME and follow the directions.[/indent]
+
+I AM NOW ADDING THIS SENTENCE TO THE END TO TEST STABILITY OF THE LESSON INTEGRITY.
+
+NOW I AM ADDING ANOTHER TEST AGAIN, TO AGAIN TEST THE STABILITY OF THE LESSON INTEGRITY.
+
+This is hopefully THE LAST TEST I AM PUTTING IN HERE TO TEST IF DEPLOYMENT IS SAFE AND SAVES THE LESSON.

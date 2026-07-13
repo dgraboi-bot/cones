@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260713e">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260713j">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260713e">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260713e">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260713e">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260713j">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260713j">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260713j">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260713e">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260713e">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260713e">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260713j">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260713j">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260713j">
   <script>
     (function () {
-      var buildVersion = "20260713e";
+      var buildVersion = "20260713j";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -402,7 +402,7 @@
         </section>
       </section>
 
-        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="esp-lesson-detail" aria-labelledby="espLessonDetailTitle">
+      <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="esp-lesson-detail" aria-labelledby="espLessonDetailTitle">
         <div class="beginner-top-row">
           <span class="beginner-top-spacer" aria-hidden="true"></span>
           <p class="beginner-kicker">ESP GYM</p>
@@ -419,6 +419,20 @@
           <div class="settings-view-status" data-esp-lesson-detail-status hidden></div>
         </section>
       </section>
+
+      <div class="lesson-image-overlay beginner-view-hidden" data-lesson-image-overlay>
+        <div class="lesson-image-overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="lessonImageOverlayTitle">
+          <div class="beginner-top-row lesson-image-overlay-top-row">
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+            <p class="beginner-kicker" id="lessonImageOverlayTitle">LESSON IMAGE</p>
+            <button class="beginner-top-button beginner-top-button-back beginner-top-button-right beginner-top-pill" type="button" data-close-lesson-image-overlay>BACK</button>
+          </div>
+          <figure class="lesson-image-overlay-figure" data-lesson-image-overlay-figure>
+            <img class="lesson-image-overlay-image" alt="" data-lesson-image-overlay-image>
+            <figcaption class="lesson-image-overlay-caption" data-lesson-image-overlay-caption hidden></figcaption>
+          </figure>
+        </div>
+      </div>
 
       <div class="handle-overlay beginner-view-hidden" data-handle-overlay>
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="handleDialogTitle">
@@ -540,7 +554,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260713e</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260713j</span>
           </div>
         </div>
 
@@ -2594,8 +2608,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260713e'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260713e'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260713j'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260713j'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3352,8 +3366,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260713e"></script>
-<script src="telepathybeginner.js?v=20260713e"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260713j"></script>
+<script src="telepathybeginner.js?v=20260713j"></script>
 </body>
 </html>
 

@@ -53,6 +53,7 @@ $snapshotPath = "$snapshotRoot/$snapshotName"
 $stageRoot = "/home/ec2-user/espgym_stage_{0}" -f $Version
 $mirrorRoot = "C:\xampp\htdocs\cones"
 $localPrivateContentRoot = "C:\xampp\telepathyexperiment_private\cones\content"
+$localDeploySyncBackupRoot = "C:\xampp\telepathyexperiment_private\cones\backup\deploy-live-managed-content-sync"
 
 $deployFiles = @(
   ".htaccess",
@@ -87,6 +88,16 @@ if (Test-Path -LiteralPath $newLearningCenterLessonsRoot) {
     }
 }
 $deployFiles += $newLearningCenterLessonFiles
+
+$lessonImageAssetFiles = @()
+$lessonImageAssetsRoot = Join-Path $repoRoot "assets\lesson-images"
+if (Test-Path -LiteralPath $lessonImageAssetsRoot) {
+  $lessonImageAssetFiles = Get-ChildItem -LiteralPath $lessonImageAssetsRoot -File -Recurse |
+    ForEach-Object {
+      $_.FullName.Substring($repoRoot.Length + 1)
+    }
+}
+$deployFiles += $lessonImageAssetFiles
 
 $verifyVersionFiles = @(
   "telepathybeginner.css",
@@ -133,6 +144,7 @@ $liveHashAuditFiles = @(
   "tada.wav"
 )
 $liveHashAuditFiles += $newLearningCenterLessonFiles
+$liveHashAuditFiles += $lessonImageAssetFiles
 
 $privateContentSyncFiles = @(
   "content_repo\new-learning-center-outline.json"
@@ -350,6 +362,294 @@ function Assert-LocalPrivateContentInSync([string[]]$RelativePaths) {
   }
 }
 
+function Get-OutlineLessonPageIdsFromJsonText([string]$JsonText) {
+  if (-not $JsonText.Trim()) {
+    return @()
+  }
+  $parsed = $JsonText | ConvertFrom-Json
+  $rows = @($parsed.rows)
+  $ids = foreach ($row in $rows) {
+    $type = [string]($row.type)
+    $id = [string]($row.id)
+    if ($type -eq "lesson-page" -and $id.Trim()) {
+      $id.Trim()
+    }
+  }
+  return @($ids | Sort-Object -Unique)
+}
+
+function Get-OutlineLessonPageIdsFromFile([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Missing outline file: $Path"
+  }
+  $jsonText = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+  return Get-OutlineLessonPageIdsFromJsonText $jsonText
+}
+
+function Get-RemoteTextFile([string]$RemotePath) {
+  $output = Invoke-Plink "cat '$RemotePath'"
+  return (@($output) -join "`n")
+}
+
+function Write-Utf8NoBomFile([string]$Path, [string]$Content) {
+  $directory = Split-Path -Parent $Path
+  if ($directory -and -not (Test-Path -LiteralPath $directory)) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+  }
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
+function Get-RemoteLessonFileNames([string]$RemoteDirectory) {
+  $remoteCommand = @"
+python3 - <<'PY'
+import os
+root = r'''$RemoteDirectory'''
+if os.path.isdir(root):
+    for name in sorted(os.listdir(root)):
+        if name.endswith('.txt') and os.path.isfile(os.path.join(root, name)):
+            print(name)
+PY
+"@
+  $output = Invoke-Plink $remoteCommand
+  $names = foreach ($line in @($output)) {
+    $trimmed = ([string]$line).Trim()
+    if ($trimmed) {
+      $trimmed
+    }
+  }
+  return @($names)
+}
+
+function Assert-LocalManagedLessonSetConsistent() {
+  $repoOutlinePath = Join-Path $repoRoot "content_repo\new-learning-center-outline.json"
+  $privateOutlinePath = Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
+  $expectedIds = Get-OutlineLessonPageIdsFromFile $repoOutlinePath
+  $privateIds = Get-OutlineLessonPageIdsFromFile $privateOutlinePath
+  $issues = New-Object System.Collections.Generic.List[string]
+
+  if ((@($expectedIds) -join "|") -ne (@($privateIds) -join "|")) {
+    $issues.Add("Repo outline and local private outline differ in lesson ids.")
+  }
+
+  foreach ($lessonId in $expectedIds) {
+    $repoLessonPath = Join-Path $repoRoot ("content_repo\new-learning-center-lessons\{0}.txt" -f $lessonId)
+    $privateLessonPath = Join-Path $localPrivateContentRoot ("new-learning-center-lessons\{0}.txt" -f $lessonId)
+    if (-not (Test-Path -LiteralPath $repoLessonPath)) {
+      $issues.Add("Repo outline references missing lesson file: $repoLessonPath")
+    }
+    if (-not (Test-Path -LiteralPath $privateLessonPath)) {
+      $issues.Add("Local private outline references missing lesson file: $privateLessonPath")
+    }
+  }
+
+  if ($issues.Count -gt 0) {
+    throw ("Local managed lesson-set verification failed:`n" + ($issues -join "`n"))
+  }
+
+  Write-Host ("Local lesson-set verification passed for {0} outline lessons" -f $expectedIds.Count) -ForegroundColor Green
+}
+
+function Get-LocalManagedContentState() {
+  $state = @{}
+
+  $outlinePath = Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
+  if (Test-Path -LiteralPath $outlinePath) {
+    $state["new-learning-center-outline.json"] = (Get-FileHash -Algorithm SHA256 $outlinePath).Hash.ToUpperInvariant()
+  }
+
+  $lessonsRoot = Join-Path $localPrivateContentRoot "new-learning-center-lessons"
+  if (Test-Path -LiteralPath $lessonsRoot) {
+    Get-ChildItem -LiteralPath $lessonsRoot -File -Filter *.txt | ForEach-Object {
+      $relativeKey = "new-learning-center-lessons/{0}" -f $_.Name
+      $state[$relativeKey] = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToUpperInvariant()
+    }
+  }
+
+  return $state
+}
+
+function Get-RemoteManagedContentState() {
+  $state = @{}
+  $remoteCommand = @"
+python3 - <<'PY'
+import hashlib
+import os
+
+paths = [
+    r'''$privateContentRoot/new-learning-center-outline.json'''
+]
+lessons_root = r'''$privateContentRoot/new-learning-center-lessons'''
+
+for path in paths:
+    if os.path.isfile(path):
+        with open(path, 'rb') as fh:
+            print(hashlib.sha256(fh.read()).hexdigest(), path)
+
+if os.path.isdir(lessons_root):
+    for name in sorted(os.listdir(lessons_root)):
+        if not name.endswith('.txt'):
+            continue
+        lesson_path = os.path.join(lessons_root, name)
+        if not os.path.isfile(lesson_path):
+            continue
+        with open(lesson_path, 'rb') as fh:
+            print(hashlib.sha256(fh.read()).hexdigest(), lesson_path)
+PY
+"@
+  $output = Invoke-Plink $remoteCommand
+  foreach ($line in @($output)) {
+    $trimmed = ([string]$line).Trim()
+    if (-not $trimmed) {
+      continue
+    }
+    $parts = $trimmed -split '\s+', 2
+    if ($parts.Count -ne 2) {
+      continue
+    }
+    $hash = $parts[0].ToUpperInvariant()
+    $path = $parts[1].Trim()
+    if ($path -eq "$privateContentRoot/new-learning-center-outline.json") {
+      $state["new-learning-center-outline.json"] = $hash
+      continue
+    }
+    $lessonPrefix = "$privateContentRoot/new-learning-center-lessons/"
+    if ($path.StartsWith($lessonPrefix, [System.StringComparison]::Ordinal)) {
+      $suffix = $path.Substring($lessonPrefix.Length)
+      $state["new-learning-center-lessons/$suffix"] = $hash
+    }
+  }
+  return $state
+}
+
+function Sync-RemoteManagedContentToLocalAuthoritative() {
+  $localState = Get-LocalManagedContentState
+  $remoteState = Get-RemoteManagedContentState
+  $mismatches = New-Object System.Collections.Generic.List[string]
+
+  foreach ($remoteKey in $remoteState.Keys) {
+    if (-not $localState.ContainsKey($remoteKey)) {
+      $mismatches.Add($remoteKey)
+      continue
+    }
+    if ($localState[$remoteKey] -ne $remoteState[$remoteKey]) {
+      $mismatches.Add($remoteKey)
+    }
+  }
+
+  $localOnlyKeys = @($localState.Keys | Where-Object { -not $remoteState.ContainsKey($_) } | Sort-Object)
+  if ($localOnlyKeys.Count -gt 0) {
+    $mismatches.AddRange([string[]]$localOnlyKeys)
+  }
+
+  if ($mismatches.Count -eq 0) {
+    Write-Host "Managed lesson content already matches live server state." -ForegroundColor Green
+    return
+  }
+
+  $timestamp = Get-Date -Format "yyyyMMddHHmmss"
+  $backupRoot = Join-Path $localDeploySyncBackupRoot $timestamp
+  New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+
+  $remoteOutlineText = Get-RemoteTextFile "$privateContentRoot/new-learning-center-outline.json"
+  $remoteLessonIds = Get-OutlineLessonPageIdsFromJsonText $remoteOutlineText
+
+  $repoOutlinePath = Join-Path $repoRoot "content_repo\new-learning-center-outline.json"
+  $privateOutlinePath = Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
+
+  foreach ($path in @($repoOutlinePath, $privateOutlinePath)) {
+    if (Test-Path -LiteralPath $path) {
+      $backupPath = Join-Path $backupRoot ($path.Substring(3) -replace "[:]", "")
+      $backupDirectory = Split-Path -Parent $backupPath
+      if ($backupDirectory -and -not (Test-Path -LiteralPath $backupDirectory)) {
+        New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
+      }
+      Copy-Item -LiteralPath $path -Destination $backupPath -Force
+    }
+  }
+
+  Write-Utf8NoBomFile $repoOutlinePath $remoteOutlineText
+  Write-Utf8NoBomFile $privateOutlinePath $remoteOutlineText
+
+  $repoLessonsRoot = Join-Path $repoRoot "content_repo\new-learning-center-lessons"
+  $privateLessonsRoot = Join-Path $localPrivateContentRoot "new-learning-center-lessons"
+  foreach ($root in @($repoLessonsRoot, $privateLessonsRoot)) {
+    if (-not (Test-Path -LiteralPath $root)) {
+      New-Item -ItemType Directory -Path $root -Force | Out-Null
+    }
+  }
+
+  foreach ($lessonId in $remoteLessonIds) {
+    $remoteLessonText = Get-RemoteTextFile "$privateContentRoot/new-learning-center-lessons/$lessonId.txt"
+    $repoLessonPath = Join-Path $repoLessonsRoot "$lessonId.txt"
+    $privateLessonPath = Join-Path $privateLessonsRoot "$lessonId.txt"
+    foreach ($path in @($repoLessonPath, $privateLessonPath)) {
+      if (Test-Path -LiteralPath $path) {
+        $backupPath = Join-Path $backupRoot ($path.Substring(3) -replace "[:]", "")
+        $backupDirectory = Split-Path -Parent $backupPath
+        if ($backupDirectory -and -not (Test-Path -LiteralPath $backupDirectory)) {
+          New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
+        }
+        Copy-Item -LiteralPath $path -Destination $backupPath -Force
+      }
+    }
+    Write-Utf8NoBomFile $repoLessonPath $remoteLessonText
+    Write-Utf8NoBomFile $privateLessonPath $remoteLessonText
+  }
+
+  $expectedFileNames = @($remoteLessonIds | ForEach-Object { "$_.txt" })
+  foreach ($root in @($repoLessonsRoot, $privateLessonsRoot)) {
+    Get-ChildItem -LiteralPath $root -File -Filter *.txt | ForEach-Object {
+      if ($expectedFileNames -notcontains $_.Name) {
+        $backupPath = Join-Path $backupRoot ($_.FullName.Substring(3) -replace "[:]", "")
+        $backupDirectory = Split-Path -Parent $backupPath
+        if ($backupDirectory -and -not (Test-Path -LiteralPath $backupDirectory)) {
+          New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
+        }
+        Copy-Item -LiteralPath $_.FullName -Destination $backupPath -Force
+        Remove-Item -LiteralPath $_.FullName -Force
+      }
+    }
+  }
+
+  Write-Host ("Managed lesson content pulled from live server into local authoritative files. Backup: {0}" -f $backupRoot) -ForegroundColor Yellow
+}
+
+function Assert-RemoteManagedLessonSetConsistent() {
+  $localOutlinePath = Join-Path $repoRoot "content_repo\new-learning-center-outline.json"
+  $expectedIds = Get-OutlineLessonPageIdsFromFile $localOutlinePath
+  $remotePrivateOutlineText = Get-RemoteTextFile "$privateContentRoot/new-learning-center-outline.json"
+  $remoteRepoOutlineText = Get-RemoteTextFile "$liveRoot/content_repo/new-learning-center-outline.json"
+  $remotePrivateIds = Get-OutlineLessonPageIdsFromJsonText $remotePrivateOutlineText
+  $remoteRepoIds = Get-OutlineLessonPageIdsFromJsonText $remoteRepoOutlineText
+  $remotePrivateFiles = Get-RemoteLessonFileNames "$privateContentRoot/new-learning-center-lessons"
+  $remoteRepoFiles = Get-RemoteLessonFileNames "$liveRoot/content_repo/new-learning-center-lessons"
+  $issues = New-Object System.Collections.Generic.List[string]
+
+  if ((@($expectedIds) -join "|") -ne (@($remotePrivateIds) -join "|")) {
+    $issues.Add("Live private outline lesson ids differ from local authoritative outline.")
+  }
+  if ((@($expectedIds) -join "|") -ne (@($remoteRepoIds) -join "|")) {
+    $issues.Add("Live repo outline lesson ids differ from local authoritative outline.")
+  }
+
+  foreach ($lessonId in $expectedIds) {
+    $fileName = "{0}.txt" -f $lessonId
+    if ($remotePrivateFiles -notcontains $fileName) {
+      $issues.Add("Live private outline references missing lesson file: $fileName")
+    }
+    if ($remoteRepoFiles -notcontains $fileName) {
+      $issues.Add("Live repo outline references missing lesson file: $fileName")
+    }
+  }
+
+  if ($issues.Count -gt 0) {
+    throw ("Live managed lesson-set verification failed:`n" + ($issues -join "`n"))
+  }
+
+  Write-Host ("Live lesson-set verification passed for {0} outline lessons" -f $expectedIds.Count) -ForegroundColor Green
+}
+
 function Test-IsTextDeployFile([string]$RelativePath) {
   $extension = [System.IO.Path]::GetExtension($RelativePath)
   return @(
@@ -435,6 +735,10 @@ foreach ($relativePath in $deployFiles) {
 
 Assert-NoMojibakeInDeployFiles $deployFiles
 Assert-LocalPrivateContentInSync $privateContentSyncFiles
+Assert-LocalManagedLessonSetConsistent
+Sync-RemoteManagedContentToLocalAuthoritative
+Assert-LocalPrivateContentInSync $privateContentSyncFiles
+Assert-LocalManagedLessonSetConsistent
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 
@@ -529,6 +833,8 @@ foreach ($relativePath in $privateContentSyncFiles) {
     throw "Private content hash audit failed for $relativePath"
   }
 }
+
+Assert-RemoteManagedLessonSetConsistent
 
 Invoke-Plink "rm -rf '$stageRoot'" | Out-Null
 

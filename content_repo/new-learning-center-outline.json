@@ -16,10 +16,24 @@
       "type": "lesson-page"
     },
     {
-      "id": "new-course-test",
+      "id": "lesson-3",
+      "display_number": "3",
+      "title": "FIRST PRACTICE SESSION",
+      "subcopy": "Get familiar with the telapathy practice tool",
+      "type": "lesson-page"
+    },
+    {
+      "id": "lesson-4",
       "display_number": "4",
-      "title": "NEW COURSE TEST LESSON",
-      "subcopy": "Created for end-to-end verification",
+      "title": "DEBRIEFING AFTER FIRST LIVE TELEPATHY PRACTICE",
+      "subcopy": "Post live session debriefing",
+      "type": "lesson-page"
+    },
+    {
+      "id": "lesson-5",
+      "display_number": "5",
+      "title": "UNDERSTANDING PERFORMANCE ANALYSIS",
+      "subcopy": "Statistics doesn’t tell the whole story",
       "type": "lesson-page"
     }
   ]

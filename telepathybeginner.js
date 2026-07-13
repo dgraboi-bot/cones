@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260713e";
+  const launcherBuildVersion = "20260713j";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -94,6 +94,11 @@
   const closeOptionsButtons = Array.from(document.querySelectorAll("[data-close-options]"));
   const closeLessonEditorButton = document.querySelector("[data-close-learn-more]");
   const closeEspLessonDetailButton = document.querySelector("[data-close-esp-lesson-detail]");
+  const lessonImageOverlay = document.querySelector("[data-lesson-image-overlay]");
+  const closeLessonImageOverlayButton = document.querySelector("[data-close-lesson-image-overlay]");
+  const lessonImageOverlayFigure = document.querySelector("[data-lesson-image-overlay-figure]");
+  const lessonImageOverlayImage = document.querySelector("[data-lesson-image-overlay-image]");
+  const lessonImageOverlayCaption = document.querySelector("[data-lesson-image-overlay-caption]");
   const saveLessonEditorButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
   const openTelepathyPracticeButton = document.querySelector("[data-open-telepathy-practice]");
@@ -710,6 +715,8 @@
   const espLessonDetailPreview = document.querySelector("[data-esp-lesson-detail-preview]");
   const espLessonDetailBody = document.querySelector("[data-esp-lesson-detail-body]");
   const espLessonDetailStatus = document.querySelector("[data-esp-lesson-detail-status]");
+  const lessonImageAssetMap = Object.freeze({
+  });
   const installGuideEnvironment = document.querySelector("[data-install-guide-environment]");
   const installGuideStatus = document.querySelector("[data-install-guide-status]");
   const installGuideTitle = document.querySelector("[data-install-guide-title]");
@@ -2594,7 +2601,10 @@ This is an alternate test message to show now.`;
       return;
     }
     try {
-      const record = await fetchEditableContentFromServer(contentKey, { lessonDomain });
+      const record = await fetchLessonContentForDisplayOrEdit(contentKey, {
+        lessonDomain,
+        autoSyncLocalLessonMirror: true
+      });
       if (!record?.available) {
         traceLauncherClient("learning_center_lesson_detail_missing_content", {
           lessonId: normalizedLessonId,
@@ -2780,6 +2790,7 @@ This is an alternate test message to show now.`;
   }
 
   function closeEspLessonDetail() {
+    closeLessonImageOverlay();
     if (activeEspLessonMode === "learning-center") {
       const targetView = String(activeLearningCenterLessonReturnTarget?.view || "online-course").trim();
       const targetTab = String(activeLearningCenterLessonReturnTarget?.tab || "").trim();
@@ -4719,6 +4730,25 @@ This is an alternate test message to show now.`;
       && canonicalUrl !== localMirrorUrl
     );
 
+    if (
+      (action === "save_learn_more_content" || action === "delete_learn_more_content")
+      && hasLauncherAdminAccess()
+      && launcherAdminState.debug_enabled
+    ) {
+      logLessonContentDebug("post_infra:route_decision", {
+        action,
+        currentOrigin: String(window.location.origin || "").trim(),
+        hostname: String(window.location.hostname || "").trim().toLowerCase(),
+        canonicalUrl,
+        localMirrorUrl,
+        preferLocalFirst,
+        allowLocalFallback: !!options?.allowLocalFallback,
+        mirrorToLocalWhenAvailable: !!options?.mirrorToLocalWhenAvailable,
+        contentKey: String(requestPayload.content_key || "").trim(),
+        lessonDomain: normalizeLessonDomain(requestPayload.lesson_domain || "legacy")
+      });
+    }
+
     if (preferLocalFirst) {
       try {
         return await postJsonApiRequest(
@@ -4752,6 +4782,13 @@ This is an alternate test message to show now.`;
         localMirrorUrl &&
         canonicalUrl !== localMirrorUrl
       ) {
+        logLessonContentDebug("post_infra:mirror_attempt", {
+          action,
+          canonicalUrl,
+          localMirrorUrl,
+          contentKey: String(requestPayload.content_key || "").trim(),
+          lessonDomain: normalizeLessonDomain(requestPayload.lesson_domain || "legacy")
+        });
         try {
           await postJsonApiRequest(
             localMirrorUrl,
@@ -4759,8 +4796,34 @@ This is an alternate test message to show now.`;
             `Local infrastructure mirror save failed`
           );
         } catch (mirrorError) {
+          logLessonContentDebug("post_infra:mirror_failed", {
+            action,
+            localMirrorUrl,
+            contentKey: String(requestPayload.content_key || "").trim(),
+            lessonDomain: normalizeLessonDomain(requestPayload.lesson_domain || "legacy"),
+            message: String(mirrorError?.message || mirrorError || "").trim()
+          });
           console.warn("Local infrastructure mirror save failed.", mirrorError);
         }
+      } else if (
+        (action === "save_learn_more_content" || action === "delete_learn_more_content")
+        && hasLauncherAdminAccess()
+        && launcherAdminState.debug_enabled
+      ) {
+        logLessonContentDebug("post_infra:mirror_skipped", {
+          action,
+          canonicalUrl,
+          localMirrorUrl,
+          contentKey: String(requestPayload.content_key || "").trim(),
+          lessonDomain: normalizeLessonDomain(requestPayload.lesson_domain || "legacy"),
+          reason: !options?.mirrorToLocalWhenAvailable
+            ? "mirrorToLocalWhenAvailable disabled"
+            : !localMirrorUrl
+              ? "no local mirror url for current host"
+              : canonicalUrl === localMirrorUrl
+                ? "canonical already local"
+                : "not needed"
+        });
       }
 
       if (shouldPreferLocal) {
@@ -4784,7 +4847,11 @@ This is an alternate test message to show now.`;
     }
   }
 
-  async function fetchEditableContentFromServer(contentKey, options = {}) {
+  function isLessonPageContentKey(value) {
+    return /^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(String(value || "").trim());
+  }
+
+  async function fetchLearnMoreContentEnvelope(contentKey, options = {}) {
     const normalizedKey = String(contentKey || "").trim().toLowerCase();
     const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
     if (!/^main$|^clairvoyance$|^esp-lessons$|^learning-center-outline$|^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
@@ -4797,6 +4864,79 @@ This is an alternate test message to show now.`;
       allowLocalFallback: true
     });
     return response?.learn_more_content || null;
+  }
+
+  async function fetchLearnMoreContentFromApiUrl(apiUrl, contentKey, lessonDomain = "legacy") {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const normalizedDomain = normalizeLessonDomain(lessonDomain);
+    if (!apiUrl || !normalizedKey) {
+      return null;
+    }
+    const response = await postJsonApiRequest(apiUrl, {
+      action: "get_learn_more_content",
+      content_key: normalizedKey,
+      lesson_domain: normalizedDomain
+    }, "Learn More content request failed");
+    return response?.learn_more_content || null;
+  }
+
+  async function syncLocalLessonMirrorFromCanonicalIfNeeded(contentKey, options = {}) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
+    if (!isLocalInfrastructureHost() || !isLessonPageContentKey(normalizedKey)) {
+      return null;
+    }
+    const canonicalUrl = getCanonicalInfrastructureApiUrl();
+    const localMirrorUrl = getLocalInfrastructureMirrorApiUrl();
+    if (!canonicalUrl || !localMirrorUrl || canonicalUrl === localMirrorUrl) {
+      return null;
+    }
+
+    const [canonicalRecord, localRecord] = await Promise.all([
+      fetchLearnMoreContentFromApiUrl(canonicalUrl, normalizedKey, lessonDomain),
+      fetchLearnMoreContentFromApiUrl(localMirrorUrl, normalizedKey, lessonDomain)
+    ]);
+
+    const canonicalAvailable = !!canonicalRecord?.available;
+    const canonicalHash = String(canonicalRecord?.content_sha256 || "").trim().toLowerCase();
+    const localHash = String(localRecord?.content_sha256 || "").trim().toLowerCase();
+    if (!canonicalAvailable) {
+      return localRecord || canonicalRecord || null;
+    }
+    if (canonicalHash && localHash && canonicalHash === localHash) {
+      return localRecord || canonicalRecord;
+    }
+    const syncedResponse = await postJsonApiRequest(localMirrorUrl, {
+      action: "sync_local_lesson_content",
+      content_key: normalizedKey,
+      lesson_domain: lessonDomain,
+      content: String(canonicalRecord?.content || "")
+    }, "Local lesson mirror sync failed");
+    return syncedResponse?.learn_more_content || canonicalRecord;
+  }
+
+  async function fetchEditableContentFromServer(contentKey, options = {}) {
+    return fetchLearnMoreContentEnvelope(contentKey, options);
+  }
+
+  async function fetchLessonContentForDisplayOrEdit(contentKey, options = {}) {
+    const normalizedKey = String(contentKey || "").trim().toLowerCase();
+    const lessonDomain = normalizeLessonDomain(options.lessonDomain || "legacy");
+    if (options.autoSyncLocalLessonMirror && isLessonPageContentKey(normalizedKey)) {
+      try {
+        const syncedRecord = await syncLocalLessonMirrorFromCanonicalIfNeeded(normalizedKey, { lessonDomain });
+        if (syncedRecord) {
+          return syncedRecord;
+        }
+      } catch (error) {
+        traceLauncherClient("lesson_local_sync_failed", {
+          contentKey: normalizedKey,
+          lessonDomain,
+          message: String(error?.message || error || "").trim()
+        });
+      }
+    }
+    return fetchEditableContentFromServer(normalizedKey, { lessonDomain });
   }
 
   async function saveEditableContentToServer(contentKey, content, options = {}) {
@@ -4813,7 +4953,15 @@ This is an alternate test message to show now.`;
     }, {
       mirrorToLocalWhenAvailable: true
     });
-    return response?.learn_more_content || null;
+    const saved = response?.learn_more_content || null;
+    logLessonContentDebug("save_editable_content:response", {
+      contentKey: normalizedKey,
+      lessonDomain,
+      returnedAvailable: !!saved?.available,
+      returnedLength: typeof saved?.content === "string" ? saved.content.length : 0,
+      returnedPath: String(saved?.path || "")
+    });
+    return saved;
   }
 
   async function deleteEditableContentFromServer(contentKey, options = {}) {
@@ -4822,13 +4970,19 @@ This is an alternate test message to show now.`;
     if (!/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
       throw new Error("Lesson content key is invalid.");
     }
-    return postInfrastructureContentRequest("delete_learn_more_content", {
+    const response = await postInfrastructureContentRequest("delete_learn_more_content", {
       content_key: normalizedKey,
       lesson_domain: lessonDomain,
       secret_candidate: getLauncherAdminSecretCandidate()
     }, {
       mirrorToLocalWhenAvailable: true
     });
+    logLessonContentDebug("delete_editable_content:response", {
+      contentKey: normalizedKey,
+      lessonDomain,
+      deleted: !!response?.deleted
+    });
+    return response;
   }
 
   async function fetchLearningCenterLessonIndex(domain = "legacy") {
@@ -4894,7 +5048,17 @@ This is an alternate test message to show now.`;
         type: record.type
       }))
     }, null, 2);
+    logLessonContentDebug("save_outline:request", {
+      lessonDomain,
+      rowCount: normalizedRows.length,
+      lessonIds: normalizedRows.map((record) => String(record.lesson_id || ""))
+    });
     await saveEditableContentToServer("learning-center-outline", payload, { lessonDomain });
+    logLessonContentDebug("save_outline:success", {
+      lessonDomain,
+      rowCount: normalizedRows.length,
+      lessonIds: normalizedRows.map((record) => String(record.lesson_id || ""))
+    });
     return normalizedRows;
   }
 
@@ -5515,6 +5679,104 @@ This is an alternate test message to show now.`;
     return "";
   }
 
+  function normalizeLessonImageAssetId(value) {
+    const assetId = String(value || "").trim().toLowerCase();
+    if (!assetId) {
+      return "";
+    }
+    return /^[a-z0-9][a-z0-9._-]{0,120}$/i.test(assetId) ? assetId : "";
+  }
+
+  function resolveLessonImageAssetUrl(assetId) {
+    const rawAssetId = String(assetId || "").trim();
+    const normalized = normalizeLessonImageAssetId(rawAssetId);
+    if (!normalized || !rawAssetId) {
+      return "";
+    }
+    const mapped = String(lessonImageAssetMap[normalized] || "").trim();
+    if (mapped) {
+      return sanitizeLearnMorePreviewUrl(mapped);
+    }
+    if (rawAssetId.includes(".")) {
+      return sanitizeLearnMorePreviewUrl(`assets/lesson-images/${rawAssetId}`);
+    }
+    return sanitizeLearnMorePreviewUrl(`assets/lesson-images/${rawAssetId}.jpg`);
+  }
+
+  function parseLessonImageSpec(value) {
+    const trimmed = String(value || "").trim();
+    const match = trimmed.match(/^\[image:([a-z0-9][a-z0-9._-]{0,120})([\s\S]*?)\]$/i);
+    if (!match) {
+      return null;
+    }
+    const assetId = normalizeLessonImageAssetId(match[1]);
+    const attributeSource = String(match[2] || "");
+    const attributes = {};
+    attributeSource.replace(/([a-z]+)=("([^"]*)"|'([^']*)'|([^\s\]]+))/gi, (full, key, rawValue, doubleQuoted, singleQuoted, bareValue) => {
+      attributes[String(key || "").trim().toLowerCase()] = String(
+        doubleQuoted ?? singleQuoted ?? bareValue ?? ""
+      ).trim();
+      return "";
+    });
+    if (!assetId) {
+      return null;
+    }
+    const width = Math.max(10, Math.min(100, Number.parseInt(attributes.width || "60", 10) || 60));
+    const leftProvided = Object.prototype.hasOwnProperty.call(attributes, "left");
+    const left = leftProvided
+      ? Math.max(0, Math.min(90, Number.parseInt(attributes.left || "0", 10) || 0))
+      : null;
+    const caption = String(attributes.caption || "").trim();
+    const src = resolveLessonImageAssetUrl(assetId);
+    return src
+      ? {
+          assetId,
+          src,
+          width,
+          left,
+          caption
+        }
+      : null;
+  }
+
+  function renderLessonImageRow(imageSpecs = []) {
+    const specs = Array.isArray(imageSpecs) ? imageSpecs.filter(Boolean) : [];
+    if (specs.length === 0) {
+      return "";
+    }
+    let currentRight = 0;
+    const items = specs.map((spec, index) => {
+      const width = Math.max(10, Math.min(100, Number(spec.width || 60) || 60));
+      const left = Number.isFinite(Number(spec.left)) ? Math.max(0, Math.min(90, Number(spec.left))) : null;
+      let marginLeft = 0;
+      if (left !== null) {
+        marginLeft = Math.max(0, left - currentRight);
+        currentRight = Math.max(currentRight, left + width);
+      } else if (specs.length === 1) {
+        marginLeft = Math.max(0, Math.round((100 - width) / 2));
+        currentRight = marginLeft + width;
+      } else {
+        currentRight += width;
+      }
+      const styleParts = [`--lesson-image-width:${width}%`];
+      if (marginLeft > 0) {
+        styleParts.push(`--lesson-image-margin-left:${marginLeft}%`);
+      }
+      const captionMarkup = spec.caption
+        ? `<figcaption class="lesson-preview-image-caption">${renderLearnMoreInlineMarkup(spec.caption)}</figcaption>`
+        : "";
+      return [
+        `<figure class="lesson-preview-image-item" style="${styleParts.join(";")}">`,
+        `<button class="lesson-preview-image-button" type="button" data-lesson-image-src="${escapeHtml(spec.src)}" data-lesson-image-alt="${escapeHtml(spec.assetId.replace(/[-_.]+/g, " "))}" data-lesson-image-caption="${escapeHtml(spec.caption)}">`,
+        `<img class="lesson-preview-image" src="${escapeHtml(spec.src)}" alt="${escapeHtml(spec.assetId.replace(/[-_.]+/g, " "))}" loading="lazy">`,
+        `</button>`,
+        captionMarkup,
+        `</figure>`
+      ].join("");
+    });
+    return `<div class="lesson-preview-image-row">${items.join("")}</div>`;
+  }
+
   function renderLearnMoreInlineMarkup(value) {
     let source = String(value || "");
     const placeholders = [];
@@ -5582,6 +5844,7 @@ This is an alternate test message to show now.`;
     const lines = normalized.split("\n");
     const blocks = [];
     let paragraphLines = [];
+    let imageSpecs = [];
     let blankLineRun = 0;
     const flushParagraph = () => {
       const paragraph = paragraphLines.join("\n").trim();
@@ -5601,6 +5864,13 @@ This is an alternate test message to show now.`;
       }
       blocks.push(`<p>${renderLearnMoreInlineMarkup(paragraph)}</p>`);
     };
+    const flushImageRow = () => {
+      if (imageSpecs.length === 0) {
+        return;
+      }
+      blocks.push(renderLessonImageRow(imageSpecs));
+      imageSpecs = [];
+    };
     const flushExtraBlankLines = () => {
       if (blankLineRun <= 1 || blocks.length === 0) {
         blankLineRun = 0;
@@ -5615,9 +5885,16 @@ This is an alternate test message to show now.`;
       const currentLine = String(lines[index] || "");
       const trimmedLine = currentLine.trim();
       const nextLine = String(lines[index + 1] || "");
+      const imageSpec = parseLessonImageSpec(trimmedLine);
       if (trimmedLine) {
         flushExtraBlankLines();
       }
+      if (imageSpec) {
+        flushParagraph();
+        imageSpecs.push(imageSpec);
+        continue;
+      }
+      flushImageRow();
       if (trimmedLine && isDashedUnderlineLine(nextLine)) {
         flushParagraph();
         blocks.push(`<h3 class="learn-more-preview-heading">${renderLearnMoreInlineMarkup(getLearnMoreHeadingDisplayText(trimmedLine))}</h3>`);
@@ -5633,8 +5910,43 @@ This is an alternate test message to show now.`;
     }
 
     flushParagraph();
+    flushImageRow();
     flushExtraBlankLines();
     return blocks.join("") || "<p></p>";
+  }
+
+  function openLessonImageOverlay(sourceUrl, options = {}) {
+    const safeUrl = sanitizeLearnMorePreviewUrl(sourceUrl);
+    if (!lessonImageOverlay || !lessonImageOverlayImage || !safeUrl) {
+      return;
+    }
+    const caption = String(options.caption || "").trim();
+    const altText = String(options.alt || "").trim();
+    lessonImageOverlayImage.src = safeUrl;
+    lessonImageOverlayImage.alt = altText || caption || "Lesson image";
+    if (lessonImageOverlayCaption) {
+      lessonImageOverlayCaption.innerHTML = caption ? renderLearnMoreInlineMarkup(caption) : "";
+      lessonImageOverlayCaption.hidden = !caption;
+    }
+    lessonImageOverlay.classList.remove("beginner-view-hidden");
+    document.body.classList.add("lesson-image-overlay-open");
+    window.requestAnimationFrame(() => {
+      closeLessonImageOverlayButton?.focus({ preventScroll: true });
+    });
+  }
+
+  function closeLessonImageOverlay() {
+    if (!lessonImageOverlay || !lessonImageOverlayImage) {
+      return;
+    }
+    lessonImageOverlay.classList.add("beginner-view-hidden");
+    lessonImageOverlayImage.removeAttribute("src");
+    lessonImageOverlayImage.alt = "";
+    if (lessonImageOverlayCaption) {
+      lessonImageOverlayCaption.innerHTML = "";
+      lessonImageOverlayCaption.hidden = true;
+    }
+    document.body.classList.remove("lesson-image-overlay-open");
   }
 
   function updateLearnMorePreview(previewElement, value) {
@@ -6616,6 +6928,24 @@ This is an alternate test message to show now.`;
     void launcherAdminApi("log_debug", {
       label: `launcher_user_type:${label}`,
       details: [details],
+      device_debug_enabled: !!launcherAdminState.debug_enabled
+    }).catch(() => {
+      // Ignore debug logging failures.
+    });
+  }
+
+  function logLessonContentDebug(label, details = {}) {
+    if (!hasLauncherAdminAccess() || !launcherAdminState.debug_enabled) {
+      return;
+    }
+    void launcherAdminApi("log_debug", {
+      label: `lesson_content:${label}`,
+      details: [{
+        href: String(window.location.href || "").trim(),
+        activeLessonEditorDomain: normalizeLessonDomain(activeLessonEditorDomain || "legacy"),
+        activeLessonIndexAdminDomain: normalizeLessonDomain(activeLessonIndexAdminDomain || "legacy"),
+        ...(details && typeof details === "object" ? details : {})
+      }],
       device_debug_enabled: !!launcherAdminState.debug_enabled
     }).catch(() => {
       // Ignore debug logging failures.
@@ -13846,7 +14176,9 @@ This is an alternate test message to show now.`;
     const levelFourImagePairsIndex = options.levelFourImagePairsIndex instanceof Map
       ? options.levelFourImagePairsIndex
       : new Map();
+    const startingTrialNumber = Math.max(1, Number(options.startTrialNumber || 1) || 1);
     const headers = [
+      "trial no",
       "local date",
       "local time",
       "sent layout",
@@ -13859,6 +14191,7 @@ This is an alternate test message to show now.`;
       "rx done rt"
     ];
     const headingMap = {
+      "trial no": "No.",
       "local date": "Local date",
       "local time": "Local time",
       "sent layout": "Sent",
@@ -13872,16 +14205,17 @@ This is an alternate test message to show now.`;
     };
     const colgroup = document.createElement("colgroup");
     const widths = [
-      "92px",
-      "108px",
-      "90px",
-      "90px",
-      ...(hasLevelFourTrials ? ["90px"] : []),
+      "46px",
+      "88px",
+      "100px",
+      "86px",
+      "88px",
+      ...(hasLevelFourTrials ? ["88px"] : []),
       "58px",
       "54px",
-      "66px",
-      "94px",
-      "58px"
+      "60px",
+      "88px",
+      "54px"
     ];
     widths.forEach((width) => {
       const col = document.createElement("col");
@@ -13899,7 +14233,7 @@ This is an alternate test message to show now.`;
 
     const tbody = document.createElement("tbody");
     const summaryStats = getReportSummaryStats(records);
-    records.forEach((record) => {
+    records.forEach((record, recordIndex) => {
       const row = document.createElement("tr");
       const receiverLocation = parseLocationValue(record?.["rx location"] ?? "");
       const senderLocation = parseLocationValue(record?.["tx location"] ?? "");
@@ -13914,13 +14248,16 @@ This is an alternate test message to show now.`;
         if (header === "dist") {
           const content = document.createElement("div");
           content.className = "report-cell-clamp";
-          content.textContent =
+          const distanceText =
             locationHidden
               ? ""
               : receiverLocation && senderLocation
-              ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "miles" : "meters")
-              : (simulationReport ? "N/A" : "unknown");
+                ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "miles" : "meters")
+                : (simulationReport ? "N/A" : "");
+          content.textContent = distanceText;
           td.appendChild(content);
+        } else if (header === "trial no") {
+          td.textContent = String(startingTrialNumber + recordIndex);
         } else if (header === "rx done rt") {
           td.textContent = formatReactionTimeTenths(record?.[header] ?? "");
         } else if (header === "score") {
@@ -13949,6 +14286,9 @@ This is an alternate test message to show now.`;
           } else {
             td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
           }
+        } else if (header === "confidence") {
+          const confidenceValue = String(record?.[header] ?? "").trim();
+          td.textContent = /^unknown$/i.test(confidenceValue) ? "" : confidenceValue;
         } else {
           td.textContent = String(record?.[header] ?? "");
         }
@@ -14347,17 +14687,21 @@ This is an alternate test message to show now.`;
       return;
     }
     if (!visible || !pairInfo?.receiverName || !pairInfo?.senderName) {
-      reportPairBanner.textContent = "";
+      reportPairBanner.replaceChildren();
       reportPairBanner.hidden = true;
       return;
     }
     const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
     const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
+    const secondLine = document.createElement("div");
+    secondLine.textContent = `Receiver: ${receiverLabel}   Sender: ${senderLabel}`;
     if (isNamedReportTarget(pairInfo)) {
       const title = String(pairInfo.reportTitle || "").trim() || "Unnamed named file";
-      reportPairBanner.textContent = `Named file: ${title}      Receiver: ${receiverLabel}      Sender: ${senderLabel}`;
+      const firstLine = document.createElement("div");
+      firstLine.textContent = `Named file: ${title}`;
+      reportPairBanner.replaceChildren(firstLine, secondLine);
     } else {
-      reportPairBanner.textContent = `Receiver: ${receiverLabel}      Sender: ${senderLabel}`;
+      reportPairBanner.replaceChildren(secondLine);
     }
     reportPairBanner.hidden = false;
   }
@@ -14432,7 +14776,10 @@ This is an alternate test message to show now.`;
       : new Map();
     renderReportTable(filteredRecords, {
       hasLevelFourTrials,
-      levelFourImagePairsIndex
+      levelFourImagePairsIndex,
+      startTrialNumber: isNamedReportTarget(pairInfo)
+        ? Math.max(1, Number(pairInfo?.startTrial || 1) || 1)
+        : 1
     });
   }
 
@@ -18460,7 +18807,10 @@ This is an alternate test message to show now.`;
     }
 
     try {
-      const contentRecord = await fetchEditableContentFromServer(normalizedKey, { lessonDomain });
+      const contentRecord = await fetchLessonContentForDisplayOrEdit(normalizedKey, {
+        lessonDomain,
+        autoSyncLocalLessonMirror: true
+      });
       const serverValue = typeof contentRecord?.content === "string" ? contentRecord.content : "";
       if (contentRecord?.available) {
         cacheLearnMoreContentLocally(normalizedKey, serverValue);
@@ -18491,9 +18841,16 @@ This is an alternate test message to show now.`;
         ? `Processing lesson ${directive.lessonId || directive.displayNumber || ""}...`
         : "Start with lesson-id=<permanent-id>. Use [center]...[/center], [indent]...[/indent], [u]...[/u], and [sup]...[/sup], then press ENTER or SAVE.";
     }
-    const lessonDomain = normalizeLessonDomain(lessonEditorTarget?.lessonDomain || activeLessonEditorDomain || "legacy");
+      const lessonDomain = normalizeLessonDomain(lessonEditorTarget?.lessonDomain || activeLessonEditorDomain || "legacy");
     try {
       if (directive) {
+        logLessonContentDebug("editor_save:directive_detected", {
+          lessonDomain,
+          directiveLessonId: String(directive.lessonId || ""),
+          directiveDisplayNumber: String(directive.displayNumber || ""),
+          directiveTitle: String(directive.title || ""),
+          contentLength: nextValue.length
+        });
         let currentOutlineRecord = directive.lessonId
           ? getLearningCenterLessonRecordById(directive.lessonId, getLessonDomainIndex(lessonDomain))
           : getLearningCenterLessonRecordByDisplayNumber(directive.displayNumber, getLessonDomainIndex(lessonDomain));
@@ -18519,7 +18876,10 @@ This is an alternate test message to show now.`;
           const type = String(currentOutlineRecord.type || "lesson-page").trim() || "lesson-page";
           const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
           if (type === "lesson-page" && lessonKey) {
-            const existing = await fetchEditableContentFromServer(lessonKey, { lessonDomain });
+            const existing = await fetchLessonContentForDisplayOrEdit(lessonKey, {
+              lessonDomain,
+              autoSyncLocalLessonMirror: true
+            });
             if (existing?.available) {
               applyMainLessonEditorContent(lessonKey, String(existing.content || ""), {
                 status: `Loaded LESSON ${displayNumber} into the editor.`,
@@ -18565,10 +18925,22 @@ This is an alternate test message to show now.`;
           type,
           available: type !== "lesson-page" ? true : Boolean(currentOutlineRecord?.available)
         };
+        logLessonContentDebug("editor_save:resolved_record", {
+          lessonDomain,
+          lessonId,
+          displayNumber,
+          title,
+          subcopy,
+          type,
+          available: !!lessonRecord.available
+        });
         const lessonKey = type === "lesson-page" ? buildLearningCenterLessonContentKey(lessonId) : "";
         if (isDirectiveOnly) {
           if (type === "lesson-page") {
-            const existing = await fetchEditableContentFromServer(lessonKey, { lessonDomain });
+            const existing = await fetchLessonContentForDisplayOrEdit(lessonKey, {
+              lessonDomain,
+              autoSyncLocalLessonMirror: true
+            });
             if (existing?.available) {
               lessonRecord.available = true;
               const updatedIndex = await upsertLearningCenterOutlineRecord(lessonRecord, lessonDomain);
@@ -18635,10 +19007,22 @@ This is an alternate test message to show now.`;
           ? await saveEditableContentToServer(lessonKey, nextValue, { lessonDomain })
           : { content: nextValue };
         const savedLessonValue = typeof savedLesson?.content === "string" ? savedLesson.content : nextValue;
+        const refreshedIndex = await fetchLearningCenterLessonIndex(lessonDomain);
+        const savedIndexHasLesson = !!getLearningCenterLessonRecordById(lessonId, refreshedIndex);
+        logLessonContentDebug("editor_save:post_save_verification", {
+          lessonDomain,
+          lessonId,
+          displayNumber,
+          lessonKey,
+          savedIndexHasLesson,
+          refreshedIndexCount: Array.isArray(refreshedIndex) ? refreshedIndex.length : 0,
+          savedContentLength: savedLessonValue.length
+        });
+        setLessonDomainIndex(lessonDomain, refreshedIndex);
         if (lessonDomain === "new-course") {
-          renderNewCourseLessonLinks(updatedIndex);
+          renderNewCourseLessonLinks(refreshedIndex);
         } else {
-          renderLearningCenterLessonLinks(updatedIndex);
+          renderLearningCenterLessonLinks(refreshedIndex);
         }
         applyMainLessonEditorContent(type === "lesson-page" ? lessonKey : "main", savedLessonValue, {
           status: `LESSON ${displayNumber} saved to the server.`,
@@ -25855,6 +26239,16 @@ This is an alternate test message to show now.`;
     }, 0);
   });
   espLessonDetailPreview?.addEventListener("click", (event) => {
+    const lessonImageButton = event.target instanceof Element ? event.target.closest("[data-lesson-image-src]") : null;
+    if (lessonImageButton instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      openLessonImageOverlay(lessonImageButton.dataset.lessonImageSrc || "", {
+        caption: lessonImageButton.dataset.lessonImageCaption || "",
+        alt: lessonImageButton.dataset.lessonImageAlt || ""
+      });
+      return;
+    }
     const actionButton = event.target instanceof Element ? event.target.closest("[data-lesson-action]") : null;
     if (!(actionButton instanceof HTMLElement)) {
       return;
@@ -26144,6 +26538,21 @@ This is an alternate test message to show now.`;
       const returnView = role === "remote-viewer" ? "clairvoyance-viewing" : "launcher";
       showLearningCenterView({ view: returnView, role });
     });
+  });
+  closeLessonImageOverlayButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closeLessonImageOverlay();
+  });
+  lessonImageOverlay?.addEventListener("click", (event) => {
+    if (event.target === lessonImageOverlay) {
+      closeLessonImageOverlay();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && lessonImageOverlay && !lessonImageOverlay.classList.contains("beginner-view-hidden")) {
+      closeLessonImageOverlay();
+    }
   });
   learningCenterTabButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -28098,11 +28507,40 @@ This is an alternate test message to show now.`;
       if (lessonIndexAdminStatus) {
         lessonIndexAdminStatus.textContent = `Deleting LESSON ${displayNumber || lessonId}...`;
       }
+      logLessonContentDebug("index_delete:start", {
+        lessonDomain: activeLessonIndexAdminDomain,
+        lessonId,
+        displayNumber,
+        title
+      });
       const remainingRows = (Array.isArray(launcherAdminState.lesson_index) ? launcherAdminState.lesson_index : getLessonDomainIndex(activeLessonIndexAdminDomain))
         .filter((row) => normalizeLearningCenterLessonId(row?.lesson_id) !== normalizeLearningCenterLessonId(lessonId));
+      logLessonContentDebug("index_delete:remaining_rows_built", {
+        lessonDomain: activeLessonIndexAdminDomain,
+        lessonId,
+        remainingIds: remainingRows.map((row) => String(row?.lesson_id || ""))
+      });
       await saveLearningCenterOutlineToServer(remainingRows, activeLessonIndexAdminDomain);
-      await deleteEditableContentFromServer(buildLearningCenterLessonContentKey(lessonId), { lessonDomain: activeLessonIndexAdminDomain });
+      logLessonContentDebug("index_delete:outline_saved", {
+        lessonDomain: activeLessonIndexAdminDomain,
+        lessonId
+      });
+      const deleteResult = await deleteEditableContentFromServer(buildLearningCenterLessonContentKey(lessonId), { lessonDomain: activeLessonIndexAdminDomain });
+      const deletedContentCheck = await fetchEditableContentFromServer(buildLearningCenterLessonContentKey(lessonId), { lessonDomain: activeLessonIndexAdminDomain });
       const refreshedIndex = await fetchLearningCenterLessonIndex(activeLessonIndexAdminDomain);
+      const outlineStillHasLesson = !!getLearningCenterLessonRecordById(lessonId, refreshedIndex);
+      const contentStillAvailable = !!deletedContentCheck?.available;
+      logLessonContentDebug("index_delete:post_delete_verification", {
+        lessonDomain: activeLessonIndexAdminDomain,
+        lessonId,
+        deleteResultDeleted: !!deleteResult?.deleted,
+        outlineStillHasLesson,
+        contentStillAvailable,
+        refreshedIndexCount: Array.isArray(refreshedIndex) ? refreshedIndex.length : 0
+      });
+      if (outlineStillHasLesson || contentStillAvailable) {
+        throw new Error("The lesson delete did not fully complete on the server. Please check the debug log before trying again.");
+      }
       setLessonDomainIndex(activeLessonIndexAdminDomain, refreshedIndex);
       launcherAdminState.lesson_index = Array.isArray(refreshedIndex) ? refreshedIndex : [];
       if (activeLessonIndexAdminDomain === "new-course") {

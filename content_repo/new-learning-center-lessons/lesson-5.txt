@@ -1,0 +1,85 @@
+lesson-id=lesson-5
+number=5
+title=UNDERSTANDING PERFORMANCE ANALYSIS
+subcopy=Statistics doesn’t tell the whole story
+type=lesson-page
+
+TITLE=UNDERSTANDING PERFORMANCE ANALYSIS
+
+
+[indent]You have now started practicing telepathy, and the question now becomes, “How am I doing?” This question is answered by looking at your performance history to date and assessing whether it is improving, declining, stable, and does it reflect telepathic ability. Perhaps the best way to know the answer to the question of whether you are experiencing telepathy is to simply introspect and remember whether the fleeing images that you noticed in your mind’s eye were ‘hits’ or not.[/indent]
+
+[center]THE TROUBLE WITH STATISTICS[/center]
+
+[indent]Statistics is based on computing whether something that could have happened by random chance has happened. Let’s say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, each with a 50% chance of being right or wrong by chance alone, your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, it is not generally scientifically acceptable as a significant effect at the p < .01 level.[/indent]
+
+[indent]But the reality might be that you experienced true telepathy in the first 8 trials and then were tired or distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly.[/indent]
+
+[indent]IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell a correct story.[/indent]
+
+How To Read Statistical Significance
+
+[indent]The main number to understand in the concept of “statistical significance” is called the “P value.” For example, a report might say,[/indent]
+
+[indent]“Total trials = 24, Chance score = 12, Your score = 20, Telepathic significance, P = 7.72xxxx[/indent]
+[indent]The probability that you would get this score by chance alone is 0.08%.[/indent]
+
+[indent]The smaller the P value, the more your score would be unlikely to occur by chance alone. But statistical significance is only part of the story. The number of completed trials also matters.[/indent]
+
+[indent]A very small block of trials can sometimes produce a mathematically significant result just by luck or by a short-lived burst of performance. For that reason, this app treats small-sample significance more cautiously than significance based on a larger block of completed trials.[/indent]
+
+[indent]The more completed trials you have, the more stable and trustworthy the result becomes. With very few completed trials, a significant result may be interesting, but it is not yet very persuasive. With a moderate number of completed trials, a significant result becomes more meaningful, but with a larger block of completed trials, a strong significant result becomes much more persuasive and deserves serious attention.[/indent]
+
+[indent]The performance analysis asks two questions:[/indent]
+
+[indent]1. Is the result statistically unlikely to be due to chance?[/indent]
+
+[indent]2. Is the result based on enough completed trials to be taken seriously in a practical way?[/indent]
+
+
+How This Analysis Interprets Sample Size Persuasiveness
+
+[indent]A result can be mathematically significant without yet being practically persuasive. As a practical guide, the analysis treats sample size roughly as follows:[/indent]
+
+[indent]Fewer than 20 completed trials: Too little data for a meaningful interpretation.[/indent]
+
+[indent]20 to 59 completed trials: Results may be mathematically interesting, but the sample is still modest.[/indent]
+
+[indent]50 - 60 or more completed trials: Results become much more practically persuasive.[/indent]
+
+[indent]A result stronger than P < 0.01 with 50 - 60+ completed trials: Strong evidence that deserves serious attention and replication.[/indent]
+
+
+Important Caution
+
+[indent]Statistical significance does not prove that telepathy is real. It means only that the observed score would be unlikely under chance alone.[/indent]
+
+[indent]A convincing result should ideally show:[/indent]
+
+[indent]-	a low P value[/indent]
+
+[indent]-	enough completed trials[/indent]
+
+[indent]-	stability over time[/indent]
+
+[indent]-	replication across additional sessions[/indent]
+
+
+[indent]One last point. You can create custom reports where you can specify the starting and ending trial number for the data to be visualized and analyzed. But when you single out a particularly good run and turn it into a report, this is considered in statistics to be a “post hoc analysis.”  These types of data reports don’t have full credibility because even when flipping coins, there can be long single runs of the same side, so the post hoc data could be focusing on random data that just looks significant. However, if there are legitimate reasons for doing this, for example, if before a formal study you gave subjects 10 practice trials, you have a legitimate reason for eliminating those trials – especially if you stated beforehand that you were going to eliminate them in the data analysis.[/indent]
+
+
+[indent]Now you know how statistics is used to mathematically rule out effects that can be explained by random chance alone. This does not really prove that effects are “real” or not. It just says whether the data could be explained by random chance – and that’s a pretty strong statement, but as seen in “the problem with statistics” discussed above, statistics can also hide real effects.[/indent]
+
+[indent]When what may happens can be explained by, ‘The subject did well in the first group of trials but then got tired and did not do well in the second group – the P value may not be significant while the truth may be that a real effect did occur, but not often enough to satisfy statistical significance.[/indent]
+
+
+You will go to the Performance Reports.
+
+
+The figure below shows the Performance Reports landing page. Beginner unlocks two types of reports - a Raw Data report where every test - date, what was sent, and what the response was - is recorded.
+
+The Raw Data report looks like this:
+
+
+
+[image:RawDataReport width=80 left=6 caption="Performance Reports screen"]

@@ -26,6 +26,10 @@ There is a ninth local-debug problem to prevent:
 
 9. re-testing stale local HTML/CSS/JS entry points and wasting time fighting mixed cached assets
 
+There is a tenth lesson-integrity problem to prevent:
+
+10. allowing the lesson outline and the actual lesson files to drift apart so a deploy silently removes lessons from the Learning Center
+
 There is a fourth practical cache trap to watch for:
 
 4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
@@ -233,6 +237,16 @@ Practical meaning:
 - but also to:
   - `/var/www/telepathyexperiment_private/cones/content/new-learning-center-lessons/lesson-2.txt`
 
+Additional authoring rule:
+
+- if lesson editing was done from `https://espgym.com`, the live private content store becomes newer first
+- before any normal deployment is packaged, the current live managed new-course content must be pulled back into the local authoritative lesson files under:
+  - `content_repo\new-learning-center-outline.json`
+  - `content_repo\new-learning-center-lessons\...`
+  - `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-outline.json`
+  - `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-lessons\...`
+- do not assume a successful in-browser save on `espgym.com` has already updated the local authoring tree
+
 The deploy helper is expected to enforce this automatically for normal live pushes.
 
 ## Deploy Completeness Guard
@@ -258,6 +272,30 @@ Practical meaning:
 - if the script names a blocked file, fix the deploy list or remove the unintended file before continuing
 
 ## Local Debug Cache-Busting Rule
+
+## Lesson-Set Integrity Rule
+
+Lesson deployment must verify the lesson set as a lesson set, not just as a collection of files.
+
+Required rule going forward:
+
+1. before deployment, verify that every `lesson-page` id listed in `content_repo\new-learning-center-outline.json` has:
+   - a matching repo lesson file under `content_repo\new-learning-center-lessons\`
+   - a matching local private lesson file under `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-lessons\`
+2. before deployment, verify that the repo outline and the local private outline name the same lesson ids
+3. after deployment, verify that the live repo outline and the live private outline still name the same lesson ids as the local authoritative outline
+4. after deployment, verify that every lesson id named in the live outline has a corresponding lesson file in both:
+   - `/var/www/telepathyexperiment/cones/content_repo/new-learning-center-lessons/`
+   - `/var/www/telepathyexperiment_private/cones/content/new-learning-center-lessons/`
+5. if any expected lesson id is missing from either live location, treat the deploy as failed verification
+
+Practical meaning:
+
+- it is not enough for `lesson-4.txt` to exist somewhere
+- the outline must still point to `lesson-4`
+- and both the repo-side and private live lesson stores must contain `lesson-4.txt`
+
+This prevents the exact failure mode where a deploy leaves files present but causes lessons to disappear from the Learning Center because the outline or lesson-set mapping drifted.
 
 For local browser debugging, a fresh local version label is the primary defense against stale cache, not manual browser clearing.
 
