@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260712c";
+  const launcherBuildVersion = "20260712d";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -3767,7 +3767,34 @@ This is an alternate test message to show now.`;
       })
     });
     const data = await parseApiResponse(response, `Save named report request failed with status ${response.status}`);
-    const target = buildNamedReportTarget(data?.named_report || {});
+    let target = buildNamedReportTarget(data?.named_report || {});
+    if (!target?.receiverName || !target?.senderName) {
+      const reportId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const source = String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real";
+      target = {
+        key: `named-report::${reportId}`,
+        baseKey: buildPairMatchKey(pairInfo?.receiverName, pairInfo?.senderName),
+        receiverName: String(pairInfo?.receiverName || "").trim(),
+        senderName: String(pairInfo?.senderName || "").trim(),
+        displayReceiverName: source === "simulation"
+          ? getSimulationReportDisplayName(String(pairInfo?.receiverName || "").trim(), "receiver")
+          : String(pairInfo?.displayReceiverName || pairInfo?.receiverName || "").trim(),
+        displaySenderName: source === "simulation"
+          ? getSimulationReportDisplayName(String(pairInfo?.senderName || "").trim(), "sender")
+          : String(pairInfo?.displaySenderName || pairInfo?.senderName || "").trim(),
+        sessionCode: String(pairInfo?.sessionCode || "").trim(),
+        source,
+        aliasReceiverNames: Array.isArray(pairInfo?.aliasReceiverNames) ? pairInfo.aliasReceiverNames.slice(0) : [],
+        aliasSenderNames: Array.isArray(pairInfo?.aliasSenderNames) ? pairInfo.aliasSenderNames.slice(0) : [],
+        reportTargetType: "named-report",
+        reportId,
+        reportTitle: String(options.title || "").trim(),
+        startTrial: Math.max(1, Number(options.startTrial || 1) || 1),
+        endTrial: Math.max(1, Number(options.endTrial || 1) || 1),
+        savedCompletedTrialCount: Math.max(0, Number(options.completedTrialCount || 0) || 0),
+        createdAtMs: Date.now()
+      };
+    }
     cacheNamedReportTarget(target);
     return target;
   }
@@ -5363,12 +5390,13 @@ This is an alternate test message to show now.`;
   }
 
   function cacheNamedReportTarget(target) {
-    if (!target?.reportId) {
+    if (!target?.receiverName || !target?.senderName) {
       return;
     }
-    const rows = readNamedReportsCache().filter((row) => String(row?.id || "") !== String(target.reportId || ""));
+    const cacheId = String(target.reportId || "").trim() || `local-named-report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const rows = readNamedReportsCache().filter((row) => String(row?.id || "") !== cacheId);
     rows.unshift({
-      id: String(target.reportId || ""),
+      id: cacheId,
       title: String(target.reportTitle || "").trim(),
       selected_pair: sanitizePairInfoForServer(target),
       start_trial: Number(target.startTrial || 1) || 1,
@@ -13604,6 +13632,16 @@ This is an alternate test message to show now.`;
     }
   }
 
+  function syncVisualizationRangeEditability(pairInfo) {
+    const readOnly = isNamedReportTarget(pairInfo);
+    if (visualizationRangeStartInput) {
+      visualizationRangeStartInput.readOnly = readOnly;
+    }
+    if (visualizationRangeEndInput) {
+      visualizationRangeEndInput.readOnly = readOnly;
+    }
+  }
+
   function ensureVisualizationRangeState(pairInfo, totalTrials) {
     const pairKey = buildVisualizationPairKey(pairInfo);
     const normalizedTotalTrials = Math.max(0, Number(totalTrials || 0) || 0);
@@ -13691,6 +13729,10 @@ This is an alternate test message to show now.`;
   }
 
   function commitVisualizationRangeFromInputs() {
+    if (isNamedReportTarget(selectedReportTarget)) {
+      syncVisualizationRangeInputs();
+      return;
+    }
     visualizationRangeState.startValue = String(visualizationRangeStartInput?.value ?? "").trim();
     visualizationRangeState.endValue = String(visualizationRangeEndInput?.value ?? "").trim();
     if (!selectedReportTarget || visualizationView?.classList.contains("beginner-view-hidden")) {
@@ -14396,6 +14438,7 @@ This is an alternate test message to show now.`;
     }
 
     if (!pairInfo?.receiverName || !pairInfo?.senderName) {
+      syncVisualizationRangeEditability(null);
       visualizationSummary.replaceChildren();
       visualizationStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open the visualization again.";
       visualizationChart.replaceChildren();
@@ -14404,6 +14447,7 @@ This is an alternate test message to show now.`;
     }
 
     const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+    syncVisualizationRangeEditability(pairInfo);
 
     if (!records.length) {
       visualizationSummary.replaceChildren();
