@@ -62,6 +62,7 @@ $stateFile = $stateDir . DIRECTORY_SEPARATOR . 'session-state.json';
 $debugLogFile = $stateDir . DIRECTORY_SEPARATOR . 'debug-log.txt';
 $safetyLogFile = $logsDir . DIRECTORY_SEPARATOR . 'safety-log.txt';
 $subscriptionEmailLogFile = $logsDir . DIRECTORY_SEPARATOR . 'subscription-email-log.txt';
+$lessonContentAuditLogFile = $logsDir . DIRECTORY_SEPARATOR . 'lesson-content-audit-log.txt';
 $adminSecret = 'x9Qm7L2v8T4p1Zadmin';
 $staleMs = 5000;
 $roundLifetimeMs = 300000;
@@ -1622,6 +1623,55 @@ function backup_existing_content_file(string $path, string $kind = 'content'): v
     @copy($path, $backupPath);
 }
 
+function classify_content_audit_target(string $path): string
+{
+    $normalized = strtolower(str_replace('\\', '/', $path));
+    if (str_contains($normalized, '/new-learning-center-lessons/')) {
+        return 'new-course-lesson';
+    }
+    if (str_contains($normalized, '/new-learning-center-outline.json')) {
+        return 'new-course-outline';
+    }
+    return '';
+}
+
+function get_content_file_audit_snapshot(string $path): array
+{
+    if ($path === '' || !is_file($path)) {
+        return [
+            'exists' => false,
+            'size' => 0,
+            'sha1' => '',
+            'first_line' => ''
+        ];
+    }
+
+    $content = (string) @file_get_contents($path);
+    $firstLine = '';
+    if ($content !== '') {
+        $lines = preg_split("/\\r\\n|\\n|\\r/", $content);
+        $firstLine = isset($lines[0]) ? trim((string) $lines[0]) : '';
+    }
+
+    return [
+        'exists' => true,
+        'size' => strlen($content),
+        'sha1' => sha1($content),
+        'first_line' => $firstLine
+    ];
+}
+
+function append_lesson_content_audit(array $payload): void
+{
+    global $lessonContentAuditLogFile;
+
+    $line = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($line) || $line === '') {
+        return;
+    }
+    append_capped_log($lessonContentAuditLogFile, $line, 524288);
+}
+
 function normalize_questionnaire_type($value): string
 {
     $type = strtolower(trim((string) $value));
@@ -1986,8 +2036,11 @@ function read_learn_more_content_file(string $path): array
     ];
 }
 
-function write_learn_more_content_file(string $path, string $content, string $mirrorPath = ''): void
+function write_learn_more_content_file(string $path, string $content, string $mirrorPath = '', string $contentKey = ''): void
 {
+    $auditTarget = classify_content_audit_target($path);
+    $beforePrimary = $auditTarget !== '' ? get_content_file_audit_snapshot($path) : [];
+    $beforeMirror = ($auditTarget !== '' && $mirrorPath !== '') ? get_content_file_audit_snapshot($mirrorPath) : [];
     $backupKind = str_contains(strtolower(str_replace('\\', '/', $path)), 'new-learning-center-outline')
         ? 'new-course-outline'
         : (str_contains(strtolower(str_replace('\\', '/', $path)), 'new-learning-center-lessons')
@@ -2006,6 +2059,27 @@ function write_learn_more_content_file(string $path, string $content, string $mi
     if ($mirrorPath !== '') {
         ensure_parent_directory($mirrorPath);
         @file_put_contents($mirrorPath, $content, LOCK_EX);
+    }
+
+    if ($auditTarget !== '') {
+        append_lesson_content_audit([
+            'timestamp_utc' => gmdate('c'),
+            'event' => 'content_write',
+            'target' => $auditTarget,
+            'content_key' => $contentKey,
+            'request_origin' => isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '',
+            'http_host' => isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '',
+            'remote_addr' => isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '',
+            'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? substr((string) $_SERVER['HTTP_USER_AGENT'], 0, 240) : '',
+            'path' => $path,
+            'mirror_path' => $mirrorPath,
+            'incoming_size' => strlen($content),
+            'incoming_sha1' => sha1($content),
+            'before_primary' => $beforePrimary,
+            'before_mirror' => $beforeMirror,
+            'after_primary' => get_content_file_audit_snapshot($path),
+            'after_mirror' => $mirrorPath !== '' ? get_content_file_audit_snapshot($mirrorPath) : []
+        ]);
     }
 }
 
@@ -11048,7 +11122,7 @@ if ($action === 'save_learn_more_content') {
             throw new RuntimeException('Learn More content key is invalid.');
         }
         ensure_learn_more_content_seeded($contentKey);
-        write_learn_more_content_file($path, $content, $mirrorPath);
+        write_learn_more_content_file($path, $content, $mirrorPath, $contentKey);
         $contentRecord = read_learn_more_content_file($path);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -11084,6 +11158,9 @@ if ($action === 'delete_learn_more_content') {
         $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
         $path = get_learn_more_content_path($contentKey);
         $mirrorPath = get_learn_more_repo_content_path($contentKey);
+        $auditTarget = classify_content_audit_target($path);
+        $beforePrimary = $auditTarget !== '' ? get_content_file_audit_snapshot($path) : [];
+        $beforeMirror = ($auditTarget !== '' && $mirrorPath !== '') ? get_content_file_audit_snapshot($mirrorPath) : [];
         if (!preg_match('/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/', $contentKey)) {
             throw new RuntimeException('Only lesson-page content can be deleted from this control.');
         }
@@ -11096,6 +11173,25 @@ if ($action === 'delete_learn_more_content') {
         }
         if ($mirrorPath !== '' && is_file($mirrorPath)) {
             $deleted = @unlink($mirrorPath) || $deleted;
+        }
+        if ($auditTarget !== '') {
+            append_lesson_content_audit([
+                'timestamp_utc' => gmdate('c'),
+                'event' => 'content_delete',
+                'target' => $auditTarget,
+                'content_key' => $contentKey,
+                'request_origin' => isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '',
+                'http_host' => isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '',
+                'remote_addr' => isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '',
+                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? substr((string) $_SERVER['HTTP_USER_AGENT'], 0, 240) : '',
+                'path' => $path,
+                'mirror_path' => $mirrorPath,
+                'deleted' => $deleted,
+                'before_primary' => $beforePrimary,
+                'before_mirror' => $beforeMirror,
+                'after_primary' => get_content_file_audit_snapshot($path),
+                'after_mirror' => $mirrorPath !== '' ? get_content_file_audit_snapshot($mirrorPath) : []
+            ]);
         }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);

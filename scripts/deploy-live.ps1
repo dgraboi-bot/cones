@@ -50,6 +50,7 @@ $snapshotName = "{0}_pre_{1}" -f (Get-Date -Format "yyyyMMddHHmm"), $Version
 $snapshotPath = "$snapshotRoot/$snapshotName"
 $stageRoot = "/home/ec2-user/espgym_stage_{0}" -f $Version
 $mirrorRoot = "C:\xampp\htdocs\cones"
+$localPrivateContentRoot = "C:\xampp\telepathyexperiment_private\cones\content"
 
 $deployFiles = @(
   ".htaccess",
@@ -198,6 +199,45 @@ function Convert-ToPrivateContentPath([string]$RelativePath) {
   return ""
 }
 
+function Convert-ToLocalPrivateContentPath([string]$RelativePath) {
+  $normalized = Convert-ToPosixPath $RelativePath
+  if ($normalized -eq "content_repo/new-learning-center-outline.json") {
+    return Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
+  }
+  if ($normalized -like "content_repo/new-learning-center-lessons/*") {
+    $suffix = $normalized.Substring("content_repo/new-learning-center-lessons/".Length) -replace "/", "\"
+    return Join-Path (Join-Path $localPrivateContentRoot "new-learning-center-lessons") $suffix
+  }
+  return ""
+}
+
+function Assert-LocalPrivateContentInSync([string[]]$RelativePaths) {
+  $mismatches = New-Object System.Collections.Generic.List[string]
+  foreach ($relativePath in $RelativePaths) {
+    $localPrivatePath = Convert-ToLocalPrivateContentPath $relativePath
+    if (-not $localPrivatePath) {
+      continue
+    }
+    $repoPath = Join-Path $repoRoot $relativePath
+    if (-not (Test-Path -LiteralPath $repoPath)) {
+      $mismatches.Add("Missing repo content file: $repoPath")
+      continue
+    }
+    if (-not (Test-Path -LiteralPath $localPrivatePath)) {
+      $mismatches.Add("Missing local private content file: $localPrivatePath")
+      continue
+    }
+    $repoHash = (Get-FileHash -Algorithm SHA256 $repoPath).Hash
+    $privateHash = (Get-FileHash -Algorithm SHA256 $localPrivatePath).Hash
+    if ($repoHash -ne $privateHash) {
+      $mismatches.Add("Content drift detected for $relativePath`n  repo:    $repoPath`n  private: $localPrivatePath")
+    }
+  }
+  if ($mismatches.Count -gt 0) {
+    throw ("Local new-course content drift detected before deploy. Resolve repo/private mismatch first:`n" + ($mismatches -join "`n"))
+  }
+}
+
 function Test-IsTextDeployFile([string]$RelativePath) {
   $extension = [System.IO.Path]::GetExtension($RelativePath)
   return @(
@@ -279,6 +319,7 @@ foreach ($relativePath in $deployFiles) {
 }
 
 Assert-NoMojibakeInDeployFiles $deployFiles
+Assert-LocalPrivateContentInSync $privateContentSyncFiles
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 
