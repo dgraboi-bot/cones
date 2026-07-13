@@ -64,6 +64,7 @@ $safetyLogFile = $logsDir . DIRECTORY_SEPARATOR . 'safety-log.txt';
 $subscriptionEmailLogFile = $logsDir . DIRECTORY_SEPARATOR . 'subscription-email-log.txt';
 $lessonContentAuditLogFile = $logsDir . DIRECTORY_SEPARATOR . 'lesson-content-audit-log.txt';
 $adminSecret = 'x9Qm7L2v8T4p1Zadmin';
+$contentAutobackupRetentionMaxFiles = 8;
 $staleMs = 5000;
 $roundLifetimeMs = 300000;
 $postRoundLifetimeMs = 300000;
@@ -1615,12 +1616,148 @@ function build_content_backup_path(string $path, string $kind = 'content'): stri
 
 function backup_existing_content_file(string $path, string $kind = 'content'): void
 {
+    global $contentAutobackupRetentionMaxFiles;
     if ($path === '' || !is_file($path)) {
         return;
     }
     $backupPath = build_content_backup_path($path, $kind);
     ensure_parent_directory($backupPath);
     @copy($path, $backupPath);
+    prune_content_autobackups_for_path($path, $kind, $contentAutobackupRetentionMaxFiles);
+}
+
+function should_prune_content_backup_kind(string $kind): bool
+{
+    static $allowedKinds = [
+        'new-course-lesson',
+        'new-course-lesson-mirror',
+        'new-course-outline',
+        'new-course-outline-mirror'
+    ];
+    return in_array(trim((string) $kind), $allowedKinds, true);
+}
+
+function get_content_backup_group_directory(string $path, string $kind = 'content'): string
+{
+    global $backupDir, $privateRoot;
+
+    $label = preg_replace('/[^a-z0-9_-]+/i', '-', trim((string) $kind));
+    $label = $label !== '' ? trim((string) $label, '-') : 'content';
+    $relativePath = ltrim(str_replace([$privateRoot, '\\'], ['', '/'], $path), '/');
+    $relativeDir = trim((string) dirname($relativePath), './');
+
+    $directory = $backupDir . DIRECTORY_SEPARATOR . 'content-autobackup' . DIRECTORY_SEPARATOR . $label;
+    if ($relativeDir !== '') {
+        $directory .= DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativeDir);
+    }
+    return $directory;
+}
+
+function get_content_backup_group_prefix(string $path): string
+{
+    $baseName = basename($path);
+    $nameInfo = pathinfo($baseName);
+    return (string) ($nameInfo['filename'] ?? 'snapshot');
+}
+
+function parse_content_backup_sort_key(string $fileName): string
+{
+    if (preg_match('/__(\d{8}_\d{6})__/', $fileName, $matches)) {
+        return (string) $matches[1];
+    }
+    return '';
+}
+
+function prune_content_autobackups_for_path(string $path, string $kind = 'content', int $maxFiles = 8): void
+{
+    global $backupDir;
+
+    if ($maxFiles < 1 || $path === '' || !should_prune_content_backup_kind($kind)) {
+        return;
+    }
+
+    $groupDirectory = get_content_backup_group_directory($path, $kind);
+    if (!is_dir($groupDirectory)) {
+        return;
+    }
+
+    $backupRoot = realpath($backupDir . DIRECTORY_SEPARATOR . 'content-autobackup');
+    $resolvedGroupDirectory = realpath($groupDirectory);
+    if ($backupRoot === false || $resolvedGroupDirectory === false) {
+        return;
+    }
+
+    $normalizedBackupRoot = str_replace('\\', '/', strtolower($backupRoot));
+    $normalizedGroupDirectory = str_replace('\\', '/', strtolower($resolvedGroupDirectory));
+    if (!str_starts_with($normalizedGroupDirectory, $normalizedBackupRoot)) {
+        return;
+    }
+
+    $nameInfo = pathinfo(basename($path));
+    $fileName = (string) ($nameInfo['filename'] ?? '');
+    $extension = isset($nameInfo['extension']) && $nameInfo['extension'] !== '' ? '.' . (string) $nameInfo['extension'] : '';
+    if ($fileName === '') {
+        return;
+    }
+
+    $pattern = $resolvedGroupDirectory . DIRECTORY_SEPARATOR . $fileName . '__*__*' . $extension;
+    $matches = glob($pattern) ?: [];
+    if (count($matches) <= $maxFiles) {
+        return;
+    }
+
+    $entries = [];
+    foreach ($matches as $candidatePath) {
+        if (!is_file($candidatePath)) {
+            continue;
+        }
+        $candidateBaseName = basename((string) $candidatePath);
+        if (!preg_match('/^' . preg_quote($fileName, '/') . '__\d{8}_\d{6}__[^.]+'. preg_quote($extension, '/') . '$/', $candidateBaseName)) {
+            continue;
+        }
+        $entries[] = [
+            'path' => $candidatePath,
+            'name' => $candidateBaseName,
+            'sort_key' => parse_content_backup_sort_key($candidateBaseName),
+            'mtime' => @filemtime($candidatePath) ?: 0
+        ];
+    }
+
+    if (count($entries) <= $maxFiles) {
+        return;
+    }
+
+    usort($entries, static function (array $left, array $right): int {
+        $leftKey = (string) ($left['sort_key'] ?? '');
+        $rightKey = (string) ($right['sort_key'] ?? '');
+        if ($leftKey !== '' && $rightKey !== '' && $leftKey !== $rightKey) {
+            return strcmp($rightKey, $leftKey);
+        }
+        $leftMtime = (int) ($left['mtime'] ?? 0);
+        $rightMtime = (int) ($right['mtime'] ?? 0);
+        if ($leftMtime !== $rightMtime) {
+            return $rightMtime <=> $leftMtime;
+        }
+        return strcmp((string) ($right['name'] ?? ''), (string) ($left['name'] ?? ''));
+    });
+
+    $overflow = array_slice($entries, $maxFiles);
+    foreach ($overflow as $entry) {
+        $candidatePath = (string) ($entry['path'] ?? '');
+        if ($candidatePath === '') {
+            continue;
+        }
+        $resolvedCandidatePath = realpath($candidatePath);
+        if ($resolvedCandidatePath === false) {
+            continue;
+        }
+        $normalizedCandidatePath = str_replace('\\', '/', strtolower($resolvedCandidatePath));
+        if (!str_starts_with($normalizedCandidatePath, $normalizedGroupDirectory . '/')
+            && $normalizedCandidatePath !== $normalizedGroupDirectory) {
+            continue;
+        }
+        @unlink($candidatePath);
+    }
 }
 
 function classify_content_audit_target(string $path): string

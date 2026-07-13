@@ -18,6 +18,14 @@ There is a seventh content-promotion problem to prevent:
 
 7. deploying updated new-course lessons only into `content_repo` while leaving the authoritative private lesson store stale
 
+There is an eighth release-boundary problem to prevent:
+
+8. allowing changed deploy-relevant files to sit outside the authoritative deploy set and therefore silently miss a live release
+
+There is a ninth local-debug problem to prevent:
+
+9. re-testing stale local HTML/CSS/JS entry points and wasting time fighting mixed cached assets
+
 There is a fourth practical cache trap to watch for:
 
 4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
@@ -226,6 +234,77 @@ Practical meaning:
   - `/var/www/telepathyexperiment_private/cones/content/new-learning-center-lessons/lesson-2.txt`
 
 The deploy helper is expected to enforce this automatically for normal live pushes.
+
+## Deploy Completeness Guard
+
+The deployment process must fail closed if a changed deploy-relevant file is not covered by the authoritative deploy set.
+
+Required rule going forward:
+
+1. `scripts\deploy-live.ps1` owns one authoritative deploy file list
+2. before deployment, the script must inspect changed files from:
+   - baseline diff when available
+   - staged diff
+   - unstaged diff
+   - untracked files
+3. if a changed file is deploy-relevant and not covered by the deploy list, deployment must stop
+4. documentation and script-only files may be explicitly allowlisted as non-deploy files
+5. lesson content under `content_repo\new-learning-center-lessons\...` and `content_repo\new-learning-center-outline.json` is deploy-relevant content
+
+Practical meaning:
+
+- a changed app/runtime/content file may not be released unless it is explicitly in the deploy set
+- temporary notes or scripts may be ignored only by explicit non-deploy rule
+- if the script names a blocked file, fix the deploy list or remove the unintended file before continuing
+
+## Local Debug Cache-Busting Rule
+
+For local browser debugging, a fresh local version label is the primary defense against stale cache, not manual browser clearing.
+
+Required rule going forward:
+
+1. if browser-loaded HTML/CSS/JS has changed, do not trust an old local test URL
+2. prepare local debug with:
+   - `scripts\prepare-local-debug.ps1 -Version <new-local-version>`
+3. this helper must:
+   - bump all version-bearing local files
+   - mirror-sync to `C:\xampp\htdocs\cones`
+   - verify critical mirror hashes
+   - verify sender/receiver/launcher/runtime version references are consistent
+   - print the exact local test URLs to use
+4. if the helper reports a mixed-version reference, stop local testing until it is fixed
+
+Practical meaning:
+
+- local debugging should not begin after asset changes until the local debug helper succeeds
+- the preferred test URL should come from the helper output, not from memory
+
+## Lesson Autobackup Retention
+
+Lesson autobackups are intended as overwrite protection, not as an unbounded archive.
+
+Required rule going forward:
+
+1. lesson and outline autobackups are created before overwrite in the private backup tree
+2. retention is capped at 8 backups per logical stream during current development
+3. pruning must be surgical and may affect only these autobackup kinds:
+   - `new-course-lesson`
+   - `new-course-lesson-mirror`
+   - `new-course-outline`
+   - `new-course-outline-mirror`
+4. pruning must never touch:
+   - live authoritative lesson files
+   - repo-side lesson files
+   - questionnaires
+   - pair/session data
+   - logs
+   - unrelated backup folders
+
+Practical meaning:
+
+- repeated saves of the same lesson should keep only the newest 8 backups for that specific lesson stream
+- authoritative and mirror backup streams are retained separately
+- if a path does not match the expected autobackup pattern, it must not be pruned
 
 Primary live app path:
 

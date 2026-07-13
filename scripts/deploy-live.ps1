@@ -2,6 +2,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Version,
 
+  [string]$BaselineRef = "origin/main",
+
   [switch]$AllowDirty
 )
 
@@ -137,6 +139,21 @@ $privateContentSyncFiles = @(
 )
 $privateContentSyncFiles += $newLearningCenterLessonFiles
 
+$nonDeployPrefixAllowList = @(
+  ".git\",
+  "docs\",
+  "scripts\"
+)
+
+$nonDeployExactAllowList = @(
+  ".gitignore"
+)
+
+$nonDeployExtensionAllowList = @(
+  ".md",
+  ".ps1"
+)
+
 $mojibakeGuardPatterns = @(
   ([string][char]0x00C3),
   ([string][char]0x00E2 + [char]0x20AC + [char]0x2122),
@@ -172,6 +189,101 @@ function Assert-FileHashMatch([string]$LeftPath, [string]$RightPath, [string]$La
   $rightHash = (Get-FileHash -Algorithm SHA256 $RightPath).Hash
   if ($leftHash -ne $rightHash) {
     throw "Mirror verification failed for $Label"
+  }
+}
+
+function Get-NormalizedRelativePath([string]$Path) {
+  return (($Path -replace "/", "\").TrimStart("\")).Trim()
+}
+
+function Test-IsAllowedNonDeployPath([string]$RelativePath) {
+  $normalized = Get-NormalizedRelativePath $RelativePath
+  if (-not $normalized) {
+    return $true
+  }
+  if ($nonDeployExactAllowList -contains $normalized) {
+    return $true
+  }
+  foreach ($prefix in $nonDeployPrefixAllowList) {
+    if ($normalized.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+      return $true
+    }
+  }
+  $extension = [System.IO.Path]::GetExtension($normalized).ToLowerInvariant()
+  return $nonDeployExtensionAllowList -contains $extension
+}
+
+function Test-IsCoveredDeployPath([string]$RelativePath) {
+  $normalized = Get-NormalizedRelativePath $RelativePath
+  if (-not $normalized) {
+    return $false
+  }
+  if ($deployFiles -contains $normalized) {
+    return $true
+  }
+  if ($normalized.StartsWith("content_repo\new-learning-center-lessons\", [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $true
+  }
+  return $false
+}
+
+function Get-GitChangedFiles([string]$RepoRoot, [string]$BaseRef) {
+  $results = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+
+  $commands = @(
+    @("diff", "--name-only"),
+    @("diff", "--cached", "--name-only"),
+    @("ls-files", "--others", "--exclude-standard")
+  )
+
+  if ($BaseRef) {
+    $null = git -C $RepoRoot rev-parse --verify $BaseRef 2>$null
+    if ($LASTEXITCODE -eq 0) {
+      $commands = ,@("diff", "--name-only", "$BaseRef..HEAD") + $commands
+    } else {
+      Write-Host "WARNING: Baseline ref '$BaseRef' was not found. Proceeding without baseline diff coverage." -ForegroundColor Yellow
+    }
+  }
+
+  foreach ($commandParts in $commands) {
+    $output = & git -C $RepoRoot @commandParts
+    foreach ($line in @($output)) {
+      $normalized = Get-NormalizedRelativePath ([string]$line)
+      if ($normalized) {
+        [void]$results.Add($normalized)
+      }
+    }
+  }
+
+  return @($results.ToArray() | Sort-Object)
+}
+
+function Assert-DeployCoverage([string[]]$ChangedFiles) {
+  $deployRelevantChanged = New-Object System.Collections.Generic.List[string]
+  $blocked = New-Object System.Collections.Generic.List[string]
+  $ignored = New-Object System.Collections.Generic.List[string]
+
+  foreach ($relativePath in $ChangedFiles) {
+    if (Test-IsAllowedNonDeployPath $relativePath) {
+      $ignored.Add($relativePath)
+      continue
+    }
+    $deployRelevantChanged.Add($relativePath)
+    if (-not (Test-IsCoveredDeployPath $relativePath)) {
+      $blocked.Add($relativePath)
+    }
+  }
+
+  if ($deployRelevantChanged.Count -gt 0) {
+    Write-Host "Deploy-relevant changed files detected:" -ForegroundColor Cyan
+    $deployRelevantChanged | ForEach-Object { Write-Host "  $_" -ForegroundColor Cyan }
+  }
+  if ($ignored.Count -gt 0) {
+    Write-Host "Ignored non-deploy changed files:" -ForegroundColor DarkGray
+    $ignored | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+  }
+  if ($blocked.Count -gt 0) {
+    throw ("Deploy completeness guard failed. These changed deploy-relevant files are not covered by the authoritative deploy set:`n" + ($blocked -join "`n"))
   }
 }
 
@@ -310,6 +422,9 @@ if ($AllowDirty) {
   Write-Host "  git -C $repoRoot diff --stat" -ForegroundColor Yellow
   Write-Host "  git -C $repoRoot diff --name-only" -ForegroundColor Yellow
 }
+
+$changedFiles = Get-GitChangedFiles -RepoRoot $repoRoot -BaseRef $BaselineRef
+Assert-DeployCoverage $changedFiles
 
 foreach ($relativePath in $deployFiles) {
   $fullPath = Join-Path $repoRoot $relativePath
