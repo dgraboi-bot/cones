@@ -255,7 +255,7 @@ function Get-GitChangedFiles([string]$RepoRoot, [string]$BaseRef) {
     }
   }
 
-  return @($results.ToArray() | Sort-Object)
+  return @($results | Sort-Object)
 }
 
 function Assert-DeployCoverage([string[]]$ChangedFiles) {
