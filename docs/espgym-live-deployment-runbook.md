@@ -903,6 +903,19 @@ Practical verification rule:
 - Do not assume a multi-file deploy succeeded just because `plink` returned exit code `0`.
 - Open or grep the actual live files that matter most for the release and confirm the expected new text is present.
 
+## Local Browser Verification Fallback
+
+If local browser verification is needed and the Codex in-app browser cannot attach to a usable tab or webview:
+
+- do not stop at the failed in-app browser attach
+- use the installed local Playwright browser runtime for verification instead
+- treat that Playwright runtime as the default fallback path for localhost checks on this machine
+
+Practical rule:
+
+- if in-app browser attach fails, immediately switch to the installed Playwright runtime rather than leaving verification unfinished
+- when reporting verification status, state plainly which browser path was actually used
+
 ## Live Test URL Rule
 
 Always provide a cache-busted test URL after deployment.

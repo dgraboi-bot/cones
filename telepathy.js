@@ -48,7 +48,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260712d";
+  const runtimeBuildVersion = "20260713d";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -59,10 +59,12 @@
   })();
   const runtimeMode = String(runtimeQuery.get("runtime_mode") || "").trim().toLowerCase();
   const guidedTourMode = String(runtimeQuery.get("guided_tour") || "").trim().toLowerCase();
+  const openProbeStandalone = role === "receiver" && String(runtimeQuery.get("open_probe") || "").trim() === "1";
   const launchedVisitorDisplayName = String(runtimeQuery.get("visitor_display_name") || "").trim();
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
+  let guidedStandaloneProbeTopicId = "";
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
     ? String(runtimeQuery.get("include_confidence") || "").trim() === "1"
@@ -81,7 +83,7 @@
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260712d";
+  const launcherBuildVersion = "20260713d";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -149,6 +151,7 @@
   let reinforcementAudioBuffer = null;
   let reinforcementAudioElement = null;
   let reinforcementAudioLoadPromise = null;
+  let reinforcementAudioWarmupStarted = false;
   let doneTimeoutHandle = null;
   let senderHoldingResult = false;
   let preloadedConeImage = null;
@@ -415,7 +418,7 @@
     if (!guidedTourProbeBody || role !== "receiver") {
       return;
     }
-    const topicId = String(guidedReceiverTourState?.probeTopicId || "").trim();
+    const topicId = String(guidedReceiverTourState?.probeTopicId || guidedStandaloneProbeTopicId || "").trim();
     if (topicId) {
       renderGuidedReceiverTourProbeDetail(topicId);
       return;
@@ -484,6 +487,19 @@
     guidedTourProbeBackButton?.focus();
   }
 
+  function openStandaloneGuidedTourProbeScreen() {
+    if (!openProbeStandalone || role !== "receiver" || !guidedTourProbeScreen) {
+      return;
+    }
+    guidedStandaloneProbeTopicId = "";
+    renderGuidedReceiverTourProbeView();
+    guidedTourProbeScreen.classList.remove("hidden");
+    if (guidedTourProbeBody) {
+      guidedTourProbeBody.scrollTop = 0;
+    }
+    guidedTourProbeBackButton?.focus();
+  }
+
   function setGuidedReceiverTourHint(message) {
     if (!guidedTourHint) {
       return;
@@ -505,7 +521,13 @@
       }
       return [levelOneChoiceNodes.get("count-3")].filter(Boolean);
     }
-    return Array.from(getActiveSelectionNodesMap().values()).filter(Boolean);
+    if (isLevelFourDifficulty()) {
+      const actualChoiceIndex = Number(activeRound.image_sent_index);
+      return [levelFourChoiceNodes.get(actualChoiceIndex)].filter(Boolean);
+    }
+    const actualLayoutNumber = Number(activeRound.layout_number);
+    const actualArrangementCode = getArrangementCode(actualLayoutNumber);
+    return [getActiveSelectionNodesMap().get(actualArrangementCode)].filter(Boolean);
   }
 
   function setGuidedReceiverTourChromeHidden(hidden) {
@@ -598,6 +620,11 @@
         width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.3), 220), 360);
         left = Math.max(16, Math.round((stageRect?.left || 0) + ((stageRect?.width || viewportWidth) * 0.56) - 60));
         top = Math.max(16, Math.round((stageRect?.top || 0) + ((stageRect?.height || viewportHeight) * 0.22)));
+        break;
+      case "result-lower-center":
+        width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.44), 300), 520);
+        left = Math.max(16, Math.round((viewportWidth - width) / 2));
+        top = Math.max(16, Math.round((stageRect?.top || 0) + ((stageRect?.height || viewportHeight) * 0.56)));
         break;
       case "stage-top-left":
       case "result-top-left":
@@ -872,7 +899,7 @@
         showNext: false,
         allowed: [enoughButton, anotherButton].filter(Boolean),
         allowTargetByDefault: false,
-        placement: "result-right-inline"
+        placement: isLevelOneDifficulty() ? "result-right-inline" : "result-lower-center"
       });
     }
   }
@@ -996,10 +1023,21 @@
     openGuidedTourProbeScreen();
   });
   guidedTourProbeBackButton?.addEventListener("click", () => {
-    if (guidedReceiverTourState?.probeTopicId) {
-      guidedReceiverTourState.probeTopicId = "";
+    if (guidedReceiverTourState?.probeTopicId || guidedStandaloneProbeTopicId) {
+      if (guidedReceiverTourState) {
+        guidedReceiverTourState.probeTopicId = "";
+      }
+      guidedStandaloneProbeTopicId = "";
       renderGuidedReceiverTourProbeView();
       guidedTourProbeBackButton?.focus();
+      return;
+    }
+    if (openProbeStandalone) {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        navigateToBeginnerFrontPage({ open: "learning-center", directOpen: false });
+      }
       return;
     }
     closeGuidedTourProbeScreen();
@@ -1019,14 +1057,18 @@
       if (guidedReceiverTourState) {
         guidedReceiverTourState.probeTopicId = "";
       }
+      guidedStandaloneProbeTopicId = "";
       renderGuidedReceiverTourProbeView();
       return;
     }
     const topicId = String(button.dataset.probeTopicOpen || "").trim();
-    if (!topicId || !guidedReceiverTourState) {
+    if (!topicId) {
       return;
     }
-    guidedReceiverTourState.probeTopicId = topicId;
+    if (guidedReceiverTourState) {
+      guidedReceiverTourState.probeTopicId = topicId;
+    }
+    guidedStandaloneProbeTopicId = topicId;
     renderGuidedReceiverTourProbeView();
   });
 
@@ -2319,6 +2361,30 @@
     }
 
     pendingInteractionMark = true;
+    if (role === "receiver") {
+      void prewarmPositiveReinforcementAudio();
+    }
+  }
+
+  async function prewarmPositiveReinforcementAudio() {
+    if (role !== "receiver" || reinforcementAudioWarmupStarted) {
+      return;
+    }
+    reinforcementAudioWarmupStarted = true;
+    try {
+      await ensureReceiverAudioUnlocked();
+      if (audioContext) {
+        await ensureReinforcementAudioLoaded();
+        return;
+      }
+      if (!reinforcementAudioElement) {
+        reinforcementAudioElement = new Audio(`tada.wav?v=${encodeURIComponent(runtimeBuildVersion)}`);
+        reinforcementAudioElement.preload = "auto";
+        reinforcementAudioElement.load();
+      }
+    } catch (_error) {
+      reinforcementAudioWarmupStarted = false;
+    }
   }
 
   function activateStartupStateAfterSettings() {
@@ -3324,6 +3390,12 @@
       params.set("visitor_display_name", visitorDisplayName);
     }
     params.set("difficulty_level", normalizeDifficultyLevel(options.difficultyLevel || currentPairDifficultyLevel || settings.difficulty_level || "1"));
+    if (options.guidedTourComplete) {
+      params.set("guided_tour_complete", "1");
+    }
+    if (typeof options.guidedTourContinue === "string" && options.guidedTourContinue.trim()) {
+      params.set("guided_tour_continue", options.guidedTourContinue.trim());
+    }
     params.set("v", launcherBuildVersion);
 
     return `telepathybeginner.html?${params.toString()}`;
@@ -3336,6 +3408,9 @@
       page_instance_id: runtimePageInstanceId,
       open: String(options.open || getLauncherReturnRole()).trim().toLowerCase(),
       runtime_mode: runtimeMode,
+      guided_tour_mode: guidedTourMode,
+      guided_tour_complete: options.guidedTourComplete === true,
+      guided_tour_continue: String(options.guidedTourContinue || "").trim().toLowerCase(),
       visitor_display_name: getPreferredVisitorDisplayName(getLauncherReturnRole()),
       difficulty_level: normalizeDifficultyLevel(currentPairDifficultyLevel || readSettings().difficulty_level || "1"),
       return_url: returnUrl
@@ -3406,7 +3481,9 @@
             ownIdentifier: String(guidedReturnView.ownDisplayName || "").trim(),
             partnerIdentifier: String(guidedReturnView.partnerDisplayName || "").trim(),
             visitorDisplayName: String(guidedReturnView.visitorDisplayName || "").trim(),
-            difficultyLevel: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1")
+            difficultyLevel: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1"),
+            guidedTourComplete: true,
+            guidedTourContinue: isGuidedSenderTour ? "sender-experience" : "receiver-experience"
           }
         : {});
       clearGuidedReceiverTourReturnSnapshot();
@@ -7150,6 +7227,10 @@
       beginGuidedReceiverTour();
     }
 
+    if (openProbeStandalone) {
+      openStandaloneGuidedTourProbeScreen();
+    }
+
     window.addEventListener("resize", updateChoiceGridLayout);
     if (!settingsOpen && hasRequiredSettings()) {
       await clearEntryNoticesOnBoot();
@@ -7166,6 +7247,7 @@
 
   void boot();
 })();
+
 
 
 

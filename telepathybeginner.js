@@ -9,7 +9,10 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260712d";
+  const launcherBuildVersion = "20260713d";
+  let pendingGuidedTourContinuationMode = "";
+  let pendingGuidedTourCompletionNoticeRole = "";
+  const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -9401,7 +9404,7 @@ This is an alternate test message to show now.`;
       if (prominentBlock) {
         prominentBlock.textContent = "";
         prominentBlock.hidden = true;
-        prominentBlock.classList.remove("is-error", "is-blinking");
+        prominentBlock.classList.remove("is-error", "is-blinking", "is-guided-tour-return");
       }
       if (block) {
         block.textContent = "";
@@ -9415,11 +9418,16 @@ This is an alternate test message to show now.`;
       prominentBlock.textContent = text;
       prominentBlock.hidden = false;
       prominentBlock.classList.toggle("is-error", !!options.isError);
-      prominentBlock.classList.add("is-blinking");
+      prominentBlock.classList.toggle("is-guided-tour-return", !!options.guidedTourReturn);
+      if (options.persistentProminent) {
+        prominentBlock.classList.remove("is-blinking");
+      } else {
+        prominentBlock.classList.add("is-blinking");
+      }
     } else if (prominentBlock) {
       prominentBlock.textContent = "";
       prominentBlock.hidden = true;
-      prominentBlock.classList.remove("is-error", "is-blinking");
+      prominentBlock.classList.remove("is-error", "is-blinking", "is-guided-tour-return");
     }
 
     if (block) {
@@ -9428,13 +9436,13 @@ This is an alternate test message to show now.`;
       block.classList.toggle("is-error", !!options.isError && !shouldPromote);
     }
 
-    if (!shouldPromote || !block) {
+    if (!shouldPromote || !block || options.persistentProminent) {
       return;
     }
 
     const settleTimer = window.setTimeout(() => {
       if (prominentBlock) {
-        prominentBlock.classList.remove("is-blinking", "is-error");
+        prominentBlock.classList.remove("is-blinking", "is-error", "is-guided-tour-return");
         prominentBlock.textContent = "";
         prominentBlock.hidden = true;
       }
@@ -9462,11 +9470,21 @@ This is an alternate test message to show now.`;
     return document.querySelector(`[data-role-setup-wrap="${role}"]`);
   }
 
+  function getLauncherGuidedTourSnapshotKey(role) {
+    return String(role || "").trim().toLowerCase() === "sender"
+      ? guidedSenderTourReturnSnapshotKey
+      : guidedReceiverTourReturnSnapshotKey;
+  }
+
   function saveGuidedTourReturnSnapshot(role, snapshot) {
     try {
-      localStorage.setItem(getLauncherGuidedTourSnapshotKey(role), JSON.stringify(snapshot || {}));
+      const storageKey = getLauncherGuidedTourSnapshotKey(role);
+      localStorage.setItem(storageKey, JSON.stringify(snapshot || {}));
     } catch (_error) {
-      // Ignore snapshot-save failures so the guided launch can still continue.
+      logLauncherDirectOpenDebug("guided_snapshot_save_failed", {
+        role,
+        message: _error instanceof Error ? _error.message : String(_error || "")
+      });
     }
   }
 
@@ -10075,8 +10093,8 @@ This is an alternate test message to show now.`;
 
   function renderProOnlyLockedControls() {
     const beginnerMessagingMessage = "Instant messaging with notifications is a PRO feature";
-    const beginnerRemoteViewingMessage = "Clairvoyance / Remote Viewing is an ESP PRO feature.";
-    const beginnerResearchMessage = "Research Participation is an ESP PRO feature.";
+    const beginnerRemoteViewingMessage = "PRO feature";
+    const beginnerResearchMessage = "PRO feature";
     const beginnerGlobeMessage = "GLOBE is a PRO feature.";
     const isPro = isEffectiveLauncherUserPro();
 
@@ -14835,6 +14853,47 @@ This is an alternate test message to show now.`;
     return `${target}?${params.toString()}`;
   }
 
+  function readPendingGuidedTourContinuationMode() {
+    const state = readLauncherState();
+    const stored = String(state?.pendingGuidedTourContinuationMode || "").trim().toLowerCase();
+    const runtimeValue = String(pendingGuidedTourContinuationMode || "").trim().toLowerCase();
+    return runtimeValue || stored || "";
+  }
+
+  function persistPendingGuidedTourContinuationMode(mode = "") {
+    const normalized = String(mode || "").trim().toLowerCase();
+    pendingGuidedTourContinuationMode = normalized;
+    const state = readLauncherState();
+    if (normalized) {
+      state.pendingGuidedTourContinuationMode = normalized;
+    } else {
+      delete state.pendingGuidedTourContinuationMode;
+    }
+    writeLauncherState(state);
+    logLauncherDirectOpenDebug("guided_continuation_mode_persisted", {
+      mode: normalized,
+      recognized_identity: String(getCanonicalRecognizedIdentity(state) || "").trim()
+    });
+  }
+
+  function scheduleGuidedTourCompletionNotice(role) {
+    const normalizedRole = String(role || "").trim().toLowerCase();
+    if (!["sender", "receiver"].includes(normalizedRole)) {
+      return;
+    }
+    pendingGuidedTourCompletionNoticeRole = normalizedRole;
+    const delays = [220, 650, 1200];
+    delays.forEach((delayMs) => {
+      window.setTimeout(() => {
+        const card = findRoleCard(normalizedRole);
+        if (!(card instanceof Element) || !card.classList.contains("active")) {
+          return;
+        }
+        startLauncherGuidedCompletionNotice(normalizedRole);
+      }, delayMs);
+    });
+  }
+
   function findRoleCard(role) {
     return roleCards.find((card) => String(card.dataset.roleCard || "") === role) || null;
   }
@@ -16420,16 +16479,40 @@ This is an alternate test message to show now.`;
     if (savedOwn || savedPartner) {
       void syncRoleIdentifierPresentation(role, form);
     }
+    form.querySelector('.role-go[type="submit"]')?.addEventListener("click", (event) => {
+      const target = event.currentTarget instanceof Element ? event.currentTarget : null;
+      logLauncherDirectOpenDebug("guided_go_click", {
+        role,
+        guided_tour_active: !!launcherGuidedTourState,
+        current_step_id: getCurrentLauncherGuidedTourStep()?.id || "",
+        target_tag: target?.tagName || "",
+        target_text: String(target?.textContent || "").trim().slice(0, 80),
+        disabled: !!(target instanceof HTMLButtonElement && target.disabled),
+        own_name_display: String(ownInput.value || "").trim(),
+        partner_name_display: String(partnerInput.value || "").trim()
+      });
+    });
 
     form.addEventListener("submit", async (event) => {
+      logLauncherDirectOpenDebug("guided_form_submit_enter", {
+        role,
+        guided_tour_active: !!launcherGuidedTourState,
+        current_step_id: getCurrentLauncherGuidedTourStep()?.id || "",
+        own_name_display: String(ownInput.value || "").trim(),
+        partner_name_display: String(partnerInput.value || "").trim()
+      });
       event.preventDefault();
-      const guidedTourLaunch = !!launcherGuidedTourState && role === launcherGuidedTourState.role;
+      const guidedTourLaunch = isLauncherGuidedTourLaunchState(role);
+      if (!guidedTourLaunch && launcherGuidedTourState && role === launcherGuidedTourState.role) {
+        endLauncherGuidedTour();
+      }
       if (!guidedTourLaunch && await maybeHandleRecognizedVisitorIdentifier(role, form)) {
         return;
       }
       const submittedOwnDisplayName = stripGuestDisplaySuffix(ownInput.value);
+      const submittedPartnerDisplayName = partnerInput.value.trim();
       let ownName = submittedOwnDisplayName;
-      let exactPartnerName = partnerInput.value.trim();
+      let exactPartnerName = submittedPartnerDisplayName;
       const robotSimulationPartner = isRobotSimulationIdentifier(exactPartnerName);
       const guidedRobotSession = guidedTourLaunch && robotSimulationPartner;
       const visitorRobotSession = (isVisitorLauncherEntry() && robotSimulationPartner) || guidedRobotSession;
@@ -16518,9 +16601,19 @@ This is an alternate test message to show now.`;
         readRoleSettings(role === "receiver" ? "sender" : role === "sender" ? "receiver" : role).difficultyLevel ||
         ""
       );
+      const pendingContinuationMode = readPendingGuidedTourContinuationMode();
+      const guidedContinuationMode = !guidedTourLaunch
+        && robotSimulationPartner
+        && (
+          (role === "sender" && pendingContinuationMode === guidedSenderTourMode) ||
+          (role === "receiver" && pendingContinuationMode === guidedReceiverTourMode)
+        )
+          ? pendingContinuationMode
+          : "";
       const activeGuidedTourMode = guidedTourLaunch
         ? (launcherGuidedTourState?.mode || (role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode))
-        : "";
+        : guidedContinuationMode;
+      const guidedTourReturnLaunch = !!activeGuidedTourMode;
       const preTourDifficultyLevel = normalizeDifficultyLevel(String(
         storedRoleDifficultyLevel ||
         getDifficultyLocalLevel(role) ||
@@ -16586,28 +16679,29 @@ This is an alternate test message to show now.`;
         });
       }
 
-      if (guidedTourLaunch) {
+      if (guidedTourReturnLaunch) {
         const guidedSnapshotState = readLauncherState();
-        guidedSnapshotState.difficultyLevel = preTourDifficultyLevel;
+        const guidedReturnDifficultyLevel = selectedDifficultyLevel;
+        guidedSnapshotState.difficultyLevel = guidedReturnDifficultyLevel;
         guidedSnapshotState.roleDifficultyLevels = guidedSnapshotState.roleDifficultyLevels || {};
-        guidedSnapshotState.roleDifficultyLevels.sender = preTourDifficultyLevel;
-        guidedSnapshotState.roleDifficultyLevels.receiver = preTourDifficultyLevel;
+        guidedSnapshotState.roleDifficultyLevels.sender = guidedReturnDifficultyLevel;
+        guidedSnapshotState.roleDifficultyLevels.receiver = guidedReturnDifficultyLevel;
         guidedSnapshotState.roleDifficultyLevels["remote-viewer"] = normalizeDifficultyLevel(
           guidedSnapshotState.roleDifficultyLevels["remote-viewer"] || readRoleSettings("remote-viewer").difficultyLevel || "1"
         );
         guidedSnapshotState.robotSimulationDifficultyLevels = guidedSnapshotState.robotSimulationDifficultyLevels || {};
-        guidedSnapshotState.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey("receiver", submittedOwnDisplayName)] = preTourDifficultyLevel;
-        guidedSnapshotState.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey("sender", submittedOwnDisplayName)] = preTourDifficultyLevel;
+        guidedSnapshotState.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey("receiver", submittedOwnDisplayName)] = guidedReturnDifficultyLevel;
+        guidedSnapshotState.robotSimulationDifficultyLevels[buildRobotSimulationDifficultyKey("sender", submittedOwnDisplayName)] = guidedReturnDifficultyLevel;
         saveGuidedTourReturnSnapshot(role, {
           launcherState: guidedSnapshotState,
           runtimeSettings: {
             sender: {
               ...readRuntimeSettings("sender"),
-              difficulty_level: preTourDifficultyLevel
+              difficulty_level: guidedReturnDifficultyLevel
             },
             receiver: {
               ...readRuntimeSettings("receiver"),
-              difficulty_level: preTourDifficultyLevel
+              difficulty_level: guidedReturnDifficultyLevel
             },
             "remote-viewer": readRuntimeSettings("remote-viewer")
           },
@@ -16616,11 +16710,13 @@ This is an alternate test message to show now.`;
             ownDisplayName: submittedOwnDisplayName,
             partnerDisplayName: "Robot",
             visitorDisplayName: submittedOwnDisplayName,
-            difficultyLevel: preTourDifficultyLevel
+            difficultyLevel: guidedReturnDifficultyLevel
           },
           lessonReturnTarget: readPendingLearningCenterLessonReturnTarget()
         });
-        endLauncherGuidedTour();
+        if (guidedTourLaunch) {
+          endLauncherGuidedTour();
+        }
         setRoleDifficultyLabel("sender", selectedDifficultyLevel);
         setRoleDifficultyLabel("receiver", selectedDifficultyLevel);
       }
@@ -16630,9 +16726,9 @@ This is an alternate test message to show now.`;
         runtimeMode: robotSimulationPartner
           ? (role === "sender" ? "robot-receiver" : "robot-sender")
           : "",
-        guidedTour: guidedTourLaunch ? activeGuidedTourMode : "",
-        includeConfidence: guidedTourLaunch ? false : undefined,
-        includePositiveReinforcement: guidedTourLaunch ? true : undefined
+        guidedTour: activeGuidedTourMode,
+        includeConfidence: activeGuidedTourMode ? false : undefined,
+        includePositiveReinforcement: activeGuidedTourMode ? true : undefined
       });
       if (!(await prepareLocationForGo(role, { targetUrl }))) {
         return;
@@ -16738,6 +16834,9 @@ This is an alternate test message to show now.`;
     }
 
     rolePanels?.classList.remove("role-panels-single");
+    if (launcherGuidedTourState) {
+      endLauncherGuidedTour();
+    }
     scrollLauncherToTop();
   }
 
@@ -16793,7 +16892,10 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function collapseActiveLauncherCard() {
+  function collapseActiveLauncherCard(options = {}) {
+    if (launcherGuidedTourState && !options.preserveGuidedTour) {
+      endLauncherGuidedTour();
+    }
     let changed = false;
     roleCards.forEach((item) => {
       const role = String(item.dataset.roleCard || "");
@@ -17059,7 +17161,7 @@ This is an alternate test message to show now.`;
       },
       {
         id: "level",
-        text: "The Level control at the upper right allows changing the difficulty of the telepathy task. This tour demonstrates Level 1, the simplest level.",
+        text: "The Level control at the upper right allows changing the difficulty of the telepathy task. This tour begins with Level 1, the simplest level.",
         target: elements.levelStack,
         allowNext: true,
         allowed: [],
@@ -17102,7 +17204,7 @@ This is an alternate test message to show now.`;
     }
     const step = getCurrentLauncherGuidedTourStep();
     if (step?.keepCollapsed) {
-      collapseActiveLauncherCard();
+      collapseActiveLauncherCard({ preserveGuidedTour: true });
       return elements;
     }
     if (!elements.roleCard.classList.contains("active")) {
@@ -17161,7 +17263,7 @@ This is an alternate test message to show now.`;
     guidedTourNextButton.hidden = !step.allowNext;
     guidedTourNextButton.disabled = !!(step.canAdvance && !step.canAdvance());
     if (step.allowNext) {
-      guidedTourNextButton.textContent = "NEXT";
+      guidedTourNextButton.textContent = String(step.nextLabel || "NEXT").trim() || "NEXT";
     }
     alignLauncherGuidedTargetAboveBalloon(step);
     positionLauncherGuidedBalloon(step, elements);
@@ -17233,6 +17335,54 @@ This is an alternate test message to show now.`;
     renderLauncherGuidedTourStep();
   }
 
+  function isLauncherGuidedTourLaunchState(role) {
+    if (!launcherGuidedTourState || role !== launcherGuidedTourState.role) {
+      return false;
+    }
+    const step = getCurrentLauncherGuidedTourStep();
+    return step?.id !== "completion-notice";
+  }
+
+  function startLauncherGuidedCompletionNotice(role) {
+    const elements = getGuideElements(role);
+    if (!elements.roleCard || !elements.roleForm || !elements.partnerInput || !elements.ownInput) {
+      return;
+    }
+    if (
+      launcherGuidedTourState &&
+      getCurrentLauncherGuidedTourStep()?.id === "completion-notice" &&
+      launcherGuidedTourState.role === role
+    ) {
+      return;
+    }
+    ensureCardExpanded(elements.roleCard, { scrollIntoView: false });
+    alignLauncherCardNearTop(elements.roleCard, 24);
+    launcherGuidedTourState = {
+      active: true,
+      role,
+      mode: role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode,
+      stepIndex: 0,
+      steps: [{
+        id: "completion-notice",
+        text: guidedTourCompletionNoticeText,
+        target: elements.emailNote || elements.roleCard,
+        allowNext: false,
+        allowed: [],
+        muteOthers: false,
+        passive: true,
+        placement: "explanation"
+      }],
+      ownInput: elements.ownInput,
+      previousOwnReadOnly: !!elements.ownInput.readOnly,
+      previousOwnValue: elements.ownInput.value,
+      previousOwnTitle: elements.ownInput.title,
+      partnerInput: elements.partnerInput,
+      previousPartnerReadOnly: !!elements.partnerInput.readOnly
+    };
+    updatePendingLearningCenterLessonReturnButtons();
+    renderLauncherGuidedTourStep();
+  }
+
   function startLauncherGuidedTour(role) {
     const initialElements = getGuideElements(role);
     if (!initialElements.roleCard) {
@@ -17280,6 +17430,14 @@ This is an alternate test message to show now.`;
         }
       }, 120);
     });
+  }
+
+  function openStandaloneProbeDeeperView() {
+    const params = new URLSearchParams();
+    params.set("v", launcherBuildVersion);
+    params.set("guided_tour", "receiver-experience");
+    params.set("open_probe", "1");
+    window.location.href = `receiver.html?${params.toString()}`;
   }
 
   let launcherGuidedBalloonDrag = null;
@@ -17351,10 +17509,25 @@ This is an alternate test message to show now.`;
     if (!step || step.id !== "open-card") {
       return;
     }
+    if (step.passive) {
+      return;
+    }
     if (isAllowedLauncherGuidedTarget(step, target)) {
+      logLauncherDirectOpenDebug("guided_pointerdown_allowed", {
+        role: launcherGuidedTourState.role,
+        step_id: step.id,
+        tag: target.tagName,
+        text: String(target.textContent || "").trim().slice(0, 80)
+      });
       return;
     }
     if (isLauncherInteractiveTarget(target)) {
+      logLauncherDirectOpenDebug("guided_pointerdown_cancelled", {
+        role: launcherGuidedTourState.role,
+        step_id: step.id,
+        tag: target.tagName,
+        text: String(target.textContent || "").trim().slice(0, 80)
+      });
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -17378,7 +17551,16 @@ This is an alternate test message to show now.`;
     if (!step) {
       return;
     }
+    if (step.passive) {
+      return;
+    }
     if (isAllowedLauncherGuidedTarget(step, target)) {
+      logLauncherDirectOpenDebug("guided_click_allowed", {
+        role: launcherGuidedTourState.role,
+        step_id: step.id,
+        tag: target.tagName,
+        text: String(target.textContent || "").trim().slice(0, 80)
+      });
       return;
     }
     const elements = getGuideElements(launcherGuidedTourState.role);
@@ -17393,6 +17575,12 @@ This is an alternate test message to show now.`;
         || !!target.closest("[data-role-card], .role-card-toggle, .beginner-top-row, .beginner-top-button")
       )
     ) {
+      logLauncherDirectOpenDebug("guided_click_cancelled_open_card", {
+        role: launcherGuidedTourState.role,
+        step_id: step.id,
+        tag: target.tagName,
+        text: String(target.textContent || "").trim().slice(0, 80)
+      });
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -17400,6 +17588,13 @@ This is an alternate test message to show now.`;
       return;
     }
     if (insideActiveRoleCard || isLauncherInteractiveTarget(target)) {
+      logLauncherDirectOpenDebug("guided_click_blocked_with_hint", {
+        role: launcherGuidedTourState.role,
+        step_id: step.id,
+        tag: target.tagName,
+        text: String(target.textContent || "").trim().slice(0, 80),
+        inside_active_role_card: insideActiveRoleCard
+      });
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -17569,6 +17764,9 @@ This is an alternate test message to show now.`;
   }
 
   function showLauncherView() {
+    if (launcherGuidedTourState) {
+      endLauncherGuidedTour();
+    }
     activeDifficultyContext = null;
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -19102,6 +19300,22 @@ This is an alternate test message to show now.`;
         return;
       case "guided-sender-tour":
         startLauncherGuidedTour("sender");
+        return;
+      case "key-concepts":
+        showLearningCenterView({ view: "learning-center", tab: "key-concepts" });
+        window.setTimeout(() => {
+          window.scrollTo({ top: getLearningCenterTabsTopScrollY(), behavior: "smooth" });
+        }, 0);
+        return;
+      case "course-page-4":
+        showLearningCenterView({ view: "learning-center", tab: "course" });
+        renderLearningCenterCoursePage(4);
+        window.setTimeout(() => {
+          window.scrollTo({ top: getLearningCenterTabsTopScrollY(), behavior: "smooth" });
+        }, 0);
+        return;
+      case "probe-deeper":
+        openStandaloneProbeDeeperView();
         return;
       case "baseline":
         showLearningCenterView({ view: "learning-center", tab: "course" });
@@ -24075,6 +24289,8 @@ This is an alternate test message to show now.`;
         const requestedPartnerIdentifier = String(params.get("partner_email") || "").trim();
         const requestedVisitorDisplayName = String(params.get("visitor_display_name") || "").trim();
         const directOpen = params.get("direct_open") === "1";
+        const guidedTourCompleted = params.get("guided_tour_complete") === "1";
+        const requestedGuidedTourContinuationMode = String(params.get("guided_tour_continue") || "").trim().toLowerCase();
       const stripeReturnState = String(params.get("stripe") || "").trim().toLowerCase();
       const requestedReportReceiver = String(params.get("report_receiver") || "").trim();
       const requestedReportSender = String(params.get("report_sender") || "").trim();
@@ -24086,12 +24302,27 @@ This is an alternate test message to show now.`;
         logLauncherDirectOpenDebug("apply_request_start", {
           requestedView,
           directOpen,
+          guided_tour_completed: guidedTourCompleted,
+          requested_guided_tour_continuation_mode: requestedGuidedTourContinuationMode,
           href: String(window.location.href || "").trim()
         });
         let launcherState = clearStaleDeviceTestModeArtifactsIfNeeded(readLauncherState());
         launcherState = await sanitizeRecognizedIdentityForLauncherEntry(launcherState);
+        persistPendingGuidedTourContinuationMode(requestedGuidedTourContinuationMode);
+        if (requestedGuidedTourContinuationMode) {
+          launcherState.pendingGuidedTourContinuationMode = requestedGuidedTourContinuationMode;
+        } else {
+          delete launcherState.pendingGuidedTourContinuationMode;
+        }
+        pendingGuidedTourCompletionNoticeRole = guidedTourCompleted && ["sender", "receiver"].includes(requestedView)
+          ? requestedView
+          : "";
         logLauncherUserTypeDebug("apply_launcher_open_request", {
           requestedView,
+          guidedTourCompleted,
+          requestedGuidedTourContinuationMode,
+          pendingGuidedTourContinuationMode: readPendingGuidedTourContinuationMode(),
+          pendingGuidedTourCompletionNoticeRole,
           recognizedIdentity: String(launcherState?.recognizedIdentity || "").trim(),
           entryMode: String(launcherState?.entryMode || "").trim(),
           deviceTestMode: cloneJsonValue(launcherState?.deviceTestMode || null, null),
@@ -24310,6 +24541,9 @@ This is an alternate test message to show now.`;
                     scrollY: Number(window.scrollY || 0)
                   });
                   finishDirectLauncherOpen(0);
+                  if (guidedTourCompleted && ["sender", "receiver"].includes(requestedView)) {
+                    scheduleGuidedTourCompletionNotice(requestedView);
+                  }
                 }
               }, 80);
             });
@@ -28198,6 +28432,7 @@ This is an alternate test message to show now.`;
     }
   }
 })();
+
 
 
 
