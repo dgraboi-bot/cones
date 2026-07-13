@@ -197,6 +197,7 @@
   const roleCardInlineBackButtons = Array.from(document.querySelectorAll("[data-collapse-role-card]"));
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
+  const probeDeeperReturnKey = "cones-probe-deeper-return-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const learningCenterConceptContent = {
     "concept-telepathy": {
@@ -17432,11 +17433,53 @@ This is an alternate test message to show now.`;
     });
   }
 
-  function openStandaloneProbeDeeperView() {
+  function saveProbeDeeperReturnTarget(target = null) {
+    try {
+      if (!target || typeof target !== "object") {
+        window.sessionStorage?.removeItem(probeDeeperReturnKey);
+        return;
+      }
+      window.sessionStorage?.setItem(probeDeeperReturnKey, JSON.stringify(target));
+    } catch (error) {}
+  }
+
+  function readProbeDeeperReturnTarget() {
+    try {
+      const raw = window.sessionStorage?.getItem(probeDeeperReturnKey);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function clearProbeDeeperReturnTarget() {
+    try {
+      window.sessionStorage?.removeItem(probeDeeperReturnKey);
+    } catch (error) {}
+  }
+
+  function openStandaloneProbeDeeperView(options = {}) {
+    const normalizedReturnTarget = String(options.returnTarget || "").trim().toLowerCase();
+    if (normalizedReturnTarget === "quick-links") {
+      saveProbeDeeperReturnTarget({
+        target: "quick-links",
+        view: "learning-center",
+        tab: "start-here",
+        scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
+      });
+    } else {
+      clearProbeDeeperReturnTarget();
+    }
     const params = new URLSearchParams();
     params.set("v", launcherBuildVersion);
-    params.set("guided_tour", "receiver-experience");
     params.set("open_probe", "1");
+    if (normalizedReturnTarget) {
+      params.set("probe_return", normalizedReturnTarget);
+    }
     window.location.href = `receiver.html?${params.toString()}`;
   }
 
@@ -19315,7 +19358,7 @@ This is an alternate test message to show now.`;
         }, 0);
         return;
       case "probe-deeper":
-        openStandaloneProbeDeeperView();
+        openStandaloneProbeDeeperView({ returnTarget: "quick-links" });
         return;
       case "baseline":
         showLearningCenterView({ view: "learning-center", tab: "course" });
@@ -24415,6 +24458,18 @@ This is an alternate test message to show now.`;
       }
       if (requestedView === "after-first-session-questions") {
         showAfterFirstSessionQuestionsView({ view: "online-course" });
+        return;
+      }
+      if (requestedView === "probe-return") {
+        const probeReturnTarget = readProbeDeeperReturnTarget();
+        clearProbeDeeperReturnTarget();
+        showLearningCenterView({
+          view: String(probeReturnTarget?.view || "learning-center").trim() || "learning-center",
+          tab: String(probeReturnTarget?.tab || "start-here").trim() || "start-here",
+          scrollY: Number.isFinite(Number(probeReturnTarget?.scrollY))
+            ? Math.max(0, Number(probeReturnTarget.scrollY))
+            : getLearningCenterTabsTopScrollY()
+        });
         return;
       }
       if (stripeReturnState === "success") {

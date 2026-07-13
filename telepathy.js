@@ -64,6 +64,7 @@
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
+  const probeDeeperReturnKey = "cones-probe-deeper-return-v1";
   let guidedStandaloneProbeTopicId = "";
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
@@ -72,6 +73,7 @@
   const requestedIncludePositiveReinforcement = runtimeQuery.has("include_positive_reinforcement")
     ? String(runtimeQuery.get("include_positive_reinforcement") || "").trim() === "1"
     : null;
+  const probeReturnTarget = String(runtimeQuery.get("probe_return") || "").trim().toLowerCase();
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   let runtimePrefillSettingsOverride = null;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
@@ -1033,9 +1035,12 @@
       return;
     }
     if (openProbeStandalone) {
-      if (window.history.length > 1) {
+      if (probeReturnTarget === "quick-links") {
+        navigateToBeginnerFrontPage({ open: "probe-return", directOpen: false });
+      } else if (window.history.length > 1) {
         window.history.back();
       } else {
+        clearProbeDeeperReturnTarget();
         navigateToBeginnerFrontPage({ open: "learning-center", directOpen: false });
       }
       return;
@@ -3416,6 +3421,12 @@
       return_url: returnUrl
     });
     window.location.href = returnUrl;
+  }
+
+  function clearProbeDeeperReturnTarget() {
+    try {
+      window.sessionStorage?.removeItem(probeDeeperReturnKey);
+    } catch (error) {}
   }
 
   function hasPendingLearningCenterLessonReturnTarget() {
