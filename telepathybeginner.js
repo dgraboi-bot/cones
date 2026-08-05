@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260713j";
+  const launcherBuildVersion = "20260714b";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -716,6 +716,15 @@
   const espLessonDetailBody = document.querySelector("[data-esp-lesson-detail-body]");
   const espLessonDetailStatus = document.querySelector("[data-esp-lesson-detail-status]");
   const lessonImageAssetMap = Object.freeze({
+    performancereport: "assets/lesson-images/PerformanceReports.jpg",
+    performancereports: "assets/lesson-images/PerformanceReports.jpg",
+    performancereportcloseup: "assets/lesson-images/PerformanceReportsCloseup.jpg",
+    performancereportscloseup: "assets/lesson-images/PerformanceReportsCloseup.jpg",
+    rawdatareport: "assets/lesson-images/RawDataReport.jpg",
+    visualizationreportpage1: "assets/lesson-images/VisualizationReportPage1.jpg",
+    visualizationreportpage2: "assets/lesson-images/VisualizationReportPage2.jpg",
+    chooseuniquename: "assets/lesson-images/ChooseUniqueName.jpg",
+    mainmenu: "assets/lesson-images/MainMenu.jpg"
   });
   const installGuideEnvironment = document.querySelector("[data-install-guide-environment]");
   const installGuideStatus = document.querySelector("[data-install-guide-status]");
@@ -977,6 +986,7 @@
   let lastKnownLauncherScrollY = 0;
   let activeEspLessonRole = "";
   let activeEspLessonReturnScrollY = 0;
+  let lessonImageOverlayReturnTarget = null;
   const roleLessonFadeTimers = new Map();
   const roleLessonFadeTokens = new Map();
   const roleLessonFadeDurationMs = 3150;
@@ -5687,8 +5697,8 @@ This is an alternate test message to show now.`;
     return /^[a-z0-9][a-z0-9._-]{0,120}$/i.test(assetId) ? assetId : "";
   }
 
-  function resolveLessonImageAssetUrl(assetId) {
-    const rawAssetId = String(assetId || "").trim();
+  function resolveLessonImageAssetUrl(assetId, rawAssetIdOverride = "") {
+    const rawAssetId = String(rawAssetIdOverride || assetId || "").trim();
     const normalized = normalizeLessonImageAssetId(rawAssetId);
     if (!normalized || !rawAssetId) {
       return "";
@@ -5709,7 +5719,8 @@ This is an alternate test message to show now.`;
     if (!match) {
       return null;
     }
-    const assetId = normalizeLessonImageAssetId(match[1]);
+    const rawAssetId = String(match[1] || "").trim();
+    const assetId = normalizeLessonImageAssetId(rawAssetId);
     const attributeSource = String(match[2] || "");
     const attributes = {};
     attributeSource.replace(/([a-z]+)=("([^"]*)"|'([^']*)'|([^\s\]]+))/gi, (full, key, rawValue, doubleQuoted, singleQuoted, bareValue) => {
@@ -5727,7 +5738,7 @@ This is an alternate test message to show now.`;
       ? Math.max(0, Math.min(90, Number.parseInt(attributes.left || "0", 10) || 0))
       : null;
     const caption = String(attributes.caption || "").trim();
-    const src = resolveLessonImageAssetUrl(assetId);
+    const src = resolveLessonImageAssetUrl(assetId, rawAssetId);
     return src
       ? {
           assetId,
@@ -5922,6 +5933,12 @@ This is an alternate test message to show now.`;
     }
     const caption = String(options.caption || "").trim();
     const altText = String(options.alt || "").trim();
+    const scrollContainer = getEspLessonDetailScrollContainer();
+    lessonImageOverlayReturnTarget = {
+      triggerButton: options.triggerButton instanceof HTMLElement ? options.triggerButton : null,
+      lessonScrollY: scrollContainer instanceof HTMLElement ? Math.max(0, Number(scrollContainer.scrollTop || 0) || 0) : 0,
+      windowScrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    };
     lessonImageOverlayImage.src = safeUrl;
     lessonImageOverlayImage.alt = altText || caption || "Lesson image";
     if (lessonImageOverlayCaption) {
@@ -5939,6 +5956,8 @@ This is an alternate test message to show now.`;
     if (!lessonImageOverlay || !lessonImageOverlayImage) {
       return;
     }
+    const returnTarget = lessonImageOverlayReturnTarget;
+    lessonImageOverlayReturnTarget = null;
     lessonImageOverlay.classList.add("beginner-view-hidden");
     lessonImageOverlayImage.removeAttribute("src");
     lessonImageOverlayImage.alt = "";
@@ -5947,6 +5966,17 @@ This is an alternate test message to show now.`;
       lessonImageOverlayCaption.hidden = true;
     }
     document.body.classList.remove("lesson-image-overlay-open");
+    window.requestAnimationFrame(() => {
+      const scrollContainer = getEspLessonDetailScrollContainer();
+      if (scrollContainer instanceof HTMLElement && Number.isFinite(Number(returnTarget?.lessonScrollY))) {
+        scrollContainer.scrollTop = Math.max(0, Number(returnTarget.lessonScrollY) || 0);
+      } else if (Number.isFinite(Number(returnTarget?.windowScrollY))) {
+        window.scrollTo({ top: Math.max(0, Number(returnTarget.windowScrollY) || 0), behavior: "auto" });
+      }
+      if (returnTarget?.triggerButton instanceof HTMLElement) {
+        returnTarget.triggerButton.focus({ preventScroll: true });
+      }
+    });
   }
 
   function updateLearnMorePreview(previewElement, value) {
@@ -26245,7 +26275,8 @@ This is an alternate test message to show now.`;
       event.stopPropagation();
       openLessonImageOverlay(lessonImageButton.dataset.lessonImageSrc || "", {
         caption: lessonImageButton.dataset.lessonImageCaption || "",
-        alt: lessonImageButton.dataset.lessonImageAlt || ""
+        alt: lessonImageButton.dataset.lessonImageAlt || "",
+        triggerButton: lessonImageButton
       });
       return;
     }

@@ -3671,9 +3671,24 @@ function get_demo_pair_seed_definitions(): array
         ];
     };
 
-    $buildRecords = static function (string $receiverName, string $senderName, array $entries) use ($baseRecord): array {
+    $injectDemoSeconds = static function (string $roundId, string $localTime, string $utcTime): array {
+        static $secondPattern = [17, 42, 9, 31, 54, 26, 38, 13, 47, 21, 35, 58, 12, 44, 19, 51, 28, 7, 33, 46, 15, 40, 24, 56];
+        $digits = preg_replace('/\D+/', '', $roundId);
+        $patternIndex = $digits === '' ? 0 : (((int) $digits) - 1) % count($secondPattern);
+        $seconds = str_pad((string) $secondPattern[$patternIndex], 2, '0', STR_PAD_LEFT);
+        $localAdjusted = preg_match('/:\d{2}\s(?:AM|PM)$/', $localTime)
+            ? preg_replace('/:(\d{2})(\s(?:AM|PM))$/', ':' . $seconds . '$2', $localTime)
+            : $localTime;
+        $utcAdjusted = preg_match('/:\d{2}Z$/', $utcTime)
+            ? preg_replace('/:(\d{2})Z$/', ':' . $seconds . 'Z', $utcTime)
+            : $utcTime;
+        return [$localAdjusted, $utcAdjusted];
+    };
+
+    $buildRecords = static function (string $receiverName, string $senderName, array $entries) use ($baseRecord, $injectDemoSeconds): array {
         $records = [];
         foreach ($entries as [$roundId, $localDate, $localTime, $utcTime, $sentLayout, $difficulty, $choiceOne, $confidence, $doneRt]) {
+            [$localTime, $utcTime] = $injectDemoSeconds($roundId, $localTime, $utcTime);
             $record = $baseRecord($roundId, $receiverName, $senderName, $localDate, $localTime, $utcTime);
             $record['sent layout'] = (string) $sentLayout;
             $record['difficulty level'] = (string) $difficulty;
