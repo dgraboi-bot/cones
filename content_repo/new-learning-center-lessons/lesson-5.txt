@@ -87,7 +87,7 @@ Telepathy Beginner unlocks two types of reports - a Raw Data report where every 
 Performance Reports Landing Page (Tap to enlarge)
 
 
-[image:PerformanceReportsCloseup width=100 left=0 caption="Performance Reports Landing Page"]
+[image:PerformanceReportsCloseup width=70 left=15 caption="Performance Reports Landing Page"]
 
 
 The Raw Data report looks like this (tap to enlarge):
