@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260806a";
+  const launcherBuildVersion = "20260806b";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -148,6 +148,7 @@
   const openUserCommentsListButton = document.querySelector("[data-open-user-comments-list]");
   const openGoProButton = document.querySelector("[data-open-go-pro]");
   const openGoProIncludesButton = document.querySelector("[data-open-go-pro-includes]");
+  const openGoProIncludesFromSubscriptionButton = document.querySelector("[data-open-go-pro-includes-from-subscription]");
   const openVisitorProFeatureButtons = Array.from(document.querySelectorAll("[data-open-visitor-pro-features]"));
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
@@ -585,6 +586,7 @@
   let goProReturnRole = "";
   let goProReturnScrollY = 0;
   let goProIncludesReturnView = "go-pro";
+  let goProIncludesReturnScrollY = 0;
   let launcherGuestEntryActive = false;
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
@@ -23442,27 +23444,8 @@ This is an alternate test message to show now.`;
   }
 
   async function handleLandingExploreClick() {
-    if (!temporaryHomePageExploreButton) {
-      return;
-    }
-    if (shouldResumeRecognizedLandingIdentity()) {
-      window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
-      return;
-    }
-    temporaryHomePageExploreButton.disabled = true;
-    temporaryHomePageExploreButton.textContent = "Preparing...";
-    try {
-      const data = await fetchPublicTrialModeState();
-      if (!!data?.trial_mode_public_enabled) {
-        resetTemporaryHomeExploreButton();
-        openExploreProOverlay();
-        return;
-      }
-      startVisitorLandingEntry();
-    } catch (error) {
-      resetTemporaryHomeExploreButton();
-      setTemporaryHomeInvitationStatus(error instanceof Error ? error.message : "Unable to open that experience right now.", { isError: true });
-    }
+    goProIncludesReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+    showGoProIncludesView("temporary-home-page");
   }
 
   async function resolveLandingExploreEntry() {
@@ -25293,6 +25276,7 @@ This is an alternate test message to show now.`;
     renderSubscriptionManagementState();
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
+    goProIncludesView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.remove("beginner-view-hidden");
     giftProSubscriptionView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -25379,6 +25363,13 @@ This is an alternate test message to show now.`;
   }
 
   function closeGoProIncludesView() {
+    if (goProIncludesReturnView === "temporary-home-page") {
+      showTemporaryHomePageView();
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: goProIncludesReturnScrollY, left: 0, behavior: "auto" });
+      });
+      return;
+    }
     if (goProIncludesReturnView === "subscription-management") {
       showSubscriptionManagementView();
       return;
@@ -26890,7 +26881,10 @@ This is an alternate test message to show now.`;
     showGoProView("subscription-management");
   });
   openGoProIncludesButton?.addEventListener("click", () => {
-    showGoProIncludesView("go-pro");
+    showGoProIncludesView("subscription-management");
+  });
+  openGoProIncludesFromSubscriptionButton?.addEventListener("click", () => {
+    showGoProIncludesView("subscription-management");
   });
   openVisitorProFeatureButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
