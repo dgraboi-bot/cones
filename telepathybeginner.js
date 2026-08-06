@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260806d";
+  const launcherBuildVersion = "20260806e";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -13241,7 +13241,7 @@ This is an alternate test message to show now.`;
     };
   }
 
-  function getProjectedHighlyPersuasiveTrialCount(summaryStats) {
+  function getProjectedHighlyPersuasiveResult(summaryStats) {
     const totalTrials = Number(summaryStats?.totalTrials || 0);
     const averages = getProjectionPerTrialAverages(summaryStats);
     if (!averages || totalTrials < 1) {
@@ -13257,7 +13257,10 @@ This is an alternate test message to show now.`;
       };
       const projectedPValue = getTelepathicSignificancePValue(projectedSummary);
       if (isHighlyPersuasiveResult(projectedTrials, projectedPValue)) {
-        return projectedTrials;
+        return {
+          trialCount: projectedTrials,
+          pValue: projectedPValue
+        };
       }
     }
     return null;
@@ -13276,12 +13279,12 @@ This is an alternate test message to show now.`;
     }
 
     if (pValue < highlyPersuasivePThreshold && totalTrials < highlyPersuasiveMinimumTrials) {
-      return `Projection: If performance remains at approximately this level, the result would enter the highly persuasive range at ${highlyPersuasiveMinimumTrials} completed scored trials.`;
+      return `Projection: If performance remains at approximately this level, the result would enter the highly persuasive range at ${highlyPersuasiveMinimumTrials} completed scored trials, P < ${formatProbabilityValue(highlyPersuasivePThreshold)}.`;
     }
 
-    const projectedTrialCount = getProjectedHighlyPersuasiveTrialCount(summaryStats);
-    if (Number.isFinite(projectedTrialCount)) {
-      return `Projection: If performance continued at approximately this same level, the result would become highly persuasive at about ${projectedTrialCount} completed scored trials.`;
+    const projectedResult = getProjectedHighlyPersuasiveResult(summaryStats);
+    if (projectedResult && Number.isFinite(projectedResult.trialCount)) {
+      return `Projection: If performance continued at approximately this same level, the result would become highly persuasive at about ${projectedResult.trialCount} completed scored trials, P < ${formatProbabilityValue(projectedResult.pValue)}.`;
     }
 
     return "Projection: At the current level of performance, the data do not yet project a clear path to the highly persuasive range.";
@@ -13496,7 +13499,7 @@ This is an alternate test message to show now.`;
     const sampleBand = getSampleStrengthBand(trialCount);
 
     if (sampleBand === "too-small") {
-      return `Too few completed ${levelDisplayName} trials are available to interpret.`;
+      return `Conclusion: Too few completed ${levelDisplayName} trials are available to interpret.`;
     }
     if (sampleBand === "modest") {
       if (band === "strong") {
@@ -13584,7 +13587,7 @@ This is an alternate test message to show now.`;
       const levelName = `Level ${makeup.dominantLevel}`;
       const sampleBand = getSampleStrengthBand(totalTrials);
       if (sampleBand === "too-small") {
-        return `This report is dominated by ${levelName} trials, but there are still too few completed scored trials for a meaningful overall interpretation.`;
+        return `Given the performance in these ${totalTrials} trials, there are still too few completed scored trials for a meaningful overall interpretation.`;
       }
       if (sampleBand === "modest") {
         if (band === "strong") {
