@@ -427,6 +427,115 @@ body {
   align-self: flex-start;
 }
 
+.telepathy-difficulty-guide-panel {
+  width: min(100%, 860px);
+}
+
+.telepathy-difficulty-level-section {
+  display: grid;
+  gap: 16px;
+}
+
+.telepathy-difficulty-example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.telepathy-difficulty-example-grid-two {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.telepathy-difficulty-example-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(112, 168, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(61, 114, 204, 0.14), rgba(16, 28, 59, 0.6)),
+    rgba(255, 255, 255, 0.03);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 16px 28px rgba(0, 0, 0, 0.2);
+}
+
+.telepathy-difficulty-example-label {
+  margin: 0;
+  color: rgba(245, 238, 230, 0.92);
+  font-size: 0.94rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.telepathy-difficulty-cone-display {
+  min-height: 96px;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+}
+
+.telepathy-difficulty-cone-display-horizontal,
+.telepathy-difficulty-cone-display-horizontal-two {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+}
+
+.telepathy-difficulty-cone-display-vertical {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+}
+
+.telepathy-difficulty-cone-display-diagonal-up {
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  align-items: end;
+  justify-content: center;
+  gap: 8px;
+}
+
+.telepathy-difficulty-cone-display-diagonal-up .telepathy-difficulty-cone:nth-child(1) {
+  transform: translateY(14px);
+}
+
+.telepathy-difficulty-cone-display-diagonal-up .telepathy-difficulty-cone:nth-child(2) {
+  transform: translateY(0);
+}
+
+.telepathy-difficulty-cone-display-diagonal-up .telepathy-difficulty-cone:nth-child(3) {
+  transform: translateY(-14px);
+}
+
+.telepathy-difficulty-cone {
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 24px solid rgba(255, 139, 41, 0.98);
+  filter:
+    drop-shadow(0 3px 4px rgba(0, 0, 0, 0.28))
+    drop-shadow(0 0 8px rgba(255, 139, 41, 0.2));
+}
+
+.telepathy-difficulty-image-sample {
+  display: flex;
+  justify-content: center;
+}
+
+.telepathy-difficulty-image-preview {
+  display: block;
+  width: min(100%, 360px);
+  border-radius: 22px;
+  border: 1px solid rgba(112, 168, 255, 0.28);
+  box-shadow:
+    0 20px 36px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 .reading-list-link,
 .reading-list-link:visited {
   color: rgba(246, 248, 252, 0.96);
@@ -4131,7 +4240,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.png?v=20260806b") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.png?v=20260806c") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
