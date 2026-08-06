@@ -3736,6 +3736,28 @@ function get_demo_pair_seed_definitions(): array
             ])
         ],
         [
+            'receiver_name' => 'demo.level1.promising16.receiver',
+            'sender_name' => 'demo.level1.promising16.sender',
+            'records' => $buildRecords('demo.level1.promising16.receiver', 'demo.level1.promising16.sender', [
+                ['lvl1prom160001', '7/7/2026', '11:00:00 AM', '2026-07-07T18:00:00Z', '1', '1', '1', '74', '4200'],
+                ['lvl1prom160002', '7/7/2026', '11:02:00 AM', '2026-07-07T18:02:00Z', '6', '1', '3', '78', '4380'],
+                ['lvl1prom160003', '7/7/2026', '11:04:00 AM', '2026-07-07T18:04:00Z', '7', '1', '1', '36', '4560'],
+                ['lvl1prom160004', '7/7/2026', '11:06:00 AM', '2026-07-07T18:06:00Z', '8', '1', '3', '73', '4740'],
+                ['lvl1prom160005', '7/7/2026', '11:08:00 AM', '2026-07-07T18:08:00Z', '1', '1', '3', '44', '4920'],
+                ['lvl1prom160006', '7/7/2026', '11:10:00 AM', '2026-07-07T18:10:00Z', '9', '1', '3', '77', '5100'],
+                ['lvl1prom160007', '7/7/2026', '11:12:00 AM', '2026-07-07T18:12:00Z', '6', '1', '3', '72', '5280'],
+                ['lvl1prom160008', '7/7/2026', '11:14:00 AM', '2026-07-07T18:14:00Z', '1', '1', '1', '75', '5460'],
+                ['lvl1prom160009', '7/7/2026', '11:16:00 AM', '2026-07-07T18:16:00Z', '7', '1', '3', '76', '5640'],
+                ['lvl1prom160010', '7/7/2026', '11:18:00 AM', '2026-07-07T18:18:00Z', '8', '1', '1', '39', '5820'],
+                ['lvl1prom160011', '7/7/2026', '11:20:00 AM', '2026-07-07T18:20:00Z', '1', '1', '3', '46', '6000'],
+                ['lvl1prom160012', '7/7/2026', '11:22:00 AM', '2026-07-07T18:22:00Z', '9', '1', '3', '79', '6180'],
+                ['lvl1prom160013', '7/7/2026', '11:24:00 AM', '2026-07-07T18:24:00Z', '1', '1', '1', '81', '6360'],
+                ['lvl1prom160014', '7/7/2026', '11:26:00 AM', '2026-07-07T18:26:00Z', '8', '1', '3', '84', '6540'],
+                ['lvl1prom160015', '7/7/2026', '11:28:00 AM', '2026-07-07T18:28:00Z', '6', '1', '1', '43', '6720'],
+                ['lvl1prom160016', '7/7/2026', '11:30:00 AM', '2026-07-07T18:30:00Z', '1', '1', '1', '82', '6900']
+            ])
+        ],
+        [
             'receiver_name' => 'demo.level1.not-telepathic.receiver',
             'sender_name' => 'demo.level1.not-telepathic.sender',
             'records' => $buildRecords('demo.level1.not-telepathic.receiver', 'demo.level1.not-telepathic.sender', [
@@ -3853,6 +3875,7 @@ function ensure_demo_pair_records(string $pairsDir, bool $force = false): void
         ['receiver_name' => 'demo.mixed.level12.receiver@espgym.com', 'sender_name' => 'demo.mixed.level12.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.too-little.receiver@espgym.com', 'sender_name' => 'demo.level1.too-little.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.promising.receiver@espgym.com', 'sender_name' => 'demo.level1.promising.sender@espgym.com'],
+        ['receiver_name' => 'demo.level1.promising16.receiver@espgym.com', 'sender_name' => 'demo.level1.promising16.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.not-telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.not-telepathic.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.telepathic.sender@espgym.com'],
         ['receiver_name' => 'demo.mixed.level123.receiver@espgym.com', 'sender_name' => 'demo.mixed.level123.sender@espgym.com']
@@ -4301,6 +4324,7 @@ function is_demo_report_pair(string $receiverName, string $senderName): bool
     static $demoPairs = [
         'demo.level1.too-little.receiver|||demo.level1.too-little.sender' => true,
         'demo.level1.promising.receiver|||demo.level1.promising.sender' => true,
+        'demo.level1.promising16.receiver|||demo.level1.promising16.sender' => true,
         'demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender' => true,
         'demo.level1.telepathic.receiver|||demo.level1.telepathic.sender' => true,
         'demo.mixed.level123.receiver|||demo.mixed.level123.sender' => true

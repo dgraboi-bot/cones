@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260806c";
+  const launcherBuildVersion = "20260806d";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -1032,6 +1032,7 @@
   const demoReportPairKeys = new Set([
     "demo.level1.too-little.receiver|||demo.level1.too-little.sender",
     "demo.level1.promising.receiver|||demo.level1.promising.sender",
+    "demo.level1.promising16.receiver|||demo.level1.promising16.sender",
     "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender",
     "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender",
     "demo.mixed.level123.receiver|||demo.mixed.level123.sender"
@@ -1039,6 +1040,7 @@
   const demoReportPairOrder = new Map([
     ["demo.level1.too-little.receiver|||demo.level1.too-little.sender", 10],
     ["demo.level1.promising.receiver|||demo.level1.promising.sender", 12],
+    ["demo.level1.promising16.receiver|||demo.level1.promising16.sender", 16],
     ["demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender", 24],
     ["demo.level1.telepathic.receiver|||demo.level1.telepathic.sender", 30],
     ["demo.mixed.level123.receiver|||demo.mixed.level123.sender", 40]
