@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260806e";
+  const launcherBuildVersion = "20260806f";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -12753,6 +12753,29 @@ This is an alternate test message to show now.`;
     return fixedText;
   }
 
+  function formatProbabilityValueSignificant(value, significantFigures = 3) {
+    if (!Number.isFinite(value)) {
+      return "unknown";
+    }
+    if (value === 0) {
+      return "< .000000000001";
+    }
+    if (value < 1) {
+      const precision = Math.max(1, Number(significantFigures || 3));
+      const exponential = value.toExponential(precision - 1);
+      const [mantissaText, exponentText] = exponential.split("e");
+      const exponent = Number(exponentText);
+      if (Number.isFinite(exponent) && exponent < 0) {
+        const digits = mantissaText.replace(".", "");
+        const zeroCount = Math.max(0, Math.abs(exponent) - 1);
+        const neededDigits = Math.max(precision, digits.length);
+        const paddedDigits = digits.padEnd(neededDigits, "0");
+        return `.${"0".repeat(zeroCount)}${paddedDigits}`;
+      }
+    }
+    return Number(value).toPrecision(Math.max(1, Number(significantFigures || 3))).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
   function formatProbabilityPercent(value) {
     if (!Number.isFinite(value)) {
       return "unknown";
@@ -13279,12 +13302,12 @@ This is an alternate test message to show now.`;
     }
 
     if (pValue < highlyPersuasivePThreshold && totalTrials < highlyPersuasiveMinimumTrials) {
-      return `Projection: If performance remains at approximately this level, the result would enter the highly persuasive range at ${highlyPersuasiveMinimumTrials} completed scored trials, P < ${formatProbabilityValue(highlyPersuasivePThreshold)}.`;
+      return `Projection: If performance remains at approximately this level, the result would enter the highly persuasive range at ${highlyPersuasiveMinimumTrials} completed scored trials, P < ${formatProbabilityValueSignificant(highlyPersuasivePThreshold, 3)}.`;
     }
 
     const projectedResult = getProjectedHighlyPersuasiveResult(summaryStats);
     if (projectedResult && Number.isFinite(projectedResult.trialCount)) {
-      return `Projection: If performance continued at approximately this same level, the result would become highly persuasive at about ${projectedResult.trialCount} completed scored trials, P < ${formatProbabilityValue(projectedResult.pValue)}.`;
+      return `Projection: If performance continued at approximately this same level, the result would become highly persuasive at about ${projectedResult.trialCount} completed scored trials, P < ${formatProbabilityValueSignificant(projectedResult.pValue, 3)}.`;
     }
 
     return "Projection: At the current level of performance, the data do not yet project a clear path to the highly persuasive range.";
