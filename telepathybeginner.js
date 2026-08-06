@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260806f";
+  const launcherBuildVersion = "20260806g";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -27,6 +27,7 @@
   const optionsView = document.querySelector('[data-view="options"]');
   const temporaryHomePageView = document.querySelector('[data-view="temporary-home-page"]');
   const telepathyDifficultyGuideView = document.querySelector('[data-view="telepathy-difficulty-guide"]');
+  const performanceVisualizationGuideView = document.querySelector('[data-view="performance-visualization-guide"]');
   const helpView = document.querySelector('[data-view="help"]');
   const beginnerUserManualView = document.querySelector('[data-view="beginner-user-manual"]');
   const proUserManualView = document.querySelector('[data-view="pro-user-manual"]');
@@ -534,6 +535,7 @@
   const temporaryHomePageHelpButton = document.querySelector("[data-open-temporary-home-help]");
   const temporaryHomePageResearchButton = document.querySelector("[data-open-research-participation]");
   const openTelepathyDifficultyGuideButtons = Array.from(document.querySelectorAll("[data-open-telepathy-difficulty-guide]"));
+  const openPerformanceVisualizationGuideButtons = Array.from(document.querySelectorAll("[data-open-performance-visualization-guide]"));
   const footerOpenBeginnerLink = document.querySelector("[data-footer-open-beginner]");
   const footerOpenProLink = document.querySelector("[data-footer-open-pro]");
   const footerOpenHelpLink = document.querySelector("[data-footer-open-help]");
@@ -554,6 +556,7 @@
   const closeResearchParticipationProButton = document.querySelector("[data-close-research-participation-pro]");
   const closeResearchProposalButton = document.querySelector("[data-close-research-proposal]");
   const closeTelepathyDifficultyGuideButton = document.querySelector("[data-close-telepathy-difficulty-guide]");
+  const closePerformanceVisualizationGuideButton = document.querySelector("[data-close-performance-visualization-guide]");
   const openResearchInterestFormButton = document.querySelector("[data-open-research-interest-form]");
   const closeResearchInterestFormButton = document.querySelector("[data-close-research-interest-form]");
   const openReportButton = document.querySelector("[data-open-report]");
@@ -591,6 +594,7 @@
   let goProIncludesReturnView = "go-pro";
   let goProIncludesReturnScrollY = 0;
   let telepathyDifficultyGuideReturnScrollY = 0;
+  let performanceVisualizationGuideReturnScrollY = 0;
   let launcherGuestEntryActive = false;
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
@@ -18390,6 +18394,7 @@ This is an alternate test message to show now.`;
     learningCenterView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.remove("beginner-view-hidden");
     telepathyDifficultyGuideView?.classList.add("beginner-view-hidden");
+    performanceVisualizationGuideView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
@@ -18438,6 +18443,7 @@ This is an alternate test message to show now.`;
     learningCenterView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     telepathyDifficultyGuideView?.classList.remove("beginner-view-hidden");
+    performanceVisualizationGuideView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
@@ -18478,6 +18484,56 @@ This is an alternate test message to show now.`;
     showTemporaryHomePageView();
     requestAnimationFrame(() => {
       window.scrollTo({ top: telepathyDifficultyGuideReturnScrollY, left: 0, behavior: "auto" });
+    });
+  }
+
+  function showPerformanceVisualizationGuideView() {
+    performanceVisualizationGuideReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+    clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    telepathyDifficultyGuideView?.classList.add("beginner-view-hidden");
+    performanceVisualizationGuideView?.classList.remove("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    rewireView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    messagesView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closePerformanceVisualizationGuideView() {
+    showTemporaryHomePageView();
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: performanceVisualizationGuideReturnScrollY, left: 0, behavior: "auto" });
     });
   }
 
@@ -27233,6 +27289,7 @@ This is an alternate test message to show now.`;
   });
   closeSubscriptionManagementButton?.addEventListener("click", showOtherSettingsView);
   closeTelepathyDifficultyGuideButton?.addEventListener("click", closeTelepathyDifficultyGuideView);
+  closePerformanceVisualizationGuideButton?.addEventListener("click", closePerformanceVisualizationGuideView);
   closeGiftProSubscriptionButton?.addEventListener("click", showSubscriptionManagementView);
   cancelGiftProSubscriptionButton?.addEventListener("click", showSubscriptionManagementView);
   submitGiftProSubscriptionButton?.addEventListener("click", () => {
@@ -27385,6 +27442,9 @@ This is an alternate test message to show now.`;
   });
   openTelepathyDifficultyGuideButtons.forEach((button) => {
     button.addEventListener("click", showTelepathyDifficultyGuideView);
+  });
+  openPerformanceVisualizationGuideButtons.forEach((button) => {
+    button.addEventListener("click", showPerformanceVisualizationGuideView);
   });
   temporaryHomePageClairvoyanceButton?.addEventListener("click", showClairvoyanceViewingView);
   temporaryHomePageContactButton?.addEventListener("click", () => {

@@ -431,6 +431,10 @@ body {
   width: min(100%, 860px);
 }
 
+.performance-visualization-guide-panel {
+  width: min(100%, 900px);
+}
+
 .telepathy-difficulty-level-section {
   display: grid;
   gap: 16px;
@@ -533,6 +537,22 @@ body {
   border: 1px solid rgba(112, 168, 255, 0.28);
   box-shadow:
     0 20px 36px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.performance-visualization-guide-image-sample {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.performance-visualization-guide-image-preview {
+  display: block;
+  width: min(100%, 760px);
+  border-radius: 22px;
+  border: 1px solid rgba(112, 168, 255, 0.28);
+  box-shadow:
+    0 24px 40px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -4240,7 +4260,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260806f") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260806g") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
