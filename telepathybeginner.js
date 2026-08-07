@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260806g";
+  const launcherBuildVersion = "20260807a";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -83,6 +83,7 @@
   const reportView = document.querySelector('[data-view="report"]');
   const reportPairBanner = document.querySelector("[data-report-pair-banner]");
   const visualizationView = document.querySelector('[data-view="visualization"]');
+  const visualizationAdvancedDetailView = document.querySelector('[data-view="visualization-advanced-detail"]');
   const analyzerView = document.querySelector('[data-view="analyzer"]');
   const difficultyView = document.querySelector('[data-view="difficulty"]');
   const settingsView = document.querySelector('[data-view="settings"]');
@@ -563,6 +564,7 @@
   const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
   const closeReportButton = document.querySelector("[data-close-report]");
   const closeVisualizationButton = document.querySelector("[data-close-visualization]");
+  const closeVisualizationAdvancedDetailButton = document.querySelector("[data-close-visualization-advanced-detail]");
   const closeAnalyzerButton = document.querySelector("[data-close-analyzer]");
   const reportDefinitionStatus = document.querySelector("[data-report-definition-status]");
   const reportPairPicker = document.querySelector("[data-report-pair-picker]");
@@ -607,8 +609,18 @@
   const visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
   const visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
   const visualizationSaveAsButton = document.querySelector("[data-visualization-save-as]");
+  const visualizationAdvancedDetailButton = document.querySelector("[data-open-visualization-advanced-detail]");
   const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
   const visualizationChart = document.querySelector("[data-visualization-chart]");
+  const visualizationAdvancedDetailSummary = document.querySelector("[data-visualization-advanced-detail-summary]");
+  const visualizationAdvancedDetailStatus = document.querySelector("[data-visualization-advanced-detail-status]");
+  const visualizationAdvancedSignificanceOutput = document.querySelector("[data-visualization-advanced-significance-output]");
+  const visualizationAdvancedTrendOutput = document.querySelector("[data-visualization-advanced-trend-output]");
+  const visualizationPracticeGraphBlock = document.querySelector("[data-visualization-practice-graph-block]");
+  const visualizationPracticeGraphTitle = document.querySelector("[data-visualization-practice-graph-title]");
+  const visualizationPracticeGraphLegend = document.querySelector("[data-visualization-practice-graph-legend]");
+  const visualizationPracticeGraph = document.querySelector("[data-visualization-practice-graph]");
+  const visualizationPracticeGraphNote = document.querySelector("[data-visualization-practice-graph-note]");
   const namedReportModal = document.querySelector("[data-named-report-modal]");
   const namedReportTitleInput = document.querySelector("[data-named-report-title-input]");
   const namedReportSourceSummary = document.querySelector("[data-named-report-source-summary]");
@@ -1036,15 +1048,13 @@
   const demoReportPairKeys = new Set([
     "demo.level1.too-little.receiver|||demo.level1.too-little.sender",
     "demo.level1.promising.receiver|||demo.level1.promising.sender",
-    "demo.level1.promising16.receiver|||demo.level1.promising16.sender",
     "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender",
     "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender",
     "demo.mixed.level123.receiver|||demo.mixed.level123.sender"
   ]);
   const demoReportPairOrder = new Map([
     ["demo.level1.too-little.receiver|||demo.level1.too-little.sender", 10],
-    ["demo.level1.promising.receiver|||demo.level1.promising.sender", 12],
-    ["demo.level1.promising16.receiver|||demo.level1.promising16.sender", 16],
+    ["demo.level1.promising.receiver|||demo.level1.promising.sender", 16],
     ["demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender", 24],
     ["demo.level1.telepathic.receiver|||demo.level1.telepathic.sender", 30],
     ["demo.mixed.level123.receiver|||demo.mixed.level123.sender", 40]
@@ -8954,6 +8964,7 @@ This is an alternate test message to show now.`;
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
     afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
@@ -12809,6 +12820,119 @@ This is an alternate test message to show now.`;
     return 0.5 * (1 + approximateErf(value / Math.SQRT2));
   }
 
+  function logGamma(value) {
+    const coefficients = [
+      676.5203681218851,
+      -1259.1392167224028,
+      771.3234287776531,
+      -176.6150291621406,
+      12.507343278686905,
+      -0.13857109526572012,
+      9.984369578019572e-6,
+      1.5056327351493116e-7
+    ];
+    if (value < 0.5) {
+      return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * value)) - logGamma(1 - value);
+    }
+    let x = 0.9999999999998099;
+    const adjusted = value - 1;
+    coefficients.forEach((coefficient, index) => {
+      x += coefficient / (adjusted + index + 1);
+    });
+    const t = adjusted + coefficients.length - 0.5;
+    return 0.5 * Math.log(2 * Math.PI) + (adjusted + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+
+  function evaluateIncompleteBetaContinuedFraction(x, a, b) {
+    const maxIterations = 200;
+    const epsilon = 3e-14;
+    const tiny = 1e-30;
+    let qab = a + b;
+    let qap = a + 1;
+    let qam = a - 1;
+    let c = 1;
+    let d = 1 - (qab * x) / qap;
+    if (Math.abs(d) < tiny) {
+      d = tiny;
+    }
+    d = 1 / d;
+    let h = d;
+    for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
+      const evenStep = iteration * 2;
+      let aa = (iteration * (b - iteration) * x) / ((qam + evenStep) * (a + evenStep));
+      d = 1 + aa * d;
+      if (Math.abs(d) < tiny) {
+        d = tiny;
+      }
+      c = 1 + aa / c;
+      if (Math.abs(c) < tiny) {
+        c = tiny;
+      }
+      d = 1 / d;
+      h *= d * c;
+
+      aa = (-(a + iteration) * (qab + iteration) * x) / ((a + evenStep) * (qap + evenStep));
+      d = 1 + aa * d;
+      if (Math.abs(d) < tiny) {
+        d = tiny;
+      }
+      c = 1 + aa / c;
+      if (Math.abs(c) < tiny) {
+        c = tiny;
+      }
+      d = 1 / d;
+      const delta = d * c;
+      h *= delta;
+      if (Math.abs(delta - 1) < epsilon) {
+        break;
+      }
+    }
+    return h;
+  }
+
+  function regularizedIncompleteBeta(x, a, b) {
+    if (!Number.isFinite(x) || !Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) {
+      return Number.NaN;
+    }
+    if (x <= 0) {
+      return 0;
+    }
+    if (x >= 1) {
+      return 1;
+    }
+
+    const logBetaTerm = logGamma(a + b) - logGamma(a) - logGamma(b) + (a * Math.log(x)) + (b * Math.log(1 - x));
+    const betaFactor = Math.exp(logBetaTerm);
+    if (x < (a + 1) / (a + b + 2)) {
+      return (betaFactor * evaluateIncompleteBetaContinuedFraction(x, a, b)) / a;
+    }
+    return 1 - (betaFactor * evaluateIncompleteBetaContinuedFraction(1 - x, b, a)) / b;
+  }
+
+  function getStudentTUpperTailPValue(tStatistic, degreesFreedom) {
+    const t = Number(tStatistic);
+    const df = Number(degreesFreedom);
+    if (!Number.isFinite(t) || !Number.isFinite(df) || df <= 0) {
+      return Number.NaN;
+    }
+    if (t === 0) {
+      return 0.5;
+    }
+    if (!Number.isFinite(t)) {
+      return t > 0 ? 0 : 1;
+    }
+
+    const x = df / (df + (t * t));
+    const betaValue = regularizedIncompleteBeta(x, df / 2, 0.5);
+    if (!Number.isFinite(betaValue)) {
+      return Number.NaN;
+    }
+    if (t > 0) {
+      return Math.max(0, Math.min(1, 0.5 * betaValue));
+    }
+    return Math.max(0, Math.min(1, 1 - (0.5 * betaValue)));
+  }
+
   function getLevelThreeCountWeight(targetConeCount) {
     if (targetConeCount === 1) {
       return 1;
@@ -13317,6 +13441,179 @@ This is an alternate test message to show now.`;
     return "Projection: At the current level of performance, the data do not yet project a clear path to the highly persuasive range.";
   }
 
+  const practiceTrendSameLevelMinimumTrials = 20;
+  const practiceTrendMixedLevelMinimumTrials = 30;
+
+  function buildPracticeTrendTrialSeries(records) {
+    return getScoredRecords(Array.isArray(records) ? records : []).map((record, index) => {
+      const model = getTrialScoreModel(record);
+      const variance = Number(model.variance);
+      const chanceAdjusted = Number(model.observed) - Number(model.expected);
+      return {
+        index: index + 1,
+        observed: Number(model.observed),
+        expected: Number(model.expected),
+        excess: chanceAdjusted,
+        standardizedExcess: Number.isFinite(variance) && variance > 0
+          ? chanceAdjusted / Math.sqrt(variance)
+          : Number.NaN,
+        level: Number(model.level),
+        record
+      };
+    });
+  }
+
+  function computePracticeTrendRegression(points) {
+    const cleanPoints = (Array.isArray(points) ? points : [])
+      .map((point) => ({
+        x: Number(point?.x),
+        y: Number(point?.y)
+      }))
+      .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+
+    const n = cleanPoints.length;
+    if (n < 2) {
+      return null;
+    }
+
+    const meanX = cleanPoints.reduce((total, point) => total + point.x, 0) / n;
+    const meanY = cleanPoints.reduce((total, point) => total + point.y, 0) / n;
+    const sxx = cleanPoints.reduce((total, point) => total + ((point.x - meanX) ** 2), 0);
+    const syy = cleanPoints.reduce((total, point) => total + ((point.y - meanY) ** 2), 0);
+    if (!(sxx > 0)) {
+      return null;
+    }
+    const sxy = cleanPoints.reduce((total, point) => total + ((point.x - meanX) * (point.y - meanY)), 0);
+    const slope = sxy / sxx;
+    const intercept = meanY - (slope * meanX);
+    const residuals = cleanPoints.map((point) => {
+      const fitted = intercept + (slope * point.x);
+      return {
+        x: point.x,
+        y: point.y,
+        fitted,
+        residual: point.y - fitted
+      };
+    });
+    const residualSumSquares = residuals.reduce((total, point) => total + (point.residual ** 2), 0);
+    const totalSumSquares = cleanPoints.reduce((total, point) => total + ((point.y - meanY) ** 2), 0);
+    const degreesFreedom = n - 2;
+    const residualStandardError = degreesFreedom > 0 ? Math.sqrt(residualSumSquares / degreesFreedom) : Number.NaN;
+    const slopeStandardError = degreesFreedom > 0 && sxx > 0
+      ? Math.sqrt((residualSumSquares / degreesFreedom) / sxx)
+      : Number.NaN;
+    const tStatistic = Number.isFinite(slopeStandardError) && slopeStandardError > 0
+      ? slope / slopeStandardError
+      : (Math.abs(slope) < 1e-12 ? 0 : (slope > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY));
+    const pValue = getStudentTUpperTailPValue(tStatistic, degreesFreedom);
+    const rSquared = totalSumSquares > 0
+      ? Math.max(0, Math.min(1, 1 - (residualSumSquares / totalSumSquares)))
+      : 0;
+
+    return {
+      n,
+      meanX,
+      meanY,
+      sxx,
+      sxy,
+      syy,
+      slope,
+      intercept,
+      residuals,
+      residualSumSquares,
+      totalSumSquares,
+      residualStandardError,
+      slopeStandardError,
+      tStatistic,
+      degreesFreedom,
+      pValue,
+      rSquared
+    };
+  }
+
+  function getPracticeTrendDetail(records, levelBreakdown = null) {
+    const scoredRecords = getScoredRecords(Array.isArray(records) ? records : []);
+    const breakdown = levelBreakdown || buildLevelBreakdown(scoredRecords);
+    const activeLevels = getLevelStatsList(breakdown).filter((entry) => Number(entry.completed_trials || 0) > 0);
+    const mode = activeLevels.length === 1 ? "same-level" : "mixed-level";
+    const minimumTrials = mode === "same-level"
+      ? practiceTrendSameLevelMinimumTrials
+      : practiceTrendMixedLevelMinimumTrials;
+    const fallbackLine = mode === "same-level"
+      ? "Practice trend: more trials are needed before a meaningful practice trend can be estimated."
+      : "Practice trend across mixed levels: more trials are needed before a meaningful practice trend can be estimated.";
+
+    if (scoredRecords.length < minimumTrials) {
+      return {
+        eligible: false,
+        mode,
+        line: fallbackLine,
+        reason: "too few trials",
+        trialCount: scoredRecords.length,
+        activeLevel: activeLevels.length === 1 ? Number(activeLevels[0].level) : null,
+        minimumTrials,
+        title: mode === "same-level" ? "Practice Trend" : "Practice Trend Across Mixed Levels"
+      };
+    }
+
+    const trialSeries = buildPracticeTrendTrialSeries(scoredRecords);
+    const activeLevel = activeLevels.length === 1 ? Number(activeLevels[0].level) : null;
+    const regressionPoints = trialSeries.map((point) => ({
+      x: point.index,
+      y: mode === "same-level" ? point.excess : point.standardizedExcess
+    }));
+    const regression = computePracticeTrendRegression(
+      regressionPoints
+    );
+    if (!regression) {
+      return {
+        eligible: false,
+        mode,
+        line: fallbackLine,
+        reason: "regression unavailable",
+        trialCount: scoredRecords.length,
+        activeLevel,
+        minimumTrials,
+        title: mode === "same-level" ? "Practice Trend" : "Practice Trend Across Mixed Levels"
+      };
+    }
+
+    const prefix = mode === "same-level" ? "Practice trend:" : "Practice trend across mixed levels:";
+    const trialLabel = mode === "same-level"
+      ? `completed scored Level ${activeLevel} trials`
+      : "completed scored trials";
+    let line = "";
+    if (regression.slope > 0 && regression.pValue < 0.05) {
+      line = `${prefix} across these ${regression.n} ${trialLabel}, the fitted line slopes upward, suggesting improvement with practice (one-tailed trend P = ${formatProbabilityValueSignificant(regression.pValue, 3)}, R^2 = ${regression.rSquared.toFixed(3)}).`;
+    } else if (regression.slope > 0.01) {
+      line = `${prefix} across these ${regression.n} ${trialLabel}, the fitted line slopes upward, but not strongly enough yet to count as a reliable practice effect (one-tailed trend P = ${formatProbabilityValueSignificant(regression.pValue, 3)}, R^2 = ${regression.rSquared.toFixed(3)}).`;
+    } else if (regression.slope < -0.01 && regression.pValue < 0.05) {
+      line = `${prefix} across these ${regression.n} ${trialLabel}, no clear upward practice trend is detected; the fitted line slopes downward, suggesting later performance was weaker rather than stronger (one-tailed trend P = ${formatProbabilityValueSignificant(regression.pValue, 3)}, R^2 = ${regression.rSquared.toFixed(3)}).`;
+    } else {
+      line = `${prefix} across these ${regression.n} ${trialLabel}, no clear upward practice trend is detected (one-tailed trend P = ${formatProbabilityValueSignificant(regression.pValue, 3)}, R^2 = ${regression.rSquared.toFixed(3)}).`;
+    }
+
+    return {
+      eligible: true,
+      mode,
+      line,
+      reason: "",
+      trialCount: regression.n,
+      activeLevel,
+      minimumTrials,
+      title: mode === "same-level" ? "Practice Trend" : "Practice Trend Across Mixed Levels",
+      caution: mode === "mixed-level"
+        ? "Because task difficulty changes across levels, this mixed-level practice trend is only an approximate measure of improvement."
+        : "",
+      yDescription: mode === "same-level"
+        ? "per-trial chance-adjusted score = observed score - expected chance score"
+        : "per-trial standardized score = (observed score - expected chance score) / sqrt(trial variance)",
+      trialSeries,
+      regressionPoints,
+      regression
+    };
+  }
+
   function buildReportSummaryLines(summaryStats, levelBreakdown = null) {
     const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
     const telepathicSignificance = significance.pValue;
@@ -13779,10 +14076,11 @@ This is an alternate test message to show now.`;
     return lines;
   }
 
-  function buildInterpretationBundle(summaryStats, levelBreakdown) {
+  function buildInterpretationBundle(summaryStats, levelBreakdown, records = []) {
     const levelStats = getLevelStatsList(levelBreakdown);
     const overallInterpretation = buildOverallInterpretation(summaryStats, levelStats);
     const datasetMakeup = buildDatasetMakeupLine(levelStats, Number(summaryStats?.totalTrials || 0));
+    const practiceTrendDetail = getPracticeTrendDetail(records, levelBreakdown);
     const persuasivenessProjection = buildPersuasivenessProjectionLine(summaryStats, levelBreakdown);
     const levelInterpretations = levelStats
       .filter((entry) => Number(entry.completed_trials || 0) > 0)
@@ -13810,6 +14108,8 @@ This is an alternate test message to show now.`;
     return {
       overall_interpretation: overallInterpretation,
       dataset_makeup: datasetMakeup,
+      practice_trend: practiceTrendDetail.line,
+      practice_trend_detail: practiceTrendDetail,
       persuasiveness_projection: persuasivenessProjection,
       level_interpretations: levelInterpretations,
       pattern_interpretations: patternInterpretations,
@@ -13922,7 +14222,7 @@ This is an alternate test message to show now.`;
             : "testing locations appear fairly stable across the completed trials"
       }
     };
-    const interpretation = buildInterpretationBundle(summaryStats, analysis.metrics.level_breakdown);
+    const interpretation = buildInterpretationBundle(summaryStats, analysis.metrics.level_breakdown, scoredRecords);
     analysis.interpretation = interpretation;
     analysis.messages.headline = interpretation.overall_interpretation;
     analysis.messages.recommendation = interpretation.recommendation;
@@ -13951,6 +14251,7 @@ This is an alternate test message to show now.`;
       "INTERPRETATION",
       `Overall interpretation: ${interpretation.overall_interpretation}`,
       interpretation.dataset_makeup,
+      interpretation.practice_trend,
       `Projection: ${String(interpretation.persuasiveness_projection || "").replace(/^Projection:\s*/i, "")}`,
       ...interpretation.level_interpretations.map((line, index) => `Level note ${index + 1}: ${line}`),
       ...interpretation.pattern_interpretations.map((line, index) => `Pattern note ${index + 1}: ${line}`),
@@ -13976,6 +14277,7 @@ This is an alternate test message to show now.`;
       "STATIC INTERPRETATION",
       interpretation.overall_interpretation,
       interpretation.dataset_makeup,
+      interpretation.practice_trend,
       interpretation.persuasiveness_projection,
       ...interpretation.level_interpretations,
       ...interpretation.pattern_interpretations,
@@ -13998,6 +14300,7 @@ This is an alternate test message to show now.`;
     return [
       `Overall interpretation: ${interpretation.overall_interpretation || messages.headline || "unknown"}`,
       `${interpretation.dataset_makeup || "Dataset makeup: unknown"}`,
+      `${interpretation.practice_trend || "Practice trend: unknown"}`,
       `${interpretation.persuasiveness_projection || "Projection: unknown"}`,
       ...(Array.isArray(interpretation.level_interpretations) && interpretation.level_interpretations.length
         ? ["", "Level-specific interpretation:", ...interpretation.level_interpretations.map((line) => `- ${line}`)]
@@ -14034,7 +14337,7 @@ This is an alternate test message to show now.`;
 
   function buildAiInterpretation(summaryStats, records = []) {
     const levelBreakdown = buildLevelBreakdown(records);
-    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, records);
     if (Number(summaryStats?.totalTrials || 0) < 1) {
       return "Interpretation: There are not enough completed scored trials yet to interpret these results.";
     }
@@ -14406,6 +14709,331 @@ This is an alternate test message to show now.`;
     reportTableWrap.hidden = false;
   }
 
+  function formatAdvancedDetailNumber(value, digits = 6) {
+    if (!Number.isFinite(value)) {
+      return "unknown";
+    }
+    return Number(value).toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
+  function buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, records) {
+    const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
+    const pValue = Number(significance?.pValue);
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const chanceScore = Number(summaryStats?.chanceScore || 0);
+    const yourScore = Number(summaryStats?.yourScore || 0);
+    const totalVariance = Number(summaryStats?.totalVariance || 0);
+    if (totalTrials < 1 || !Number.isFinite(pValue)) {
+      return "Not enough completed scored trials are available for a significance calculation.";
+    }
+
+    if (significance.method === "exact-binomial") {
+      const dominantLevel = Number(significance?.dominantLevel);
+      const exact = dominantLevel === 4 ? getLevelFourExactPValue(records) : getLevelOneExactPValue(records);
+      return [
+        `Method: exact binomial test for Level ${dominantLevel}.`,
+        `Completed scored trials (n) = ${exact.completedTrials}.`,
+        `Observed successes = ${exact.successes}.`,
+        "Chance model: each trial has p = 0.5 of scoring a success under the null hypothesis.",
+        `Exact right-tail P = sum_{k=${exact.successes}}^${exact.completedTrials} C(${exact.completedTrials}, k) * (0.5^${exact.completedTrials}) = ${formatProbabilityValue(pValue)}.`,
+        `Chance score = ${formatScoreValue(chanceScore)}. Your score = ${formatScoreValue(yourScore)}.`
+      ].join("\n");
+    }
+
+    if (significance.method === "exact-enumeration") {
+      const dominantLevel = Number(significance?.dominantLevel);
+      const exact = getExactEnumeratedLevelPValue(records, dominantLevel);
+      return [
+        `Method: exact score-enumeration test for Level ${dominantLevel}.`,
+        `Completed scored trials (n) = ${exact.completedTrials}.`,
+        `Observed total score = ${formatScoreValue(exact.observedScore)}.`,
+        `Chance score = ${formatScoreValue(chanceScore)}. Your score = ${formatScoreValue(yourScore)}.`,
+        `Null distribution support points = ${exact.pmf instanceof Map ? exact.pmf.size : 0}.`,
+        "The exact right-tail P value is obtained by summing the probabilities of all null-score outcomes greater than or equal to the observed total score.",
+        `Exact right-tail P = ${formatProbabilityValue(pValue)}.`
+      ].join("\n");
+    }
+
+    const zScore = totalVariance > 0
+      ? (yourScore - chanceScore) / Math.sqrt(totalVariance)
+      : Number.NaN;
+    return [
+      "Method: combined standardized analysis across the selected scored trials.",
+      `Completed scored trials (n) = ${totalTrials}.`,
+      `Chance score = ${formatScoreValue(chanceScore)}.`,
+      `Your score = ${formatScoreValue(yourScore)}.`,
+      `Excess over chance = ${formatAdvancedDetailNumber(yourScore - chanceScore, 6)}.`,
+      `Total variance = ${formatAdvancedDetailNumber(totalVariance, 6)}.`,
+      `Z = (Your score - Chance score) / sqrt(total variance) = (${formatAdvancedDetailNumber(yourScore, 6)} - ${formatAdvancedDetailNumber(chanceScore, 6)}) / sqrt(${formatAdvancedDetailNumber(totalVariance, 6)}) = ${formatAdvancedDetailNumber(zScore, 6)}.`,
+      `One-tailed P = 1 - Phi(Z) = ${formatProbabilityValue(pValue)}.`
+    ].join("\n");
+  }
+
+  function buildVisualizationPracticeTrendDetail(interpretation) {
+    const detail = interpretation?.practice_trend_detail || null;
+    if (!detail?.eligible || !detail?.regression) {
+      return String(detail?.line || "Practice trend: more trials are needed before a meaningful practice trend can be estimated.");
+    }
+
+    const regression = detail.regression;
+    const lines = [
+      `Eligible dataset: yes. ${detail.mode === "same-level" ? `Level ${detail.activeLevel}.` : "Mixed levels."} Completed scored trials used = ${detail.trialCount}.`,
+      `Response variable y: ${detail.yDescription}.`,
+      "Predictor x: sequential trial number within the displayed range (1, 2, 3, ...).",
+      `Best-fit line: y = a + b*x = ${formatAdvancedDetailNumber(regression.intercept, 6)} + (${formatAdvancedDetailNumber(regression.slope, 6)})x.`,
+      `Slope (b) = ${formatAdvancedDetailNumber(regression.slope, 6)}.`,
+      `Intercept (a) = ${formatAdvancedDetailNumber(regression.intercept, 6)}.`,
+      `Sxx = ${formatAdvancedDetailNumber(regression.sxx, 6)}.`,
+      `Sxy = ${formatAdvancedDetailNumber(regression.sxy, 6)}.`,
+      `Residual sum of squares (SSE) = ${formatAdvancedDetailNumber(regression.residualSumSquares, 6)}.`,
+      `Residual standard error (SEest) = sqrt(SSE / df) = ${formatAdvancedDetailNumber(regression.residualStandardError, 6)}.`,
+      `Standard error of slope (SEb) = ${formatAdvancedDetailNumber(regression.slopeStandardError, 6)}.`,
+      `t statistic for positive-slope test = b / SEb = ${formatAdvancedDetailNumber(regression.tStatistic, 6)}.`,
+      `Degrees of freedom = n - 2 = ${regression.degreesFreedom}.`,
+      `One-tailed P for upward trend = ${formatProbabilityValue(regression.pValue)}.`,
+      `R^2 = ${formatAdvancedDetailNumber(regression.rSquared, 6)}.`,
+      ""
+    ];
+    if (detail.caution) {
+      lines.push(detail.caution, "");
+    }
+    lines.push(detail.line);
+    return lines.join("\n");
+  }
+
+  function renderVisualizationPracticeTrendGraph(detail) {
+    if (!visualizationPracticeGraphBlock || !visualizationPracticeGraph || !visualizationPracticeGraphTitle || !visualizationPracticeGraphLegend || !visualizationPracticeGraphNote) {
+      return;
+    }
+
+    visualizationPracticeGraph.replaceChildren();
+    visualizationPracticeGraphBlock.hidden = true;
+    visualizationPracticeGraphLegend.hidden = true;
+    visualizationPracticeGraphLegend.replaceChildren();
+    visualizationPracticeGraphNote.hidden = true;
+    visualizationPracticeGraphNote.textContent = "";
+    visualizationPracticeGraphTitle.textContent = detail?.title || "Practice Trend";
+
+    if (!detail?.eligible || !detail?.regression || !Array.isArray(detail.regressionPoints) || !detail.regressionPoints.length) {
+      return;
+    }
+
+    const width = 900;
+    const height = 420;
+    const margin = { top: 28, right: 28, bottom: 54, left: 72 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const xValues = detail.regressionPoints.map((point) => Number(point.x));
+    const yValues = detail.regressionPoints.map((point) => Number(point.y));
+    const xMin = Math.min(...xValues);
+    const xMax = Math.max(...xValues);
+    const yMinRaw = Math.min(...yValues, detail.regression.intercept, detail.regression.intercept + (detail.regression.slope * xMax));
+    const yMaxRaw = Math.max(...yValues, detail.regression.intercept, detail.regression.intercept + (detail.regression.slope * xMax));
+    const yPadding = Math.max(0.2, (yMaxRaw - yMinRaw) * 0.12);
+    const yMin = yMinRaw - yPadding;
+    const yMax = yMaxRaw + yPadding;
+    const xToPx = (value) => margin.left + ((value - xMin) / Math.max(xMax - xMin, 1)) * plotWidth;
+    const yToPx = (value) => margin.top + ((yMax - value) / Math.max(yMax - yMin, 0.0001)) * plotHeight;
+
+    const createSvgElementLocal = (name, attributes = {}) => createSvgElement(name, attributes);
+    const pointColorByLevel = {
+      1: "#ffd166",
+      2: "#66d9ef",
+      3: "#ff8c69",
+      4: "#9d7dff"
+    };
+
+    for (let tick = 0; tick <= 5; tick += 1) {
+      const value = yMin + ((yMax - yMin) * tick) / 5;
+      const y = yToPx(value);
+      visualizationPracticeGraph.appendChild(createSvgElementLocal("line", {
+        x1: margin.left,
+        y1: y,
+        x2: width - margin.right,
+        y2: y,
+        stroke: "rgba(255,255,255,0.08)",
+        "stroke-width": 1
+      }));
+      const label = createSvgElementLocal("text", {
+        x: margin.left - 12,
+        y: y + 4,
+        fill: "rgba(255,255,255,0.72)",
+        "font-size": 12,
+        "text-anchor": "end"
+      });
+      label.textContent = value.toFixed(2);
+      visualizationPracticeGraph.appendChild(label);
+    }
+
+    xValues.forEach((trialNumber) => {
+      const x = xToPx(trialNumber);
+      const label = createSvgElementLocal("text", {
+        x,
+        y: height - margin.bottom + 24,
+        fill: "rgba(255,255,255,0.72)",
+        "font-size": 12,
+        "text-anchor": "middle"
+      });
+      label.textContent = String(trialNumber);
+      visualizationPracticeGraph.appendChild(label);
+    });
+
+    visualizationPracticeGraph.appendChild(createSvgElementLocal("line", {
+      x1: margin.left,
+      y1: height - margin.bottom,
+      x2: width - margin.right,
+      y2: height - margin.bottom,
+      stroke: "rgba(255,255,255,0.38)",
+      "stroke-width": 1.5
+    }));
+    visualizationPracticeGraph.appendChild(createSvgElementLocal("line", {
+      x1: margin.left,
+      y1: margin.top,
+      x2: margin.left,
+      y2: height - margin.bottom,
+      stroke: "rgba(255,255,255,0.38)",
+      "stroke-width": 1.5
+    }));
+
+    const zeroY = yToPx(0);
+    if (zeroY >= margin.top && zeroY <= height - margin.bottom) {
+      visualizationPracticeGraph.appendChild(createSvgElementLocal("line", {
+        x1: margin.left,
+        y1: zeroY,
+        x2: width - margin.right,
+        y2: zeroY,
+        stroke: "rgba(255,255,255,0.25)",
+        "stroke-width": 1
+      }));
+    }
+
+    const lineStartY = detail.regression.intercept + (detail.regression.slope * xMin);
+    const lineEndY = detail.regression.intercept + (detail.regression.slope * xMax);
+    visualizationPracticeGraph.appendChild(createSvgElementLocal("line", {
+      x1: xToPx(xMin),
+      y1: yToPx(lineStartY),
+      x2: xToPx(xMax),
+      y2: yToPx(lineEndY),
+      stroke: "#7cff9c",
+      "stroke-width": 3,
+      "stroke-linecap": "round"
+    }));
+
+    detail.regressionPoints.forEach((point, index) => {
+      const level = Number(detail.trialSeries?.[index]?.level || 0);
+      visualizationPracticeGraph.appendChild(createSvgElementLocal("circle", {
+        cx: xToPx(point.x),
+        cy: yToPx(point.y),
+        r: 5.5,
+        fill: pointColorByLevel[level] || "#f5f0eb",
+        stroke: "rgba(10, 12, 20, 0.9)",
+        "stroke-width": 1.5
+      }));
+    });
+
+    const xAxisLabel = createSvgElementLocal("text", {
+      x: margin.left + (plotWidth / 2),
+      y: height - 12,
+      fill: "rgba(255,255,255,0.78)",
+      "font-size": 13,
+      "text-anchor": "middle"
+    });
+    xAxisLabel.textContent = "Trial Number";
+    visualizationPracticeGraph.appendChild(xAxisLabel);
+
+    const yAxisLabel = createSvgElementLocal("text", {
+      x: 18,
+      y: margin.top + (plotHeight / 2),
+      fill: "rgba(255,255,255,0.78)",
+      "font-size": 13,
+      "text-anchor": "middle",
+      transform: `rotate(-90 18 ${margin.top + (plotHeight / 2)})`
+    });
+    yAxisLabel.textContent = detail.mode === "same-level" ? "Chance-adjusted score" : "Standardized trend score";
+    visualizationPracticeGraph.appendChild(yAxisLabel);
+
+    if (detail.mode === "mixed-level") {
+      [1, 2, 3, 4].forEach((level) => {
+        const item = document.createElement("span");
+        item.className = "visualization-practice-graph-legend-item";
+        const swatch = document.createElement("span");
+        swatch.className = "visualization-swatch";
+        swatch.style.background = pointColorByLevel[level];
+        item.append(swatch, `Level ${level}`);
+        visualizationPracticeGraphLegend.append(item);
+      });
+      visualizationPracticeGraphLegend.hidden = false;
+    }
+
+    if (detail.caution) {
+      visualizationPracticeGraphNote.textContent = detail.caution;
+      visualizationPracticeGraphNote.hidden = false;
+    }
+
+    visualizationPracticeGraphBlock.hidden = false;
+  }
+
+  function renderVisualizationAdvancedDetail() {
+    if (!visualizationAdvancedDetailSummary || !visualizationAdvancedDetailStatus || !visualizationAdvancedSignificanceOutput || !visualizationAdvancedTrendOutput) {
+      return;
+    }
+
+    visualizationAdvancedDetailSummary.replaceChildren();
+    visualizationAdvancedDetailStatus.textContent = "";
+    visualizationAdvancedSignificanceOutput.textContent = "";
+    visualizationAdvancedTrendOutput.textContent = "";
+    if (visualizationPracticeGraphBlock) {
+      visualizationPracticeGraphBlock.hidden = true;
+    }
+    if (visualizationPracticeGraph) {
+      visualizationPracticeGraph.replaceChildren();
+    }
+    if (visualizationPracticeGraphLegend) {
+      visualizationPracticeGraphLegend.hidden = true;
+      visualizationPracticeGraphLegend.replaceChildren();
+    }
+    if (visualizationPracticeGraphNote) {
+      visualizationPracticeGraphNote.hidden = true;
+      visualizationPracticeGraphNote.textContent = "";
+    }
+
+    const context = latestVisualizationContext;
+    if (!context?.pairInfo?.receiverName || !Array.isArray(context.records) || !context.records.length) {
+      visualizationAdvancedDetailStatus.textContent = "Open a visualization with completed scored trials before requesting advanced detail.";
+      return;
+    }
+
+    const pairInfo = context.pairInfo;
+    const summaryStats = context.summaryStats || getReportSummaryStats(context.records);
+    const levelBreakdown = context.levelBreakdown || buildLevelBreakdown(context.records);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, context.records);
+
+    if (isNamedReportTarget(pairInfo)) {
+      const titleLine = document.createElement("p");
+      titleLine.className = "report-summary-line";
+      titleLine.textContent = `Named file: ${String(pairInfo.reportTitle || "").trim() || "Unnamed named file"}`;
+      visualizationAdvancedDetailSummary.append(titleLine);
+    }
+
+    const pairLine = document.createElement("p");
+    pairLine.className = "report-summary-line";
+    pairLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+    visualizationAdvancedDetailSummary.append(pairLine);
+
+    const rangeLine = document.createElement("p");
+    rangeLine.className = "report-summary-line";
+    rangeLine.textContent = context.range?.valid
+      ? `Displayed range: trials ${context.range.start}-${context.range.end}.`
+      : "Displayed range: unknown.";
+    visualizationAdvancedDetailSummary.append(rangeLine);
+
+    const trialCount = Number(context.completedTrialCount || context.records.length || 0);
+    visualizationAdvancedDetailStatus.textContent = `${trialCount} completed scored trial record${trialCount === 1 ? "" : "s"} included in this detail view.`;
+    visualizationAdvancedSignificanceOutput.textContent = buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, context.records);
+    visualizationAdvancedTrendOutput.textContent = buildVisualizationPracticeTrendDetail(interpretation);
+    renderVisualizationPracticeTrendGraph(interpretation.practice_trend_detail);
+  }
+
   function renderVisualizationSummary(pairInfo, records, series, totalAvailableTrials, range) {
     if (!visualizationSummary || !visualizationStatus) {
       return;
@@ -14434,7 +15062,7 @@ This is an alternate test message to show now.`;
 
     const summaryStats = getReportSummaryStats(records);
     const levelBreakdown = buildLevelBreakdown(records);
-    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, records);
     const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats, levelBreakdown);
     const summaryLine = document.createElement("p");
     summaryLine.className = "report-summary-line";
@@ -14450,7 +15078,7 @@ This is an alternate test message to show now.`;
     interpretationLine.className = "report-summary-line";
     interpretationLine.textContent = buildAiInterpretation(summaryStats, records);
     visualizationSummary.append(interpretationLine);
-    [interpretation.dataset_makeup, interpretation.persuasiveness_projection, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
+    [interpretation.dataset_makeup, interpretation.practice_trend, interpretation.persuasiveness_projection, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
       if (!text) {
         return;
       }
@@ -14890,6 +15518,8 @@ This is an alternate test message to show now.`;
       return;
     }
 
+    latestVisualizationContext = null;
+
     if (!pairInfo?.receiverName || !pairInfo?.senderName) {
       syncVisualizationRangeEditability(null);
       visualizationSummary.replaceChildren();
@@ -14954,6 +15584,9 @@ This is an alternate test message to show now.`;
     const series = buildVisualizationSeries(filteredRecords, range.start);
     latestVisualizationContext = {
       pairInfo,
+      records: filteredRecords,
+      summaryStats: getReportSummaryStats(filteredRecords),
+      levelBreakdown: buildLevelBreakdown(filteredRecords),
       totalAvailableTrials: scoredRecords.length,
       range,
       completedTrialCount: filteredRecords.length
@@ -18467,6 +19100,7 @@ This is an alternate test message to show now.`;
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -18517,6 +19151,7 @@ This is an alternate test message to show now.`;
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -18603,6 +19238,7 @@ This is an alternate test message to show now.`;
     aboutView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -18639,6 +19275,7 @@ This is an alternate test message to show now.`;
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.add("beginner-view-hidden");
     difficultyView?.classList.add("beginner-view-hidden");
     settingsView?.classList.add("beginner-view-hidden");
@@ -18656,6 +19293,7 @@ This is an alternate test message to show now.`;
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.remove("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -18686,6 +19324,41 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function showVisualizationAdvancedDetailView() {
+    clearReportPanelOffset();
+    learningCenterView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.remove("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderVisualizationAdvancedDetail();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function showAnalyzerView(pairInfo = selectedReportTarget || selectedReportPair) {
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -18693,6 +19366,7 @@ This is an alternate test message to show now.`;
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.add("beginner-view-hidden");
+    visualizationAdvancedDetailView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -28013,6 +28687,9 @@ This is an alternate test message to show now.`;
   });
   closeReportButton?.addEventListener("click", showReportDefinitionView);
   closeVisualizationButton?.addEventListener("click", showReportDefinitionView);
+  closeVisualizationAdvancedDetailButton?.addEventListener("click", () => {
+    showVisualizationView(latestVisualizationContext?.pairInfo || selectedReportTarget || selectedReportPair);
+  });
   closeAnalyzerButton?.addEventListener("click", showReportDefinitionView);
   visualizationRangeStartInput?.addEventListener("blur", commitVisualizationRangeFromInputs);
   visualizationRangeEndInput?.addEventListener("blur", commitVisualizationRangeFromInputs);
@@ -28027,6 +28704,15 @@ This is an alternate test message to show now.`;
       event.preventDefault();
       commitVisualizationRangeFromInputs();
     }
+  });
+  visualizationAdvancedDetailButton?.addEventListener("click", () => {
+    if (!latestVisualizationContext?.pairInfo?.receiverName || !Array.isArray(latestVisualizationContext.records) || !latestVisualizationContext.records.length) {
+      if (visualizationStatus) {
+        visualizationStatus.textContent = "Open a visualization with completed scored trials before requesting advanced detail.";
+      }
+      return;
+    }
+    showVisualizationAdvancedDetailView();
   });
   reportPairTrigger?.addEventListener("click", () => {
     if (!availableReportPairs.length) {

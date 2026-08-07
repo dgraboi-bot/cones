@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$versionPattern = '20\d{6}[A-Za-z0-9]+'
+$versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9]*'
 
 $files = @(
   (Join-Path $root ".htaccess"),
@@ -65,7 +65,7 @@ $replacements = @{
     @{ Pattern = 'telepathybeginner\.html\?open=landing'; Replacement = "telepathybeginner.html?open=landing" }
   )
   (Join-Path $root "telepathybeginner.css") = @(
-    @{ Pattern = 'learning-center-hero\.png\?v=[^)"''\s]+'; Replacement = "learning-center-hero.png?v=$Version" }
+    @{ Pattern = 'learning-center-hero\.(png|jpg)\?v=[^)"''\s]+'; Replacement = "learning-center-hero.jpg?v=$Version" }
   )
   (Join-Path $root "telepathybeginner.html") = @(
     @{ Pattern = 'telepathybeginner\.webmanifest\?v=[^"]+'; Replacement = "telepathybeginner.webmanifest?v=$Version" },
