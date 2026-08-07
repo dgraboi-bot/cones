@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260807c";
+  const launcherBuildVersion = "20260807d";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -102,6 +102,8 @@
   const lessonImageOverlayFigure = document.querySelector("[data-lesson-image-overlay-figure]");
   const lessonImageOverlayImage = document.querySelector("[data-lesson-image-overlay-image]");
   const lessonImageOverlayCaption = document.querySelector("[data-lesson-image-overlay-caption]");
+  const lessonImageOverlayTitle = document.getElementById("lessonImageOverlayTitle");
+  const lessonImageOverlayNote = document.querySelector("[data-lesson-image-overlay-note]");
   const saveLessonEditorButton = document.querySelector("[data-save-learn-more]");
   const openHelpButton = document.querySelector("[data-open-help]");
   const openTelepathyPracticeButton = document.querySelector("[data-open-telepathy-practice]");
@@ -540,6 +542,8 @@
   const openPerformanceVisualizationGuideButtons = Array.from(document.querySelectorAll("[data-open-performance-visualization-guide]"));
   const footerOpenBeginnerLink = document.querySelector("[data-footer-open-beginner]");
   const footerOpenProLink = document.querySelector("[data-footer-open-pro]");
+  const footerOpenRemoteViewingLink = document.querySelector("[data-footer-open-remote-viewing]");
+  const footerOpenLearnLink = document.querySelector('[href="#temporary-home-learning-center"]');
   const footerOpenHelpLink = document.querySelector("[data-footer-open-help]");
   const footerOpenContactLink = document.querySelector("[data-footer-open-contact]");
   const footerOpenPrivacyLink = document.querySelector("[data-footer-open-privacy]");
@@ -554,6 +558,7 @@
   const rotatingMessagesStatus = document.querySelector("[data-rotating-messages-status]");
   const openAboutButton = document.querySelector("[data-open-about]");
   const closeAboutButton = document.querySelector("[data-close-about]");
+  const aboutPrivacySection = document.querySelector("[data-about-privacy-section]");
   const closeResearchParticipationButton = document.querySelector("[data-close-research-participation]");
   const closeResearchParticipationProButton = document.querySelector("[data-close-research-participation-pro]");
   const closeResearchProposalButton = document.querySelector("[data-close-research-proposal]");
@@ -588,7 +593,15 @@
   let reportImageLightbox = null;
   let reportImageLightboxImage = null;
   let levelFourImagePairsCachePromise = null;
+  let helpReturnView = "options";
+  let helpReturnScrollY = 0;
   let contactReturnView = "help";
+  let contactReturnScrollY = 0;
+  let aboutReturnView = "help";
+  let aboutReturnScrollY = 0;
+  let aboutOpenSection = "";
+  let researchParticipationReturnView = "options";
+  let researchParticipationReturnScrollY = 0;
   let researchProposalReturnView = "research-participation";
   let contactFromLineRequestToken = 0;
   let goProReturnView = "subscription-management";
@@ -5956,6 +5969,8 @@ This is an alternate test message to show now.`;
     }
     const caption = String(options.caption || "").trim();
     const altText = String(options.alt || "").trim();
+    const titleText = String(options.title || "LESSON IMAGE").trim() || "LESSON IMAGE";
+    const noteText = String(options.note || "").trim();
     const scrollContainer = getEspLessonDetailScrollContainer();
     lessonImageOverlayReturnTarget = {
       triggerButton: options.triggerButton instanceof HTMLElement ? options.triggerButton : null,
@@ -5964,6 +5979,13 @@ This is an alternate test message to show now.`;
     };
     lessonImageOverlayImage.src = safeUrl;
     lessonImageOverlayImage.alt = altText || caption || "Lesson image";
+    if (lessonImageOverlayTitle) {
+      lessonImageOverlayTitle.textContent = titleText;
+    }
+    if (lessonImageOverlayNote) {
+      lessonImageOverlayNote.textContent = noteText;
+      lessonImageOverlayNote.hidden = !noteText;
+    }
     if (lessonImageOverlayCaption) {
       lessonImageOverlayCaption.innerHTML = caption ? renderLearnMoreInlineMarkup(caption) : "";
       lessonImageOverlayCaption.hidden = !caption;
@@ -5984,6 +6006,13 @@ This is an alternate test message to show now.`;
     lessonImageOverlay.classList.add("beginner-view-hidden");
     lessonImageOverlayImage.removeAttribute("src");
     lessonImageOverlayImage.alt = "";
+    if (lessonImageOverlayTitle) {
+      lessonImageOverlayTitle.textContent = "LESSON IMAGE";
+    }
+    if (lessonImageOverlayNote) {
+      lessonImageOverlayNote.textContent = "";
+      lessonImageOverlayNote.hidden = true;
+    }
     if (lessonImageOverlayCaption) {
       lessonImageOverlayCaption.innerHTML = "";
       lessonImageOverlayCaption.hidden = true;
@@ -19071,6 +19100,53 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function captureTemporaryHomeReturnScrollY() {
+    return Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+  }
+
+  function restoreTemporaryHomeScrollPosition(scrollY = 0) {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: Math.max(0, Number(scrollY || 0) || 0), left: 0, behavior: "auto" });
+    });
+  }
+
+  function returnToTemporaryHomePage(scrollY = 0) {
+    showTemporaryHomePageView();
+    restoreTemporaryHomeScrollPosition(scrollY);
+  }
+
+  function forceReturnToTemporaryHomePage(scrollY = 0) {
+    activeDifficultyContext = null;
+    clearReportPanelOffset();
+    document.querySelectorAll(".beginner-view").forEach((view) => {
+      if (!(view instanceof HTMLElement)) {
+        return;
+      }
+      if (view === temporaryHomePageView) {
+        view.classList.remove("beginner-view-hidden");
+        return;
+      }
+      view.classList.add("beginner-view-hidden");
+    });
+    closeReportPairMenu();
+    resetTemporaryHomeExploreButton();
+    const loadedInvitee = getLoadedInviteeIdentity();
+    if (temporaryHomePageInvitationCodeInput) {
+      temporaryHomePageInvitationCodeInput.value = loadedInvitee?.identifier || "";
+    }
+    renderTemporaryHomeReturnState();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    restoreTemporaryHomeScrollPosition(scrollY);
+  }
+
+  function scrollTemporaryHomeElementToTop(element) {
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+    const targetTop = Math.max(0, Math.round(window.scrollY + element.getBoundingClientRect().top));
+    window.scrollTo({ top: targetTop, left: 0, behavior: "smooth" });
+  }
+
   function showTelepathyDifficultyGuideView() {
     telepathyDifficultyGuideReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
     clearReportPanelOffset();
@@ -19097,6 +19173,10 @@ This is an alternate test message to show now.`;
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
     messagesView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -19394,7 +19474,9 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showHelpView() {
+  function showHelpView(options = {}) {
+    helpReturnView = String(options.returnView || "options").trim() || "options";
+    helpReturnScrollY = Math.max(0, Number(options.scrollY || 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     helpView?.classList.remove("beginner-view-hidden");
@@ -21884,8 +21966,9 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showContactView(returnView = "help") {
+  function showContactView(returnView = "help", returnScrollY = 0) {
     contactReturnView = returnView;
+    contactReturnScrollY = Math.max(0, Number(returnScrollY || 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     contactView?.classList.remove("beginner-view-hidden");
@@ -21919,7 +22002,7 @@ This is an alternate test message to show now.`;
 
   function closeContactViewToOrigin() {
     if (contactReturnView === "temporary-home-page") {
-      showTemporaryHomePageView();
+      returnToTemporaryHomePage(contactReturnScrollY);
       return;
     }
     if (contactReturnView === "other-settings") {
@@ -21937,7 +22020,10 @@ This is an alternate test message to show now.`;
     showHelpView();
   }
 
-  function showAboutView() {
+  function showAboutView(options = {}) {
+    aboutReturnView = String(options.returnView || "help").trim() || "help";
+    aboutReturnScrollY = Math.max(0, Number(options.scrollY || 0) || 0);
+    aboutOpenSection = String(options.section || "").trim().toLowerCase();
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     aboutView?.classList.remove("beginner-view-hidden");
@@ -23212,7 +23298,9 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showResearchParticipationView() {
+  function showResearchParticipationView(options = {}) {
+    researchParticipationReturnView = String(options.returnView || "options").trim() || "options";
+    researchParticipationReturnScrollY = Math.max(0, Number(options.scrollY || 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.remove("beginner-view-hidden");
@@ -26202,6 +26290,22 @@ This is an alternate test message to show now.`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function closeResearchParticipationViewToOrigin() {
+    if (researchParticipationReturnView === "temporary-home-page") {
+      forceReturnToTemporaryHomePage(researchParticipationReturnScrollY);
+      return;
+    }
+    showTemporaryHomePageView();
+  }
+
+  function closeHelpViewToOrigin() {
+    if (helpReturnView === "temporary-home-page") {
+      returnToTemporaryHomePage(helpReturnScrollY);
+      return;
+    }
+    showOptionsView();
+  }
+
   function closeGoProIncludesView() {
     if (goProIncludesReturnView === "temporary-home-page") {
       showTemporaryHomePageView();
@@ -26293,6 +26397,26 @@ This is an alternate test message to show now.`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (aboutOpenSection === "privacy" && aboutPrivacySection instanceof HTMLElement) {
+      requestAnimationFrame(() => {
+        aboutPrivacySection.scrollIntoView({ block: "start", behavior: "auto" });
+      });
+    }
+  }
+
+  function closeAboutViewToOrigin() {
+    if (aboutReturnView === "temporary-home-page") {
+      returnToTemporaryHomePage(aboutReturnScrollY);
+      return;
+    }
+    if (aboutReturnView === "help") {
+      showHelpView({
+        returnView: helpReturnView,
+        scrollY: helpReturnScrollY
+      });
+      return;
+    }
+    showHelpView();
   }
 
   function showBlinkBehaviorView() {
@@ -27933,9 +28057,19 @@ This is an alternate test message to show now.`;
     });
   });
   openColorSchemeButton?.addEventListener("click", showColorSchemeView);
-  closeHelpButton?.addEventListener("click", showOptionsView);
-  closeBeginnerUserManualButton?.addEventListener("click", showHelpView);
-  closeProUserManualButton?.addEventListener("click", showHelpView);
+  closeHelpButton?.addEventListener("click", closeHelpViewToOrigin);
+  closeBeginnerUserManualButton?.addEventListener("click", () => {
+    showHelpView({
+      returnView: helpReturnView,
+      scrollY: helpReturnScrollY
+    });
+  });
+  closeProUserManualButton?.addEventListener("click", () => {
+    showHelpView({
+      returnView: helpReturnView,
+      scrollY: helpReturnScrollY
+    });
+  });
   closeTemporaryHomePageButton?.addEventListener("click", showOptionsView);
   closeAidsButton?.addEventListener("click", showOptionsView);
   closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
@@ -27959,7 +28093,10 @@ This is an alternate test message to show now.`;
   closeResearchParticipationProButton?.addEventListener("click", showOtherSettingsView);
   closeResearchProposalButton?.addEventListener("click", () => {
     if (researchProposalReturnView === "research-participation") {
-      showResearchParticipationView();
+      showResearchParticipationView({
+        returnView: researchParticipationReturnView,
+        scrollY: researchParticipationReturnScrollY
+      });
       return;
     }
     showResearchParticipationProView();
@@ -28138,9 +28275,14 @@ This is an alternate test message to show now.`;
   });
   temporaryHomePageClairvoyanceButton?.addEventListener("click", showClairvoyanceViewingView);
   temporaryHomePageContactButton?.addEventListener("click", () => {
-    showContactView("temporary-home-page");
+    showContactView("temporary-home-page", captureTemporaryHomeReturnScrollY());
   });
-  temporaryHomePageResearchButton?.addEventListener("click", showResearchParticipationView);
+  temporaryHomePageResearchButton?.addEventListener("click", () => {
+    showResearchParticipationView({
+      returnView: "temporary-home-page",
+      scrollY: captureTemporaryHomeReturnScrollY()
+    });
+  });
   temporaryHomePageHelpButton?.addEventListener("click", () => {
     openUpdatesOverlay();
   });
@@ -28152,27 +28294,54 @@ This is an alternate test message to show now.`;
     event.preventDefault();
     void handleLandingExploreClick();
   });
+  footerOpenRemoteViewingLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    openLessonImageOverlay("clairvoyance_rv_page.jpg", {
+      title: "Clairvoyance / Remote Viewing",
+      note: "This is an ESP PRO feature. It behaves much like the telepathy practice tools, but it uses a device such as a cellphone or laptop placed in a remote location. After the countdown, an image appears on the remote screen and the subject attempts to view that image. Then the subject is shown two images and selects the one that best fits what may have been picked up by the subject.",
+      caption: "ESP PRO feature preview",
+      alt: "Clairvoyance / Remote Viewing entry screen"
+    });
+  });
+  footerOpenLearnLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    const guidedDevelopmentCard = temporaryHomePageLearningCenterButton?.closest(".temporary-home-card");
+    scrollTemporaryHomeElementToTop(guidedDevelopmentCard instanceof HTMLElement ? guidedDevelopmentCard : temporaryHomePageLearningCenterButton);
+  });
   footerOpenHelpLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    showHelpView();
+    showHelpView({
+      returnView: "temporary-home-page",
+      scrollY: captureTemporaryHomeReturnScrollY()
+    });
   });
   footerOpenContactLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    showContactView("temporary-home-page");
+    showContactView("temporary-home-page", captureTemporaryHomeReturnScrollY());
   });
   footerOpenPrivacyLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    showAboutView();
+    showAboutView({
+      returnView: "temporary-home-page",
+      scrollY: captureTemporaryHomeReturnScrollY(),
+      section: "privacy"
+    });
   });
   footerOpenResearchLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    showResearchParticipationView();
+    showResearchParticipationView({
+      returnView: "temporary-home-page",
+      scrollY: captureTemporaryHomeReturnScrollY()
+    });
   });
   footerOpenAboutLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    showAboutView();
+    showAboutView({
+      returnView: "temporary-home-page",
+      scrollY: captureTemporaryHomeReturnScrollY()
+    });
   });
-  closeResearchParticipationButton?.addEventListener("click", showTemporaryHomePageView);
+  closeResearchParticipationButton?.addEventListener("click", closeResearchParticipationViewToOrigin);
   updatesYesButton?.addEventListener("click", saveUpdatesInterest);
   updatesCloseButton?.addEventListener("click", closeUpdatesOverlay);
   updatesDialog?.addEventListener("click", (event) => {
@@ -28692,8 +28861,13 @@ This is an alternate test message to show now.`;
     showContactView("other-settings");
   });
   closeContactButton?.addEventListener("click", closeContactViewToOrigin);
-  openAboutButton?.addEventListener("click", showAboutView);
-  closeAboutButton?.addEventListener("click", showHelpView);
+  openAboutButton?.addEventListener("click", () => {
+    showAboutView({
+      returnView: "help",
+      scrollY: helpReturnScrollY
+    });
+  });
+  closeAboutButton?.addEventListener("click", closeAboutViewToOrigin);
   openReportButton?.addEventListener("click", showReportDefinitionView);
   closeReportDefinitionButton?.addEventListener("click", () => {
     if (triggerPendingLearningCenterLessonReturn()) {
@@ -28862,7 +29036,7 @@ This is an alternate test message to show now.`;
   });
   contactCancelButton?.addEventListener("click", () => {
     resetContactView();
-    showHelpView();
+    closeContactViewToOrigin();
   });
   downloadSettingsCsvButton?.addEventListener("click", () => {
     void downloadSettingsCsvData();
