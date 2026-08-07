@@ -24,6 +24,7 @@
   const guidedTourCopy = document.getElementById("guidedTourCopy");
   const guidedTourHint = document.getElementById("guidedTourHint");
   const guidedTourNextButton = document.getElementById("guidedTourNextButton");
+  const guidedTourExitButton = document.getElementById("guidedTourExitButton");
   const guidedTourProbeButton = document.getElementById("guidedTourProbeButton");
   const guidedTourProbeScreen = document.getElementById("guidedTourProbeScreen");
   const guidedTourProbeBackButton = document.getElementById("guidedTourProbeBackButton");
@@ -48,7 +49,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260807d";
+  const runtimeBuildVersion = "20260807d-exitfix2";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -85,7 +86,7 @@
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260807d";
+  const launcherBuildVersion = "20260807d-exitfix2";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -404,11 +405,16 @@
           .map((paragraph) => `<p>${escapeHtml(String(paragraph || ""))}</p>`)
           .join("")
       : "";
-    guidedTourProbeBody.innerHTML = `
-      <div class="guided-tour-probe-detail">
+    const inlineBackButton = guidedReceiverTourState
+      ? ""
+      : `
         <div class="guided-tour-probe-detail-actions">
           <button class="guided-tour-probe-chip" type="button" data-probe-topic-back="1">All Topics</button>
         </div>
+      `;
+    guidedTourProbeBody.innerHTML = `
+      <div class="guided-tour-probe-detail">
+        ${inlineBackButton}
         <h3>${escapeHtml(topic.title || topic.label || "")}</h3>
         ${paragraphs}
       </div>
@@ -856,7 +862,7 @@
     if (phase === "receiving") {
       setGuidedReceiverTourStep({
         id: "receiving-intro",
-        text: "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind's eye at this time. The beep marks the time that an image appears before the sender's eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is the best time to try to observe new visual information in your mind's eye.",
+        text: "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind's eye at this time. The beep marks the time that an image appears before the sender's eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is a good time to start looking for new visual information in your mind's eye.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: true,
@@ -870,7 +876,7 @@
     if (phase === "done") {
       setGuidedReceiverTourStep({
         id: "done",
-        text: "After you have had a few seconds to inspect and remember the contents of your mind's eye, tap here to say you are done receiving.",
+        text: "After you have had enough time to inspect and remember the contents of your mind's eye, tap \"Press here...\" below to say you are done receiving.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: false,
@@ -907,6 +913,16 @@
   }
 
   let lastGuidedReceiverTourNextActionMs = 0;
+
+  function getGuidedReceiverTourBlockedHint(step) {
+    if (!step) {
+      return "";
+    }
+    if (step.showNext) {
+      return 'Please press "NEXT" to continue.';
+    }
+    return "";
+  }
 
   function handleGuidedReceiverTourNextAction() {
     const now = Date.now();
@@ -987,7 +1003,7 @@
       guidedReceiverTourState.manualBalloonPosition = null;
       setGuidedReceiverTourStep({
         id: "receiving-observe",
-        text: "Look carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mind's eye about the time that the beep occurred. This is your task.",
+        text: "Look into your mind's eye carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mind's eye about the time that the beep occurred. This is your task.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: true,
@@ -1021,6 +1037,7 @@
   }
 
   guidedTourNextButton?.addEventListener("click", handleGuidedReceiverTourNextAction);
+  guidedTourExitButton?.addEventListener("click", exitGuidedExperienceTourToOrigin);
   guidedTourProbeButton?.addEventListener("click", () => {
     openGuidedTourProbeScreen();
   });
@@ -1179,7 +1196,7 @@
     if (target.closest("button, [role=\"button\"], a, input, select, textarea")) {
       event.preventDefault();
       event.stopPropagation();
-      setGuidedReceiverTourHint('Please press "NEXT" to continue.');
+      setGuidedReceiverTourHint(getGuidedReceiverTourBlockedHint(currentStep));
     }
   }, true);
 
@@ -3401,6 +3418,10 @@
     if (typeof options.guidedTourContinue === "string" && options.guidedTourContinue.trim()) {
       params.set("guided_tour_continue", options.guidedTourContinue.trim());
     }
+    const requestedScrollY = Number(options.scrollY);
+    if (Number.isFinite(requestedScrollY) && requestedScrollY >= 0) {
+      params.set("scroll_y", String(Math.max(0, Math.round(requestedScrollY))));
+    }
     params.set("v", launcherBuildVersion);
 
     return `telepathybeginner.html?${params.toString()}`;
@@ -3495,6 +3516,58 @@
             difficultyLevel: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1"),
             guidedTourComplete: true,
             guidedTourContinue: isGuidedSenderTour ? "sender-experience" : "receiver-experience"
+          }
+        : {});
+      clearGuidedReceiverTourReturnSnapshot();
+    });
+  }
+
+  function exitGuidedExperienceTourToOrigin() {
+    const confirmed = window.confirm("Exit Tour. Are you sure?");
+    if (!confirmed) {
+      return;
+    }
+    const guidedReturnSnapshot = isGuidedExperienceTour ? readGuidedReceiverTourReturnSnapshot() : null;
+    clearGuidedReceiverTour();
+    appExited = true;
+    currentUiMode = "exited";
+    senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
+    receiverReady = false;
+    receiverMirrorPhase = "idle";
+    localRoundRunning = false;
+    roundScheduled = false;
+    hideStage();
+    hideChoiceGrid();
+    hideConfidencePanel();
+    hideInstructionPanel();
+    hideDecisionPanel();
+    hideMessagePanel();
+    updateSettingsGearVisibility();
+    void syncLauncherReturnStateFromRuntime("exitGuidedExperienceTourToOrigin", guidedReturnSnapshot).finally(() => {
+      const guidedReturnView = guidedReturnSnapshot?.returnView && typeof guidedReturnSnapshot.returnView === "object"
+        ? guidedReturnSnapshot.returnView
+        : null;
+      const launcherOrigin = guidedReturnSnapshot?.launcherOrigin && typeof guidedReturnSnapshot.launcherOrigin === "object"
+        ? guidedReturnSnapshot.launcherOrigin
+        : null;
+      const restoredLessonReturnTarget = restorePendingLearningCenterLessonReturnTargetFromSnapshot(guidedReturnSnapshot);
+      const shouldResumeLesson = !!guidedReturnSnapshot && (restoredLessonReturnTarget || hasPendingLearningCenterLessonReturnTarget());
+      navigateToBeginnerFrontPage(shouldResumeLesson
+        ? { open: "lesson-return" }
+        : launcherOrigin?.view === "temporary-home-page"
+        ? {
+            open: "landing-preview",
+            scrollY: launcherOrigin?.scrollY
+          }
+        : guidedReturnView
+        ? {
+            open: String(guidedReturnView.role || "receiver").trim().toLowerCase() || "receiver",
+            directOpen: true,
+            ownIdentifier: String(guidedReturnView.ownDisplayName || "").trim(),
+            partnerIdentifier: String(guidedReturnView.partnerDisplayName || "").trim(),
+            visitorDisplayName: String(guidedReturnView.visitorDisplayName || "").trim(),
+            difficultyLevel: normalizeDifficultyLevel(guidedReturnView.difficultyLevel || "1")
           }
         : {});
       clearGuidedReceiverTourReturnSnapshot();

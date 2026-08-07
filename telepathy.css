@@ -149,6 +149,14 @@ body[data-guided-tour-active="1"] .settings-gear {
   cursor: move;
 }
 
+.guided-tour-runtime-exit-row {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  margin: 0;
+  z-index: 2;
+}
+
 .guided-tour-runtime-kicker {
   margin: 0;
   color: rgba(142, 194, 255, 0.92);
@@ -171,6 +179,8 @@ body[data-guided-tour-active="1"] .settings-gear {
   color: rgba(244, 238, 232, 0.96);
   font-size: 0.98rem;
   line-height: 1.45;
+  padding-right: 1.5rem;
+  padding-top: 0.2rem;
 }
 
 .guided-tour-runtime-hint {
@@ -183,6 +193,32 @@ body[data-guided-tour-active="1"] .settings-gear {
   align-items: center;
   gap: 18px;
   margin-top: 2px;
+}
+
+.guided-tour-exit-button {
+  min-width: 0;
+  min-height: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  cursor: pointer;
+  width: auto !important;
+  height: auto !important;
+  display: inline-block;
+  line-height: 1;
+}
+
+.guided-tour-exit-button:hover,
+.guided-tour-exit-button:focus-visible {
+  color: rgba(255, 255, 255, 1) !important;
+  outline: none;
+  text-decoration: underline;
 }
 
 .guided-tour-runtime-actions .confidence-button {

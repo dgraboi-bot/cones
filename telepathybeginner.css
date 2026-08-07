@@ -4208,6 +4208,14 @@ html.launcher-direct-open-pending body {
   cursor: move;
 }
 
+.guided-tour-launcher-exit-row {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  margin: 0;
+  z-index: 2;
+}
+
 .guided-tour-launcher-kicker {
   margin: 0;
   color: rgba(142, 194, 255, 0.92);
@@ -4239,6 +4247,32 @@ html.launcher-direct-open-pending body {
 .guided-tour-launcher-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.guided-tour-exit-button {
+  min-width: 0;
+  min-height: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.98) !important;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  cursor: pointer;
+  width: auto !important;
+  height: auto !important;
+  display: inline-block;
+  line-height: 1;
+}
+
+.guided-tour-exit-button:hover,
+.guided-tour-exit-button:focus-visible {
+  color: rgba(255, 255, 255, 1) !important;
+  outline: none;
+  text-decoration: underline;
 }
 
 .guided-tour-launcher-next {
