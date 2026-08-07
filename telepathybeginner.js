@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260807b";
+  const launcherBuildVersion = "20260807c";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -530,6 +530,7 @@
   const temporaryHomePageInvitationStatus = document.querySelector("[data-temporary-home-invitation-status]");
   const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
   const temporaryHomePageExploreButton = document.querySelector("[data-temporary-home-explore]");
+  const temporaryHomePageLearningCenterButton = document.querySelector("[data-open-temporary-home-learning-center]");
   const openLandingPageButton = document.querySelector("[data-open-landing-page]");
   const temporaryHomePageClairvoyanceButton = document.querySelector("[data-temporary-home-clairvoyance]");
   const temporaryHomePageContactButton = document.querySelector("[data-open-temporary-home-contact]");
@@ -21211,8 +21212,16 @@ This is an alternate test message to show now.`;
   function closeLearningCenterView() {
     const targetView = String(learningCenterReturnTarget?.view || "options").trim();
     const targetRole = String(learningCenterReturnTarget?.role || "").trim();
+    const targetScrollY = Math.max(0, Number(learningCenterReturnTarget?.scrollY || 0) || 0);
     if ((targetView === "launcher" || targetView === "clairvoyance-viewing") && targetRole) {
       showRoleCourseTarget(targetRole);
+      return;
+    }
+    if (targetView === "temporary-home-page") {
+      showTemporaryHomePageView();
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: targetScrollY, left: 0, behavior: "auto" });
+      });
       return;
     }
     if (targetView === "report-definition") {
@@ -28113,6 +28122,13 @@ This is an alternate test message to show now.`;
   temporaryHomePageFreshOpenButton?.addEventListener("click", startVisitorLandingEntry);
   temporaryHomePageExploreButton?.addEventListener("click", () => {
     void handleLandingExploreClick();
+  });
+  temporaryHomePageLearningCenterButton?.addEventListener("click", () => {
+    showLearningCenterView({
+      view: "temporary-home-page",
+      scrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
+      tab: "welcome"
+    });
   });
   openTelepathyDifficultyGuideButtons.forEach((button) => {
     button.addEventListener("click", showTelepathyDifficultyGuideView);
