@@ -49,7 +49,7 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260807e";
+  const runtimeBuildVersion = "20260807f";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -64,6 +64,7 @@
   const launchedVisitorDisplayName = String(runtimeQuery.get("visitor_display_name") || "").trim();
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
+  const guidedTourLauncherOriginRestoreKey = "cones-guided-tour-launcher-origin-restore-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const probeDeeperReturnKey = "cones-probe-deeper-return-v1";
   let guidedStandaloneProbeTopicId = "";
@@ -86,7 +87,7 @@
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260807e";
+  const launcherBuildVersion = "20260807f";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -3450,6 +3451,18 @@
     } catch (error) {}
   }
 
+  function writeGuidedTourLauncherOriginRestoreState(state = null) {
+    try {
+      if (state && typeof state === "object") {
+        localStorage.setItem(guidedTourLauncherOriginRestoreKey, JSON.stringify(state));
+      } else {
+        localStorage.removeItem(guidedTourLauncherOriginRestoreKey);
+      }
+    } catch (error) {
+      // Ignore transient storage failures.
+    }
+  }
+
   function hasPendingLearningCenterLessonReturnTarget() {
     try {
       const raw = window.sessionStorage?.getItem(learningCenterLessonReturnKey);
@@ -3553,13 +3566,15 @@
         : null;
       const restoredLessonReturnTarget = restorePendingLearningCenterLessonReturnTargetFromSnapshot(guidedReturnSnapshot);
       const shouldResumeLesson = !!guidedReturnSnapshot && (restoredLessonReturnTarget || hasPendingLearningCenterLessonReturnTarget());
+      if (!shouldResumeLesson && launcherOrigin && typeof launcherOrigin === "object") {
+        writeGuidedTourLauncherOriginRestoreState(launcherOrigin);
+      } else {
+        writeGuidedTourLauncherOriginRestoreState(null);
+      }
       navigateToBeginnerFrontPage(shouldResumeLesson
         ? { open: "lesson-return" }
-        : launcherOrigin?.view === "temporary-home-page"
-        ? {
-            open: "landing-preview",
-            scrollY: launcherOrigin?.scrollY
-          }
+        : launcherOrigin && typeof launcherOrigin === "object"
+        ? { open: "guided-tour-origin" }
         : guidedReturnView
         ? {
             open: String(guidedReturnView.role || "receiver").trim().toLowerCase() || "receiver",

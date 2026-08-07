@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260807e";
+  const launcherBuildVersion = "20260807f";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -209,6 +209,7 @@
   const roleCardInlineBackButtons = Array.from(document.querySelectorAll("[data-collapse-role-card]"));
   const guidedReceiverTourReturnSnapshotKey = "cones-guided-receiver-tour-return-v1";
   const guidedSenderTourReturnSnapshotKey = "cones-guided-sender-tour-return-v1";
+  const guidedTourLauncherOriginRestoreKey = "cones-guided-tour-launcher-origin-restore-v1";
   const probeDeeperReturnKey = "cones-probe-deeper-return-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const learningCenterConceptContent = {
@@ -2537,6 +2538,37 @@ This is an alternate test message to show now.`;
     writePendingLearningCenterLessonReturnTarget(null);
   }
 
+  function writeGuidedTourLauncherOriginRestoreState(state = null) {
+    try {
+      if (state && typeof state === "object") {
+        localStorage.setItem(guidedTourLauncherOriginRestoreKey, JSON.stringify(state));
+      } else {
+        localStorage.removeItem(guidedTourLauncherOriginRestoreKey);
+      }
+    } catch (error) {
+      // Ignore transient storage failures.
+    }
+  }
+
+  function consumeGuidedTourLauncherOriginRestoreState() {
+    try {
+      const raw = localStorage.getItem(guidedTourLauncherOriginRestoreKey);
+      localStorage.removeItem(guidedTourLauncherOriginRestoreKey);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      try {
+        localStorage.removeItem(guidedTourLauncherOriginRestoreKey);
+      } catch (innerError) {
+        // Ignore transient storage failures.
+      }
+      return null;
+    }
+  }
+
   function captureLauncherGuidedTourOriginState() {
     const visibleView = Array.from(document.querySelectorAll(".beginner-view"))
       .find((view) => !view.classList.contains("beginner-view-hidden"));
@@ -2549,6 +2581,9 @@ This is an alternate test message to show now.`;
       snapshot.tab = activeLearningCenterTab || "welcome";
       snapshot.coursePage = activeLearningCenterCoursePage || 1;
       snapshot.conceptPage = activeLearningCenterConceptPage || 1;
+    } else if (viewName === "help" || viewName === "beginner-user-manual") {
+      snapshot.helpReturnView = String(helpReturnView || "options").trim() || "options";
+      snapshot.helpReturnScrollY = Math.max(0, Math.round(Number(helpReturnScrollY || 0) || 0));
     }
     return snapshot;
   }
@@ -2572,6 +2607,21 @@ This is an alternate test message to show now.`;
       } else if (normalizeLearningCenterTabId(origin?.tab || "welcome") === "key-concepts") {
         renderLearningCenterConceptPage(Number(origin?.conceptPage || 1) || 1);
       }
+      window.scrollTo({ top: restoreScrollY, left: 0, behavior: "auto" });
+      return true;
+    }
+    if (viewName === "help") {
+      showHelpView({
+        returnView: String(origin?.helpReturnView || "options").trim() || "options",
+        scrollY: Math.max(0, Math.round(Number(origin?.helpReturnScrollY || 0) || 0))
+      });
+      window.scrollTo({ top: restoreScrollY, left: 0, behavior: "auto" });
+      return true;
+    }
+    if (viewName === "beginner-user-manual") {
+      helpReturnView = String(origin?.helpReturnView || "options").trim() || "options";
+      helpReturnScrollY = Math.max(0, Math.round(Number(origin?.helpReturnScrollY || 0) || 0));
+      showBeginnerUserManualView();
       window.scrollTo({ top: restoreScrollY, left: 0, behavior: "auto" });
       return true;
     }
@@ -8953,6 +9003,19 @@ This is an alternate test message to show now.`;
         beepTestStatus.textContent = "Audio could not be started. Check browser audio permissions and try again.";
       }
       return;
+    }
+
+    // Warm the reinforcement sound immediately after the user starts the test
+    // so the first playback can occur on schedule.
+    void ensureBeepTestReinforcementLoaded();
+    try {
+      if (!beepTestReinforcementAudioElement) {
+        beepTestReinforcementAudioElement = new Audio(`tada.wav?v=${encodeURIComponent(launcherBuildVersion)}`);
+        beepTestReinforcementAudioElement.preload = "auto";
+      }
+      beepTestReinforcementAudioElement.load();
+    } catch (_error) {
+      // Ignore warmup failures and continue the audible test flow.
     }
 
     clearBeepTestTimers();
@@ -25951,6 +26014,13 @@ This is an alternate test message to show now.`;
           return;
         }
         showLauncherView();
+        return;
+      }
+      if (requestedView === "guided-tour-origin") {
+        persistPendingGuidedTourContinuationMode("");
+        pendingGuidedTourCompletionNoticeRole = "";
+        const pendingOriginState = consumeGuidedTourLauncherOriginRestoreState();
+        await restoreLauncherGuidedTourOriginState(pendingOriginState);
         return;
       }
       if (["sender", "receiver", "remote-viewer"].includes(requestedView)) {
