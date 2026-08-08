@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260808c";
+  const launcherBuildVersion = "20260808d";
   const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
@@ -660,6 +660,10 @@
   const namedReportSourceSummary = document.querySelector("[data-named-report-source-summary]");
   const namedReportRangeSummary = document.querySelector("[data-named-report-range-summary]");
   const namedReportCountSummary = document.querySelector("[data-named-report-count-summary]");
+  const namedReportSaveVisualizationCheckbox = document.querySelector("[data-named-report-save-visualization]");
+  const namedReportSavePdfCheckbox = document.querySelector("[data-named-report-save-pdf]");
+  const namedReportSavePdfWrap = document.querySelector("[data-named-report-save-pdf-wrap]");
+  const namedReportSavePdfLabel = document.querySelector("[data-named-report-save-pdf-label]");
   const namedReportStatus = document.querySelector("[data-named-report-status]");
   const namedReportSaveButton = document.querySelector("[data-named-report-save]");
   const namedReportCancelButton = document.querySelector("[data-named-report-cancel]");
@@ -4131,6 +4135,218 @@ This is an alternate test message to show now.`;
     }
   }
 
+  function isPdfExportAllowedForCurrentUser() {
+    return hasLauncherAdminAccess() || isEffectiveLauncherUserPro();
+  }
+
+  function isNamedReportPdfUnsupportedPlatform() {
+    const environment = detectInstallEnvironment();
+    return !!(environment?.isIOS && environment?.isSafari);
+  }
+
+  function applyNamedReportPdfAvailabilityState() {
+    const allowed = isPdfExportAllowedForCurrentUser();
+    const lockMessage = "PRO Feature";
+    applyProLockPresentation(namedReportSavePdfWrap, !allowed, lockMessage);
+    if (namedReportSavePdfCheckbox) {
+      namedReportSavePdfCheckbox.disabled = !allowed;
+      if (!allowed) {
+        namedReportSavePdfCheckbox.checked = false;
+      }
+    }
+  }
+
+  function sanitizePdfFileName(value) {
+    const clean = String(value || "").trim()
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\.+$/, "");
+    return `${clean || "ESP-GYM-Visualization"}.pdf`;
+  }
+
+  function formatLocalPdfHeaderTimestamp(date = new Date()) {
+    const localDate = new Date(date);
+    const month = localDate.getMonth() + 1;
+    const day = localDate.getDate();
+    const year = localDate.getFullYear();
+    let hours = localDate.getHours();
+    const minutes = String(localDate.getMinutes()).padStart(2, "0");
+    const seconds = String(localDate.getSeconds()).padStart(2, "0");
+    const meridiem = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    if (hours === 0) {
+      hours = 12;
+    }
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${meridiem}`;
+  }
+
+  function getNamedReportVisualizationExportText(context) {
+    const pairInfo = context?.pairInfo || {};
+    const records = Array.isArray(context?.records) ? context.records : [];
+    const summaryStats = context?.summaryStats || getReportSummaryStats(records);
+    const levelBreakdown = context?.levelBreakdown || buildLevelBreakdown(records);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, records);
+    const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats, levelBreakdown);
+    const lines = [];
+    lines.push(`Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`);
+    const utcRangeText = getVisualizationUtcRangeText(records);
+    if (utcRangeText) {
+      lines.push(utcRangeText);
+    }
+    lines.push(summaryText);
+    lines.push(probabilityText);
+    lines.push(buildAiInterpretation(summaryStats, records));
+    [interpretation.dataset_makeup, interpretation.practice_trend, interpretation.persuasiveness_projection, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
+      String(text || "").split(/\r?\n/).map((part) => part.trim()).filter(Boolean).forEach((part) => lines.push(part));
+    });
+    return lines;
+  }
+
+  function loadSvgImageDataUrl(svgText) {
+    return new Promise((resolve, reject) => {
+      const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const image = new Image();
+      image.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = image.naturalWidth || 900;
+          canvas.height = image.naturalHeight || 520;
+          const context = canvas.getContext("2d");
+          if (!context) {
+            throw new Error("Canvas export context unavailable.");
+          }
+          context.fillStyle = "#0b1221";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/png");
+          URL.revokeObjectURL(url);
+          resolve({
+            dataUrl,
+            width: canvas.width,
+            height: canvas.height
+          });
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          reject(error);
+        }
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Unable to render the chart image for PDF export."));
+      };
+      image.src = url;
+    });
+  }
+
+  async function captureVisualizationChartForPdf() {
+    if (!visualizationChart || visualizationChartWrap?.hidden) {
+      throw new Error("The visualization chart is not available for PDF export.");
+    }
+    const serializer = new XMLSerializer();
+    const svgClone = visualizationChart.cloneNode(true);
+    if (!(svgClone instanceof SVGElement)) {
+      throw new Error("The visualization chart could not be cloned for PDF export.");
+    }
+    svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    svgClone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    const viewBox = svgClone.getAttribute("viewBox") || "0 0 900 520";
+    const parts = viewBox.split(/\s+/).map((part) => Number(part));
+    const width = Number.isFinite(parts[2]) && parts[2] > 0 ? parts[2] : 900;
+    const height = Number.isFinite(parts[3]) && parts[3] > 0 ? parts[3] : 520;
+    svgClone.setAttribute("width", String(width));
+    svgClone.setAttribute("height", String(height));
+    const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    background.setAttribute("x", "0");
+    background.setAttribute("y", "0");
+    background.setAttribute("width", String(width));
+    background.setAttribute("height", String(height));
+    background.setAttribute("fill", "#0b1221");
+    svgClone.insertBefore(background, svgClone.firstChild);
+    const svgText = serializer.serializeToString(svgClone);
+    return loadSvgImageDataUrl(svgText);
+  }
+
+  function appendPdfWrappedText(doc, text, x, y, maxWidth, lineHeight, pageBottomY) {
+    const parts = doc.splitTextToSize(String(text || ""), maxWidth);
+    let cursorY = y;
+    parts.forEach((part) => {
+      if (cursorY > pageBottomY) {
+        doc.addPage();
+        doc.setFillColor(11, 18, 33);
+        doc.rect(0, 0, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight(), "F");
+        doc.setTextColor(246, 243, 239);
+        cursorY = 24;
+      }
+      doc.text(String(part), x, cursorY);
+      cursorY += lineHeight;
+    });
+    return cursorY;
+  }
+
+  async function exportVisualizationPdf(context, title) {
+    const jspdfNamespace = window.jspdf || null;
+    const JsPdfCtor = jspdfNamespace?.jsPDF || null;
+    if (typeof JsPdfCtor !== "function") {
+      throw new Error("PDF export is not available right now.");
+    }
+    if (isNamedReportPdfUnsupportedPlatform()) {
+      throw new Error("Not available for iPhone/Safari.");
+    }
+
+    const chartImage = await captureVisualizationChartForPdf();
+    const doc = new JsPdfCtor({
+      orientation: "portrait",
+      unit: "pt",
+      format: "letter"
+    });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginX = 36;
+    const pageBottomY = pageHeight - 36;
+    const maxWidth = pageWidth - (marginX * 2);
+    let cursorY = 34;
+
+    doc.setFillColor(11, 18, 33);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+    doc.setTextColor(246, 243, 239);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    cursorY = appendPdfWrappedText(doc, title, marginX, cursorY, maxWidth, 22, pageBottomY);
+    cursorY += 18;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(16);
+    cursorY = appendPdfWrappedText(doc, `ESP GYM Report  ${formatLocalPdfHeaderTimestamp(new Date())}`, marginX, cursorY, maxWidth, 20, pageBottomY);
+    cursorY += 6;
+    doc.setFontSize(11.5);
+    const exportLines = getNamedReportVisualizationExportText(context);
+    exportLines.forEach((line) => {
+      cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 15, pageBottomY);
+      cursorY += 2;
+    });
+    cursorY += 8;
+
+    const chartMaxWidth = maxWidth;
+    const chartWidth = chartMaxWidth;
+    const chartHeight = Math.max(120, chartWidth * (chartImage.height / chartImage.width));
+    if (cursorY + chartHeight > pageBottomY) {
+      doc.addPage();
+      doc.setFillColor(11, 18, 33);
+      doc.rect(0, 0, pageWidth, pageHeight, "F");
+      doc.setTextColor(246, 243, 239);
+      cursorY = 28;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Chart", marginX, cursorY);
+    cursorY += 10;
+    doc.addImage(chartImage.dataUrl, "PNG", marginX, cursorY, chartWidth, chartHeight, undefined, "FAST");
+    cursorY += chartHeight + 14;
+
+    doc.save(sanitizePdfFileName(title));
+  }
+
   function openNamedReportModal() {
     const context = latestVisualizationContext;
     if (!context?.pairInfo?.receiverName || !context?.pairInfo?.senderName) {
@@ -4161,6 +4377,13 @@ This is an alternate test message to show now.`;
     if (namedReportStatus) {
       namedReportStatus.textContent = "";
     }
+    if (namedReportSaveVisualizationCheckbox) {
+      namedReportSaveVisualizationCheckbox.checked = true;
+    }
+    if (namedReportSavePdfCheckbox) {
+      namedReportSavePdfCheckbox.checked = false;
+    }
+    applyNamedReportPdfAvailabilityState();
     if (namedReportModal) {
       namedReportModal.hidden = false;
     }
@@ -4182,6 +4405,14 @@ This is an alternate test message to show now.`;
       namedReportTitleInput?.focus();
       return;
     }
+    const saveVisualizationReport = !!namedReportSaveVisualizationCheckbox?.checked;
+    const savePdfFile = !!namedReportSavePdfCheckbox?.checked;
+    if (!saveVisualizationReport && !savePdfFile) {
+      if (namedReportStatus) {
+        namedReportStatus.textContent = "Select at least one save option.";
+      }
+      return;
+    }
 
     if (namedReportSaveButton) {
       namedReportSaveButton.disabled = true;
@@ -4190,23 +4421,65 @@ This is an alternate test message to show now.`;
       namedReportCancelButton.disabled = true;
     }
     if (namedReportStatus) {
-      namedReportStatus.textContent = "Saving named file...";
+      namedReportStatus.textContent = "Saving...";
     }
 
+    let savedTarget = null;
+    let visualizationSaved = false;
+    let pdfSaved = false;
+    let visualizationFailureMessage = "";
+    let pdfFailureMessage = "";
+
     try {
-      const savedTarget = await saveNamedReport(context.pairInfo, {
-        title,
-        startTrial: context.range.start,
-        endTrial: context.range.end,
-        completedTrialCount: context.completedTrialCount
-      });
-      pendingSelectNamedReportId = String(savedTarget.reportId || "");
-      await renderReportDefinition();
-      const selectedTarget = availableReportPairs.find((pairInfo) => pairInfo.key === savedTarget.key) || savedTarget;
-      setSelectedReportPair(selectedTarget);
+      if (saveVisualizationReport) {
+        try {
+        savedTarget = await saveNamedReport(context.pairInfo, {
+          title,
+          startTrial: context.range.start,
+          endTrial: context.range.end,
+          completedTrialCount: context.completedTrialCount
+        });
+        visualizationSaved = true;
+        pendingSelectNamedReportId = String(savedTarget.reportId || "");
+        await renderReportDefinition();
+        const selectedTarget = availableReportPairs.find((pairInfo) => pairInfo.key === savedTarget.key) || savedTarget;
+        setSelectedReportPair(selectedTarget);
+        } catch (error) {
+          visualizationFailureMessage = error instanceof Error ? error.message : "Unable to save the named file right now.";
+        }
+      }
+
+      if (savePdfFile) {
+        try {
+          await exportVisualizationPdf(context, title);
+          pdfSaved = true;
+        } catch (error) {
+          pdfFailureMessage = error instanceof Error ? error.message : "Unable to export the PDF right now.";
+        }
+      }
+
+      if (!visualizationSaved && !pdfSaved) {
+        if (namedReportStatus) {
+          namedReportStatus.textContent = visualizationFailureMessage || pdfFailureMessage || "Nothing was saved.";
+        }
+        return;
+      }
+
       closeNamedReportModal();
       if (visualizationStatus) {
-        visualizationStatus.textContent = `Named file saved: ${savedTarget.reportTitle || title}.`;
+        if (visualizationSaved && pdfSaved) {
+          visualizationStatus.textContent = `Named file saved and PDF export started: ${savedTarget?.reportTitle || title}.`;
+        } else if (visualizationSaved) {
+          visualizationStatus.textContent = pdfFailureMessage
+            ? `Named file saved: ${savedTarget?.reportTitle || title}. ${pdfFailureMessage}`
+            : `Named file saved: ${savedTarget?.reportTitle || title}.`;
+        } else if (pdfSaved && visualizationFailureMessage) {
+          visualizationStatus.textContent = `PDF export started: ${title}. ${visualizationFailureMessage}`;
+        } else if (pdfSaved) {
+          visualizationStatus.textContent = `PDF export started: ${title}.`;
+        } else {
+          visualizationStatus.textContent = visualizationFailureMessage || pdfFailureMessage || "Nothing was saved.";
+        }
       }
     } catch (error) {
       if (namedReportStatus) {
@@ -12707,6 +12980,48 @@ This is an alternate test message to show now.`;
     return Number.isFinite(millis) ? millis : Number.POSITIVE_INFINITY;
   }
 
+  function formatUtcHeaderDateTime(value) {
+    const millis = Number(value);
+    if (!Number.isFinite(millis)) {
+      return "";
+    }
+    const date = new Date(millis);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const year = String(date.getUTCFullYear()).slice(-2);
+    return `${hours}:${minutes}:${seconds} ${month}/${day}/${year}`;
+  }
+
+  function getVisualizationUtcRangeText(records) {
+    const scoredRecords = getScoredRecords(Array.isArray(records) ? records : []);
+    if (!scoredRecords.length) {
+      return "";
+    }
+    const utcMillisValues = scoredRecords
+      .map((record) => {
+        const utcText = String(record?.["utc time"] || "").trim();
+        const millis = utcText ? Date.parse(utcText) : NaN;
+        return Number.isFinite(millis) ? millis : Number.NaN;
+      })
+      .filter((millis) => Number.isFinite(millis))
+      .sort((left, right) => left - right);
+    if (!utcMillisValues.length) {
+      return "";
+    }
+    const startText = formatUtcHeaderDateTime(utcMillisValues[0]);
+    const endText = formatUtcHeaderDateTime(utcMillisValues[utcMillisValues.length - 1]);
+    if (!startText || !endText) {
+      return "";
+    }
+    return `UTC Start: ${startText} End: ${endText}`;
+  }
+
   function getRecordsForReportPair(records, pairInfo) {
     if (!pairInfo?.receiverName || !pairInfo?.senderName) {
       return [];
@@ -13718,14 +14033,22 @@ This is an alternate test message to show now.`;
     };
   }
 
+  const projectionSignificancePThreshold = 0.01;
   const highlyPersuasivePThreshold = 0.001;
-  const highlyPersuasiveMinimumTrials = 50;
+  const highlyPersuasiveMinimumTrials = 25;
+  const twentyTrialCheckpointCount = 20;
   const highlyPersuasiveProjectionCeiling = 500;
 
   function isHighlyPersuasiveResult(totalTrials, pValue) {
     return Number(totalTrials || 0) >= highlyPersuasiveMinimumTrials
       && Number.isFinite(pValue)
       && pValue < highlyPersuasivePThreshold;
+  }
+
+  function isSignificantResult(totalTrials, pValue) {
+    return Number(totalTrials || 0) >= 1
+      && Number.isFinite(pValue)
+      && pValue < projectionSignificancePThreshold;
   }
 
   function getProjectionPerTrialAverages(summaryStats) {
@@ -13743,53 +14066,155 @@ This is an alternate test message to show now.`;
     };
   }
 
-  function getProjectedHighlyPersuasiveResult(summaryStats) {
-    const totalTrials = Number(summaryStats?.totalTrials || 0);
+  function getProjectedSummaryStats(summaryStats, projectedTrials) {
     const averages = getProjectionPerTrialAverages(summaryStats);
-    if (!averages || totalTrials < 1) {
+    const trialCount = Number(projectedTrials || 0);
+    if (!averages || trialCount < 1) {
+      return null;
+    }
+    return {
+      totalTrials: trialCount,
+      yourScore: averages.observedPerTrial * trialCount,
+      chanceScore: averages.expectedPerTrial * trialCount,
+      totalVariance: averages.variancePerTrial * trialCount
+    };
+  }
+
+  function getProjectedThresholdResult(summaryStats, thresholdPValue, minimumTrials = 1) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (!getProjectionPerTrialAverages(summaryStats) || totalTrials < 1) {
       return null;
     }
 
-    for (let projectedTrials = Math.max(totalTrials, 1); projectedTrials <= highlyPersuasiveProjectionCeiling; projectedTrials += 1) {
-      const projectedSummary = {
-        totalTrials: projectedTrials,
-        yourScore: averages.observedPerTrial * projectedTrials,
-        chanceScore: averages.expectedPerTrial * projectedTrials,
-        totalVariance: averages.variancePerTrial * projectedTrials
-      };
+    for (let projectedTrials = Math.max(totalTrials, Number(minimumTrials || 1), 1); projectedTrials <= highlyPersuasiveProjectionCeiling; projectedTrials += 1) {
+      const projectedSummary = getProjectedSummaryStats(summaryStats, projectedTrials);
       const projectedPValue = getTelepathicSignificancePValue(projectedSummary);
-      if (isHighlyPersuasiveResult(projectedTrials, projectedPValue)) {
+      if (Number.isFinite(projectedPValue) && projectedPValue < Number(thresholdPValue)) {
         return {
           trialCount: projectedTrials,
-          pValue: projectedPValue
+          pValue: projectedPValue,
+          summaryStats: projectedSummary
         };
       }
     }
     return null;
   }
 
-  function buildPersuasivenessProjectionLine(summaryStats, levelBreakdown = null) {
+  function getTwentyTrialCheckpointDetail(summaryStats, levelBreakdown = null, records = []) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    if (totalTrials < 1) {
+      return {
+        mode: "unavailable",
+        line: "20-trial checkpoint: there are not enough completed scored trials yet to estimate a 20-trial checkpoint."
+      };
+    }
+
+    if (totalTrials >= twentyTrialCheckpointCount) {
+      const firstTwentyRecords = getScoredRecords(Array.isArray(records) ? records : []).slice(0, twentyTrialCheckpointCount);
+      const firstTwentySummary = getReportSummaryStats(firstTwentyRecords);
+      const firstTwentyBreakdown = buildLevelBreakdown(firstTwentyRecords);
+      const firstTwentySignificance = getOverallSignificanceContext(firstTwentySummary, firstTwentyBreakdown);
+      const pValue = Number(firstTwentySignificance?.pValue);
+      return {
+        mode: "actual",
+        pValue,
+        summaryStats: firstTwentySummary,
+        line: Number.isFinite(pValue)
+          ? `20-trial checkpoint: in the first ${twentyTrialCheckpointCount} completed scored trials of this displayed range, P = ${formatProbabilityValueSignificant(pValue, 3)}.`
+          : `20-trial checkpoint: the first ${twentyTrialCheckpointCount} completed scored trials of this displayed range could not be evaluated.`
+      };
+    }
+
+    const projectedSummary = getProjectedSummaryStats(summaryStats, twentyTrialCheckpointCount);
+    const projectedPValue = getTelepathicSignificancePValue(projectedSummary);
+    return {
+      mode: "projected",
+      pValue: projectedPValue,
+      summaryStats: projectedSummary,
+      line: Number.isFinite(projectedPValue)
+        ? `20-trial checkpoint: if performance continued at approximately this same level through ${twentyTrialCheckpointCount} completed scored trials, projected P would be ${formatProbabilityValueSignificant(projectedPValue, 3)}.`
+        : `20-trial checkpoint: the 20-trial projection could not be estimated from the current data.`
+    };
+  }
+
+  function getProjectionThresholdDetail(summaryStats, levelBreakdown, thresholdPValue, minimumTrials, currentReachedLine, futureTemplate, failureLine) {
+    const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
+    const currentPValue = Number(significance?.pValue);
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const requiredTrials = Math.max(Number(minimumTrials || 1), 1);
+    if (totalTrials >= requiredTrials && Number.isFinite(currentPValue) && currentPValue < Number(thresholdPValue)) {
+      return {
+        reached: true,
+        current: true,
+        trialCount: totalTrials,
+        pValue: currentPValue,
+        line: currentReachedLine
+      };
+    }
+
+    const projectedResult = getProjectedThresholdResult(summaryStats, thresholdPValue, requiredTrials);
+    if (projectedResult && Number.isFinite(projectedResult.trialCount)) {
+      return {
+        reached: true,
+        current: false,
+        trialCount: projectedResult.trialCount,
+        pValue: projectedResult.pValue,
+        summaryStats: projectedResult.summaryStats,
+        line: futureTemplate(projectedResult)
+      };
+    }
+
+    return {
+      reached: false,
+      current: false,
+      trialCount: Number.NaN,
+      pValue: Number.NaN,
+      line: failureLine
+    };
+  }
+
+  function getPersuasivenessProjectionDetail(summaryStats, levelBreakdown = null, records = []) {
     const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
     const pValue = Number(significance?.pValue);
     const totalTrials = Number(summaryStats?.totalTrials || 0);
     if (totalTrials < 1 || !Number.isFinite(pValue)) {
-      return "Projection: There are not enough completed scored trials yet to estimate when the result might become highly persuasive.";
+      return {
+        line: "Projection: There are not enough completed scored trials yet to estimate the projection checkpoints.",
+        twentyTrialCheckpoint: getTwentyTrialCheckpointDetail(summaryStats, levelBreakdown, records),
+        significanceProjection: null,
+        highPersuasivenessProjection: null
+      };
     }
 
-    if (isHighlyPersuasiveResult(totalTrials, pValue)) {
-      return "Projection: At the current level of performance, this result is already in the highly persuasive range.";
-    }
-
-    if (pValue < highlyPersuasivePThreshold && totalTrials < highlyPersuasiveMinimumTrials) {
-      return `Projection: If performance remains at approximately this level, the result would enter the highly persuasive range at ${highlyPersuasiveMinimumTrials} completed scored trials, P < ${formatProbabilityValueSignificant(highlyPersuasivePThreshold, 3)}.`;
-    }
-
-    const projectedResult = getProjectedHighlyPersuasiveResult(summaryStats);
-    if (projectedResult && Number.isFinite(projectedResult.trialCount)) {
-      return `Projection: If performance continued at approximately this same level, the result would become highly persuasive at about ${projectedResult.trialCount} completed scored trials, P < ${formatProbabilityValueSignificant(projectedResult.pValue, 3)}.`;
-    }
-
-    return "Projection: At the current level of performance, the data do not yet project a clear path to the highly persuasive range.";
+    const twentyTrialCheckpoint = getTwentyTrialCheckpointDetail(summaryStats, levelBreakdown, records);
+    const significanceProjection = getProjectionThresholdDetail(
+      summaryStats,
+      levelBreakdown,
+      projectionSignificancePThreshold,
+      1,
+      "Projection to significance: this displayed range is already below P < .01.",
+      (projectedResult) => `Projection to significance: if performance continued at approximately this same level, the result would first fall below P < .01 at about ${projectedResult.trialCount} completed scored trials, projected P = ${formatProbabilityValueSignificant(projectedResult.pValue, 3)}.`,
+      "Projection to significance: at the current level of performance, the data do not project a crossing below P < .01 within 500 completed scored trials."
+    );
+    const highPersuasivenessProjection = getProjectionThresholdDetail(
+      summaryStats,
+      levelBreakdown,
+      highlyPersuasivePThreshold,
+      highlyPersuasiveMinimumTrials,
+      "Projection to high persuasiveness: this displayed range is already in the highly persuasive range (P < .001 with at least 25 completed scored trials).",
+      (projectedResult) => `Projection to high persuasiveness: if performance continued at approximately this same level, the result would first enter the highly persuasive range at about ${projectedResult.trialCount} completed scored trials, projected P = ${formatProbabilityValueSignificant(projectedResult.pValue, 3)}.`,
+      "Projection to high persuasiveness: at the current level of performance, the data do not project entry into the highly persuasive range within 500 completed scored trials."
+    );
+    return {
+      line: [
+        twentyTrialCheckpoint.line,
+        significanceProjection.line,
+        highPersuasivenessProjection.line
+      ].join("\n"),
+      twentyTrialCheckpoint,
+      significanceProjection,
+      highPersuasivenessProjection
+    };
   }
 
   const practiceTrendSameLevelMinimumTrials = 20;
@@ -14432,7 +14857,8 @@ This is an alternate test message to show now.`;
     const overallInterpretation = buildOverallInterpretation(summaryStats, levelStats);
     const datasetMakeup = buildDatasetMakeupLine(levelStats, Number(summaryStats?.totalTrials || 0));
     const practiceTrendDetail = getPracticeTrendDetail(records, levelBreakdown);
-    const persuasivenessProjection = buildPersuasivenessProjectionLine(summaryStats, levelBreakdown);
+    const persuasivenessProjectionDetail = getPersuasivenessProjectionDetail(summaryStats, levelBreakdown, records);
+    const persuasivenessProjection = persuasivenessProjectionDetail.line;
     const levelInterpretations = levelStats
       .filter((entry) => Number(entry.completed_trials || 0) > 0)
       .map((entry) => getLevelSpecificInterpretation(entry));
@@ -14462,6 +14888,7 @@ This is an alternate test message to show now.`;
       practice_trend: practiceTrendDetail.line,
       practice_trend_detail: practiceTrendDetail,
       persuasiveness_projection: persuasivenessProjection,
+      persuasiveness_projection_detail: persuasivenessProjectionDetail,
       level_interpretations: levelInterpretations,
       pattern_interpretations: patternInterpretations,
       recommendation,
@@ -15120,6 +15547,57 @@ This is an alternate test message to show now.`;
     ].join("\n");
   }
 
+  function buildVisualizationProjectionDetail(interpretation) {
+    const detail = interpretation?.persuasiveness_projection_detail || null;
+    if (!detail) {
+      return "Projection detail is unavailable.";
+    }
+
+    const lines = [
+      "Projection detail:",
+      "The projection assumes future completed scored trials continue at approximately the same average performance as the currently displayed range.",
+      detail.twentyTrialCheckpoint?.line || "20-trial checkpoint: unavailable.",
+      detail.significanceProjection?.line || "Projection to significance: unavailable.",
+      detail.highPersuasivenessProjection?.line || "Projection to high persuasiveness: unavailable."
+    ];
+
+    if (detail.twentyTrialCheckpoint?.summaryStats) {
+      if (detail.twentyTrialCheckpoint.mode === "actual") {
+        lines.push(
+          `20-trial checkpoint chance score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.chanceScore)}.`,
+          `20-trial checkpoint score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.yourScore)}.`
+        );
+      } else {
+        lines.push(
+          `20-trial checkpoint projected chance score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.chanceScore)}.`,
+          `20-trial checkpoint projected score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.yourScore)}.`
+        );
+      }
+    }
+
+    if (detail.significanceProjection?.summaryStats && Number.isFinite(detail.significanceProjection?.trialCount)) {
+      lines.push(
+        `Significance threshold: P < .01.`,
+        `Projected significance trial count = ${detail.significanceProjection.trialCount}.`,
+        `Projected significance chance score = ${formatScoreValue(detail.significanceProjection.summaryStats.chanceScore)}.`,
+        `Projected significance score = ${formatScoreValue(detail.significanceProjection.summaryStats.yourScore)}.`,
+        `Projected significance P = ${formatProbabilityValueSignificant(detail.significanceProjection.pValue, 3)}.`
+      );
+    }
+
+    if (detail.highPersuasivenessProjection?.summaryStats && Number.isFinite(detail.highPersuasivenessProjection?.trialCount)) {
+      lines.push(
+        `High-persuasiveness threshold: P < .001 with at least ${highlyPersuasiveMinimumTrials} completed scored trials.`,
+        `Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
+        `Projected high-persuasiveness chance score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.chanceScore)}.`,
+        `Projected high-persuasiveness score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.yourScore)}.`,
+        `Projected high-persuasiveness P = ${formatProbabilityValueSignificant(detail.highPersuasivenessProjection.pValue, 3)}.`
+      );
+    }
+
+    return lines.join("\n");
+  }
+
   function buildVisualizationPracticeTrendDetail(interpretation) {
     const detail = interpretation?.practice_trend_detail || null;
     if (!detail?.eligible || !detail?.regression) {
@@ -15368,7 +15846,8 @@ This is an alternate test message to show now.`;
 
     const pairLine = document.createElement("p");
     pairLine.className = "report-summary-line";
-    pairLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+    const utcRangeText = getVisualizationUtcRangeText(context.records);
+    pairLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.${utcRangeText ? ` ${utcRangeText}` : ""}`;
     visualizationAdvancedDetailSummary.append(pairLine);
 
     const rangeLine = document.createElement("p");
@@ -15380,7 +15859,11 @@ This is an alternate test message to show now.`;
 
     const trialCount = Number(context.completedTrialCount || context.records.length || 0);
     visualizationAdvancedDetailStatus.textContent = `${trialCount} completed scored trial record${trialCount === 1 ? "" : "s"} included in this detail view.`;
-    visualizationAdvancedSignificanceOutput.textContent = buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, context.records);
+    visualizationAdvancedSignificanceOutput.textContent = [
+      buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, context.records),
+      "",
+      buildVisualizationProjectionDetail(interpretation)
+    ].join("\n");
     visualizationAdvancedTrendOutput.textContent = buildVisualizationPracticeTrendDetail(interpretation);
     renderVisualizationPracticeTrendGraph(interpretation.practice_trend_detail);
   }
@@ -15401,7 +15884,8 @@ This is an alternate test message to show now.`;
 
     const firstLine = document.createElement("p");
     firstLine.className = "report-summary-line";
-    firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+    const utcRangeText = getVisualizationUtcRangeText(records);
+    firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.${utcRangeText ? ` ${utcRangeText}` : ""}`;
     visualizationSummary.append(firstLine);
 
     if (!series.length) {
@@ -15433,10 +15917,15 @@ This is an alternate test message to show now.`;
       if (!text) {
         return;
       }
-      const line = document.createElement("p");
-      line.className = "report-summary-line";
-      line.textContent = text;
-      visualizationSummary.append(line);
+      String(text).split(/\r?\n/).forEach((part) => {
+        if (!part) {
+          return;
+        }
+        const line = document.createElement("p");
+        line.className = "report-summary-line";
+        line.textContent = part;
+        visualizationSummary.append(line);
+      });
     });
 
     visualizationStatus.textContent = buildVisualizationStatusLine(range, totalAvailableTrials);
