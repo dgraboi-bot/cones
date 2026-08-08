@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260807f">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260808a">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260807f">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260807f">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260807f">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260808a">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260808a">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260808a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260807f">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260807f">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260807f">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260808a">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260808a">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260808a">
   <script>
     (function () {
-      var buildVersion = "20260807f";
+      var buildVersion = "20260808a";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -558,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260807f</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260808a</span>
           </div>
         </div>
 
@@ -1722,7 +1722,10 @@
 
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
-              <h2 class="about-section-title">Choose Your Plan</h2>
+              <div class="go-pro-plan-heading">
+                <h2 class="about-section-title">Choose Your Plan</h2>
+                <span class="go-pro-plan-identifier" data-go-pro-current-identifier>Unique User ID: No User ID Found</span>
+              </div>
               <p class="about-section-copy">$2.99 per month or $25 per year. Cancel at any time.</p>
             </div>
             <div class="about-section">
@@ -1731,6 +1734,9 @@
             </div>
             <div class="settings-view-note" data-go-pro-identifier-note></div>
             <div class="settings-view-status" data-go-pro-status></div>
+            <div class="settings-view-note go-pro-claim-note" data-go-pro-claim-note hidden>
+              Claim your unique user identifier <button class="role-note-link inline-text-link" type="button" data-go-pro-claim-link>here</button>, then return here to subscribe.
+            </div>
             <div class="contact-actions">
               <button class="options-button contact-action-button" type="button" data-go-pro-monthly>Subscribe Monthly - $2.99</button>
               <button class="options-button contact-action-button" type="button" data-go-pro-annual>Subscribe Annual - $25.00</button>
@@ -2599,28 +2605,29 @@
           <h1 class="beginner-title" id="adminTitle">Admin</h1>
 
           <section class="settings-view-panel admin-view-panel">
-            <label class="settings-view-checkbox">
+            <div class="settings-view-note settings-view-note-admin-session">You now have system-wide admin privileges locally on this device.</div>
+            <label class="settings-view-checkbox" title="Turns on detailed diagnostic logging for this device so app behavior can be traced during testing and troubleshooting.">
               <input type="checkbox" data-admin-debug-enabled>
-              <span>Enable debugging</span>
+              <span title="Turns on detailed diagnostic logging for this device so app behavior can be traced during testing and troubleshooting.">Enable debugging</span>
             </label>
-            <label class="settings-view-checkbox">
+            <label class="settings-view-checkbox" title="Allows the system to send subscription-related emails such as welcome, renewal, and cancellation notices.">
               <input type="checkbox" data-admin-subscription-emails-enabled>
-              <span>Enable Subscription Emails</span>
+              <span title="Allows the system to send subscription-related emails such as welcome, renewal, and cancellation notices.">Enable Subscription Emails</span>
             </label>
-            <label class="settings-view-checkbox">
+            <label class="settings-view-checkbox" title="Allows annual PRO subscribers to receive reminder emails before renewal when the reminder scan is run.">
               <input type="checkbox" data-admin-subscription-reminders-enabled>
-              <span>Enable Annual Subscription Reminders</span>
+              <span title="Allows annual PRO subscribers to receive reminder emails before renewal when the reminder scan is run.">Enable Annual Subscription Reminders</span>
             </label>
-            <label class="settings-view-checkbox">
+            <label class="settings-view-checkbox" title="Keeps this device in Admin mode without asking for the admin secret again each time. This setting is device-local.">
               <input type="checkbox" data-admin-easy-admin-enabled>
-              <span>Enable Easy Admin</span>
+              <span title="Keeps this device in Admin mode without asking for the admin secret again each time. This setting is device-local.">Enable Easy Admin</span>
             </label>
-            <label class="settings-view-checkbox">
+            <label class="settings-view-checkbox" title="Lets this device edit and save the Learn More text pages from inside the app. This is mainly for content-authoring and maintenance.">
               <input type="checkbox" data-admin-learn-more-save-enabled>
-              <span>Enable SAVE for Learn More text</span>
+              <span title="Lets this device edit and save the Learn More text pages from inside the app. This is mainly for content-authoring and maintenance.">Enable SAVE for Learn More text</span>
             </label>
             <label class="settings-view-field">
-              <span class="settings-view-label">Explore PRO test duration (seconds)</span>
+              <span class="settings-view-label" title="Overrides the normal 14-day Explore PRO trial period with a short temporary duration, in seconds, for checkout and subscription-flow testing. Use 0 for the normal live duration.">Explore PRO test duration (seconds)</span>
               <input
                 class="settings-view-input"
                 type="number"
@@ -2630,6 +2637,7 @@
                 autocomplete="off"
                 spellcheck="false"
                 data-admin-explore-pro-test-duration
+                title="Overrides the normal 14-day Explore PRO trial period with a short temporary duration, in seconds, for checkout and subscription-flow testing. Use 0 for the normal live duration."
                 placeholder="0"
               >
             </label>
@@ -2703,12 +2711,33 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260807f'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260807f'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260808a'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260808a'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
             </section>
+        </section>
+
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="admin-reminder-action" aria-labelledby="adminReminderActionTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-admin-reminder-action>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
+
+          <h1 class="beginner-title" id="adminReminderActionTitle" data-admin-reminder-action-title>Annual Reminder Action</h1>
+
+          <section class="settings-view-panel about-view-panel">
+            <div class="about-section">
+              <p class="about-section-copy" data-admin-reminder-action-copy-primary></p>
+              <p class="about-section-copy" data-admin-reminder-action-copy-secondary></p>
+            </div>
+            <p class="settings-view-status" data-admin-reminder-action-status></p>
+            <div class="options-actions">
+              <button class="options-button" type="button" data-admin-reminder-action-confirm>RUN ACTION</button>
+            </div>
+          </section>
         </section>
 
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="saved-links-admin" aria-labelledby="savedLinksAdminTitle">
@@ -3494,8 +3523,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260807f"></script>
-<script src="telepathybeginner.js?v=20260807f"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260808a"></script>
+<script src="telepathybeginner.js?v=20260808a"></script>
 </body>
 </html>
 

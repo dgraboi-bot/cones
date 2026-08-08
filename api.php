@@ -3858,6 +3858,7 @@ function ensure_demo_pair_records(string $pairsDir, bool $force = false): void
         ['receiver_name' => 'demo.level1.too-little.receiver@espgym.com', 'sender_name' => 'demo.level1.too-little.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.promising.receiver@espgym.com', 'sender_name' => 'demo.level1.promising.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.promising16.receiver@espgym.com', 'sender_name' => 'demo.level1.promising16.sender@espgym.com'],
+        ['receiver_name' => 'demo.level1.promising16.receiver', 'sender_name' => 'demo.level1.promising16.sender'],
         ['receiver_name' => 'demo.level1.not-telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.not-telepathic.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.telepathic.sender@espgym.com'],
         ['receiver_name' => 'demo.mixed.level123.receiver@espgym.com', 'sender_name' => 'demo.mixed.level123.sender@espgym.com']

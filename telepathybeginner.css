@@ -1126,6 +1126,20 @@ body {
   -webkit-text-fill-color: rgba(255, 255, 255, 0.78);
 }
 
+.beginner-kicker-admin-badge {
+  margin-left: 0.9em;
+  letter-spacing: 0.18em;
+  color: #6fe08d;
+  -webkit-text-fill-color: #6fe08d;
+  font-weight: 700;
+}
+
+.settings-view-note-admin-session {
+  margin-bottom: 14px;
+  color: rgba(208, 245, 218, 0.98);
+  border-color: rgba(111, 224, 141, 0.35);
+}
+
 .beginner-title {
   margin: 12px 0 0;
   text-align: center;
@@ -4361,7 +4375,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260807f") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260808a") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
@@ -5215,4 +5229,33 @@ html.launcher-direct-open-pending body {
   .color-scheme-preview-grid {
     grid-template-columns: 1fr;
   }
+}
+.go-pro-plan-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.go-pro-plan-identifier {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.go-pro-claim-note[hidden] {
+  display: none !important;
+}
+
+.inline-text-link {
+  padding: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  line-height: inherit;
+  vertical-align: baseline;
 }

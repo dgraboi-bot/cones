@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260807f";
+  const launcherBuildVersion = "20260808a";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -21,6 +21,7 @@
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
   const launcherView = document.querySelector('[data-view="launcher"]');
+  const beginnerKickers = Array.from(document.querySelectorAll(".beginner-kicker"));
   const beginnerMainTitle = document.querySelector("[data-beginner-main-title]");
   const launcherSubtitle = document.querySelector("[data-launcher-subtitle]");
   const launcherCopy = document.querySelector("[data-launcher-copy]");
@@ -60,6 +61,7 @@
   const handleUpdateAdminView = document.querySelector('[data-view="handle-update-admin"]');
   const imagePairAdminView = document.querySelector('[data-view="image-pair-admin"]');
   const subscriptionEmailAdminView = document.querySelector('[data-view="subscription-email-admin"]');
+  const adminReminderActionView = document.querySelector('[data-view="admin-reminder-action"]');
   const adminUserListView = document.querySelector('[data-view="admin-user-list"]');
   const adminIdentityListView = document.querySelector('[data-view="admin-identity-list"]');
   const adminEmailListView = document.querySelector('[data-view="admin-email-list"]');
@@ -193,6 +195,12 @@
   const adminListIdentitiesButton = document.querySelector("[data-admin-list-identities]");
   const adminRunRemindersButton = document.querySelector("[data-admin-run-reminders]");
   const adminRunRemindersTestButton = document.querySelector("[data-admin-run-reminders-test]");
+  const closeAdminReminderActionButton = document.querySelector("[data-close-admin-reminder-action]");
+  const adminReminderActionTitle = document.querySelector("[data-admin-reminder-action-title]");
+  const adminReminderActionCopyPrimary = document.querySelector("[data-admin-reminder-action-copy-primary]");
+  const adminReminderActionCopySecondary = document.querySelector("[data-admin-reminder-action-copy-secondary]");
+  const adminReminderActionStatus = document.querySelector("[data-admin-reminder-action-status]");
+  const adminReminderActionConfirmButton = document.querySelector("[data-admin-reminder-action-confirm]");
   const adminOpenAnalyzerButton = document.querySelector("[data-admin-open-analyzer]");
   const adminClearLocalStorageButton = document.querySelector("[data-admin-clear-localstorage]");
   const closeHelpButton = document.querySelector("[data-close-help]");
@@ -391,6 +399,9 @@
   const goProAnnualButton = document.querySelector("[data-go-pro-annual]");
   const goProStatus = document.querySelector("[data-go-pro-status]");
   const goProIdentifierNote = document.querySelector("[data-go-pro-identifier-note]");
+  const goProCurrentIdentifier = document.querySelector("[data-go-pro-current-identifier]");
+  const goProClaimNote = document.querySelector("[data-go-pro-claim-note]");
+  const goProClaimLinkButton = document.querySelector("[data-go-pro-claim-link]");
   const closeOtherSettingsButton = document.querySelector("[data-close-other-settings]");
   const closeClairvoyanceViewingButton = document.querySelector("[data-close-clairvoyance-viewing]");
   const closeClairvoyanceLearnMoreButton = document.querySelector("[data-close-clairvoyance-learn-more]");
@@ -1121,7 +1132,7 @@
   }
 
   let launcherAdminDevicePrefs = readLauncherAdminDevicePrefs();
-  let launcherAdminSecret = launcherAdminDevicePrefs.cached_secret || "";
+  let launcherAdminSecret = "";
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
@@ -1226,6 +1237,8 @@ This is an alternate test message to show now.`;
   let pendingOnlineCourseRestoreFocusId = "";
   let activeOnlineCourseTab = "welcome";
   let activeLearningCenterTab = "welcome";
+  let activeAdminReminderActionMode = "";
+  let launcherAdminSessionActive = false;
   let activeLearningCenterConceptPage = 1;
   const learningCenterConceptCardsPerPage = 6;
   let activeLearningCenterCoursePage = 1;
@@ -1309,15 +1322,72 @@ This is an alternate test message to show now.`;
     launcherAdminState.debug_enabled = !!launcherAdminDevicePrefs.debug_enabled;
     launcherAdminState.easy_admin_enabled = !!launcherAdminDevicePrefs.easy_admin_enabled;
     launcherAdminState.learn_more_save_enabled = !!launcherAdminDevicePrefs.learn_more_save_enabled;
-    launcherAdminSecret = typeof launcherAdminDevicePrefs.cached_secret === "string"
-      ? launcherAdminDevicePrefs.cached_secret.trim()
-      : "";
+  }
+
+  function traceAdminDevicePrefsChange(label, details = {}) {
+    const payload = {
+      label,
+      launcherAdminDevicePrefs: {
+        debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+        easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+        learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
+        has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim()
+      },
+      launcherAdminSessionActive: !!launcherAdminSessionActive,
+      ...(details && typeof details === "object" ? details : {})
+    };
+    traceLauncherClient(`admin_device_prefs:${label}`, payload);
+    if (hasLauncherAdminAccess() && launcherAdminState.debug_enabled) {
+      void launcherAdminApi("log_debug", {
+        label: `admin_device_prefs:${label}`,
+        details: [payload],
+        device_debug_enabled: !!launcherAdminState.debug_enabled
+      }).catch(() => {
+        // Ignore debug logging failures.
+      });
+    }
+  }
+
+  function hasStoredLauncherAdminCapability() {
+    return !!(
+      (launcherAdminState.easy_admin_enabled && String(launcherAdminDevicePrefs.cached_secret || "").trim())
+      || String(launcherAdminSecret || "").trim()
+    );
+  }
+
+  function activateLauncherAdminSession() {
+    launcherAdminSessionActive = hasStoredLauncherAdminCapability();
+    renderAdminPrivilegeIndicator();
+    return launcherAdminSessionActive;
+  }
+
+  function clearLauncherAdminSession() {
+    launcherAdminSessionActive = false;
+    launcherAdminSecret = "";
+    renderAdminPrivilegeIndicator();
   }
 
   function updateLauncherAdminDevicePrefs(updates = {}) {
+    const before = {
+      debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+      easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+      learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
+      has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim()
+    };
     writeLauncherAdminDevicePrefs(updates);
     syncLauncherAdminStateFromDevicePrefs();
+    traceAdminDevicePrefsChange("update", {
+      before,
+      updates: cloneJsonValue(updates, {}),
+      after: {
+        debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+        easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+        learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
+        has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim()
+      }
+    });
   }
+  renderAdminPrivilegeIndicator();
   const defaultThemeColor = "#3160b0";
   const preciseLocationAccuracyThresholdMeters = 120;
   const defaultBlinkSettings = Object.freeze({
@@ -7004,16 +7074,39 @@ This is an alternate test message to show now.`;
     return parseApiResponse(response, `Admin access mode request failed with status ${response.status}`);
   }
 
+  function renderAdminPrivilegeIndicator() {
+    beginnerKickers.forEach((kicker) => {
+      if (!kicker || kicker.id === "lessonImageOverlayTitle") {
+        return;
+      }
+      let badge = kicker.querySelector(".beginner-kicker-admin-badge");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "beginner-kicker-admin-badge";
+        badge.textContent = "ADMIN";
+        kicker.appendChild(document.createTextNode(" "));
+        kicker.appendChild(badge);
+      }
+      badge.hidden = !launcherAdminSessionActive;
+    });
+  }
+
   function getLauncherAdminSecretCandidate() {
+    if (!launcherAdminSessionActive) {
+      return "";
+    }
     const explicitSecret = String(launcherAdminSecret || "").trim();
     if (explicitSecret) {
       return explicitSecret;
     }
-    return String(launcherAdminDevicePrefs.cached_secret || "").trim();
+    if (launcherAdminState.easy_admin_enabled) {
+      return String(launcherAdminDevicePrefs.cached_secret || "").trim();
+    }
+    return "";
   }
 
   function hasLauncherAdminAccess() {
-    return !!getLauncherAdminSecretCandidate() || !!launcherAdminState.easy_admin_enabled;
+    return launcherAdminSessionActive && !!getLauncherAdminSecretCandidate();
   }
 
   function hasExplicitLauncherAdminSecret() {
@@ -8180,9 +8273,12 @@ This is an alternate test message to show now.`;
   }
 
   function openFeatureSetupHandleFlow(flow = "claim") {
-    featureSetupPendingHandleFlow = String(flow || "claim").trim().toLowerCase() === "install-gate"
+    const normalizedFlow = String(flow || "claim").trim().toLowerCase();
+    featureSetupPendingHandleFlow = normalizedFlow === "install-gate"
       ? "install-gate"
-      : "claim";
+      : normalizedFlow === "go-pro-subscribe"
+        ? "go-pro-subscribe"
+        : "claim";
     openHandleOverlay(getFeatureSetupHandleRole());
   }
 
@@ -8310,6 +8406,8 @@ This is an alternate test message to show now.`;
       ? "help"
       : originView === "options"
         ? "options"
+        : originView === "go-pro"
+          ? "go-pro"
         : originView === "remote-viewer"
           ? "remote-viewer"
           : "card";
@@ -8479,6 +8577,14 @@ This is an alternate test message to show now.`;
     }
     if (returnView === "options") {
       showOptionsView();
+      return;
+    }
+    if (returnView === "go-pro") {
+      showGoProView({
+        view: goProReturnView || "subscription-management",
+        role: goProReturnRole || returnRole,
+        scrollY: goProReturnScrollY
+      });
       return;
     }
     if (returnView === "remote-viewer" || returnRole === "remote-viewer") {
@@ -10934,6 +11040,23 @@ This is an alternate test message to show now.`;
     goProIdentifierNote.textContent = String(message || "").trim();
   }
 
+  function setGoProCurrentIdentifierText(identifier) {
+    if (!goProCurrentIdentifier) {
+      return;
+    }
+    const cleanIdentifier = String(identifier || "").trim();
+    goProCurrentIdentifier.textContent = cleanIdentifier
+      ? `Unique User ID: ${cleanIdentifier}`
+      : "Unique User ID: No User ID Found";
+  }
+
+  function setGoProClaimNoteVisible(visible) {
+    if (!goProClaimNote) {
+      return;
+    }
+    goProClaimNote.hidden = !visible;
+  }
+
   function setSubscriptionManagementStatus(message, isError = false) {
     if (!subscriptionManagementStatus) {
       return;
@@ -11081,11 +11204,13 @@ This is an alternate test message to show now.`;
       goProViewHidden: !!goProView?.classList.contains("beginner-view-hidden"),
       subscriptionManagementHidden: !!subscriptionManagementView?.classList.contains("beginner-view-hidden")
     });
+    setGoProCurrentIdentifierText(currentIdentifier);
     setGoProIdentifierNote(
       currentIdentifier
-        ? `PRO access will be attached to: ${currentIdentifier} and will follow any later unique name changes.`
-        : "Enter your user identifier on the main page first so PRO can be attached to the correct account."
+        ? "PRO access will follow any later unique name changes."
+        : ""
     );
+    setGoProClaimNoteVisible(!currentIdentifier);
 
     if (stripeCheckoutInFlight) {
       setGoProButtonsEnabled(false);
@@ -11155,7 +11280,7 @@ This is an alternate test message to show now.`;
     }
 
     if (!currentIdentifier) {
-      setGoProStatus("Enter your user identifier on the main page first, then return here to subscribe.", false);
+      setGoProStatus("", false);
       return;
     }
 
@@ -11181,7 +11306,8 @@ This is an alternate test message to show now.`;
     }
     const currentIdentifier = getCurrentTelepathyProIdentifier();
     if (!currentIdentifier) {
-      setGoProStatus("Enter your user identifier on the main page first so PRO can be attached to the correct account.", true);
+      setGoProStatus("", true);
+      setGoProClaimNoteVisible(true);
       setGoProButtonsEnabled(false);
       setGoProCheckoutPending("", false);
       logGoProCheckoutDebug("blocked_no_identifier", { plan: String(plan || "").trim().toLowerCase() });
@@ -23029,8 +23155,9 @@ This is an alternate test message to show now.`;
           messaging_limits: normalizeMessagingLimits(data?.messaging_limits || defaultMessagingLimits)
         };
       if (adminStatus) {
-        adminStatus.textContent = "Admin access active.";
+        adminStatus.textContent = "";
       }
+      renderAdminPrivilegeIndicator();
       renderAdminView();
       if (!adminUserListView?.classList.contains("beginner-view-hidden")) {
         renderAdminUserListView();
@@ -23109,6 +23236,14 @@ This is an alternate test message to show now.`;
     const preservedAdminDevicePrefs = {
       ...launcherAdminDevicePrefs
     };
+    traceAdminDevicePrefsChange("fresh_start_preserve_snapshot", {
+      preserved: {
+        debug_enabled: !!preservedAdminDevicePrefs.debug_enabled,
+        easy_admin_enabled: !!preservedAdminDevicePrefs.easy_admin_enabled,
+        learn_more_save_enabled: !!preservedAdminDevicePrefs.learn_more_save_enabled,
+        has_cached_secret: !!String(preservedAdminDevicePrefs.cached_secret || "").trim()
+      }
+    });
     logLauncherUserTypeDebug("fresh_start_local_clear_begin", {
       preserveUsers,
       preservePairs,
@@ -23199,6 +23334,14 @@ This is an alternate test message to show now.`;
     });
     writeLauncherAdminDevicePrefs(preservedAdminDevicePrefs);
     syncLauncherAdminStateFromDevicePrefs();
+    traceAdminDevicePrefsChange("fresh_start_restore_prefs", {
+      restored: {
+        debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+        easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+        learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
+        has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim()
+      }
+    });
     if (!preserveUsers) {
       await deleteIndexedDbDatabase("cones-folder-handles");
     }
@@ -23223,9 +23366,11 @@ This is an alternate test message to show now.`;
   }
 
   function showAdminView() {
+    activateLauncherAdminSession();
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     adminView?.classList.remove("beginner-view-hidden");
+    adminReminderActionView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
@@ -23265,6 +23410,80 @@ This is an alternate test message to show now.`;
     closeReportPairMenu();
     renderAdminView();
     void refreshAdminView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function renderAdminReminderActionView() {
+    const isTest = activeAdminReminderActionMode === "test";
+    if (adminReminderActionTitle) {
+      adminReminderActionTitle.textContent = isTest
+        ? "Send Annual Reminder Test"
+        : "Run Annual Reminder Scan";
+    }
+    if (adminReminderActionCopyPrimary) {
+      adminReminderActionCopyPrimary.textContent = isTest
+        ? "This action sends a test annual-reminder email flow for an eligible annual PRO subscription record and also records an admin notice. It is meant for checking the reminder system without waiting for the normal reminder window."
+        : "This action checks the stored subscription records, finds active annual PRO subscriptions that are inside the reminder window, and sends reminder emails when the reminder system is enabled.";
+    }
+    if (adminReminderActionCopySecondary) {
+      adminReminderActionCopySecondary.textContent = isTest
+        ? "Nothing happens until you press the button below. If you do not want to run the test, press BACK and no reminder action will be taken."
+        : "Nothing happens until you press the button below. If you do not want to run the scan, press BACK and no reminder action will be taken.";
+    }
+    if (adminReminderActionConfirmButton) {
+      adminReminderActionConfirmButton.textContent = isTest
+        ? "SEND ANNUAL REMINDER TEST"
+        : "RUN ANNUAL REMINDER SCAN";
+    }
+  }
+
+  function showAdminReminderActionView(mode = "scan") {
+    activeAdminReminderActionMode = String(mode || "").trim().toLowerCase() === "test" ? "test" : "scan";
+    clearReportPanelOffset();
+    adminReminderActionView?.classList.remove("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    onlineCourseView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
+    rotatingMessagesEditorView?.classList.add("beginner-view-hidden");
+    adminUserListView?.classList.add("beginner-view-hidden");
+    adminIdentityListView?.classList.add("beginner-view-hidden");
+    adminEmailListView?.classList.add("beginner-view-hidden");
+    subscriptionsAdminView?.classList.add("beginner-view-hidden");
+    lessonIndexAdminView?.classList.add("beginner-view-hidden");
+    savedLinksAdminView?.classList.add("beginner-view-hidden");
+    messagingParmsAdminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    inviteeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    imagePairAdminView?.classList.add("beginner-view-hidden");
+    subscriptionEmailAdminView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    if (adminReminderActionStatus) {
+      adminReminderActionStatus.textContent = "";
+    }
+    renderAdminReminderActionView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -24470,6 +24689,14 @@ This is an alternate test message to show now.`;
         closeExploreProOverlay();
         if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
           showInstallGuideView({ returnView: "feature-setup" });
+          return;
+        }
+        if (String(claimContext?.postClaimFlow || "").trim() === "go-pro-subscribe") {
+          showGoProView({
+            view: goProReturnView || "subscription-management",
+            role: goProReturnRole || String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
+            scrollY: goProReturnScrollY
+          });
           return;
         }
         showFeatureSetupView({
@@ -25787,6 +26014,11 @@ This is an alternate test message to show now.`;
       return;
     }
 
+    if (adminReminderActionStatus) {
+      adminReminderActionStatus.textContent = testMode
+        ? "Sending annual reminder test..."
+        : "Running annual reminder scan...";
+    }
     if (adminStatus) {
       adminStatus.textContent = testMode
         ? "Sending annual reminder test..."
@@ -25807,6 +26039,11 @@ This is an alternate test message to show now.`;
           ? `Annual reminder test completed. ${sentCount} reminder${sentCount === 1 ? "" : "s"} sent from ${eligibleCount} eligible annual subscription${eligibleCount === 1 ? "" : "s"} checked among ${checkedCount} record${checkedCount === 1 ? "" : "s"}.`
           : `Annual reminder scan completed. ${sentCount} reminder${sentCount === 1 ? "" : "s"} sent from ${eligibleCount} eligible annual subscription${eligibleCount === 1 ? "" : "s"} checked among ${checkedCount} record${checkedCount === 1 ? "" : "s"}.`;
       }
+      if (adminReminderActionStatus) {
+        adminReminderActionStatus.textContent = testMode
+          ? `Annual reminder test completed. ${sentCount} reminder${sentCount === 1 ? "" : "s"} sent from ${eligibleCount} eligible annual subscription${eligibleCount === 1 ? "" : "s"} checked among ${checkedCount} record${checkedCount === 1 ? "" : "s"}.`
+          : `Annual reminder scan completed. ${sentCount} reminder${sentCount === 1 ? "" : "s"} sent from ${eligibleCount} eligible annual subscription${eligibleCount === 1 ? "" : "s"} checked among ${checkedCount} record${checkedCount === 1 ? "" : "s"}.`;
+      }
       renderAdminView();
       if (subscriptionEmailAdminView && !subscriptionEmailAdminView.classList.contains("beginner-view-hidden")) {
         renderSubscriptionEmailTemplateSelection(activeSubscriptionEmailTemplateKey || "welcome");
@@ -25814,6 +26051,11 @@ This is an alternate test message to show now.`;
     } catch (error) {
       if (adminStatus) {
         adminStatus.textContent = testMode
+          ? "Unable to send the annual reminder test right now."
+          : "Unable to run the annual reminder scan right now.";
+      }
+      if (adminReminderActionStatus) {
+        adminReminderActionStatus.textContent = testMode
           ? "Unable to send the annual reminder test right now."
           : "Unable to run the annual reminder scan right now.";
       }
@@ -26274,6 +26516,7 @@ This is an alternate test message to show now.`;
     goProIncludesView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    featureSetupView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -26864,13 +27107,14 @@ This is an alternate test message to show now.`;
       const desiredName = String(settingsImportFilenameInput?.value || "").trim();
       if (desiredName) {
         const matchedAdminSecret = await checkAdminSecret(desiredName);
-        if (matchedAdminSecret) {
+      if (matchedAdminSecret) {
           launcherAdminSecret = desiredName;
           if (launcherAdminDevicePrefs.easy_admin_enabled || launcherAdminDevicePrefs.learn_more_save_enabled) {
             updateLauncherAdminDevicePrefs({
               cached_secret: desiredName
             });
           }
+          activateLauncherAdminSession();
           writeRuntimeSettings("receiver", {
             import_csv_filename: ""
           });
@@ -26887,7 +27131,7 @@ This is an alternate test message to show now.`;
       }
 
       if (!desiredName) {
-        if (hasLauncherAdminAccess()) {
+        if (activateLauncherAdminSession()) {
           if (settingsStatus) {
             settingsStatus.textContent = "";
             settingsStatus.dataset.persistedMessage = "";
@@ -28038,6 +28282,17 @@ This is an alternate test message to show now.`;
       return;
     }
     showGoProView("subscription-management");
+  });
+  goProClaimLinkButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const role = String(goProReturnRole || activeLauncherRole || "sender").trim() || "sender";
+    showFeatureSetupView({
+      role,
+      returnView: "go-pro",
+      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    });
+    openFeatureSetupHandleFlow("go-pro-subscribe");
   });
   openGoProIncludesButton?.addEventListener("click", () => {
     showGoProIncludesView("subscription-management");
@@ -29355,6 +29610,9 @@ This is an alternate test message to show now.`;
       easy_admin_enabled: !!adminEasyAdminEnabledCheckbox.checked,
       cached_secret: adminEasyAdminEnabledCheckbox.checked ? String(launcherAdminSecret || launcherAdminDevicePrefs.cached_secret || "").trim() : ""
     });
+    traceAdminDevicePrefsChange("easy_admin_checkbox_change", {
+      checkbox_checked: !!adminEasyAdminEnabledCheckbox.checked
+    });
     if (adminStatus) {
       adminStatus.textContent = launcherAdminState.easy_admin_enabled
         ? "Easy Admin is currently enabled on this device."
@@ -29869,7 +30127,7 @@ This is an alternate test message to show now.`;
       launcherAdminState.disk_usage_analysis = null;
       setLauncherStateWriteLock(true);
       await clearLocalFreshStartState(preserveSelections);
-      launcherAdminSecret = "";
+      clearLauncherAdminSession();
       if (adminStatus) {
         const inviteeSummary = preserveSelections.preserve_invitees === false
           ? ` Invitees were cleared from the server. Remaining invitees: ${Number(freshStartSummary.invitee_count_after || 0)}.`
@@ -29892,11 +30150,15 @@ This is an alternate test message to show now.`;
     await clearAppLocalStorageArtifacts();
     window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
   });
-  adminRunRemindersButton?.addEventListener("click", async () => {
-    await runSubscriptionReminderScan(false);
+  adminRunRemindersButton?.addEventListener("click", () => {
+    showAdminReminderActionView("scan");
   });
-  adminRunRemindersTestButton?.addEventListener("click", async () => {
-    await runSubscriptionReminderScan(true);
+  adminRunRemindersTestButton?.addEventListener("click", () => {
+    showAdminReminderActionView("test");
+  });
+  closeAdminReminderActionButton?.addEventListener("click", showAdminView);
+  adminReminderActionConfirmButton?.addEventListener("click", () => {
+    void runSubscriptionReminderScan(activeAdminReminderActionMode === "test");
   });
   setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
   if (launcherGuestEntryActive) {

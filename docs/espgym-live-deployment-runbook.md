@@ -203,6 +203,68 @@ robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /X
 
 If the mirror tree contains intentional local-only folders that should survive, exclude them explicitly from the command instead of silently allowing drift.
 
+## Private Runtime Data Safety
+
+Human trial/session runtime data is not the same as lesson infrastructure content.
+
+For human pair CSVs and session metadata, the authoritative operational store is:
+
+- server private runtime data under `/var/www/telepathyexperiment_private/cones/`
+
+This specifically includes:
+
+- `/var/www/telepathyexperiment_private/cones/pairs/`
+- `/var/www/telepathyexperiment_private/cones/data/session-state.json`
+
+The local private runtime store:
+
+- `C:\xampp\telepathyexperiment_private\cones\pairs\`
+- `C:\xampp\telepathyexperiment_private\cones\data\session-state.json`
+
+must be treated as a synchronized working copy, **not** as a cleanup authority.
+
+Required rule going forward:
+
+1. treat server private operational data as authoritative for human pair/session data
+2. do not perform local cleanup against `C:\xampp\telepathyexperiment_private\cones\pairs\` until local/server runtime data has been audited
+3. before any pair/session cleanup, compare local private pair count and filenames against the server private pair store
+4. if local/server pair counts or filenames differ, stop cleanup immediately
+5. when drift is detected, back up the current local private runtime store first, then resync local private runtime data from the server copy
+6. never assume a small local cleanup is safe just because the target filename pattern looks narrow; verify the full private runtime store first
+
+Practical meaning:
+
+- if local private pair files have collapsed to only demos, do **not** clean anything else locally
+- if the server still has the expected human pair files, restore local runtime data from the server before continuing
+- do not rely on repo files, mirror files, or browser rendering to judge whether private runtime pair data is complete
+
+Required audit/sync helper:
+
+- `scripts\sync-private-runtime-from-server.ps1`
+
+Use it like this before any pair/session cleanup or when pair/session data looks suspicious:
+
+```powershell
+pwsh -File C:\xampp\htdocs\telepathyexperiment\cones\scripts\sync-private-runtime-from-server.ps1 -AuditOnly
+```
+
+If the audit reports drift, resync local private runtime data from the server authoritative copy:
+
+```powershell
+pwsh -File C:\xampp\htdocs\telepathyexperiment\cones\scripts\sync-private-runtime-from-server.ps1
+```
+
+Important behavior of this helper:
+
+1. audits local vs server pair-file count and filenames
+2. creates a local private operational backup before overwrite
+3. restores local `pairs\` and `data\session-state.json` from the server private store
+4. verifies the local pair-file set matches the server after sync
+
+Cleanup rule:
+
+- do not manually delete files from `C:\xampp\telepathyexperiment_private\cones\pairs\` unless the audit has first shown that the local pair-file set matches the server pair-file set
+
 ## New-Course Lesson Promotion Rule
 
 The new Learning Center lesson editor writes two copies when a lesson is saved:
