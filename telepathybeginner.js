@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260808a";
+  const launcherBuildVersion = "20260808b";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -1089,6 +1089,7 @@
   let activeReportResize = null;
   let activeReportViewPan = null;
   const launcherAdminDevicePrefsKey = "cones-admin-device-prefs-v1";
+  const launcherAdminCrossModuleReturnKey = "cones-admin-cross-module-return-v1";
   function readLauncherAdminDevicePrefs() {
     try {
       const raw = localStorage.getItem(launcherAdminDevicePrefsKey);
@@ -1355,6 +1356,49 @@ This is an alternate test message to show now.`;
     );
   }
 
+  function preserveLauncherAdminSessionForCrossModuleReturn() {
+    try {
+      if (!hasLauncherAdminAccess()) {
+        sessionStorage.removeItem(launcherAdminCrossModuleReturnKey);
+        return;
+      }
+      const payload = {
+        explicit_secret: String(launcherAdminSecret || "").trim(),
+        has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim(),
+        easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+        saved_at: Date.now()
+      };
+      sessionStorage.setItem(launcherAdminCrossModuleReturnKey, JSON.stringify(payload));
+    } catch (error) {
+      // Ignore transient session persistence failures.
+    }
+  }
+
+  function restoreLauncherAdminSessionFromCrossModuleReturn() {
+    try {
+      const raw = sessionStorage.getItem(launcherAdminCrossModuleReturnKey);
+      if (!raw) {
+        return false;
+      }
+      sessionStorage.removeItem(launcherAdminCrossModuleReturnKey);
+      const parsed = JSON.parse(raw);
+      const explicitSecret = typeof parsed?.explicit_secret === "string" ? parsed.explicit_secret.trim() : "";
+      if (explicitSecret) {
+        launcherAdminSecret = explicitSecret;
+      }
+      const canRestore = !!(
+        explicitSecret
+        || (launcherAdminDevicePrefs.easy_admin_enabled && String(launcherAdminDevicePrefs.cached_secret || "").trim())
+      );
+      if (!canRestore) {
+        return false;
+      }
+      return activateLauncherAdminSession();
+    } catch (error) {
+      return false;
+    }
+  }
+
   function activateLauncherAdminSession() {
     launcherAdminSessionActive = hasStoredLauncherAdminCapability();
     renderAdminPrivilegeIndicator();
@@ -1387,6 +1431,7 @@ This is an alternate test message to show now.`;
       }
     });
   }
+  restoreLauncherAdminSessionFromCrossModuleReturn();
   renderAdminPrivilegeIndicator();
   const defaultThemeColor = "#3160b0";
   const preciseLocationAccuracyThresholdMeters = 120;
@@ -4265,11 +4310,12 @@ This is an alternate test message to show now.`;
   }
 
   function openGlobeVisualization(pairState, options = {}) {
+    preserveLauncherAdminSessionForCrossModuleReturn();
     window.location.href = buildGlobeVisualizationUrl(pairState, options);
   }
 
   async function handleGlobeLaunchClick() {
-    if (isProLockedButton(reportGlobeButton)) {
+    if (isProLockedButton(reportGlobeButton) && !isAdminProLockOverrideAllowed(reportGlobeButton)) {
       return;
     }
     const pairState = getCurrentReportPairForGlobe();
@@ -10724,6 +10770,10 @@ This is an alternate test message to show now.`;
 
   function isProLockedButton(button) {
     return !!button && button.dataset.proLocked === "true";
+  }
+
+  function isAdminProLockOverrideAllowed(button) {
+    return isProLockedButton(button) && hasLauncherAdminAccess();
   }
 
   function renderProOnlyLockedControls() {
@@ -23422,7 +23472,7 @@ This is an alternate test message to show now.`;
     }
     if (adminReminderActionCopyPrimary) {
       adminReminderActionCopyPrimary.textContent = isTest
-        ? "This action sends a test annual-reminder email flow for an eligible annual PRO subscription record and also records an admin notice. It is meant for checking the reminder system without waiting for the normal reminder window."
+        ? "This action sends a test annual-reminder email flow for an eligible annual PRO subscription record and also records an admin notice in the subscription email log. It is meant for checking the reminder system without waiting for the normal reminder time, which occurs 30 days before the annual renewal date."
         : "This action checks the stored subscription records, finds active annual PRO subscriptions that are inside the reminder window, and sends reminder emails when the reminder system is enabled.";
     }
     if (adminReminderActionCopySecondary) {
@@ -28316,13 +28366,13 @@ This is an alternate test message to show now.`;
   });
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
   openClairvoyanceViewingButton?.addEventListener("click", () => {
-    if (isProLockedButton(openClairvoyanceViewingButton)) {
+    if (isProLockedButton(openClairvoyanceViewingButton) && !isAdminProLockOverrideAllowed(openClairvoyanceViewingButton)) {
       return;
     }
     showClairvoyanceViewingView();
   });
   openResearchParticipationProButton?.addEventListener("click", () => {
-    if (isProLockedButton(openResearchParticipationProButton)) {
+    if (isProLockedButton(openResearchParticipationProButton) && !isAdminProLockOverrideAllowed(openResearchParticipationProButton)) {
       return;
     }
     showResearchParticipationProView();
@@ -29023,7 +29073,7 @@ This is an alternate test message to show now.`;
     void showLocationPicker(role, { hideFeatureSetupBackButton: true });
   });
   featureSetupMessagingActionButton?.addEventListener("click", () => {
-    if (isProLockedButton(featureSetupMessagingActionButton)) {
+    if (isProLockedButton(featureSetupMessagingActionButton) && !isAdminProLockOverrideAllowed(featureSetupMessagingActionButton)) {
       return;
     }
     if (!featureSetupOwnIdentifier) {
@@ -29043,7 +29093,7 @@ This is an alternate test message to show now.`;
       pendingMessagesOpenScrollY = Math.max(0, Math.round(window.scrollY || window.pageYOffset || 0));
     });
     button.addEventListener("click", () => {
-      if (isProLockedButton(button)) {
+      if (isProLockedButton(button) && !isAdminProLockOverrideAllowed(button)) {
         return;
       }
       void openMessagesViewForRole(String(button.dataset.openRoleMessages || "").trim());

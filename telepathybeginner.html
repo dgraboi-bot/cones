@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260808a">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260808b">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260808a">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260808a">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260808a">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260808b">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260808b">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260808b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260808a">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260808a">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260808a">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260808b">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260808b">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260808b">
   <script>
     (function () {
-      var buildVersion = "20260808a";
+      var buildVersion = "20260808b";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -558,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260808a</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260808b</span>
           </div>
         </div>
 
@@ -2610,13 +2610,13 @@
               <input type="checkbox" data-admin-debug-enabled>
               <span title="Turns on detailed diagnostic logging for this device so app behavior can be traced during testing and troubleshooting.">Enable debugging</span>
             </label>
-            <label class="settings-view-checkbox" title="Allows the system to send subscription-related emails such as welcome, renewal, and cancellation notices.">
+            <label class="settings-view-checkbox" title="Allows subscriber emails such as welcome, renewal, and cancellation notices to be sent. They can then be edited in-app from Admin via the button Edit Subscription Emails, which lists all available emails and what triggers sending each one.">
               <input type="checkbox" data-admin-subscription-emails-enabled>
-              <span title="Allows the system to send subscription-related emails such as welcome, renewal, and cancellation notices.">Enable Subscription Emails</span>
+              <span title="Allows subscriber emails such as welcome, renewal, and cancellation notices to be sent. They can then be edited in-app from Admin via the button Edit Subscription Emails, which lists all available emails and what triggers sending each one.">Enable Subscription Emails</span>
             </label>
-            <label class="settings-view-checkbox" title="Allows annual PRO subscribers to receive reminder emails before renewal when the reminder scan is run.">
+            <label class="settings-view-checkbox" title="Allows annual PRO reminder emails to be sent when the reminder scan runs. There are two relevant Admin buttons: Run Annual Reminder Scan and Send Annual Reminder Test. There is also a localhost-only cron endpoint cron_subscription_reminders, but in ordinary use the Admin buttons are the practical way to run it.">
               <input type="checkbox" data-admin-subscription-reminders-enabled>
-              <span title="Allows annual PRO subscribers to receive reminder emails before renewal when the reminder scan is run.">Enable Annual Subscription Reminders</span>
+              <span title="Allows annual PRO reminder emails to be sent when the reminder scan runs. There are two relevant Admin buttons: Run Annual Reminder Scan and Send Annual Reminder Test. There is also a localhost-only cron endpoint cron_subscription_reminders, but in ordinary use the Admin buttons are the practical way to run it.">Enable Annual Subscription Reminders</span>
             </label>
             <label class="settings-view-checkbox" title="Keeps this device in Admin mode without asking for the admin secret again each time. This setting is device-local.">
               <input type="checkbox" data-admin-easy-admin-enabled>
@@ -2711,8 +2711,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260808a'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260808a'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260808b'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260808b'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3523,8 +3523,8 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260808a"></script>
-<script src="telepathybeginner.js?v=20260808a"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260808b"></script>
+<script src="telepathybeginner.js?v=20260808b"></script>
 </body>
 </html>
 
