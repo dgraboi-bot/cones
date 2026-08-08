@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260808d";
+  const launcherBuildVersion = "20260808e";
   const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
@@ -4144,6 +4144,11 @@ This is an alternate test message to show now.`;
     return !!(environment?.isIOS && environment?.isSafari);
   }
 
+  function shouldAutoSubmitNamedReportOnBlur() {
+    const environment = detectInstallEnvironment();
+    return !!(environment?.isIOS && environment?.isSafari);
+  }
+
   function applyNamedReportPdfAvailabilityState() {
     const allowed = isPdfExportAllowedForCurrentUser();
     const lockMessage = "PRO Feature";
@@ -4316,10 +4321,9 @@ This is an alternate test message to show now.`;
     cursorY = appendPdfWrappedText(doc, title, marginX, cursorY, maxWidth, 22, pageBottomY);
     cursorY += 18;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(16);
-    cursorY = appendPdfWrappedText(doc, `ESP GYM Report  ${formatLocalPdfHeaderTimestamp(new Date())}`, marginX, cursorY, maxWidth, 20, pageBottomY);
-    cursorY += 6;
     doc.setFontSize(11.5);
+    cursorY = appendPdfWrappedText(doc, `ESP GYM Report  ${formatLocalPdfHeaderTimestamp(new Date())}`, marginX, cursorY, maxWidth, 15, pageBottomY);
+    cursorY += 2;
     const exportLines = getNamedReportVisualizationExportText(context);
     exportLines.forEach((line) => {
       cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 15, pageBottomY);
@@ -30119,6 +30123,29 @@ This is an alternate test message to show now.`;
       event.preventDefault();
       closeNamedReportModal();
     }
+  });
+  namedReportTitleInput?.addEventListener("blur", () => {
+    if (!shouldAutoSubmitNamedReportOnBlur()) {
+      return;
+    }
+    if (!namedReportModal || namedReportModal.hidden) {
+      return;
+    }
+    if (namedReportSaveButton?.disabled) {
+      return;
+    }
+    if (!String(namedReportTitleInput?.value ?? "").trim()) {
+      return;
+    }
+    window.setTimeout(() => {
+      if (!namedReportModal || namedReportModal.hidden) {
+        return;
+      }
+      if (namedReportSaveButton?.disabled) {
+        return;
+      }
+      void handleNamedReportSave();
+    }, 0);
   });
   analyzerCopyButton?.addEventListener("click", async () => {
     const text = analyzerText?.value || "";
