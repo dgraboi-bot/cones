@@ -59,6 +59,10 @@ $deployFiles = @(
   ".htaccess",
   "api.php",
   "clairvoyance_rv_page.jpg",
+  "content_repo\esp-lessons.txt",
+  "content_repo\learn-more-clairvoyance.txt",
+  "content_repo\learn-more-main.txt",
+  "content_repo\learning-center-outline.json",
   "content_repo\new-learning-center-outline.json",
   "globe\globe.css",
   "globe\globe.js",
@@ -135,6 +139,11 @@ $liveHashAuditFiles = @(
   "telepathy.js",
   "telepathy.css",
   "api.php",
+  "content_repo\esp-lessons.txt",
+  "content_repo\learn-more-clairvoyance.txt",
+  "content_repo\learn-more-main.txt",
+  "content_repo\learning-center-outline.json",
+  "content_repo\new-learning-center-outline.json",
   "index.html",
   "learning-center-hero.jpg",
   "learning-center-hero.png",
@@ -304,15 +313,29 @@ function Assert-DeployCoverage([string[]]$ChangedFiles) {
 }
 
 function Get-RemoteSha256([string]$RemotePath) {
-  $hashOutput = Invoke-Plink "sha256sum '$RemotePath'"
-  if (-not $hashOutput) {
-    throw "Unable to read remote hash for $RemotePath"
+  $lastErrorMessage = ""
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+      $hashOutput = Invoke-Plink "sha256sum '$RemotePath'"
+      if (-not $hashOutput) {
+        throw "Unable to read remote hash for $RemotePath"
+      }
+      $firstLine = @($hashOutput)[0].ToString().Trim()
+      if (-not $firstLine) {
+        throw "Empty remote hash output for $RemotePath"
+      }
+      return ($firstLine -split '\s+')[0].ToUpperInvariant()
+    } catch {
+      $lastErrorMessage = $_.Exception.Message
+      if ($attempt -lt 3) {
+        Start-Sleep -Seconds 2
+      }
+    }
   }
-  $firstLine = @($hashOutput)[0].ToString().Trim()
-  if (-not $firstLine) {
-    throw "Empty remote hash output for $RemotePath"
+  if ($lastErrorMessage) {
+    throw $lastErrorMessage
   }
-  return ($firstLine -split '\s+')[0].ToUpperInvariant()
+  throw "Unable to read remote hash for $RemotePath"
 }
 
 function Convert-ToPrivateContentPath([string]$RelativePath) {

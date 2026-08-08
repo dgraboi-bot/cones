@@ -1144,7 +1144,7 @@ function send_identifier_recovery_verification_code(array &$state, string $ident
         'identifier' => $preferredIdentifier,
         'email' => $cleanEmail,
         'code' => $code,
-        'created_ms' => $existingVerification['created_ms'] > 0 ? $existingVerification['created_ms'] : $nowMs,
+        'created_ms' => (($existingVerification['created_ms'] ?? 0) > 0) ? $existingVerification['created_ms'] : $nowMs,
         'expires_ms' => $nowMs + $exploreProVerificationTtlMs,
         'last_sent_ms' => $nowMs,
         'send_count' => ($existingVerification['send_count'] ?? 0) + 1

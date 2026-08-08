@@ -9,7 +9,9 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260808b";
+  const launcherBuildVersion = "20260808c";
+  const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
+  const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
@@ -81,6 +83,7 @@
   const researchParticipationProView = document.querySelector('[data-view="research-participation-pro"]');
   const researchProposalView = document.querySelector('[data-view="research-proposal"]');
   const researchInterestFormView = document.querySelector('[data-view="research-interest-form"]');
+  const researchTeamInterestView = document.querySelector('[data-view="research-team-interest"]');
   const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
   const reportView = document.querySelector('[data-view="report"]');
   const reportPairBanner = document.querySelector("[data-report-pair-banner]");
@@ -162,6 +165,8 @@
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openResearchParticipationProButton = document.querySelector("[data-open-research-participation-pro]");
   const openResearchProposalButtons = Array.from(document.querySelectorAll("[data-open-research-proposal]"));
+  const openResearchInterestFormButtons = Array.from(document.querySelectorAll("[data-open-research-interest-form]"));
+  const openResearchTeamInterestButtons = Array.from(document.querySelectorAll("[data-open-research-team-interest]"));
   const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
   const openSubscriptionManagementButton = document.querySelector("[data-open-subscription-management]");
   const subscriptionManagementStatus = document.querySelector("[data-subscription-management-status]");
@@ -575,9 +580,9 @@
   const closeResearchParticipationButton = document.querySelector("[data-close-research-participation]");
   const closeResearchParticipationProButton = document.querySelector("[data-close-research-participation-pro]");
   const closeResearchProposalButton = document.querySelector("[data-close-research-proposal]");
+  const closeResearchTeamInterestButton = document.querySelector("[data-close-research-team-interest]");
   const closeTelepathyDifficultyGuideButton = document.querySelector("[data-close-telepathy-difficulty-guide]");
   const closePerformanceVisualizationGuideButton = document.querySelector("[data-close-performance-visualization-guide]");
-  const openResearchInterestFormButton = document.querySelector("[data-open-research-interest-form]");
   const closeResearchInterestFormButton = document.querySelector("[data-close-research-interest-form]");
   const openReportButton = document.querySelector("[data-open-report]");
   const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
@@ -616,6 +621,8 @@
   let researchParticipationReturnView = "options";
   let researchParticipationReturnScrollY = 0;
   let researchProposalReturnView = "research-participation";
+  let researchInterestFormReturnView = "research-participation-pro";
+  let researchTeamInterestReturnView = "research-participation";
   let contactFromLineRequestToken = 0;
   let goProReturnView = "subscription-management";
   let goProReturnRole = "";
@@ -666,6 +673,8 @@
   const reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
   const handleOverlay = document.querySelector("[data-handle-overlay]");
   const handleDialog = handleOverlay?.querySelector(".handle-dialog") || null;
+  const handleDialogTitle = document.getElementById("handleDialogTitle");
+  const handleIntro = document.querySelector("[data-handle-intro]");
   const handleInput = document.querySelector("[data-handle-input]");
   const handleStatus = document.querySelector("[data-handle-status]");
   const submitHandleButton = document.querySelector("[data-submit-handle]");
@@ -7548,6 +7557,12 @@ This is an alternate test message to show now.`;
     if (!activeHandleRole) {
       return;
     }
+    if (handleDialogTitle) {
+      handleDialogTitle.textContent = defaultHandleDialogTitle;
+    }
+    if (handleIntro) {
+      handleIntro.textContent = defaultHandleDialogIntro;
+    }
     handleOverlayReturnRole = activeHandleRole;
     if (handleStatus) {
       handleStatus.textContent = "";
@@ -8340,7 +8355,7 @@ This is an alternate test message to show now.`;
     if (featureSetupIdentifier) {
       featureSetupIdentifier.textContent = featureSetupOwnIdentifier
         ? `Current Unique Name: ${featureSetupOwnIdentifier}`
-        : "Current Unique Name: no unique name currently exists for this user.";
+        : "Current Unique Name: no unique name found for this user on this device.";
     }
 
     const recognizedUser = !!featureSetupOwnIdentifier;
@@ -8348,7 +8363,7 @@ This is an alternate test message to show now.`;
     if (featureSetupClaimStatus) {
       featureSetupClaimStatus.textContent = recognizedUser
         ? `Current unique name: ${featureSetupOwnIdentifier}`
-        : "No unique name exists for this user yet.";
+        : "Unique name not found for this user on this device yet. If you have registered a unique name, use this function to allow it on this device.";
     }
     if (featureSetupClaimActionButton) {
       featureSetupClaimActionButton.textContent = recognizedUser ? "CHANGE UNIQUE NAME" : "CLAIM UNIQUE NAME";
@@ -8452,6 +8467,8 @@ This is an alternate test message to show now.`;
       ? "help"
       : originView === "options"
         ? "options"
+        : originView === "learning-center"
+          ? "learning-center"
         : originView === "go-pro"
           ? "go-pro"
         : originView === "remote-viewer"
@@ -8623,6 +8640,14 @@ This is an alternate test message to show now.`;
     }
     if (returnView === "options") {
       showOptionsView();
+      return;
+    }
+    if (returnView === "learning-center") {
+      showLearningCenterView({
+        view: "learning-center",
+        tab: "start-here",
+        scrollY: returnScrollY
+      });
       return;
     }
     if (returnView === "go-pro") {
@@ -10779,8 +10804,8 @@ This is an alternate test message to show now.`;
   function renderProOnlyLockedControls() {
     const beginnerMessagingMessage = "Instant messaging with notifications is a PRO feature";
     const beginnerRemoteViewingMessage = "PRO feature";
-    const beginnerResearchMessage = "PRO feature";
     const beginnerGlobeMessage = "GLOBE is a PRO feature.";
+    const beginnerResearchMessage = "PRO feature";
     const isPro = isEffectiveLauncherUserPro();
 
     ["sender", "receiver"].forEach((role) => {
@@ -10797,11 +10822,16 @@ This is an alternate test message to show now.`;
       openClairvoyanceViewingButton.hidden = false;
     }
 
-    applyProLockPresentation(openResearchParticipationProButton, !isPro, beginnerResearchMessage);
-    applyProLockToButton(openResearchParticipationProButton, !isPro, beginnerResearchMessage);
     if (openResearchParticipationProButton) {
       openResearchParticipationProButton.hidden = false;
     }
+
+    openResearchInterestFormButtons.forEach((button) => {
+      applyProLockToButton(button, !isPro, beginnerResearchMessage);
+    });
+    openResearchTeamInterestButtons.forEach((button) => {
+      applyProLockToButton(button, !isPro, beginnerResearchMessage);
+    });
 
     applyProLockPresentation(reportGlobeButton, !isPro, beginnerGlobeMessage);
     applyProLockToButton(reportGlobeButton, !isPro, beginnerGlobeMessage);
@@ -17336,9 +17366,20 @@ This is an alternate test message to show now.`;
       return false;
     }
     const canonicalIdentifier = getPreferredIdentifier(acceptedIdentifier, latestState);
-    const message = `This unique name already exists. To use ${canonicalIdentifier} on this device, you need to verify that you are ${canonicalIdentifier}.`;
-    if (window.confirm(message)) {
-      openExploreProOverlay({ mode: "recovery", identifier: canonicalIdentifier });
+    openHandleOverlay(role);
+    if (handleDialogTitle) {
+      handleDialogTitle.textContent = defaultHandleDialogTitle;
+    }
+    if (handleIntro) {
+      handleIntro.textContent = `"${canonicalIdentifier}" is not a recognized unique name on this device. If you have previously registered "${canonicalIdentifier}" on another device, or want to claim it now as your unique name, press SUBMIT.`;
+    }
+    if (handleInput) {
+      handleInput.value = canonicalIdentifier;
+      handleInput.focus();
+      handleInput.select?.();
+    }
+    if (handleStatus) {
+      handleStatus.textContent = "";
     }
     return true;
   }
@@ -21065,13 +21106,24 @@ This is an alternate test message to show now.`;
       case "install-app":
       case "test-sound":
       case "review-location":
-      case "partner-messaging":
-        showFeatureSetupView();
+        showFeatureSetupView({
+          returnView: "learning-center",
+          scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
+        });
         if (action === "test-sound") {
           window.setTimeout(() => {
             showBeepTestView();
           }, 0);
         }
+        return;
+      case "partner-messaging":
+        showFeatureSetupView({
+          returnView: "learning-center",
+          scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
+        });
+        window.setTimeout(() => {
+          featureSetupMessagingItem?.scrollIntoView({ block: "start", behavior: "smooth" });
+        }, 0);
         return;
       case "receiver-role":
         showRoleCourseTarget("receiver");
@@ -23751,6 +23803,7 @@ This is an alternate test message to show now.`;
     researchProposalView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
+    researchTeamInterestView?.classList.add("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -23786,6 +23839,7 @@ This is an alternate test message to show now.`;
     researchParticipationProView?.classList.remove("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
+    researchTeamInterestView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -23919,9 +23973,51 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function showResearchInterestFormView() {
+  function showResearchInterestFormView(returnView = "research-participation-pro") {
+    researchInterestFormReturnView = String(returnView || "research-participation-pro").trim() || "research-participation-pro";
     clearReportPanelOffset();
     researchInterestFormView?.classList.remove("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    researchTeamInterestView?.classList.add("beginner-view-hidden");
+    launcherView?.classList.add("beginner-view-hidden");
+    temporaryHomePageView?.classList.add("beginner-view-hidden");
+    lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
+    optionsView?.classList.add("beginner-view-hidden");
+    helpView?.classList.add("beginner-view-hidden");
+    aidsView?.classList.add("beginner-view-hidden");
+    toolsView?.classList.add("beginner-view-hidden");
+    goProView?.classList.add("beginner-view-hidden");
+    otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    subscriptionManagementView?.classList.add("beginner-view-hidden");
+    behaviorsView?.classList.add("beginner-view-hidden");
+    contactView?.classList.add("beginner-view-hidden");
+    aboutView?.classList.add("beginner-view-hidden");
+    colorSchemeView?.classList.add("beginner-view-hidden");
+    blinkBehaviorView?.classList.add("beginner-view-hidden");
+    confidenceBehaviorView?.classList.add("beginner-view-hidden");
+    reportDefinitionView?.classList.add("beginner-view-hidden");
+    reportView?.classList.add("beginner-view-hidden");
+    visualizationView?.classList.add("beginner-view-hidden");
+    analyzerView?.classList.add("beginner-view-hidden");
+    difficultyView?.classList.add("beginner-view-hidden");
+    settingsView?.classList.add("beginner-view-hidden");
+    adminView?.classList.add("beginner-view-hidden");
+    userTypeAdminView?.classList.add("beginner-view-hidden");
+    handleUpdateAdminView?.classList.add("beginner-view-hidden");
+    closeReportPairMenu();
+    renderResearchInterestFormView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function showResearchTeamInterestView(returnView = "research-participation") {
+    researchTeamInterestReturnView = String(returnView || "research-participation").trim() || "research-participation";
+    clearReportPanelOffset();
+    researchTeamInterestView?.classList.remove("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.add("beginner-view-hidden");
@@ -23953,7 +24049,6 @@ This is an alternate test message to show now.`;
     userTypeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
-    renderResearchInterestFormView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -26648,9 +26743,11 @@ This is an alternate test message to show now.`;
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.remove("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
     researchParticipationProView?.classList.add("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
     researchInterestFormView?.classList.add("beginner-view-hidden");
+    researchTeamInterestView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.add("beginner-view-hidden");
@@ -26778,6 +26875,14 @@ This is an alternate test message to show now.`;
   function closeResearchParticipationViewToOrigin() {
     if (researchParticipationReturnView === "temporary-home-page") {
       forceReturnToTemporaryHomePage(researchParticipationReturnScrollY);
+      return;
+    }
+    if (researchParticipationReturnView === "other-settings") {
+      showOtherSettingsView();
+      return;
+    }
+    if (researchParticipationReturnView === "options") {
+      showOptionsView();
       return;
     }
     showTemporaryHomePageView();
@@ -28372,10 +28477,10 @@ This is an alternate test message to show now.`;
     showClairvoyanceViewingView();
   });
   openResearchParticipationProButton?.addEventListener("click", () => {
-    if (isProLockedButton(openResearchParticipationProButton) && !isAdminProLockOverrideAllowed(openResearchParticipationProButton)) {
-      return;
-    }
-    showResearchParticipationProView();
+    showResearchParticipationView({
+      returnView: "other-settings",
+      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    });
   });
   openResearchProposalButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -28601,9 +28706,58 @@ This is an alternate test message to show now.`;
     }
     showResearchParticipationProView();
   });
-  openResearchInterestFormButton?.addEventListener("click", showResearchInterestFormView);
-  closeResearchInterestFormButton?.addEventListener("click", showResearchParticipationProView);
-  researchInterestCancelButton?.addEventListener("click", showResearchParticipationProView);
+  openResearchInterestFormButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (isProLockedButton(button) && !isAdminProLockOverrideAllowed(button)) {
+        return;
+      }
+      const returnView = button.closest('[data-view="research-participation"]')
+        ? "research-participation"
+        : "research-participation-pro";
+      showResearchInterestFormView(returnView);
+    });
+  });
+  openResearchTeamInterestButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (isProLockedButton(button) && !isAdminProLockOverrideAllowed(button)) {
+        return;
+      }
+      const returnView = button.closest('[data-view="research-participation"]')
+        ? "research-participation"
+        : "research-participation-pro";
+      showResearchTeamInterestView(returnView);
+    });
+  });
+  closeResearchInterestFormButton?.addEventListener("click", () => {
+    if (researchInterestFormReturnView === "research-participation") {
+      showResearchParticipationView({
+        returnView: researchParticipationReturnView,
+        scrollY: researchParticipationReturnScrollY
+      });
+      return;
+    }
+    showResearchParticipationProView();
+  });
+  closeResearchTeamInterestButton?.addEventListener("click", () => {
+    if (researchTeamInterestReturnView === "research-participation") {
+      showResearchParticipationView({
+        returnView: researchParticipationReturnView,
+        scrollY: researchParticipationReturnScrollY
+      });
+      return;
+    }
+    showResearchParticipationProView();
+  });
+  researchInterestCancelButton?.addEventListener("click", () => {
+    if (researchInterestFormReturnView === "research-participation") {
+      showResearchParticipationView({
+        returnView: researchParticipationReturnView,
+        scrollY: researchParticipationReturnScrollY
+      });
+      return;
+    }
+    showResearchParticipationProView();
+  });
   researchInterestSaveButton?.addEventListener("click", () => {
     void saveResearchInterestForm();
   });
