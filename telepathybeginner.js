@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260808e";
+  const launcherBuildVersion = "20260808f";
   const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
@@ -1696,6 +1696,14 @@ This is an alternate test message to show now.`;
     }
     const normalizedState = normalizeLauncherIdentityState(state);
     const recognizedIdentity = String(normalizedState?.recognizedIdentity || "").trim();
+    logLauncherIdentityDebug("write_state", {
+      recognizedIdentity,
+      entryMode: String(normalizedState?.entryMode || "").trim(),
+      resolvedMainUserType: String(normalizedState?.resolvedMainUserType || "").trim(),
+      ownNames: normalizedState?.ownNames && typeof normalizedState.ownNames === "object"
+        ? { ...normalizedState.ownNames }
+        : {}
+    });
     if (recognizedIdentity) {
       localStorage.setItem(recognizedIdentityKey, recognizedIdentity);
     } else {
@@ -1729,6 +1737,15 @@ This is an alternate test message to show now.`;
   }
 
   function clearLauncherIdentityArtifacts() {
+    const priorState = readLauncherState();
+    logLauncherIdentityDebug("clear_identity_artifacts_start", {
+      recognizedIdentity: String(priorState?.recognizedIdentity || "").trim(),
+      entryMode: String(priorState?.entryMode || "").trim(),
+      resolvedMainUserType: String(priorState?.resolvedMainUserType || "").trim(),
+      ownNames: priorState?.ownNames && typeof priorState.ownNames === "object"
+        ? { ...priorState.ownNames }
+        : {}
+    });
     try {
       roleCards.forEach((card) => {
         const form = card.querySelector("[data-role-form]");
@@ -1764,6 +1781,12 @@ This is an alternate test message to show now.`;
     } catch (error) {
       // Ignore session cleanup failures.
     }
+    logLauncherIdentityDebug("clear_identity_artifacts_end", {
+      recognizedIdentity: "",
+      entryMode: "",
+      resolvedMainUserType: "",
+      ownNames: {}
+    });
   }
 
   function setPendingFreshStartAnonymousReset(active) {
@@ -7540,6 +7563,27 @@ This is an alternate test message to show now.`;
       device_debug_enabled: !!launcherAdminState.debug_enabled
     }).catch(() => {
       // Ignore debug logging failures.
+    });
+  }
+
+  function logLauncherIdentityDebug(label, details = {}) {
+    if (!launcherAdminState.debug_enabled) {
+      return;
+    }
+    if (hasLauncherAdminAccess()) {
+      void launcherAdminApi("log_debug", {
+        label: `launcher_identity:${label}`,
+        details: [details],
+        device_debug_enabled: !!launcherAdminState.debug_enabled
+      }).catch(() => {
+        // Ignore debug logging failures.
+      });
+      return;
+    }
+    traceLauncherClient(`launcher_identity:${label}`, {
+      ...(details && typeof details === "object" ? details : {}),
+      debug_enabled: !!launcherAdminState.debug_enabled,
+      has_admin_access: false
     });
   }
 
@@ -26152,7 +26196,19 @@ This is an alternate test message to show now.`;
   async function saveUserTypeAssignment() {
     const selectedType = pendingUserTypeSelection || "standard";
     const handle = currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "").trim();
+    const preSaveState = readLauncherState();
+    const preSaveRecognizedIdentity = String(getCanonicalRecognizedIdentity(preSaveState) || "").trim();
     logUserTypeAdminDebug("save_start", [{ attempted_identifier: handle, selected_type: selectedType }]);
+    logLauncherIdentityDebug("user_type_save_start", {
+      attemptedIdentifier: handle,
+      selectedType: selectedType,
+      recognizedIdentityBefore: preSaveRecognizedIdentity,
+      entryModeBefore: String(preSaveState?.entryMode || "").trim(),
+      resolvedMainUserTypeBefore: String(preSaveState?.resolvedMainUserType || "").trim(),
+      ownNamesBefore: preSaveState?.ownNames && typeof preSaveState.ownNames === "object"
+        ? { ...preSaveState.ownNames }
+        : {}
+    });
 
     if (!isValidParticipantIdentifier(handle)) {
       renderUserTypeAdminState({
@@ -26176,6 +26232,24 @@ This is an alternate test message to show now.`;
 
     try {
       const savedType = await assignUserType(handle, selectedType);
+      let postSaveState = readLauncherState();
+      const normalizedHandle = normalizeIdentifierForStorage(handle);
+      const normalizedRecognizedBefore = normalizeIdentifierForStorage(preSaveRecognizedIdentity);
+      if (
+        normalizedHandle &&
+        normalizedRecognizedBefore &&
+        normalizedHandle === normalizedRecognizedBefore &&
+        normalizeIdentifierForStorage(String(postSaveState?.recognizedIdentity || "").trim()) !== normalizedRecognizedBefore
+      ) {
+        postSaveState = promoteRecognizedIdentityFromCandidate(preSaveRecognizedIdentity, savedType, postSaveState);
+        writeLauncherState(postSaveState);
+        applyIdentityStateToLauncherInputs();
+        logLauncherIdentityDebug("user_type_save_recognized_identity_restored", {
+          attemptedIdentifier: handle,
+          restoredRecognizedIdentity: preSaveRecognizedIdentity,
+          savedType
+        });
+      }
       currentUserTypeAdminHandle = handle;
       renderUserTypeAdminState({
         statusText: `Current status for ${handle}: ${savedType.toUpperCase()}.`,
@@ -26186,6 +26260,16 @@ This is an alternate test message to show now.`;
         currentType: savedType
       });
       logUserTypeAdminDebug("save_success", [{ attempted_identifier: handle, saved_type: savedType }]);
+      logLauncherIdentityDebug("user_type_save_success", {
+        attemptedIdentifier: handle,
+        savedType,
+        recognizedIdentityAfter: String(readLauncherState()?.recognizedIdentity || "").trim(),
+        entryModeAfter: String(readLauncherState()?.entryMode || "").trim(),
+        resolvedMainUserTypeAfter: String(readLauncherState()?.resolvedMainUserType || "").trim(),
+        ownNamesAfter: readLauncherState()?.ownNames && typeof readLauncherState().ownNames === "object"
+          ? { ...readLauncherState().ownNames }
+          : {}
+      });
       void refreshMainUserType();
     } catch (error) {
       renderUserTypeAdminState({
@@ -26201,6 +26285,12 @@ This is an alternate test message to show now.`;
         selected_type: selectedType,
         error: error instanceof Error ? error.message : String(error)
       }]);
+      logLauncherIdentityDebug("user_type_save_error", {
+        attemptedIdentifier: handle,
+        selectedType,
+        recognizedIdentityAfterError: String(readLauncherState()?.recognizedIdentity || "").trim(),
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
