@@ -7,24 +7,24 @@ type=lesson-page
 TITLE=UNDERSTANDING PERFORMANCE ANALYSIS
 
 
-[indent]You have now started practicing telepathy, and the question now becomes, “How am I doing?” This question is answered by looking at your performance history to date and assessing whether it is improving, declining, stable, and whether it reflects telepathic ability. Perhaps the best way to know whether you are experiencing telepathy is to simply introspect and remember whether the fleeing images that you noticed in your mind’s eye were ‘hits’ or not.[/indent]
+[indent]After starting to practice telepathy, the question becomes, “How am I doing?” This question is answered by looking at your performance history to date and assessing whether it reflects telepathic ability, and whether it is improving, declining, or stable. Perhaps the best way to know whether you are experiencing telepathy is to simply introspect and remember whether the fleeing images that you noticed in your mind’s eye were ‘hits’ or not.[/indent]
 
-[indent]The Performance reports perform statistical analysis on your responses, which is the scientifically acceptable way of determining whether data reflects the presence of a "statistically significant effect" or not. It does so by computing whether the same data could have been produced simply by pure chance. This approach has much strength, but it also has weaknesses.
+[indent]The Performance reports perform statistical analysis on your responses, which is the scientifically acceptable way of determining whether data reflects the presence of a "statistically significant effect" or not. It does so by computing whether the same data could have been produced simply by pure chance. This approach has much strength, but it also has weaknesses.[/indent]
 
 [center]THE TROUBLE WITH STATISTICS[/center]
 
-[indent]Statistics is based on computing whether something that could have happened by random chance has happened. Let’s say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, for example, "one cone" or "many cones", each choice has a 50% chance of being right or wrong by chance alone. Statistical analysis would determine that your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, if it happened only once, it is often rejected as being convincing proof of a significant effect.[/indent]
+[indent]Statistics is based on computing whether an effect that could have happened by random chance has occurred. Let’s say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, for example, "one cone" or "many cones", each choice has a 50% chance of being right or wrong by chance alone. Statistical analysis would determine that your performance of 8 correct in a row and then 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, if it happened only once, it is often rejected as being convincing proof of a significant effect.[/indent]
 
-[indent]But the reality might be that you experienced true telepathy in the first 8 trials and then became tired or distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly.[/indent]
+[indent]But the reality might be that you experienced true telepathy in the first 8 trials and then became tired or distracted on the ninth trial. Or the person sending to you might have been distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly.[/indent]
 
-[indent]IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell a correct story.[/indent]
+[indent]IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell the correct story.[/indent]
 
 How To Read Statistical Significance
 
 [indent]The main number to understand in the concept of “statistical significance” is called the “P value.” For example, a report might say,[/indent]
 
-[indent]“Total trials = 24, Chance score = 12, Your score = 20, Telepathic significance, P = 7.72[/indent]
-[indent]The probability that you would get this score by chance alone is 0.08%.[/indent]
+[indent]Summary: Total trials = 24, Chance score = 12, Your score = 13, Telepathic significance, P = .41941.[/indent]
+[indent]The probability that you would get this score by chance alone is 41.94%.[/indent]
 
 [indent]The **smaller** the P value, the more your score would be unlikely to occur by chance alone. But statistical significance is only part of the story. The number of completed trials also matters.[/indent]
 
@@ -32,7 +32,7 @@ How To Read Statistical Significance
 
 [indent]The more completed trials you have, the more stable and trustworthy the result becomes. With very few completed trials, a significant result may be interesting, but it is not yet very persuasive. With a moderate number of completed trials, a significant result becomes more meaningful, but with a large block of completed trials, a strong significant result becomes much more persuasive and deserves serious attention.[/indent]
 
-[indent]The performance analysis asks two questions:[/indent]
+[indent]The performance analysis asks two main questions:[/indent]
 
 [indent]1. Is the result statistically unlikely to be due to chance?[/indent]
 
@@ -45,11 +45,11 @@ How This Analysis Interprets Sample Size Persuasiveness
 
 [indent]Fewer than 20 completed trials: Too little data for a meaningful interpretation.[/indent]
 
-[indent]20 to 59 completed trials: Results may be mathematically interesting, but the sample is still modest.[/indent]
+[indent]20 to 49 completed trials: Results may be mathematically interesting, but the sample is still modest.[/indent]
 
-[indent]60 or more completed trials: Results become much more practically persuasive.[/indent]
+[indent]50 or more completed trials: Results become much more practically persuasive.[/indent]
 
-[indent]A result stronger than P < 0.01 with 50 - 60+ completed trials: Strong evidence that deserves serious attention and replication.[/indent]
+[indent]A result stronger than P < 0.01 with 50 or more completed trials: Strong evidence that deserves serious attention and replication.[/indent]
 
 
 Important Caution
@@ -66,6 +66,11 @@ Important Caution
 
 [indent]-	replication across additional sessions[/indent]
 
+[center]THE GRAPH[/center]
+
+
+[center]IS THERE A PRACTICE EFFECT?[/center]
+[indent]As explained above, the graph shows the CUMULATIVE DATA. If, on the average, you do better than chance, this cumulative graph will creep up at a certain rate. But this in no way means that with practice, you are getting better and better. To analyze whether you are improving with practice, look at the rate at which the cumulative graph is increasing at some early date, and compare it with the rate at chich it is increasing at a later date. If it is increasing faster on the average later than it was increasing earlier, then yes, performance is improving with practice. This is a completely different calculation than the P value.
 
 [indent]One last point. You can create custom reports where you can specify the starting and ending trial number for the data to be visualized and analyzed statistically. But when you single out a particularly good run and turn it into a report, this is considered in statistics to be a “post hoc analysis” ("hoc" is Latin for "this"). These types of data reports don’t have full credibility because even when flipping coins, there can be long single runs of all heads or all tails, so the post hoc data could be focusing on random data that just looks significant. However, if there are legitimate reasons for doing this, for example, if before a formal study you gave subjects 10 practice trials, you have a legitimate reason for eliminating those trials – especially if you stated in a filed document beforehand that you were going to eliminate them in the data analysis.[/indent]
 

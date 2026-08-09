@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260809d";
+  const launcherBuildVersion = "20260809e";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -367,13 +367,6 @@
     {
       title: "COURSE LESSONS",
       paragraphs: []
-    },
-    {
-      title: "NOTES AND REFERENCES",
-      paragraphs: [
-        "This page is reserved for lesson notes and references.",
-        "Detailed citations, source notes, and reference material can be added here as the course develops."
-      ]
     }
   ];
   const closeProUserManualButton = document.querySelector("[data-close-pro-user-manual]");
@@ -14199,12 +14192,14 @@ This is an alternate test message to show now.`;
     const significance = getOverallSignificanceContext(summaryStats, levelBreakdown);
     const pValue = Number(significance?.pValue);
     const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const projectionAverages = getProjectionPerTrialAverages(summaryStats);
     if (totalTrials < 1 || !Number.isFinite(pValue)) {
       return {
         line: "Projection: There are not enough completed scored trials yet to estimate the projection checkpoints.",
         twentyTrialCheckpoint: getTwentyTrialCheckpointDetail(summaryStats, levelBreakdown, records),
         significanceProjection: null,
-        highPersuasivenessProjection: null
+        highPersuasivenessProjection: null,
+        projectionAverages: null
       };
     }
 
@@ -14235,7 +14230,8 @@ This is an alternate test message to show now.`;
       ].join("\n"),
       twentyTrialCheckpoint,
       significanceProjection,
-      highPersuasivenessProjection
+      highPersuasivenessProjection,
+      projectionAverages
     };
   }
 
@@ -15577,11 +15573,23 @@ This is an alternate test message to show now.`;
 
     const lines = [
       "Projection detail:",
-      "The projection assumes future completed scored trials continue at approximately the same average performance as the currently displayed range.",
+      "The projection is made by:",
+      "1. Measuring the average score, average chance score, and average variance per completed scored trial in the currently displayed range.",
+      "2. Assuming additional completed scored trials would continue at approximately the same average score, average chance score, and average per-trial variance as in the currently displayed range.",
+      "3. Recomputing the projected result at 25 trials, then 26, then 27, and so on, up to 500 trials.",
+      "4. Reporting the first trial count at which the projected result satisfies both conditions: P < .001 and at least 25 completed scored trials.",
       detail.twentyTrialCheckpoint?.line || "20-trial checkpoint: unavailable.",
       detail.significanceProjection?.line || "Projection to significance: unavailable.",
       detail.highPersuasivenessProjection?.line || "Projection to high persuasiveness: unavailable."
     ];
+
+    if (detail.projectionAverages) {
+      lines.push(
+        `Average observed score per completed scored trial = ${formatAdvancedDetailNumber(detail.projectionAverages.observedPerTrial, 6)}.`,
+        `Average chance score per completed scored trial = ${formatAdvancedDetailNumber(detail.projectionAverages.expectedPerTrial, 6)}.`,
+        `Average variance per completed scored trial = ${formatAdvancedDetailNumber(detail.projectionAverages.variancePerTrial, 6)}.`
+      );
+    }
 
     if (detail.twentyTrialCheckpoint?.summaryStats) {
       if (detail.twentyTrialCheckpoint.mode === "actual") {
