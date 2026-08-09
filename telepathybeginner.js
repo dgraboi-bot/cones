@@ -9,8 +9,8 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260809b";
-  const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
+  const launcherBuildVersion = "20260809c";
+  const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
@@ -8691,7 +8691,7 @@ This is an alternate test message to show now.`;
     if (featureSetupIdentifier) {
       featureSetupIdentifier.textContent = featureSetupOwnIdentifier
         ? `Current Unique Name: ${featureSetupOwnIdentifier}`
-        : "Current Unique Name: no unique name found for this user on this device.";
+        : "Current Unique Name: no unique name is currently recognized in this browser.";
     }
 
     const recognizedUser = !!featureSetupOwnIdentifier;
@@ -8699,7 +8699,7 @@ This is an alternate test message to show now.`;
     if (featureSetupClaimStatus) {
       featureSetupClaimStatus.textContent = recognizedUser
         ? `Current unique name: ${featureSetupOwnIdentifier}`
-        : "Unique name not found for this user on this device yet. If you have registered a unique name, use this function to allow it on this device.";
+        : "No unique name is currently recognized in this browser. If you have already registered a unique name in another browser or on another device, use this function to claim it here.";
     }
     if (featureSetupClaimActionButton) {
       featureSetupClaimActionButton.textContent = recognizedUser ? "CHANGE UNIQUE NAME" : "CLAIM UNIQUE NAME";
@@ -8876,11 +8876,11 @@ This is an alternate test message to show now.`;
     if (uniqueNameChangeCurrent) {
       uniqueNameChangeCurrent.textContent = currentIdentifier
         ? `Current Unique Name: ${currentIdentifier}`
-        : "Current Unique Name: none currently loaded.";
+        : "Current Unique Name: no unique name is currently recognized in this browser.";
     }
     if (!currentIdentifier) {
       if (uniqueNameChangeStatus) {
-        uniqueNameChangeStatus.textContent = "No unique name exists for this user yet.";
+        uniqueNameChangeStatus.textContent = "No unique name is currently recognized in this browser.";
       }
       if (uniqueNameChangeContinueButton) {
         uniqueNameChangeContinueButton.textContent = "OK";
@@ -17925,7 +17925,7 @@ This is an alternate test message to show now.`;
       handleDialogTitle.textContent = defaultHandleDialogTitle;
     }
     if (handleIntro) {
-      handleIntro.textContent = `"${canonicalIdentifier}" is not a recognized unique name on this device. If you have previously registered "${canonicalIdentifier}" on another device, or want to claim it now as your unique name, press SUBMIT.`;
+      handleIntro.textContent = `"${canonicalIdentifier}" is not yet recognized in this browser. If you previously registered "${canonicalIdentifier}" in another browser or on another device, you can claim it here for use in this browser. Then press SUBMIT.`;
     }
     if (handleInput) {
       handleInput.value = canonicalIdentifier;
@@ -25337,8 +25337,8 @@ This is an alternate test message to show now.`;
       }
       if (exploreProIntro) {
         exploreProIntro.textContent = pendingRecoveryIdentifier
-          ? `Verify that you are ${pendingRecoveryIdentifier} on this device.`
-          : "Verify your existing unique name on this device.";
+          ? `Verify that you are ${pendingRecoveryIdentifier} in this browser.`
+          : "Verify your existing unique name in this browser.";
       }
       if (exploreProAuthCopy) {
         exploreProAuthCopy.textContent = "Your email address is used for authentication. Please enter the authentication email for this unique name below. We will send you a 5-character verification code.";
