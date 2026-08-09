@@ -1,4 +1,13 @@
-(() => {
+((rootFactory) => {
+  const root = typeof globalThis !== "undefined"
+    ? globalThis
+    : (typeof window !== "undefined" ? window : this);
+  const api = rootFactory(root);
+  root.EspGymTargetSelection = api;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = api;
+  }
+})((root) => {
   const layouts = {
     1: [{ x: 50, y: 50 }],
     2: [{ x: 36, y: 50 }, { x: 64, y: 50 }],
@@ -123,7 +132,13 @@
       return `many ${orientation.replace("-", " ")}`;
     }
     if (normalizedLevel === 3) {
-      return `many ${orientation.replace("-", " ")} ${coneCount}`;
+      if (orientation === "diagonal-up") {
+        return `many diagonal ${coneCount} up`;
+      }
+      if (orientation === "diagonal-down") {
+        return `many diagonal ${coneCount} down`;
+      }
+      return `many ${orientation} ${coneCount}`;
     }
     return "";
   }
@@ -159,9 +174,9 @@
   }
 
   function randomInt(min, max) {
-    if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+    if (root.crypto && typeof root.crypto.getRandomValues === "function") {
       const values = new Uint32Array(1);
-      window.crypto.getRandomValues(values);
+      root.crypto.getRandomValues(values);
       return min + (values[0] % (max - min + 1));
     }
     return min + Math.floor(Math.random() * (max - min + 1));
@@ -187,7 +202,7 @@
     return chooseUniform(policy.oneLayoutNumbers);
   }
 
-  window.EspGymTargetSelection = {
+  return {
     buildVersion: "20260809d",
     layouts,
     normalizeLevel,
@@ -203,4 +218,4 @@
     getBernoulliNullPmf,
     pickTargetLayoutNumber
   };
-})();
+});
