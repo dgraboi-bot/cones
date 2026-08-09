@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260809e">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260809f">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260809e">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260809e">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260809e">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260809f">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260809f">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260809f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260809e">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260809e">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260809e">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260809f">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260809f">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260809f">
   <script>
     (function () {
-      var buildVersion = "20260809e";
+      var buildVersion = "20260809f";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -558,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260809e</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260809f</span>
           </div>
         </div>
 
@@ -1767,7 +1767,7 @@
               <p class="about-section-copy"><strong>Clairvoyance / Remote Viewing.</strong> Telepathy is usually easier to relate to than clairvoyance and remote viewing. We all are familiar with radio, where there is a transmitter which uses energy to transmit signals across space which are then picked up and decoded by a receiver. But it is harder to understand how, even when there is no obvious transmitter, a clairvoyant receiver can still pick up information as surely as a receiver of telepathic information. The clairvoyance / remote viewing tool does not have a partner for practice sessions. Using two devices, for example, a laptop and a cellphone, the app sets up trials in which images are displayed on a device in another room or country, and a remote viewer tries to see what is on the display in their mind's eye.</p>
             </div>
             <div class="about-section">
-              <p class="about-section-copy"><strong>SAVE Performance Report as .PDF file.</strong> Any Performance Visualization Report can be saved as a .PDF file.</p>
+              <p class="about-section-copy"><strong>SAVE Performance Report as .PDF file.</strong> Any Performance Visualization Report can be saved as a .PDF file. The PDF report can optionally include the Advanced Details page, which shows the practice graphic (when available) and the mathematics and assumptions behind the numbers calculated in the report.</p>
             </div>
             <div class="about-section">
               <p class="about-section-copy"><strong>Globe.</strong> This feature shows a globe that can be adjusted and zoomed which shows connecting lines between this user's location and the location on earth of other telepathy partners. Globe is a fun way of visualizing the reality that in telepathy, distance is not a factor.</p>
@@ -2714,8 +2714,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260809e'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260809e'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260809f'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260809f'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3489,9 +3489,11 @@
             <input class="visualization-range-input" id="visualizationRangeStart" type="number" inputmode="numeric" min="1" step="1" data-visualization-range-start>
             <label class="visualization-range-label" for="visualizationRangeEnd">End at trial:</label>
             <input class="visualization-range-input" id="visualizationRangeEnd" type="number" inputmode="numeric" min="1" step="1" data-visualization-range-end>
+            <button class="options-button visualization-update-range-button" type="button" data-visualization-update-range>UPDATE REPORT</button>
             <button class="options-button visualization-save-as-button" type="button" data-visualization-save-as>SAVE AS</button>
             <button class="options-button visualization-advanced-detail-button" type="button" data-open-visualization-advanced-detail>ADVANCED DETAIL</button>
           </div>
+          <p class="visualization-range-helper" data-visualization-range-helper hidden>After changing trial range, press UPDATE REPORT.</p>
           <div class="visualization-chart-wrap" data-visualization-chart-wrap hidden>
             <svg class="visualization-chart" data-visualization-chart viewBox="0 0 900 520" role="img" aria-label="Performance visualization chart"></svg>
           </div>
@@ -3550,6 +3552,10 @@
             <label class="settings-view-checkbox named-report-save-option named-report-save-option-pdf" data-named-report-save-pdf-wrap>
               <input type="checkbox" data-named-report-save-pdf>
               <span data-named-report-save-pdf-label>Save as PDF File</span>
+            </label>
+            <label class="settings-view-checkbox named-report-save-option named-report-save-option-pdf" data-named-report-include-advanced-wrap>
+              <input type="checkbox" data-named-report-include-advanced>
+              <span data-named-report-include-advanced-label>Include advanced details</span>
             </label>
           </div>
           <div class="report-status named-report-modal-status" data-named-report-status></div>
@@ -3613,10 +3619,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260809e"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260809f"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260809e"></script>
-<script src="telepathybeginner.js?v=20260809e"></script>
+<script src="target-selection.js?v=20260809f"></script>
+<script src="telepathybeginner.js?v=20260809f"></script>
 </body>
 </html>
 

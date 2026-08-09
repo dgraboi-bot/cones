@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260809e";
+  const launcherBuildVersion = "20260809f";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -651,6 +651,8 @@
   const visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
   const visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
   const visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
+  const visualizationUpdateRangeButton = document.querySelector("[data-visualization-update-range]");
+  const visualizationRangeHelper = document.querySelector("[data-visualization-range-helper]");
   const visualizationSaveAsButton = document.querySelector("[data-visualization-save-as]");
   const visualizationAdvancedDetailButton = document.querySelector("[data-open-visualization-advanced-detail]");
   const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
@@ -673,6 +675,9 @@
   const namedReportSavePdfCheckbox = document.querySelector("[data-named-report-save-pdf]");
   const namedReportSavePdfWrap = document.querySelector("[data-named-report-save-pdf-wrap]");
   const namedReportSavePdfLabel = document.querySelector("[data-named-report-save-pdf-label]");
+  const namedReportIncludeAdvancedCheckbox = document.querySelector("[data-named-report-include-advanced]");
+  const namedReportIncludeAdvancedWrap = document.querySelector("[data-named-report-include-advanced-wrap]");
+  const namedReportIncludeAdvancedLabel = document.querySelector("[data-named-report-include-advanced-label]");
   const namedReportStatus = document.querySelector("[data-named-report-status]");
   const namedReportSaveButton = document.querySelector("[data-named-report-save]");
   const namedReportCancelButton = document.querySelector("[data-named-report-cancel]");
@@ -1093,6 +1098,7 @@
     endValue: ""
   };
   let latestVisualizationContext = null;
+  let visualizationRangeAutoUpdateTimer = null;
   const analysisStorageKey = "cones-results-analyzer-v1";
   const demoReportPairKeys = new Set([
     "demo.level1.too-little.receiver|||demo.level1.too-little.sender",
@@ -4185,10 +4191,28 @@ This is an alternate test message to show now.`;
     const allowed = isPdfExportAllowedForCurrentUser();
     const lockMessage = "PRO Feature";
     applyProLockPresentation(namedReportSavePdfWrap, !allowed, lockMessage);
+    applyProLockPresentation(namedReportIncludeAdvancedWrap, !allowed, lockMessage);
     if (namedReportSavePdfCheckbox) {
       namedReportSavePdfCheckbox.disabled = !allowed;
       if (!allowed) {
         namedReportSavePdfCheckbox.checked = false;
+      }
+    }
+    if (namedReportIncludeAdvancedCheckbox) {
+      namedReportIncludeAdvancedCheckbox.disabled = !allowed || !namedReportSavePdfCheckbox?.checked;
+      if (!allowed) {
+        namedReportIncludeAdvancedCheckbox.checked = false;
+      }
+    }
+  }
+
+  function syncNamedReportAdvancedOptionState() {
+    const allowed = isPdfExportAllowedForCurrentUser();
+    if (namedReportIncludeAdvancedCheckbox) {
+      const enabled = allowed && !!namedReportSavePdfCheckbox?.checked;
+      namedReportIncludeAdvancedCheckbox.disabled = !enabled;
+      if (!enabled) {
+        namedReportIncludeAdvancedCheckbox.checked = false;
       }
     }
   }
@@ -4277,21 +4301,21 @@ This is an alternate test message to show now.`;
     });
   }
 
-  async function captureVisualizationChartForPdf() {
-    if (!visualizationChart || visualizationChartWrap?.hidden) {
-      throw new Error("The visualization chart is not available for PDF export.");
+  async function captureSvgElementForPdf(svgElement, options = {}) {
+    if (!(svgElement instanceof SVGElement)) {
+      throw new Error("The requested SVG is not available for PDF export.");
     }
     const serializer = new XMLSerializer();
-    const svgClone = visualizationChart.cloneNode(true);
+    const svgClone = svgElement.cloneNode(true);
     if (!(svgClone instanceof SVGElement)) {
-      throw new Error("The visualization chart could not be cloned for PDF export.");
+      throw new Error("The requested SVG could not be cloned for PDF export.");
     }
     svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     svgClone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-    const viewBox = svgClone.getAttribute("viewBox") || "0 0 900 520";
+    const viewBox = svgClone.getAttribute("viewBox") || String(options.viewBox || "0 0 900 520");
     const parts = viewBox.split(/\s+/).map((part) => Number(part));
-    const width = Number.isFinite(parts[2]) && parts[2] > 0 ? parts[2] : 900;
-    const height = Number.isFinite(parts[3]) && parts[3] > 0 ? parts[3] : 520;
+    const width = Number.isFinite(parts[2]) && parts[2] > 0 ? parts[2] : Number(options.width || 900);
+    const height = Number.isFinite(parts[3]) && parts[3] > 0 ? parts[3] : Number(options.height || 520);
     svgClone.setAttribute("width", String(width));
     svgClone.setAttribute("height", String(height));
     const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -4299,10 +4323,38 @@ This is an alternate test message to show now.`;
     background.setAttribute("y", "0");
     background.setAttribute("width", String(width));
     background.setAttribute("height", String(height));
-    background.setAttribute("fill", "#0b1221");
+    background.setAttribute("fill", String(options.background || "#0b1221"));
     svgClone.insertBefore(background, svgClone.firstChild);
     const svgText = serializer.serializeToString(svgClone);
     return loadSvgImageDataUrl(svgText);
+  }
+
+  async function captureVisualizationChartForPdf() {
+    if (!visualizationChart || visualizationChartWrap?.hidden) {
+      throw new Error("The visualization chart is not available for PDF export.");
+    }
+    return captureSvgElementForPdf(visualizationChart, {
+      viewBox: "0 0 900 520",
+      width: 900,
+      height: 520,
+      background: "#0b1221"
+    });
+  }
+
+  async function captureVisualizationPracticeGraphForPdf(detail) {
+    if (!detail?.eligible || !detail?.regression) {
+      return null;
+    }
+    renderVisualizationPracticeTrendGraph(detail);
+    if (!visualizationPracticeGraph || visualizationPracticeGraphBlock?.hidden || visualizationPracticeGraph.childNodes.length < 1) {
+      return null;
+    }
+    return captureSvgElementForPdf(visualizationPracticeGraph, {
+      viewBox: "0 0 900 420",
+      width: 900,
+      height: 420,
+      background: "#0b1221"
+    });
   }
 
   function appendPdfWrappedText(doc, text, x, y, maxWidth, lineHeight, pageBottomY) {
@@ -4322,7 +4374,7 @@ This is an alternate test message to show now.`;
     return cursorY;
   }
 
-  async function exportVisualizationPdf(context, title) {
+  async function exportVisualizationPdf(context, title, options = {}) {
     const jspdfNamespace = window.jspdf || null;
     const JsPdfCtor = jspdfNamespace?.jsPDF || null;
     if (typeof JsPdfCtor !== "function") {
@@ -4333,6 +4385,23 @@ This is an alternate test message to show now.`;
     }
 
     const chartImage = await captureVisualizationChartForPdf();
+    const includeAdvancedDetails = !!options.includeAdvancedDetails;
+    const summaryStats = context.summaryStats || getReportSummaryStats(context.records || []);
+    const levelBreakdown = context.levelBreakdown || buildLevelBreakdown(context.records || []);
+    const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, context.records || []);
+    const advancedSignificanceText = includeAdvancedDetails
+      ? [
+          buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, context.records || []),
+          "",
+          buildVisualizationProjectionDetail(interpretation)
+        ].join("\n")
+      : "";
+    const advancedTrendText = includeAdvancedDetails
+      ? buildVisualizationPracticeTrendDetail(interpretation)
+      : "";
+    const practiceGraphImage = includeAdvancedDetails
+      ? await captureVisualizationPracticeGraphForPdf(interpretation.practice_trend_detail)
+      : null;
     const doc = new JsPdfCtor({
       orientation: "portrait",
       unit: "pt",
@@ -4380,10 +4449,74 @@ This is an alternate test message to show now.`;
     doc.addImage(chartImage.dataUrl, "PNG", marginX, cursorY, chartWidth, chartHeight, undefined, "FAST");
     cursorY += chartHeight + 14;
 
+    if (includeAdvancedDetails) {
+      const startSection = (heading) => {
+        if (cursorY + 42 > pageBottomY) {
+          doc.addPage();
+          doc.setFillColor(11, 18, 33);
+          doc.rect(0, 0, pageWidth, pageHeight, "F");
+          doc.setTextColor(246, 243, 239);
+          cursorY = 28;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        cursorY = appendPdfWrappedText(doc, heading, marginX, cursorY, maxWidth, 18, pageBottomY);
+        cursorY += 6;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+      };
+
+      startSection("Advanced Detail");
+      const detailSummaryLines = [];
+      if (isNamedReportTarget(context.pairInfo)) {
+        detailSummaryLines.push(`Named file: ${String(context.pairInfo.reportTitle || "").trim() || "Unnamed named file"}`);
+      }
+      const utcRangeText = getVisualizationUtcRangeText(context.records || []);
+      detailSummaryLines.push(`Receiver-sender pair: ${getPairInfoReceiverLabel(context.pairInfo) || "unknown"} - ${getPairInfoSenderLabel(context.pairInfo) || "unknown"}.${utcRangeText ? ` ${utcRangeText}` : ""}`);
+      detailSummaryLines.push(context.range?.valid ? `Displayed range: trials ${context.range.start}-${context.range.end}.` : "Displayed range: unknown.");
+      detailSummaryLines.push(`${Number(context.completedTrialCount || context.records?.length || 0)} completed scored trial record${Number(context.completedTrialCount || context.records?.length || 0) === 1 ? "" : "s"} included in this detail view.`);
+      detailSummaryLines.forEach((line) => {
+        cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 15, pageBottomY);
+        cursorY += 2;
+      });
+      cursorY += 8;
+
+      startSection("Telepathic Significance Calculation");
+      advancedSignificanceText.split(/\n+/).forEach((line) => {
+        cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 14, pageBottomY);
+      });
+      cursorY += 8;
+
+      startSection("Practice Trend Calculation");
+      advancedTrendText.split(/\n+/).forEach((line) => {
+        cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 14, pageBottomY);
+      });
+      cursorY += 10;
+
+      if (practiceGraphImage) {
+        const graphWidth = maxWidth;
+        const graphHeight = Math.max(120, graphWidth * (practiceGraphImage.height / practiceGraphImage.width));
+        if (cursorY + graphHeight + 24 > pageBottomY) {
+          doc.addPage();
+          doc.setFillColor(11, 18, 33);
+          doc.rect(0, 0, pageWidth, pageHeight, "F");
+          doc.setTextColor(246, 243, 239);
+          cursorY = 28;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text(String(interpretation?.practice_trend_detail?.title || "Practice Trend"), marginX, cursorY);
+        cursorY += 10;
+        doc.addImage(practiceGraphImage.dataUrl, "PNG", marginX, cursorY, graphWidth, graphHeight, undefined, "FAST");
+        cursorY += graphHeight + 12;
+      }
+    }
+
     doc.save(sanitizePdfFileName(title));
   }
 
   function openNamedReportModal() {
+    applyPendingVisualizationRangeIfNeeded();
     const context = latestVisualizationContext;
     if (!context?.pairInfo?.receiverName || !context?.pairInfo?.senderName) {
       if (visualizationStatus) {
@@ -4419,7 +4552,11 @@ This is an alternate test message to show now.`;
     if (namedReportSavePdfCheckbox) {
       namedReportSavePdfCheckbox.checked = false;
     }
+    if (namedReportIncludeAdvancedCheckbox) {
+      namedReportIncludeAdvancedCheckbox.checked = false;
+    }
     applyNamedReportPdfAvailabilityState();
+    syncNamedReportAdvancedOptionState();
     if (namedReportModal) {
       namedReportModal.hidden = false;
     }
@@ -4443,6 +4580,7 @@ This is an alternate test message to show now.`;
     }
     const saveVisualizationReport = !!namedReportSaveVisualizationCheckbox?.checked;
     const savePdfFile = !!namedReportSavePdfCheckbox?.checked;
+    const includeAdvancedDetails = !!namedReportIncludeAdvancedCheckbox?.checked;
     if (!saveVisualizationReport && !savePdfFile) {
       if (namedReportStatus) {
         namedReportStatus.textContent = "Select at least one save option.";
@@ -4487,7 +4625,7 @@ This is an alternate test message to show now.`;
 
       if (savePdfFile) {
         try {
-          await exportVisualizationPdf(context, title);
+          await exportVisualizationPdf(context, title, { includeAdvancedDetails });
           pdfSaved = true;
         } catch (error) {
           pdfFailureMessage = error instanceof Error ? error.message : "Unable to export the PDF right now.";
@@ -15165,6 +15303,14 @@ This is an alternate test message to show now.`;
       visualizationRangeEndInput.value = visualizationRangeState.endValue;
       visualizationRangeEndInput.max = visualizationRangeState.totalTrials > 0 ? String(visualizationRangeState.totalTrials) : "";
     }
+    syncVisualizationRangeDirtyState();
+  }
+
+  function clearVisualizationRangeAutoUpdateTimer() {
+    if (visualizationRangeAutoUpdateTimer) {
+      window.clearTimeout(visualizationRangeAutoUpdateTimer);
+      visualizationRangeAutoUpdateTimer = null;
+    }
   }
 
   function syncVisualizationRangeEditability(pairInfo) {
@@ -15175,6 +15321,15 @@ This is an alternate test message to show now.`;
     if (visualizationRangeEndInput) {
       visualizationRangeEndInput.readOnly = readOnly;
     }
+    if (visualizationUpdateRangeButton) {
+      visualizationUpdateRangeButton.disabled = readOnly;
+      visualizationUpdateRangeButton.hidden = readOnly;
+    }
+    if (visualizationRangeHelper) {
+      visualizationRangeHelper.hidden = true;
+      visualizationRangeHelper.textContent = "After changing trial range, press UPDATE REPORT.";
+    }
+    clearVisualizationRangeAutoUpdateTimer();
   }
 
   function ensureVisualizationRangeState(pairInfo, totalTrials) {
@@ -15186,12 +15341,49 @@ This is an alternate test message to show now.`;
         pairKey,
         totalTrials: normalizedTotalTrials,
         startValue: normalizedTotalTrials > 0 ? "1" : "",
-        endValue: normalizedTotalTrials > 0 ? String(normalizedTotalTrials) : ""
+        endValue: normalizedTotalTrials > 0 ? String(normalizedTotalTrials) : "",
+        appliedStartValue: normalizedTotalTrials > 0 ? "1" : "",
+        appliedEndValue: normalizedTotalTrials > 0 ? String(normalizedTotalTrials) : ""
       };
     } else {
       visualizationRangeState.totalTrials = normalizedTotalTrials;
+      if (typeof visualizationRangeState.appliedStartValue !== "string") {
+        visualizationRangeState.appliedStartValue = visualizationRangeState.startValue;
+      }
+      if (typeof visualizationRangeState.appliedEndValue !== "string") {
+        visualizationRangeState.appliedEndValue = visualizationRangeState.endValue;
+      }
     }
     syncVisualizationRangeInputs();
+  }
+
+  function syncVisualizationRangeDirtyState() {
+    if (!visualizationRangeHelper || !visualizationUpdateRangeButton) {
+      return;
+    }
+    const isNamed = isNamedReportTarget(selectedReportTarget);
+    const currentStart = String(visualizationRangeStartInput?.value ?? "").trim();
+    const currentEnd = String(visualizationRangeEndInput?.value ?? "").trim();
+    const appliedStart = String(visualizationRangeState.appliedStartValue ?? visualizationRangeState.startValue ?? "").trim();
+    const appliedEnd = String(visualizationRangeState.appliedEndValue ?? visualizationRangeState.endValue ?? "").trim();
+    const isDirty = !isNamed && (currentStart !== appliedStart || currentEnd !== appliedEnd);
+    visualizationRangeHelper.hidden = !isDirty;
+    visualizationUpdateRangeButton.disabled = isNamed || !isDirty;
+    if (!isDirty) {
+      clearVisualizationRangeAutoUpdateTimer();
+    }
+  }
+
+  function isVisualizationRangeDirty() {
+    const isNamed = isNamedReportTarget(selectedReportTarget);
+    if (isNamed) {
+      return false;
+    }
+    const currentStart = String(visualizationRangeStartInput?.value ?? "").trim();
+    const currentEnd = String(visualizationRangeEndInput?.value ?? "").trim();
+    const appliedStart = String(visualizationRangeState.appliedStartValue ?? visualizationRangeState.startValue ?? "").trim();
+    const appliedEnd = String(visualizationRangeState.appliedEndValue ?? visualizationRangeState.endValue ?? "").trim();
+    return currentStart !== appliedStart || currentEnd !== appliedEnd;
   }
 
   function parseVisualizationRangeInteger(rawValue) {
@@ -15263,17 +15455,59 @@ This is an alternate test message to show now.`;
     return `Showing trials ${range.start}-${range.end} of ${normalizedTotalTrials} completed scored trials.`;
   }
 
-  function commitVisualizationRangeFromInputs() {
+  function updateVisualizationRangeStateFromInputs() {
     if (isNamedReportTarget(selectedReportTarget)) {
       syncVisualizationRangeInputs();
       return;
     }
     visualizationRangeState.startValue = String(visualizationRangeStartInput?.value ?? "").trim();
     visualizationRangeState.endValue = String(visualizationRangeEndInput?.value ?? "").trim();
+    syncVisualizationRangeDirtyState();
+  }
+
+  function scheduleVisualizationRangeAutoUpdate() {
+    clearVisualizationRangeAutoUpdateTimer();
+    if (!isVisualizationRangeDirty() || !selectedReportTarget || visualizationView?.classList.contains("beginner-view-hidden")) {
+      return;
+    }
+    visualizationRangeAutoUpdateTimer = window.setTimeout(() => {
+      visualizationRangeAutoUpdateTimer = null;
+      if (!isVisualizationRangeDirty()) {
+        return;
+      }
+      commitVisualizationRangeFromInputs({
+        announceWithAlert: true,
+        alertMessage: "REPORT UPDATED WITH NEW START AND END RANGE"
+      });
+    }, 5000);
+  }
+
+  function commitVisualizationRangeFromInputs(options = {}) {
+    if (isNamedReportTarget(selectedReportTarget)) {
+      syncVisualizationRangeInputs();
+      return;
+    }
+    clearVisualizationRangeAutoUpdateTimer();
+    updateVisualizationRangeStateFromInputs();
     if (!selectedReportTarget || visualizationView?.classList.contains("beginner-view-hidden")) {
       return;
     }
-    void renderPerformanceVisualization(selectedReportTarget);
+    visualizationRangeState.appliedStartValue = visualizationRangeState.startValue;
+    visualizationRangeState.appliedEndValue = visualizationRangeState.endValue;
+    syncVisualizationRangeDirtyState();
+    void renderPerformanceVisualization(selectedReportTarget).then(() => {
+      if (options?.announceWithAlert) {
+        window.alert(String(options.alertMessage || "REPORT UPDATED WITH NEW START AND END RANGE"));
+      }
+    });
+  }
+
+  function applyPendingVisualizationRangeIfNeeded() {
+    if (!isVisualizationRangeDirty()) {
+      return false;
+    }
+    commitVisualizationRangeFromInputs();
+    return true;
   }
 
   function buildVisualizationSeries(records, startTrialNumber = 1) {
@@ -16461,6 +16695,9 @@ This is an alternate test message to show now.`;
       range,
       completedTrialCount: filteredRecords.length
     };
+    visualizationRangeState.appliedStartValue = visualizationRangeState.startValue;
+    visualizationRangeState.appliedEndValue = visualizationRangeState.endValue;
+    syncVisualizationRangeDirtyState();
     renderVisualizationSummary(pairInfo, filteredRecords, series, scoredRecords.length, range);
     renderVisualizationChart(series);
   }
@@ -30236,8 +30473,10 @@ This is an alternate test message to show now.`;
     showVisualizationView(latestVisualizationContext?.pairInfo || selectedReportTarget || selectedReportPair);
   });
   closeAnalyzerButton?.addEventListener("click", showReportDefinitionView);
-  visualizationRangeStartInput?.addEventListener("blur", commitVisualizationRangeFromInputs);
-  visualizationRangeEndInput?.addEventListener("blur", commitVisualizationRangeFromInputs);
+  visualizationRangeStartInput?.addEventListener("input", updateVisualizationRangeStateFromInputs);
+  visualizationRangeEndInput?.addEventListener("input", updateVisualizationRangeStateFromInputs);
+  visualizationRangeStartInput?.addEventListener("blur", scheduleVisualizationRangeAutoUpdate);
+  visualizationRangeEndInput?.addEventListener("blur", scheduleVisualizationRangeAutoUpdate);
   visualizationRangeStartInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -30250,7 +30489,9 @@ This is an alternate test message to show now.`;
       commitVisualizationRangeFromInputs();
     }
   });
+  visualizationUpdateRangeButton?.addEventListener("click", commitVisualizationRangeFromInputs);
   visualizationAdvancedDetailButton?.addEventListener("click", () => {
+    applyPendingVisualizationRangeIfNeeded();
     if (!latestVisualizationContext?.pairInfo?.receiverName || !Array.isArray(latestVisualizationContext.records) || !latestVisualizationContext.records.length) {
       if (visualizationStatus) {
         visualizationStatus.textContent = "Open a visualization with completed scored trials before requesting advanced detail.";
@@ -30332,6 +30573,7 @@ This is an alternate test message to show now.`;
       closeNamedReportModal();
     }
   });
+  namedReportSavePdfCheckbox?.addEventListener("change", syncNamedReportAdvancedOptionState);
   namedReportTitleInput?.addEventListener("blur", () => {
     if (!shouldAutoSubmitNamedReportOnBlur()) {
       return;
