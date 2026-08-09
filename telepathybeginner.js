@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260809a";
+  const launcherBuildVersion = "20260809b";
   const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
@@ -11163,9 +11163,11 @@ This is an alternate test message to show now.`;
     }
 
     openResearchInterestFormButtons.forEach((button) => {
+      applyProLockPresentation(button, !isPro, beginnerResearchMessage);
       applyProLockToButton(button, !isPro, beginnerResearchMessage);
     });
     openResearchTeamInterestButtons.forEach((button) => {
+      applyProLockPresentation(button, !isPro, beginnerResearchMessage);
       applyProLockToButton(button, !isPro, beginnerResearchMessage);
     });
 

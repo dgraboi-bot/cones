@@ -1145,6 +1145,35 @@ After a successful deployment, report briefly:
 4. that live verification passed
 5. the exact live URL to test
 
+## Live-Ready Reporting Rule
+
+Do not wait for every post-release housekeeping step before telling the user the live build is testable.
+
+Two milestones must be treated separately:
+
+1. Live ready for testing
+   This is reached as soon as:
+   - the live deploy has completed
+   - live verification has passed
+   - the cache-busted test URL is known
+
+   At that moment, immediately tell the user they may begin testing the live site in a new tab.
+
+2. Release fully closed out
+   This is reached after the remaining follow-up work is done, such as:
+   - GitHub checkpoint commit/push
+   - runbook updates
+   - any final local housekeeping
+
+Practical rule:
+
+- once milestone 1 is reached, explicitly say:
+  - the live build is ready to test now
+  - the exact cache-busted URL
+  - that any remaining closeout work is continuing afterward
+
+This preserves safety while letting the user start testing as early as possible.
+
 ## Non-Negotiable Rule Going Forward
 
 For ESP GYM live pushes:
