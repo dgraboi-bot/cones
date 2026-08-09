@@ -1812,7 +1812,7 @@ function append_lesson_content_audit(array $payload): void
 function normalize_questionnaire_type($value): string
 {
     $type = strtolower(trim((string) $value));
-    return in_array($type, ['baseline', 'after-first-session'], true) ? $type : '';
+    return in_array($type, ['baseline', 'after-first-session', 'research-interest', 'research-team-interest'], true) ? $type : '';
 }
 
 function normalize_questionnaire_identifier_value($value): string

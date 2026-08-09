@@ -1156,3 +1156,33 @@ Do not skip the backup step just because a patch seems small.
 ## To Resolve:
 
 - Guided tour return has been visually stabilized, but there is still a potential remaining duplicate or double-load path in the launcher/runtime return handoff. If guided return blinking or a second post-return redraw reappears, inspect the guided return trace entries first before changing behavior again.
+
+## Release Friction Log
+
+This section records release-process friction that did not fully break a deployment but still wasted time, added noise, or encouraged risky manual judgment. Repeated items here should either be automated away in the helper or tightened in the documented workflow.
+
+### 2026-08-09 observed friction
+
+1. The normal "deploy first, then checkpoint the exact deployed state to GitHub" path still required `-AllowDirty`.
+   That is workable, but it means the common release flow still depends on an override flag plus careful post-deploy follow-up.
+   Hardening target:
+   add an optional post-deploy Git checkpoint mode to `scripts\deploy-live.ps1` so one run can deploy the intended working tree, create the post-bump commit, and optionally push GitHub.
+
+2. The helper prints a large raw version-marker dump from the live files during successful verification.
+   That detail is helpful when something is wrong, but it is noisy during normal releases and makes the success path harder to scan.
+   Hardening target:
+   keep the full detail in a release log artifact, but collapse normal console output to a shorter success summary unless verification fails.
+
+3. Git line-ending warnings still appear during manual post-deploy status and diff review.
+   They do not currently block the release, but they add noise and make it easier to miss a real warning.
+   Hardening target:
+   standardize the line-ending policy for this repo and/or make the helper print one explicit note about expected line-ending warnings so they are not repeatedly rediscovered.
+
+4. The helper reminds the operator to do the pre-deployment audit, but it does not yet emit one compact built-in audit artifact summarizing the release boundary.
+   Hardening target:
+   write a release-audit text file for each run containing:
+   - current dirty files
+   - deploy-relevant changed files
+   - version label
+   - snapshot path
+   - final audited file count

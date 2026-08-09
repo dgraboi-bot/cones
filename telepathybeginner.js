@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260808f";
+  const launcherBuildVersion = "20260809a";
   const defaultHandleDialogTitle = "Choose Unique Name For Use On This Device";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
@@ -491,6 +491,21 @@
   const researchInterestStatus = document.querySelector("[data-research-interest-status]");
   const researchInterestSaveButton = document.querySelector("[data-save-research-interest]");
   const researchInterestCancelButton = document.querySelector("[data-cancel-research-interest]");
+  const researchTeamInterestForm = document.querySelector("[data-research-team-interest-form]");
+  const researchTeamInterestNameInput = document.querySelector("[data-research-team-interest-name]");
+  const researchTeamInterestUniqueNameInput = document.querySelector("[data-research-team-interest-unique-name]");
+  const researchTeamInterestEmailInput = document.querySelector("[data-research-team-interest-email]");
+  const researchTeamInterestZipInput = document.querySelector("[data-research-team-interest-zip]");
+  const researchTeamInterestAgeInput = document.querySelector("[data-research-team-interest-age]");
+  const researchTeamInterestContributionInput = document.querySelector("[data-research-team-interest-contribution]");
+  const researchTeamInterestSpontaneousInputs = Array.from(document.querySelectorAll("[data-research-team-interest-spontaneous]"));
+  const researchTeamInterestDescribeInput = document.querySelector("[data-research-team-interest-describe]");
+  const researchTeamInterestPermissionInput = document.querySelector("[data-research-team-interest-permission]");
+  const researchTeamInterestSignedInput = document.querySelector("[data-research-team-interest-signed]");
+  const researchTeamInterestDateInput = document.querySelector("[data-research-team-interest-date]");
+  const researchTeamInterestStatus = document.querySelector("[data-research-team-interest-status]");
+  const researchTeamInterestSaveButton = document.querySelector("[data-save-research-team-interest]");
+  const researchTeamInterestCancelButton = document.querySelector("[data-cancel-research-team-interest]");
   const standaloneBaselineFields = {
     date: baselineDate,
     name: baselineName,
@@ -24439,6 +24454,32 @@ This is an alternate test message to show now.`;
     }
   }
 
+  async function readResearchTeamInterestResponse(identifier = getResearchInterestIdentifier()) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    if (!normalizedIdentifier) {
+      return {};
+    }
+    try {
+      const record = await fetchQuestionnaireResponseFromServer("research-team-interest", normalizedIdentifier);
+      return record?.response && typeof record.response === "object" ? record.response : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  async function saveResearchTeamInterestResponse(identifier = getResearchInterestIdentifier(), payload = {}) {
+    const normalizedIdentifier = String(identifier || "").trim();
+    if (!normalizedIdentifier) {
+      return null;
+    }
+    try {
+      const record = await saveQuestionnaireResponseToServer("research-team-interest", normalizedIdentifier, "", "", payload);
+      return record?.response && typeof record.response === "object" ? record.response : payload;
+    } catch (_error) {
+      return null;
+    }
+  }
+
   function populateResearchInterestForm(response = {}) {
     const identifier = getResearchInterestIdentifier();
     if (researchInterestUniqueNameInput) {
@@ -24476,6 +24517,41 @@ This is an alternate test message to show now.`;
     }
   }
 
+  function populateResearchTeamInterestForm(response = {}) {
+    const identifier = getResearchInterestIdentifier();
+    if (researchTeamInterestUniqueNameInput) {
+      researchTeamInterestUniqueNameInput.value = identifier;
+    }
+    if (researchTeamInterestNameInput) {
+      researchTeamInterestNameInput.value = String(response.name || "").trim();
+    }
+    if (researchTeamInterestEmailInput) {
+      researchTeamInterestEmailInput.value = String(response.email || "").trim();
+    }
+    if (researchTeamInterestZipInput) {
+      researchTeamInterestZipInput.value = String(response.zip_code || "").trim();
+    }
+    if (researchTeamInterestAgeInput) {
+      researchTeamInterestAgeInput.value = String(response.age || "").trim();
+    }
+    if (researchTeamInterestContributionInput) {
+      researchTeamInterestContributionInput.value = String(response.contribution_description || "").trim();
+    }
+    setBaselineRadioValue(researchTeamInterestSpontaneousInputs, response.spontaneous_experiences);
+    if (researchTeamInterestDescribeInput) {
+      researchTeamInterestDescribeInput.value = String(response.spontaneous_description || "").trim();
+    }
+    if (researchTeamInterestPermissionInput) {
+      researchTeamInterestPermissionInput.checked = !!response.permission_granted;
+    }
+    if (researchTeamInterestSignedInput) {
+      researchTeamInterestSignedInput.value = String(response.signed || response.name || "").trim();
+    }
+    if (researchTeamInterestDateInput) {
+      researchTeamInterestDateInput.value = String(response.date || formatOnlineCourseDate()).trim();
+    }
+  }
+
   function collectResearchInterestPayload() {
     return {
       name: String(researchInterestNameInput?.value || "").trim(),
@@ -24494,6 +24570,22 @@ This is an alternate test message to show now.`;
     };
   }
 
+  function collectResearchTeamInterestPayload() {
+    return {
+      name: String(researchTeamInterestNameInput?.value || "").trim(),
+      unique_name: getResearchInterestIdentifier(),
+      email: String(researchTeamInterestEmailInput?.value || "").trim(),
+      zip_code: String(researchTeamInterestZipInput?.value || "").trim(),
+      age: String(researchTeamInterestAgeInput?.value || "").trim(),
+      contribution_description: String(researchTeamInterestContributionInput?.value || "").trim(),
+      spontaneous_experiences: getBaselineRadioValue(researchTeamInterestSpontaneousInputs),
+      spontaneous_description: String(researchTeamInterestDescribeInput?.value || "").trim(),
+      permission_granted: !!researchTeamInterestPermissionInput?.checked,
+      signed: String(researchTeamInterestSignedInput?.value || "").trim(),
+      date: String(researchTeamInterestDateInput?.value || formatOnlineCourseDate()).trim()
+    };
+  }
+
   async function renderResearchInterestFormView() {
     const identifier = getResearchInterestIdentifier();
     if (researchInterestStatus) {
@@ -24505,6 +24597,22 @@ This is an alternate test message to show now.`;
     populateResearchInterestForm(saved);
     if (researchInterestStatus) {
       researchInterestStatus.textContent = saved?.saved_at
+        ? `Previously submitted information loaded for ${identifier}.`
+        : "";
+    }
+  }
+
+  async function renderResearchTeamInterestFormView() {
+    const identifier = getResearchInterestIdentifier();
+    if (researchTeamInterestStatus) {
+      researchTeamInterestStatus.textContent = identifier
+        ? "Loading research team participation form..."
+        : "Load a recognized ESP PRO identity before submitting this form.";
+    }
+    const saved = identifier ? await readResearchTeamInterestResponse(identifier) : {};
+    populateResearchTeamInterestForm(saved);
+    if (researchTeamInterestStatus) {
+      researchTeamInterestStatus.textContent = saved?.saved_at
         ? `Previously submitted information loaded for ${identifier}.`
         : "";
     }
@@ -24586,6 +24694,7 @@ This is an alternate test message to show now.`;
     userTypeAdminView?.classList.add("beginner-view-hidden");
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    void renderResearchTeamInterestFormView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -24609,6 +24718,29 @@ This is an alternate test message to show now.`;
       }
     } else if (researchInterestStatus) {
       researchInterestStatus.textContent = "Unable to submit the research participation form right now.";
+    }
+  }
+
+  async function saveResearchTeamInterestForm() {
+    const identifier = getResearchInterestIdentifier();
+    if (!identifier) {
+      if (researchTeamInterestStatus) {
+        researchTeamInterestStatus.textContent = "A recognized ESP PRO unique name is required before this form can be submitted.";
+      }
+      return;
+    }
+    const payload = collectResearchTeamInterestPayload();
+    if (researchTeamInterestStatus) {
+      researchTeamInterestStatus.textContent = `Submitting research team participation form for ${identifier}...`;
+    }
+    const saved = await saveResearchTeamInterestResponse(identifier, payload);
+    if (saved) {
+      populateResearchTeamInterestForm(saved);
+      if (researchTeamInterestStatus) {
+        researchTeamInterestStatus.textContent = `Research team participation form submitted for ${identifier}.`;
+      }
+    } else if (researchTeamInterestStatus) {
+      researchTeamInterestStatus.textContent = "Unable to submit the research team participation form right now.";
     }
   }
 
@@ -28687,7 +28819,13 @@ This is an alternate test message to show now.`;
     showOnlineCourseView({ view: "admin" });
   });
   openLessonEditorButton?.addEventListener("click", () => showLessonEditorView("legacy"));
-  openNewLessonEditorButton?.addEventListener("click", () => showLessonEditorView("new-course"));
+  openNewLessonEditorButton?.addEventListener("click", () => {
+    if (isLocalInfrastructureHost()) {
+      window.alert("DO NOT ENTER LESSON EDITOR WHEN CONNECTED TO LOCALHOST");
+      return;
+    }
+    showLessonEditorView("new-course");
+  });
   openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
   openOnlineCourseButton?.addEventListener("click", () => {
     showLearningCenterView({ view: "aids" });
@@ -29340,6 +29478,19 @@ This is an alternate test message to show now.`;
       return;
     }
     showResearchParticipationProView();
+  });
+  researchTeamInterestCancelButton?.addEventListener("click", () => {
+    if (researchTeamInterestReturnView === "research-participation") {
+      showResearchParticipationView({
+        returnView: researchParticipationReturnView,
+        scrollY: researchParticipationReturnScrollY
+      });
+      return;
+    }
+    showResearchParticipationProView();
+  });
+  researchTeamInterestSaveButton?.addEventListener("click", () => {
+    void saveResearchTeamInterestForm();
   });
   researchInterestSaveButton?.addEventListener("click", () => {
     void saveResearchInterestForm();
