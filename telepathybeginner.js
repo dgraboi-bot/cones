@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260809f";
+  const launcherBuildVersion = "20260809g";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -14253,6 +14253,25 @@ This is an alternate test message to show now.`;
     return null;
   }
 
+  function getExactBinomialMinimumSuccessesForThreshold(trials, chanceProbability, thresholdPValue) {
+    const n = Number(trials);
+    const p = Number(chanceProbability);
+    const threshold = Number(thresholdPValue);
+    if (!Number.isInteger(n) || n < 1 || !(p >= 0 && p <= 1) || !Number.isFinite(threshold)) {
+      return null;
+    }
+    for (let successes = 0; successes <= n; successes += 1) {
+      const pValue = getExactBinomialRightTailPValue(successes, n, p);
+      if (Number.isFinite(pValue) && pValue < threshold) {
+        return {
+          successes,
+          pValue
+        };
+      }
+    }
+    return null;
+  }
+
   function getTwentyTrialCheckpointDetail(summaryStats, levelBreakdown = null, records = []) {
     const totalTrials = Number(summaryStats?.totalTrials || 0);
     if (totalTrials < 1) {
@@ -14295,6 +14314,7 @@ This is an alternate test message to show now.`;
     const currentPValue = Number(significance?.pValue);
     const totalTrials = Number(summaryStats?.totalTrials || 0);
     const requiredTrials = Math.max(Number(minimumTrials || 1), 1);
+    const useExactBinomialThreshold = significance?.method === "exact-binomial" && (Number(significance?.dominantLevel) === 1 || Number(significance?.dominantLevel) === 4);
     if (totalTrials >= requiredTrials && Number.isFinite(currentPValue) && currentPValue < Number(thresholdPValue)) {
       return {
         reached: true,
@@ -14307,12 +14327,16 @@ This is an alternate test message to show now.`;
 
     const projectedResult = getProjectedThresholdResult(summaryStats, thresholdPValue, requiredTrials);
     if (projectedResult && Number.isFinite(projectedResult.trialCount)) {
+      const exactBinomialThreshold = useExactBinomialThreshold
+        ? getExactBinomialMinimumSuccessesForThreshold(projectedResult.trialCount, 0.5, thresholdPValue)
+        : null;
       return {
         reached: true,
         current: false,
         trialCount: projectedResult.trialCount,
         pValue: projectedResult.pValue,
         summaryStats: projectedResult.summaryStats,
+        exactBinomialThreshold,
         line: futureTemplate(projectedResult)
       };
     }
@@ -14755,7 +14779,7 @@ This is an alternate test message to show now.`;
     const sampleBand = getSampleStrengthBand(trialCount);
 
     if (sampleBand === "too-small") {
-      return `Conclusion: Too few completed ${levelDisplayName} trials are available to interpret.`;
+      return `Conclusion: Too few completed ${levelDisplayName} trials are available to interpret conclusively.`;
     }
     if (sampleBand === "modest") {
       if (band === "strong") {
@@ -15850,13 +15874,24 @@ This is an alternate test message to show now.`;
     }
 
     if (detail.highPersuasivenessProjection?.summaryStats && Number.isFinite(detail.highPersuasivenessProjection?.trialCount)) {
-      lines.push(
-        `High-persuasiveness threshold: P < .001 with at least ${highlyPersuasiveMinimumTrials} completed scored trials.`,
-        `Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
-        `Projected high-persuasiveness chance score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.chanceScore)}.`,
-        `Projected high-persuasiveness score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.yourScore)}.`,
-        `Projected high-persuasiveness P = ${formatProbabilityValueSignificant(detail.highPersuasivenessProjection.pValue, 3)}.`
-      );
+      const exactThreshold = detail.highPersuasivenessProjection.exactBinomialThreshold;
+      if (exactThreshold && Number.isFinite(exactThreshold.successes) && Number.isFinite(exactThreshold.pValue)) {
+        lines.push(
+          `High-persuasiveness threshold: P < .001 with at least ${highlyPersuasiveMinimumTrials} completed scored trials.`,
+          `Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
+          `Projected high-persuasiveness score = ${formatScoreValue(exactThreshold.successes)}.`,
+          `Projected high-persuasiveness P = ${formatProbabilityValueSignificant(exactThreshold.pValue, 3)}.`
+        );
+      } else {
+        const projectedWholeScore = Math.round(Number(detail.highPersuasivenessProjection.summaryStats.yourScore || 0));
+        lines.push(
+          `High-persuasiveness threshold: P < .001 with at least ${highlyPersuasiveMinimumTrials} completed scored trials.`,
+          `Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
+          `Projected high-persuasiveness chance score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.chanceScore)} (average chance expectation).`,
+          `Projected high-persuasiveness score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.yourScore)}, which corresponds to about ${projectedWholeScore} scored successes out of ${detail.highPersuasivenessProjection.trialCount}.`,
+          `Projected high-persuasiveness P = ${formatProbabilityValueSignificant(detail.highPersuasivenessProjection.pValue, 3)}.`
+        );
+      }
     }
 
     return lines.join("\n");
