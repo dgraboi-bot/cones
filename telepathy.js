@@ -47,9 +47,8 @@
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
-  const arrangementHistoryKey = "conesArrangementHistory-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260809c";
+  const runtimeBuildVersion = "20260809d";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -87,7 +86,7 @@
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260809c";
+  const launcherBuildVersion = "20260809d";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -97,6 +96,7 @@
     String.fromCharCode(0x00C2),
     String.fromCharCode(0x00E2, 0x20AC, 0x00A6)
   ];
+  const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const layouts = {
     1: [
       { x: 50, y: 50 }
@@ -1679,6 +1679,9 @@
   }
 
   function getLevelOneCountChoiceFromLayoutNumber(layoutNumber) {
+    if (targetSelectionPolicy && typeof targetSelectionPolicy.getLevelOneCountChoiceFromLayoutNumber === "function") {
+      return targetSelectionPolicy.getLevelOneCountChoiceFromLayoutNumber(layoutNumber);
+    }
     if (Number(layoutNumber) === 1) {
       return 1;
     }
@@ -5203,24 +5206,6 @@
     }
   }
 
-  function readHistory() {
-    try {
-      const raw = localStorage.getItem("conesArrangementHistory");
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.filter(Number.isInteger) : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  function writeHistory(history) {
-    try {
-      localStorage.setItem(arrangementHistoryKey, JSON.stringify(history.slice(-12)));
-    } catch (error) {
-      // Ignore storage failures and continue.
-    }
-  }
-
   async function ensureFolderWritePermission(handle) {
     if (!handle) {
       return false;
@@ -5527,6 +5512,10 @@
   function getTargetCandidateLayoutNumbers() {
     const difficultyLevel = normalizeDifficultyLevel(currentPairDifficultyLevel);
 
+    if (targetSelectionPolicy && typeof targetSelectionPolicy.getAllowedTargetLayoutNumbers === "function") {
+      return targetSelectionPolicy.getAllowedTargetLayoutNumbers(difficultyLevel);
+    }
+
     if (difficultyLevel === "1" || difficultyLevel === "2") {
       return [...levelOneTargetLayoutNumbers];
     }
@@ -5534,61 +5523,15 @@
     return [1, 2, 3, 4, 5, 6, 7, 8, 9];
   }
 
-  function getBlockedLevelOneCountChoice(history) {
-    const recentCountChoices = history
-      .map((layoutNumber) => getLevelOneCountChoiceFromLayoutNumber(layoutNumber))
-      .filter((value) => value === 1 || value === 3);
-
-    if (recentCountChoices.length < 3) {
-      return null;
-    }
-
-    const lastThree = recentCountChoices.slice(-3);
-    return lastThree.every((value) => value === lastThree[0]) ? lastThree[0] : null;
-  }
-
   function pickArrangementNumber() {
-    const history = readHistory();
-
-    if (isLevelOneDifficulty()) {
-      const blockedCountChoice = getBlockedLevelOneCountChoice(history);
-      let nextCountChoice;
-
-      if (blockedCountChoice === 1) {
-        nextCountChoice = 3;
-      } else if (blockedCountChoice === 3) {
-        nextCountChoice = 1;
-      } else {
-        nextCountChoice = randomInt(0, 1) === 0 ? 1 : 3;
+    if (targetSelectionPolicy && typeof targetSelectionPolicy.pickTargetLayoutNumber === "function") {
+      const policyChoice = Number(targetSelectionPolicy.pickTargetLayoutNumber(currentPairDifficultyLevel));
+      if (Number.isInteger(policyChoice) && policyChoice >= 1 && policyChoice <= 9) {
+        return policyChoice;
       }
-
-      const choice = nextCountChoice === 1
-        ? 1
-        : levelOneManyLayoutNumbers[randomInt(0, levelOneManyLayoutNumbers.length - 1)];
-
-      history.push(choice);
-      writeHistory(history);
-      return choice;
     }
-
-    const last = history[history.length - 1];
-    const previous = history[history.length - 2];
-    const blocked = last === previous ? last : null;
-
     const candidateChoices = getTargetCandidateLayoutNumbers();
-    let allowedChoices = blocked !== null
-      ? candidateChoices.filter((value) => value !== blocked)
-      : [...candidateChoices];
-
-    if (allowedChoices.length === 0) {
-      allowedChoices = [...candidateChoices];
-    }
-
-    const choice = allowedChoices[randomInt(0, allowedChoices.length - 1)];
-
-    history.push(choice);
-    writeHistory(history);
-    return choice;
+    return candidateChoices[randomInt(0, candidateChoices.length - 1)];
   }
 
   function showReceiverReadyState() {

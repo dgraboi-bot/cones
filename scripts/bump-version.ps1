@@ -12,6 +12,7 @@ $files = @(
   (Join-Path $root ".htaccess"),
   (Join-Path $root "index.html"),
   (Join-Path $root "telepathybeginner.css"),
+  (Join-Path $root "target-selection.js"),
   (Join-Path $root "telepathybeginner.html"),
   (Join-Path $root "telepathybeginner.js"),
   (Join-Path $root "telepathybeginner-sw.js"),
@@ -26,6 +27,7 @@ $files = @(
 
 $versionRequiredFiles = @(
   (Join-Path $root "telepathybeginner.css"),
+  (Join-Path $root "target-selection.js"),
   (Join-Path $root "telepathybeginner.html"),
   (Join-Path $root "telepathybeginner.js"),
   (Join-Path $root "telepathybeginner-sw.js"),
@@ -79,7 +81,11 @@ $replacements = @{
     @{ Pattern = '(BeginnerUserManual_preserved_[^?''" ]+\.html)\?v=[^''"]+'; Replacement = "`$1?v=$Version" },
     @{ Pattern = 'telepathybeginner-email-test\.html\?v=[^'']+'; Replacement = "telepathybeginner-email-test.html?v=$Version" },
     @{ Pattern = 'vendor/leaflet/leaflet\.js\?v=[^"]+'; Replacement = "vendor/leaflet/leaflet.js?v=$Version" },
+    @{ Pattern = 'target-selection\.js\?v=[^"]+'; Replacement = "target-selection.js?v=$Version" },
     @{ Pattern = 'telepathybeginner\.js\?v=[^"]+'; Replacement = "telepathybeginner.js?v=$Version" }
+  )
+  (Join-Path $root "target-selection.js") = @(
+    @{ Pattern = 'buildVersion: "[^"]+"'; Replacement = "buildVersion: `"$Version`"" }
   )
   (Join-Path $root "telepathybeginner.js") = @(
     @{ Pattern = 'const launcherBuildVersion = "[^"]+";'; Replacement = "const launcherBuildVersion = `"$Version`";" }
@@ -101,11 +107,13 @@ $replacements = @{
   (Join-Path $root "sender.html") = @(
     @{ Pattern = 'telepathy\.css\?v=[^"]+'; Replacement = "telepathy.css?v=$Version" },
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"'';]+(&amp;|&)open=launcher'; Replacement = "telepathybeginner.html?v=$Version`$1open=launcher" },
+    @{ Pattern = 'target-selection\.js\?v=[^"]+'; Replacement = "target-selection.js?v=$Version" },
     @{ Pattern = 'telepathy\.js\?v=[^"]+'; Replacement = "telepathy.js?v=$Version" }
   )
   (Join-Path $root "receiver.html") = @(
     @{ Pattern = 'telepathy\.css\?v=[^"]+'; Replacement = "telepathy.css?v=$Version" },
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"'';]+(&amp;|&)open=launcher'; Replacement = "telepathybeginner.html?v=$Version`$1open=launcher" },
+    @{ Pattern = 'target-selection\.js\?v=[^"]+'; Replacement = "target-selection.js?v=$Version" },
     @{ Pattern = 'telepathy\.js\?v=[^"]+'; Replacement = "telepathy.js?v=$Version" }
   )
   (Join-Path $root "telepathy.js") = @(

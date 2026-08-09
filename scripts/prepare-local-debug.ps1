@@ -14,12 +14,18 @@ $mirrorVerifyFiles = @(
   "telepathybeginner.html",
   "telepathybeginner.js",
   "telepathybeginner.css",
+  "target-selection.js",
   "telepathy.js",
   "receiver.html",
   "sender.html"
 )
 
 $versionConsistencyChecks = @(
+  @{
+    Path = "telepathybeginner.html"
+    Pattern = 'target-selection\.js\?v=([A-Za-z0-9]+)'
+    Label = 'launcher -> target-selection.js'
+  },
   @{
     Path = "telepathybeginner.html"
     Pattern = 'telepathybeginner\.js\?v=([A-Za-z0-9]+)'
@@ -32,8 +38,18 @@ $versionConsistencyChecks = @(
   },
   @{
     Path = "receiver.html"
+    Pattern = 'target-selection\.js\?v=([A-Za-z0-9]+)'
+    Label = 'receiver -> target-selection.js'
+  },
+  @{
+    Path = "receiver.html"
     Pattern = 'telepathy\.js\?v=([A-Za-z0-9]+)'
     Label = 'receiver -> telepathy.js'
+  },
+  @{
+    Path = "sender.html"
+    Pattern = 'target-selection\.js\?v=([A-Za-z0-9]+)'
+    Label = 'sender -> target-selection.js'
   },
   @{
     Path = "sender.html"
@@ -49,6 +65,11 @@ $versionConsistencyChecks = @(
     Path = "sender.html"
     Pattern = 'telepathy\.css\?v=([A-Za-z0-9]+)'
     Label = 'sender -> telepathy.css'
+  },
+  @{
+    Path = "target-selection.js"
+    Pattern = 'buildVersion: "([A-Za-z0-9]+)"'
+    Label = 'target-selection.js buildVersion'
   },
   @{
     Path = "telepathybeginner.js"

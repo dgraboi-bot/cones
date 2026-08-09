@@ -9,7 +9,8 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260809c";
+  const launcherBuildVersion = "20260809d";
+  const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
@@ -1533,8 +1534,8 @@ This is an alternate test message to show now.`;
   });
   const difficultyExplanationCopy = {
     1: "In Level 1 the receiver simply decides whether the sender is sending one cone or three cones.",
-    2: "In Level 2, either one cone or three cones are sent. When three cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.",
-    3: "In Level 3, one, two or three cones are sent. The receiver tries to specify exactly how many cones are sent and in what arrangement the cones were sent.",
+    2: "In Level 2, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.",
+    3: "In Level 3, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether the arrangement shows two or three cones and whether they are arranged horizontally, vertically, or diagonally running up or down.",
     4: "In Level 4 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
     5: 'In Level 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
@@ -13471,6 +13472,9 @@ This is an alternate test message to show now.`;
   }
 
   function getLayoutConeCount(layoutNumber) {
+    if (targetSelectionPolicy && typeof targetSelectionPolicy.getLayoutConeCount === "function") {
+      return targetSelectionPolicy.getLayoutConeCount(layoutNumber);
+    }
     const layout = reportLayouts[Number(layoutNumber)];
     return Array.isArray(layout) ? layout.length : 0;
   }
@@ -13664,16 +13668,6 @@ This is an alternate test message to show now.`;
     return Math.max(0, Math.min(1, 1 - (0.5 * betaValue)));
   }
 
-  function getLevelThreeCountWeight(targetConeCount) {
-    if (targetConeCount === 1) {
-      return 1;
-    }
-    if (targetConeCount === 2 || targetConeCount === 3) {
-      return 1.5;
-    }
-    return 0;
-  }
-
   function normalizeLevelFourImageIdentity(value) {
     const raw = String(value ?? "").trim();
     if (!raw) {
@@ -13734,69 +13728,51 @@ This is an alternate test message to show now.`;
       };
     }
     const choiceOne = Number(choiceOneRaw);
-    const sentConeCount = getLayoutConeCount(sentLayout);
-    const chosenConeCount = getLayoutConeCount(choiceOne);
+    if (!Number.isFinite(sentLayout) || !Number.isFinite(choiceOne)) {
+      return {
+        observed: Number.NaN,
+        expected: Number.NaN,
+        variance: Number.NaN,
+        level: 0
+      };
+    }
     const exactMatch = sentLayout === choiceOne;
-    const countMatch = sentConeCount > 0 && sentConeCount === chosenConeCount;
+    const difficultyLevelNumber = Number(difficultyLevel);
+    const exactCorrectProbability = targetSelectionPolicy && typeof targetSelectionPolicy.getExactCorrectProbability === "function"
+      ? Number(targetSelectionPolicy.getExactCorrectProbability(difficultyLevelNumber))
+      : Number.NaN;
 
     if (difficultyLevel === "1") {
-      const choseOne = choiceOneRaw === "1";
-      const choseMany = choiceOneRaw === "3";
-      const observed =
-        (sentConeCount === 1 && choseOne) ||
-        (sentConeCount === 3 && choseMany)
-          ? 1
-          : 0;
+      const sentResponseToken = targetSelectionPolicy && typeof targetSelectionPolicy.getLevelResponseToken === "function"
+        ? String(targetSelectionPolicy.getLevelResponseToken(1, sentLayout) || "").trim()
+        : "";
+      const chosenResponseToken = targetSelectionPolicy && typeof targetSelectionPolicy.getLevelResponseToken === "function"
+        ? String(targetSelectionPolicy.getLevelResponseToken(1, choiceOne) || "").trim()
+        : "";
       return {
-        observed,
-        expected: 0.5,
-        variance: 0.25,
+        observed: sentResponseToken && chosenResponseToken && sentResponseToken === chosenResponseToken ? 1 : 0,
+        expected: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability : 0.5,
+        variance: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability * (1 - exactCorrectProbability) : 0.25,
         level: 1
       };
     }
 
     if (difficultyLevel === "2") {
-      if (sentConeCount === 1) {
-        const observed = exactMatch ? 1 : 0;
-        return {
-          observed,
-          expected: 0.2,
-          variance: 0.16,
-          level: 2
-        };
-      }
-
-      const observed = exactMatch ? 2 : (countMatch ? 1 : 0);
       return {
-        observed,
-        expected: 1,
-        variance: 0.4,
+        observed: exactMatch ? 1 : 0,
+        expected: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability : 0.2,
+        variance: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability * (1 - exactCorrectProbability) : 0.16,
         level: 2
       };
     }
 
     if (difficultyLevel === "3") {
-      const countWeight = getLevelThreeCountWeight(sentConeCount);
-      const arrangementBonus = exactMatch ? 1 : 0;
-      const observed = countMatch ? countWeight + arrangementBonus : 0;
-
-      if (sentConeCount === 1) {
-        return {
-          observed,
-          expected: 2 / 9,
-          variance: 32 / 81,
-          level: 3
-        };
-      }
-
-      if (sentConeCount === 2 || sentConeCount === 3) {
-        return {
-          observed,
-          expected: 7 / 9,
-          variance: 68 / 81,
-          level: 3
-        };
-      }
+      return {
+        observed: exactMatch ? 1 : 0,
+        expected: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability : (1 / 9),
+        variance: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability * (1 - exactCorrectProbability) : ((1 / 9) * (8 / 9)),
+        level: 3
+      };
     }
 
     return {
@@ -13873,48 +13849,20 @@ This is an alternate test message to show now.`;
     }
 
     const level = Number(model.level);
-    const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
-    const sentConeCount = getLayoutConeCount(sentLayout);
-    if (!Number.isFinite(sentLayout) || sentConeCount < 1) {
+    if (level !== 2 && level !== 3) {
       return null;
     }
-
-    if (level === 2) {
-      if (sentConeCount === 1) {
-        return {
-          level,
-          observed: model.observed,
-          pmf: new Map([[0, 4 / 5], [1, 1 / 5]])
-        };
-      }
-      if (sentConeCount === 3) {
-        return {
-          level,
-          observed: model.observed,
-          pmf: new Map([[0, 1 / 5], [1, 3 / 5], [2, 1 / 5]])
-        };
-      }
+    const pmf = targetSelectionPolicy && typeof targetSelectionPolicy.getBernoulliNullPmf === "function"
+      ? targetSelectionPolicy.getBernoulliNullPmf(level)
+      : null;
+    if (!(pmf instanceof Map) || !pmf.size) {
       return null;
     }
-
-    if (level === 3) {
-      if (sentConeCount === 1) {
-        return {
-          level,
-          observed: model.observed,
-          pmf: new Map([[0, 8 / 9], [2, 1 / 9]])
-        };
-      }
-      if (sentConeCount === 2 || sentConeCount === 3) {
-        return {
-          level,
-          observed: model.observed,
-          pmf: new Map([[0, 5 / 9], [1, 3 / 9], [2, 1 / 9]])
-        };
-      }
-    }
-
-    return null;
+    return {
+      level,
+      observed: model.observed,
+      pmf
+    };
   }
 
   function convolveScorePmfs(pmfA, pmfB) {
@@ -14039,6 +13987,15 @@ This is an alternate test message to show now.`;
     }
     if (difficultyLevel === "1") {
       return getLevelOneChoiceLabel(rawValue);
+    }
+    if ((difficultyLevel === "2" || difficultyLevel === "3") && targetSelectionPolicy && typeof targetSelectionPolicy.getLevelResponseToken === "function") {
+      const token = String(targetSelectionPolicy.getLevelResponseToken(difficultyLevel, rawValue) || "").trim();
+      if (token) {
+        return token
+          .split(" ")
+          .map((part) => (/^\d+$/.test(part) ? part : (part.charAt(0).toUpperCase() + part.slice(1))))
+          .join(" ");
+      }
     }
     return null;
   }
