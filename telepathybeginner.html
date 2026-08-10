@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260809g">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260810b">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260809g">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260809g">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260809g">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260810b">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260810b">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260810b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260809g">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260809g">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260809g">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260810b">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260810b">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260810b">
   <script>
     (function () {
-      var buildVersion = "20260809g";
+      var buildVersion = "20260810b";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -558,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260809g</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260810b</span>
           </div>
         </div>
 
@@ -856,7 +856,7 @@
 
             <section class="online-course-tab-panel" id="learningCenterTabWelcome" role="tabpanel" aria-labelledby="learningCenterTabButtonWelcome" data-learning-center-panel="welcome">
               <div class="about-section">
-                <p class="about-section-copy learning-center-welcome-copy">Welcome to the Learning Center. This is the home for the ESP GYM course.</p>
+                <p class="about-section-copy learning-center-welcome-copy">Welcome to the Learning Center. This is the home of the ESP GYM course.</p>
                 <p class="about-section-copy learning-center-welcome-copy">The course focuses on building skill through knowledge and practice.</p>
                 <p class="about-section-copy learning-center-welcome-copy">From here you can also jump to many supporting tools and pages and return.</p>
               </div>
@@ -1469,108 +1469,12 @@
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="telepathy-difficulty-guide" aria-labelledby="telepathyDifficultyGuideTitle">
-          <div class="beginner-top-row">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-telepathy-difficulty-guide>BACK</button>
-            <p class="beginner-kicker">ESP GYM</p>
-            <span class="beginner-top-spacer" aria-hidden="true"></span>
-          </div>
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top telepathy-difficulty-guide-static-view" data-view="telepathy-difficulty-guide" aria-labelledby="telepathyDifficultyGuideTitle">
+          <h1 class="visually-hidden" id="telepathyDifficultyGuideTitle">Telepathy Exercises with Graded Levels of Difficulty</h1>
 
-          <h1 class="beginner-title" id="telepathyDifficultyGuideTitle">Telepathy Exercises with Graded Levels of Difficulty</h1>
-
-          <section class="settings-view-panel about-view-panel telepathy-difficulty-guide-panel">
-            <div class="about-section">
-              <p class="about-section-copy">ESP GYM begins with simple visual discrimination and gradually moves toward richer perceptual tasks. As the levels increase, the receiver is asked to extract finer detail from what appears in the mind's eye.</p>
-            </div>
-
-            <div class="about-section telepathy-difficulty-level-section">
-              <h2 class="about-section-title">Level 1</h2>
-              <p class="about-section-copy">In Level 1 the receiver simply decides whether the sender is sending one cone or three cones.</p>
-              <div class="telepathy-difficulty-example-grid telepathy-difficulty-example-grid-two">
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-center">
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">One cone</p>
-                </div>
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal">
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">Three cones</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="about-section telepathy-difficulty-level-section">
-              <h2 class="about-section-title">Level 2</h2>
-              <p class="about-section-copy">In Level 2, either one cone or three cones are sent. When three cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.</p>
-              <div class="telepathy-difficulty-example-grid">
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal">
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">Horizontal</p>
-                </div>
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-vertical">
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">Vertical</p>
-                </div>
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-diagonal-up">
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">Diagonal</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="about-section telepathy-difficulty-level-section">
-              <h2 class="about-section-title">Level 3</h2>
-              <p class="about-section-copy">In Level 3, one, two or three cones are sent. The receiver tries to specify exactly how many cones are sent and in what arrangement the cones were sent.</p>
-              <div class="telepathy-difficulty-example-grid">
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-center">
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">One cone</p>
-                </div>
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal-two">
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">Two cones</p>
-                </div>
-                <div class="telepathy-difficulty-example-card">
-                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-diagonal-up">
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                    <span class="telepathy-difficulty-cone"></span>
-                  </div>
-                  <p class="telepathy-difficulty-example-label">Three cones</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="about-section telepathy-difficulty-level-section">
-              <h2 class="about-section-title">Level 4</h2>
-              <p class="about-section-copy">In Level 4 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.</p>
-              <div class="telepathy-difficulty-image-sample telepathy-difficulty-image-sample-pair">
-                <img class="telepathy-difficulty-image-preview" src="imagepairs/1157.jpg" alt="Example Level 4 choice image showing airplanes with white trails">
-                <img class="telepathy-difficulty-image-preview" src="imagepairs/2062.jpg" alt="Example Level 4 choice image showing a building with many columns">
-              </div>
-            </div>
+          <section class="telepathy-difficulty-guide-static-shell" aria-label="Telepathy Exercises with Graded Levels of Difficulty">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill telepathy-difficulty-guide-static-back" type="button" data-close-telepathy-difficulty-guide>BACK</button>
+            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260810b-staticguide" alt="Telepathy exercises with graded levels of difficulty panel">
           </section>
         </section>
 
@@ -2715,8 +2619,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260809g'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260809g'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260810b'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260810b'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3621,10 +3525,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260809g"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260810b"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260809g"></script>
-<script src="telepathybeginner.js?v=20260809g"></script>
+<script src="target-selection.js?v=20260810b"></script>
+<script src="telepathybeginner.js?v=20260810b"></script>
 </body>
 </html>
 

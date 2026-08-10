@@ -584,51 +584,77 @@ Every live deployment must do all of the following:
 
 The authoritative deployment helper is:
 
+- `C:\xampp\htdocs\telepathyexperiment\cones\scripts\prepare-release.ps1`
+- `C:\xampp\htdocs\telepathyexperiment\cones\scripts\push-live.ps1`
 - `C:\xampp\htdocs\telepathyexperiment\cones\scripts\deploy-live.ps1`
 
-Its job is to make the live deployment process procedural instead of memory-based. It performs the standard sequence:
+The deployment flow is now intentionally split into two concrete stages:
 
-1. run `scripts\bump-version.ps1`
-2. sync the local mirror into `C:\xampp\htdocs\cones`
+1. `prepare-release.ps1`
+2. `push-live.ps1`
+
+`deploy-live.ps1` is now only a thin wrapper that can:
+
+1. run both stages in order
+2. run only `-PrepareOnly`
+3. run only `-PushOnly`
+
+`prepare-release.ps1` owns the fast local/preflight work:
+
+1. perform the release-boundary audit
+2. verify deploy coverage
+3. sync server-managed lesson content back into the authoritative local tree
+4. run `scripts\bump-version.ps1`
+5. sync the local mirror into `C:\xampp\htdocs\cones`
+6. verify key mirror hashes
+7. write a prepared-release manifest for the matching push step
+
+`push-live.ps1` owns only the slower remote/live work:
+
+1. verify the prepared manifest exists and matches the requested build
+2. verify the local files still match the prepared hashes
 3. create a server snapshot under `/home/ec2-user/espgym_live_snapshots`
 4. upload files by staged `pscp`
 5. copy the staged files into `/var/www/telepathyexperiment/cones`
 6. verify the deployed version markers live
 7. verify a post-deploy live SHA-256 file audit
+8. verify the mirrored private managed-content set live
 
 Preferred usage:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\prepare-release.ps1 -Version 20260705g
+powershell -ExecutionPolicy Bypass -File scripts\push-live.ps1 -Version 20260705g
+```
+
+Default rule:
+
+- use the two-step helpers as the normal deployment path
+- tell the user they may start live testing as soon as `push-live.ps1` finishes successfully
+- do not improvise a manual live push unless the helper is failing and the user needs an urgent exception
+- if a manual exception is ever used, fold the reason and the fix back into the helper and this runbook immediately afterward
+
+If a one-command flow is still desired, the wrapper remains valid:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\deploy-live.ps1 -Version 20260705g
 ```
 
-Default rule:
+Expected behavior from the two-step flow:
 
-- use the helper as the normal deployment path
-- do not improvise a manual live push unless the helper is failing and the user needs an urgent exception
-- if a manual exception is ever used, fold the reason and the fix back into the helper and this runbook immediately afterward
-
-Preflight behavior now expected from the helper:
-
-1. confirm the git repo root is actually `C:\xampp\htdocs\telepathyexperiment\cones`
-2. refuse deployment from a dirty worktree unless explicitly overridden
-3. run the version bump helper first
-4. re-sync the local mirror
-5. verify key mirror files match the authoritative local tree by hash
-6. create a live snapshot
-7. upload by staged `pscp`
-8. copy staged files into the live tree
-9. verify the live version markers
-10. verify the actual live file hashes against the authoritative local files for the audited set
-11. print both the canonical live root URL and the cache-busted launcher URL for testing
+1. `prepare-release.ps1` must finish before `push-live.ps1` is allowed to run
+2. `push-live.ps1` must refuse to continue if the current local file hashes drift from the prepared manifest
+3. `prepare-release.ps1` should finish quickly enough that local release readiness is obvious before the slower remote step begins
+4. `push-live.ps1` should be treated as the only stage that may hit long network/server timing
 
 Intentional override:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\deploy-live.ps1 -Version 20260705g -AllowDirty
+powershell -ExecutionPolicy Bypass -File scripts\prepare-release.ps1 -Version 20260705g -AllowDirty
+powershell -ExecutionPolicy Bypass -File scripts\push-live.ps1 -Version 20260705g
 ```
 
-`-AllowDirty` should be rare and used only when the operator deliberately wants to deploy an uncommitted working tree.
+`-AllowDirty` should be rare and used only on the prepare step when the operator deliberately wants to deploy an uncommitted working tree.
 
 If the helper ever fails, fix the helper or the environment rather than reverting to an undocumented ad hoc deployment path.
 
@@ -1094,6 +1120,46 @@ Practical rule:
 
 - if in-app browser attach fails, immediately switch to the installed Playwright runtime rather than leaving verification unfinished
 - when reporting verification status, state plainly which browser path was actually used
+
+### Forced Isolated View Screenshot Fallback
+
+If the goal is to visually verify one specific app view or card and normal navigation is wasting time:
+
+- do not keep guessing from HTML/CSS alone
+- create a temporary local inspection HTML file beside `telepathybeginner.html`
+- in that temp file, inject a very small `<style>` block that hides every `.beginner-view` except the exact target view
+- if needed, inject a tiny `<script>` block that removes `beginner-view-hidden` from the target and scrolls to the top
+- then render that temp page with the local Chrome executable in headless screenshot mode
+
+Recommended pattern on this machine:
+
+- source file: `C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.html`
+- temporary inspection file:
+  - `C:\xampp\htdocs\telepathyexperiment\cones\_telepathybeginner_<purpose>.html`
+- screenshot output:
+  - `C:\xampp\htdocs\telepathyexperiment\cones\<purpose>.png`
+- Chrome executable:
+  - `C:\Program Files\Google\Chrome\Application\chrome.exe`
+
+Recommended command shape:
+
+```powershell
+& 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
+  --headless=new `
+  --disable-gpu `
+  --window-size=1280,2600 `
+  --virtual-time-budget=3000 `
+  --screenshot='C:\xampp\htdocs\telepathyexperiment\cones\<purpose>.png' `
+  'http://localhost/telepathyexperiment/cones/_telepathybeginner_<purpose>.html?v=<cachebust>'
+```
+
+Important notes learned from actual use:
+
+- on this machine, the headless Chrome command may print `... bytes written to file ...` after PowerShell has already attempted a follow-up `Get-Item`
+- therefore, if immediate file inspection matters, add a short delay before checking the PNG or simply inspect the file path directly afterward
+- if Playwright is not actually callable from the current local session, do not spend time fighting that first; use headless Chrome directly
+- after generating the PNG, inspect the image itself before handing the page back to the user
+- this fallback is especially useful for isolated layout work such as one guide page, one modal, one report, or one card row
 
 ## Live Test URL Rule
 
