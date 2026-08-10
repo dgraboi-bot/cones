@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260810b";
+  const launcherBuildVersion = "20260810c";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -15836,7 +15836,6 @@ This is an alternate test message to show now.`;
       "2. Assuming additional completed scored trials would continue at approximately the same average score, average chance score, and average per-trial variance as in the currently displayed range.",
       "3. Recomputing the projected result at 25 trials, then 26, then 27, and so on, up to 500 trials.",
       "4. Reporting the first trial count at which the projected result satisfies both conditions: P < .001 and at least 25 completed scored trials.",
-      detail.twentyTrialCheckpoint?.line || "20-trial checkpoint: unavailable.",
       detail.significanceProjection?.line || "Projection to significance: unavailable.",
       detail.highPersuasivenessProjection?.line || "Projection to high persuasiveness: unavailable."
     ];
@@ -15849,28 +15848,24 @@ This is an alternate test message to show now.`;
       );
     }
 
-    if (detail.twentyTrialCheckpoint?.summaryStats) {
-      if (detail.twentyTrialCheckpoint.mode === "actual") {
+    if (detail.significanceProjection?.summaryStats && Number.isFinite(detail.significanceProjection?.trialCount)) {
+      const exactThreshold = detail.significanceProjection.exactBinomialThreshold;
+      if (exactThreshold && Number.isFinite(exactThreshold.successes) && Number.isFinite(exactThreshold.pValue)) {
         lines.push(
-          `20-trial checkpoint chance score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.chanceScore)}.`,
-          `20-trial checkpoint score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.yourScore)}.`
+          `Significance threshold: P < .01.`,
+          `  Projected significance trial count = ${detail.significanceProjection.trialCount}.`,
+          `  Smallest whole-number score that actually crosses P < .01 = ${formatScoreValue(exactThreshold.successes)}.`,
+          `  Projected significance P = ${formatProbabilityValueSignificant(exactThreshold.pValue, 3)}.`
         );
       } else {
         lines.push(
-          `20-trial checkpoint projected chance score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.chanceScore)}.`,
-          `20-trial checkpoint projected score = ${formatScoreValue(detail.twentyTrialCheckpoint.summaryStats.yourScore)}.`
+          `Significance threshold: P < .01.`,
+          `  Projected significance trial count = ${detail.significanceProjection.trialCount}.`,
+          `  Projected significance chance score = ${formatScoreValue(detail.significanceProjection.summaryStats.chanceScore)}.`,
+          `  Projected significance score = ${formatScoreValue(detail.significanceProjection.summaryStats.yourScore)}.`,
+          `  Projected significance P = ${formatProbabilityValueSignificant(detail.significanceProjection.pValue, 3)}.`
         );
       }
-    }
-
-    if (detail.significanceProjection?.summaryStats && Number.isFinite(detail.significanceProjection?.trialCount)) {
-      lines.push(
-        `Significance threshold: P < .01.`,
-        `Projected significance trial count = ${detail.significanceProjection.trialCount}.`,
-        `Projected significance chance score = ${formatScoreValue(detail.significanceProjection.summaryStats.chanceScore)}.`,
-        `Projected significance score = ${formatScoreValue(detail.significanceProjection.summaryStats.yourScore)}.`,
-        `Projected significance P = ${formatProbabilityValueSignificant(detail.significanceProjection.pValue, 3)}.`
-      );
     }
 
     if (detail.highPersuasivenessProjection?.summaryStats && Number.isFinite(detail.highPersuasivenessProjection?.trialCount)) {
@@ -15878,18 +15873,18 @@ This is an alternate test message to show now.`;
       if (exactThreshold && Number.isFinite(exactThreshold.successes) && Number.isFinite(exactThreshold.pValue)) {
         lines.push(
           `High-persuasiveness threshold: P < .001 with at least ${highlyPersuasiveMinimumTrials} completed scored trials.`,
-          `Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
-          `Projected high-persuasiveness score = ${formatScoreValue(exactThreshold.successes)}.`,
-          `Projected high-persuasiveness P = ${formatProbabilityValueSignificant(exactThreshold.pValue, 3)}.`
+          `  Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
+          `  Smallest whole-number score that actually crosses P < .001 = ${formatScoreValue(exactThreshold.successes)}.`,
+          `  Projected high-persuasiveness P = ${formatProbabilityValueSignificant(exactThreshold.pValue, 3)}.`
         );
       } else {
         const projectedWholeScore = Math.round(Number(detail.highPersuasivenessProjection.summaryStats.yourScore || 0));
         lines.push(
           `High-persuasiveness threshold: P < .001 with at least ${highlyPersuasiveMinimumTrials} completed scored trials.`,
-          `Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
-          `Projected high-persuasiveness chance score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.chanceScore)} (average chance expectation).`,
-          `Projected high-persuasiveness score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.yourScore)}, which corresponds to about ${projectedWholeScore} scored successes out of ${detail.highPersuasivenessProjection.trialCount}.`,
-          `Projected high-persuasiveness P = ${formatProbabilityValueSignificant(detail.highPersuasivenessProjection.pValue, 3)}.`
+          `  Projected high-persuasiveness trial count = ${detail.highPersuasivenessProjection.trialCount}.`,
+          `  Projected high-persuasiveness chance score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.chanceScore)} (average chance expectation).`,
+          `  Projected high-persuasiveness score = ${formatScoreValue(detail.highPersuasivenessProjection.summaryStats.yourScore)}, which corresponds to about ${projectedWholeScore} scored successes out of ${detail.highPersuasivenessProjection.trialCount}.`,
+          `  Projected high-persuasiveness P = ${formatProbabilityValueSignificant(detail.highPersuasivenessProjection.pValue, 3)}.`
         );
       }
     }
