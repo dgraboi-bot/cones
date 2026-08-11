@@ -28,7 +28,7 @@ The probability that you would get this score by chance alone is 41.94%.[/indent
 
 [indent]The **smaller** the P value, the more your score would be unlikely to occur by chance alone. But statistical significance is only part of the story. The number of completed trials also matters.[/indent]
 
-[indent]A small block of trials can sometimes produce a mathematically significant result just by luck or by a short-lived burst of performance. For that reason, the right approach is to treat small-sample significance more cautiously than significance based on a larger block of completed trials.[/indent]
+[indent]A small block of trials can sometimes produce a mathematically significant result just by luck. For that reason, the right approach is to treat small-sample significance more cautiously than significance based on a larger block of completed trials.[/indent]
 
 [indent]The more completed trials you have, the more stable and trustworthy the result becomes. With very few completed trials, a significant result may be interesting, but it is not yet very persuasive. With a moderate number of completed trials, a significant result becomes more meaningful, but with a large block of completed trials, a strong significant result becomes much more persuasive and deserves serious attention.[/indent]
 
@@ -86,13 +86,11 @@ The Raw Data report keeps a record of all responses made and looks like this (ta
 
 [indent]But the most interesting report is the Visualization Report. This report takes the raw data and plots it on a graph which shows the boundaries of chance performance. If you start producing data that rises above the upper boundary of chance performance and stays there, that data indicates that something other than pure chance is occurring. In addition, the data are analyzed statistically and discussed.[/indent] 
 
-Below shows a "demo" graph of data. 
-
-[image:VisualizationReportPage1 width=100 left=0 caption="Performance Reports screen"]
+Below shows a graph of the data report in the previous image. 
 
 [image:PromisingGraph width=100 left=0 caption="Cumulative Data Graph"]
 
-[indent]This graph shows CUMULATIVE DATA. In the Level 1 practice trials, the odds of getting a response correct by chance alone is 50% (one half). So every time you get a response right, the graph goes up by one half; and every time you get a response wrong, the graph goes down by one half. If, on the average, you do better than chance, this cumulative graph will creep upwards.[/indent]
+[indent]In the Level 1 practice trials, the odds of getting a response correct by chance alone is 50% (one half). So every time you get a response right, the graph goes up by one half; and every time you get a response wrong, the graph goes down by one half. If, on the average, you do better than chance, this plot will creep upwards.This graph plots "CUMULATIVE DATA."[/indent]
 
 [indent]If this graph goes above the shaded zone, it means that statistically there is less than a 5% chance that the data reflects chance alone. The longer and farther from the edge of the shaded zone that the graph data is plotted, the less and less chance there is that it can be explained by chance alone.[/indent] 
 
@@ -101,6 +99,8 @@ Practice Effect
 [indent]To see if, over time, you are getting better with practice, you need to compare the RATE at which the cumulative graph creeps up. To analyze whether you are improving with practice, look at the rate at which the cumulative graph is increasing at some early date, and compare it with the rate at chich it is increasing at a later date. If it is increasing faster on the average later than it was increasing earlier, then yes, performance is improving with practice. Practically speaking, in order to see if there is a practice effect, you need a relatively large number of trials. [/indent]
 
 [indent]Practice effects are analyzed statistically in the "Advanced Detail" report. The best way to see if practice is improving performance is with a "scatter graph". If you get a response correct, plot a +1/2. If you get a response incorrect, plot a -1/2. Then draw a best fit straight line through all the points. If, as time goes on, you start getting more +1/2 scores than when you started, the line will trend upwards, showing a positive effect with practice.[/indent]
+
+Interpretation of the Data
 
 The text provided on these pages summarizes what the data mean. In the 16-trial example discussed here, it says that:
 

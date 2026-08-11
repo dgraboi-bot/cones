@@ -635,6 +635,16 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.performance-visualization-guide-excerpt {
+  gap: 14px;
+}
+
+.performance-visualization-guide-excerpt-heading,
+.performance-visualization-guide-excerpt-subheading,
+.performance-visualization-guide-centered-line {
+  text-align: center;
+}
+
 .reading-list-link,
 .reading-list-link:visited {
   color: rgba(246, 248, 252, 0.96);
@@ -3441,6 +3451,33 @@ body.lesson-image-overlay-open {
   line-height: 1.48;
 }
 
+.report-summary-lesson-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(214, 232, 255, 0.98);
+  font: inherit;
+  font-style: italic;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.report-summary-lesson-link:hover,
+.report-summary-lesson-link:focus-visible {
+  color: #ffffff;
+}
+
+.visualization-lesson-footer {
+  margin: 4px 0 0;
+  color: rgba(248, 240, 232, 0.94);
+  font-size: 1rem;
+  line-height: 1.48;
+  font-style: italic;
+  text-align: left;
+}
+
 .report-status {
   margin-top: 18px;
   color: var(--muted);
@@ -3448,24 +3485,27 @@ body.lesson-image-overlay-open {
   line-height: 1.45;
 }
 
+.report-status:empty {
+  display: none;
+}
+
 .visualization-panel {
   margin-top: 22px;
   padding: 22px;
-  border: 1px solid var(--brand-surface-border);
   border-radius: 26px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
     rgba(10, 15, 28, 0.92);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 0 18px var(--brand-surface-shadow);
+  box-shadow: 0 0 18px var(--brand-surface-shadow);
 }
 
 .visualization-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 14px 18px;
-  margin-top: 16px;
+  margin-top: 14px;
+  margin-bottom: 20px;
+  justify-content: center;
   color: rgba(246, 243, 239, 0.86);
   font-size: 0.95rem;
 }
@@ -3481,8 +3521,20 @@ body.lesson-image-overlay-open {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 12px;
-  margin-top: 16px;
   color: rgba(246, 243, 239, 0.88);
+}
+
+.visualization-controls-footer {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.visualization-action-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
 }
 
 .visualization-range-label {
@@ -3491,14 +3543,15 @@ body.lesson-image-overlay-open {
 }
 
 .visualization-range-input {
-  width: 98px;
+  width: 76px;
   min-height: 40px;
-  padding: 9px 12px;
+  padding: 9px 10px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(5, 10, 20, 0.78);
   color: var(--text);
-  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -3516,6 +3569,10 @@ body.lesson-image-overlay-open {
 
 .visualization-advanced-detail-button {
   min-width: 184px;
+}
+
+.visualization-update-range-button {
+  min-width: 148px;
 }
 
 .visualization-advanced-detail-output {
@@ -4572,7 +4629,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260811a") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260811c") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260811a";
+  const launcherBuildVersion = "20260811c";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -657,6 +657,7 @@
   const visualizationAdvancedDetailButton = document.querySelector("[data-open-visualization-advanced-detail]");
   const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
   const visualizationChart = document.querySelector("[data-visualization-chart]");
+  const visualizationLessonFiveLink = document.querySelector("[data-visualization-lesson-five-link]");
   const visualizationAdvancedDetailSummary = document.querySelector("[data-visualization-advanced-detail-summary]");
   const visualizationAdvancedDetailStatus = document.querySelector("[data-visualization-advanced-detail-status]");
   const visualizationAdvancedSignificanceOutput = document.querySelector("[data-visualization-advanced-significance-output]");
@@ -3119,6 +3120,8 @@ This is an alternate test message to show now.`;
           tab: targetTab || "course",
           scrollY: returnScrollY
         });
+      } else if (targetView === "visualization") {
+        showVisualizationView(latestVisualizationContext?.pairInfo || selectedReportTarget || selectedReportPair);
       } else {
         showOnlineCourseView({
           view: targetView || "online-course",
@@ -4250,10 +4253,10 @@ This is an alternate test message to show now.`;
     const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, records);
     const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats, levelBreakdown);
     const lines = [];
-    lines.push(`Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`);
+    lines.push(getVisualizationPairSummaryLine(pairInfo));
     const utcRangeText = getVisualizationUtcRangeText(records);
     if (utcRangeText) {
-      lines.push(utcRangeText);
+      lines.push(`${utcRangeText} (UTC time)`);
     }
     lines.push(summaryText);
     lines.push(probabilityText);
@@ -4472,7 +4475,10 @@ This is an alternate test message to show now.`;
         detailSummaryLines.push(`Named file: ${String(context.pairInfo.reportTitle || "").trim() || "Unnamed named file"}`);
       }
       const utcRangeText = getVisualizationUtcRangeText(context.records || []);
-      detailSummaryLines.push(`Receiver-sender pair: ${getPairInfoReceiverLabel(context.pairInfo) || "unknown"} - ${getPairInfoSenderLabel(context.pairInfo) || "unknown"}.${utcRangeText ? ` ${utcRangeText}` : ""}`);
+      detailSummaryLines.push(getVisualizationPairSummaryLine(context.pairInfo));
+      if (utcRangeText) {
+        detailSummaryLines.push(`${utcRangeText} (UTC time)`);
+      }
       detailSummaryLines.push(context.range?.valid ? `Displayed range: trials ${context.range.start}-${context.range.end}.` : "Displayed range: unknown.");
       detailSummaryLines.push(`${Number(context.completedTrialCount || context.records?.length || 0)} completed scored trial record${Number(context.completedTrialCount || context.records?.length || 0) === 1 ? "" : "s"} included in this detail view.`);
       detailSummaryLines.forEach((line) => {
@@ -13216,7 +13222,13 @@ This is an alternate test message to show now.`;
     if (!startText || !endText) {
       return "";
     }
-    return `UTC Start: ${startText} End: ${endText}`;
+    return `Start: ${startText}  End: ${endText}`;
+  }
+
+  function getVisualizationPairSummaryLine(pairInfo) {
+    const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
+    const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
+    return `Receiver-sender pair: ${receiverLabel}\u00A0-\u00A0${senderLabel}.`;
   }
 
   function getRecordsForReportPair(records, pairInfo) {
@@ -14386,7 +14398,6 @@ This is an alternate test message to show now.`;
     );
     return {
       line: [
-        twentyTrialCheckpoint.line,
         significanceProjection.line,
         highPersuasivenessProjection.line
       ].join("\n"),
@@ -15473,10 +15484,7 @@ This is an alternate test message to show now.`;
     if (!range?.valid || normalizedTotalTrials < 1) {
       return "";
     }
-    if (range.start === range.end) {
-      return `Showing trial ${range.start} of ${normalizedTotalTrials} completed scored trial${normalizedTotalTrials === 1 ? "" : "s"}.`;
-    }
-    return `Showing trials ${range.start}-${range.end} of ${normalizedTotalTrials} completed scored trials.`;
+    return "";
   }
 
   function updateVisualizationRangeStateFromInputs() {
@@ -16140,9 +16148,16 @@ This is an alternate test message to show now.`;
 
     const pairLine = document.createElement("p");
     pairLine.className = "report-summary-line";
-    const utcRangeText = getVisualizationUtcRangeText(context.records);
-    pairLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.${utcRangeText ? ` ${utcRangeText}` : ""}`;
+    pairLine.textContent = getVisualizationPairSummaryLine(pairInfo);
     visualizationAdvancedDetailSummary.append(pairLine);
+
+    const utcRangeText = getVisualizationUtcRangeText(context.records);
+    if (utcRangeText) {
+      const utcLine = document.createElement("p");
+      utcLine.className = "report-summary-line";
+      utcLine.textContent = `${utcRangeText} (UTC time)`;
+      visualizationAdvancedDetailSummary.append(utcLine);
+    }
 
     const rangeLine = document.createElement("p");
     rangeLine.className = "report-summary-line";
@@ -16168,6 +16183,7 @@ This is an alternate test message to show now.`;
     }
 
     visualizationSummary.replaceChildren();
+    visualizationStatus.textContent = "";
 
     if (isNamedReportTarget(pairInfo)) {
       const titleLine = document.createElement("p");
@@ -16178,9 +16194,16 @@ This is an alternate test message to show now.`;
 
     const firstLine = document.createElement("p");
     firstLine.className = "report-summary-line";
-    const utcRangeText = getVisualizationUtcRangeText(records);
-    firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.${utcRangeText ? ` ${utcRangeText}` : ""}`;
+    firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
     visualizationSummary.append(firstLine);
+
+    const utcRangeText = getVisualizationUtcRangeText(records);
+    if (utcRangeText) {
+      const utcLine = document.createElement("p");
+      utcLine.className = "report-summary-line";
+      utcLine.textContent = `${utcRangeText} (UTC time)`;
+      visualizationSummary.append(utcLine);
+    }
 
     if (!series.length) {
       visualizationStatus.textContent = range?.valid && Number(totalAvailableTrials || 0) > 0
@@ -16222,7 +16245,7 @@ This is an alternate test message to show now.`;
       });
     });
 
-    visualizationStatus.textContent = buildVisualizationStatusLine(range, totalAvailableTrials);
+    visualizationStatus.textContent = "";
   }
 
   function renderVisualizationChart(series) {
@@ -16693,7 +16716,7 @@ This is an alternate test message to show now.`;
       visualizationSummary.replaceChildren();
       const firstLine = document.createElement("p");
       firstLine.className = "report-summary-line";
-      firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+      firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
       visualizationSummary.append(firstLine);
       visualizationStatus.textContent = "No completed scored trials are available for visualization.";
       visualizationChart.replaceChildren();
@@ -16706,7 +16729,7 @@ This is an alternate test message to show now.`;
       visualizationSummary.replaceChildren();
       const firstLine = document.createElement("p");
       firstLine.className = "report-summary-line";
-      firstLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+      firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
       visualizationSummary.append(firstLine);
       visualizationStatus.textContent = range.message || "Unable to apply the selected trial range.";
       visualizationChart.replaceChildren();
@@ -28806,6 +28829,14 @@ This is an alternate test message to show now.`;
       });
     }
     handleLearningCenterAction(action, actionButton);
+  });
+  visualizationLessonFiveLink?.addEventListener("click", () => {
+    void showLearningCenterLessonDetail("lesson-5", {
+      lessonDomain: "new-course",
+      view: "visualization",
+      tab: "course",
+      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    });
   });
   exactLocationButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
