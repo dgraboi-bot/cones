@@ -65,3 +65,21 @@ I AM NOW ADDING THIS SENTENCE TO THE END TO TEST STABILITY OF THE LESSON INTEGRI
 NOW I AM ADDING ANOTHER TEST AGAIN, TO AGAIN TEST THE STABILITY OF THE LESSON INTEGRITY.
 
 This is hopefully THE LAST TEST I AM PUTTING IN HERE TO TEST IF DEPLOYMENT IS SAFE AND SAVES THE LESSON.
+
+
+[action:performance-reports]Performance Reports[/action]
+
+
+[action:guided-receiver-tour]Guided Receiver Tour[/action]
+
+
+ [action:guided-sender-tour]Guided Sender Tour[/action]
+
+
+ [action:setup-features]Setup Website Features[/action]
+
+
+ [action:test-sound]Test Sound[/action]
+
+
+[action:after-first-session]After First Session Questions[/action]

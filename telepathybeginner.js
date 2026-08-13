@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260811c";
+  const launcherBuildVersion = "20260813a";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -340,12 +340,23 @@
   };
   const learningCenterCoursePageContent = [
     {
-      title: "COURSE: DEVELOPING TELEPATHIC ABILITY THROUGH KNOWLEDGE AND PRACTICE",
+      title: "DEVELOPING TELEPATHIC ABILITY THROUGH KNOWLEDGE AND PRACTICE",
       paragraphs: [
         "This course starts by presenting information that leads to a deeper understanding of telepathy and what receivers and senders of telepathic information should expect. Since a receiver of telepathic information must believe completely in the reality of telepathy, we will examine a few documented case studies and look at examples of what a few exceptionally gifted people were able to do with telepathic sensitivity.",
         "We will also get an understanding of how the mind's eye works and an idea of how and why telepathy might work. As the course progresses, early on we will become familiar with the simple Level 1 operation of the telepathy task. And understand the importance of finding a partner or partners to work with, and how to schedule simple, short practice sessions spontaneously, when it feels like the right time to do a few trials.",
         "When you have found a partner to work with, actual short and simple telepathy practice sessions can start, and we can look at mathematically analyzed personalized performance reports and examine introspectively what our minds do during practice and identifying potential areas of improvement.",
-        "This is a course in learning how to be more sensitive specifically to the visual information that can manifest in your 'mind's eye.' Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become so familiar with it that you accept it as matter-of-fact and have lost all anxiety about performance and results. Noted psi adept Ingo Swann advised: \"[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best\" [Swann, 1991/2017, p. 124]"
+        "This is a course in learning how to be more sensitive specifically to the visual information that can manifest in your 'mind's eye.' Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become so familiar with it that you accept it as matter-of-fact and have lost all anxiety about performance and results. Noted psi adept Ingo Swann advised: \"[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best\" [Swann, 1991/2017, p. 124]",
+        "COURSE CONTENTS",
+        "Lesson 1 - Achieving Success in Telepathy",
+        "Basic Information",
+        "Lesson 2 - Everything is Connected",
+        "Invisible connections everywhere",
+        "Lesson 3 - First Practice Session",
+        "Get familiar with the telepathy practice tool",
+        "Lesson 4 - Debriefing After First Live Telepathy Practice",
+        "Post live session debriefing",
+        "Lesson 5 - Understanding Performance Analysis",
+        "Statistics doesn't tell the whole story"
       ],
       actions: []
     },
@@ -21243,6 +21254,11 @@ This is an alternate test message to show now.`;
     ).trim() || "XXXXXXX";
   }
 
+  function getOnlineCourseDisplayName(state = readLauncherState()) {
+    const displayIdentifier = String(getOnlineCourseDisplayIdentifier(state) || "").trim();
+    return displayIdentifier && displayIdentifier !== "XXXXXXX" ? displayIdentifier : "None";
+  }
+
   function getBaselineQuestionsStorageKey(identifier = getOnlineCourseDisplayIdentifier()) {
     const normalizedIdentifier = normalizeIdentifierForStorage(identifier) || "anonymous";
     return `cones-baseline-questions-v1-${normalizedIdentifier}`;
@@ -21451,11 +21467,12 @@ This is an alternate test message to show now.`;
   async function renderBaselineQuestionsView() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const displayName = getOnlineCourseDisplayName(state);
     if (baselineDate) {
       baselineDate.textContent = formatOnlineCourseDate();
     }
     if (baselineName) {
-      baselineName.textContent = displayIdentifier;
+      baselineName.textContent = displayName;
     }
     if (baselineStatus) {
       baselineStatus.textContent = "Loading baseline questions...";
@@ -21464,6 +21481,9 @@ This is an alternate test message to show now.`;
     const displayDate = String(saved?.baseline_date || formatOnlineCourseDate()).trim();
     if (baselineDate) {
       baselineDate.textContent = displayDate;
+    }
+    if (baselineName) {
+      baselineName.textContent = displayName;
     }
     populateBaselineQuestionsForm(saved);
     setBaselineQuestionsFormReadOnly(standaloneBaselineFields, !!saved?.saved_at);
@@ -21480,11 +21500,12 @@ This is an alternate test message to show now.`;
   async function renderCourseBaselineQuestionsView() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const displayName = getOnlineCourseDisplayName(state);
     if (courseBaselineDate) {
       courseBaselineDate.textContent = formatOnlineCourseDate();
     }
     if (courseBaselineName) {
-      courseBaselineName.textContent = displayIdentifier;
+      courseBaselineName.textContent = displayName;
     }
     if (courseBaselineStatus) {
       courseBaselineStatus.textContent = "Loading baseline questions...";
@@ -21493,6 +21514,9 @@ This is an alternate test message to show now.`;
     const displayDate = String(saved?.baseline_date || formatOnlineCourseDate()).trim();
     if (courseBaselineDate) {
       courseBaselineDate.textContent = displayDate;
+    }
+    if (courseBaselineName) {
+      courseBaselineName.textContent = displayName;
     }
     populateBaselineQuestionsFormFields(courseBaselineFields, saved);
     setBaselineQuestionsFormReadOnly(courseBaselineFields, !!saved?.saved_at);
@@ -21530,7 +21554,9 @@ This is an alternate test message to show now.`;
   }
 
   async function saveCourseBaselineQuestions() {
-    const displayIdentifier = getOnlineCourseDisplayIdentifier(readLauncherState());
+    const state = readLauncherState();
+    const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
+    const displayName = getOnlineCourseDisplayName(state);
     const displayDate = formatOnlineCourseDate();
     const payload = {
       baseline_date: displayDate,
@@ -21550,7 +21576,7 @@ This is an alternate test message to show now.`;
       courseBaselineDate.textContent = displayDate;
     }
     if (courseBaselineName) {
-      courseBaselineName.textContent = displayIdentifier;
+      courseBaselineName.textContent = displayName;
     }
     if (courseBaselineStatus) {
       courseBaselineStatus.textContent = `Baseline questions submitted for ${displayIdentifier}.`;

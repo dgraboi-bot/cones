@@ -4,7 +4,7 @@ title=UNDERSTANDING PERFORMANCE ANALYSIS
 subcopy=Statistics doesn’t tell the whole story
 type=lesson-page
 
-TITLE=UNDERSTANDING PERFORMANCE ANALYSIS
+[center]Understanding Performance Analysis[/center]
 
 
 [indent]After starting to practice telepathy, the question becomes, “How am I doing?” This question is answered by looking at your performance history to date and assessing whether it reflects telepathic ability, and whether it is improving, declining, or stable. Perhaps the best way to know whether you are experiencing telepathy is to simply introspect and remember whether the fleeing images that you noticed in your mind’s eye were ‘hits’ or not.[/indent]
