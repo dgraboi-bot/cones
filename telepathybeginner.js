@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260813a";
+  const launcherBuildVersion = "20260814a";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -4271,6 +4271,9 @@ This is an alternate test message to show now.`;
     }
     lines.push(summaryText);
     lines.push(probabilityText);
+    if (interpretation.effect_size) {
+      lines.push(interpretation.effect_size);
+    }
     lines.push(buildAiInterpretation(summaryStats, records));
     [interpretation.dataset_makeup, interpretation.practice_trend, interpretation.persuasiveness_projection, ...interpretation.level_interpretations, ...interpretation.pattern_interpretations].forEach((text) => {
       String(text || "").split(/\r?\n/).map((part) => part.trim()).filter(Boolean).forEach((part) => lines.push(part));
@@ -4406,6 +4409,8 @@ This is an alternate test message to show now.`;
     const advancedSignificanceText = includeAdvancedDetails
       ? [
           buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, context.records || []),
+          "",
+          buildVisualizationEffectSizeDetail(interpretation, summaryStats),
           "",
           buildVisualizationProjectionDetail(interpretation)
         ].join("\n")
@@ -14182,6 +14187,97 @@ This is an alternate test message to show now.`;
     return 1 - normalCdf(zScore);
   }
 
+  function getOverallZScore(summaryStats) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const yourScore = Number(summaryStats?.yourScore || 0);
+    const chanceScore = Number(summaryStats?.chanceScore || 0);
+    const totalVariance = Number(summaryStats?.totalVariance || 0);
+    if (totalTrials < 1 || !Number.isFinite(yourScore) || !Number.isFinite(chanceScore) || !Number.isFinite(totalVariance) || totalVariance <= 0) {
+      return Number.NaN;
+    }
+    return (yourScore - chanceScore) / Math.sqrt(totalVariance);
+  }
+
+  function getEffectSizeBand(absEffectSize) {
+    const value = Math.max(0, Number(absEffectSize || 0));
+    if (value < 0.02) {
+      return "negligible or extremely weak";
+    }
+    if (value < 0.05) {
+      return "very small";
+    }
+    if (value < 0.10) {
+      return "small but noticeable";
+    }
+    if (value < 0.20) {
+      return "moderate";
+    }
+    return "strong";
+  }
+
+  function formatEffectSizeValue(value) {
+    if (!Number.isFinite(value)) {
+      return "unknown";
+    }
+    return Number(value).toFixed(2);
+  }
+
+  function getEffectSizeDetail(summaryStats) {
+    const totalTrials = Number(summaryStats?.totalTrials || 0);
+    const zScore = getOverallZScore(summaryStats);
+    if (totalTrials < 1 || !Number.isFinite(zScore)) {
+      return {
+        available: false,
+        value: Number.NaN,
+        absoluteValue: Number.NaN,
+        zScore,
+        totalTrials,
+        sqrtTrials: Number.NaN,
+        band: "",
+        line: "",
+        direction: "none"
+      };
+    }
+    const sqrtTrials = Math.sqrt(totalTrials);
+    const rawEffectSize = sqrtTrials > 0 ? zScore / sqrtTrials : Number.NaN;
+    if (!Number.isFinite(rawEffectSize)) {
+      return {
+        available: false,
+        value: Number.NaN,
+        absoluteValue: Number.NaN,
+        zScore,
+        totalTrials,
+        sqrtTrials,
+        band: "",
+        line: "",
+        direction: "none"
+      };
+    }
+    const roundedEffectSize = Number(rawEffectSize.toFixed(2));
+    const absoluteValue = Math.abs(roundedEffectSize);
+    const direction = roundedEffectSize > 0 ? "above-chance" : (roundedEffectSize < 0 ? "below-chance" : "none");
+    const band = getEffectSizeBand(absoluteValue);
+    let line = "";
+    if (direction === "none" || absoluteValue < 0.005) {
+      line = "Effect size: 0.00 sigma. This indicates no noticeable departure from chance.";
+    } else if (direction === "above-chance") {
+      line = `Effect size: ${formatEffectSizeValue(roundedEffectSize)} sigma (${formatEffectSizeValue(roundedEffectSize)} standard deviations above chance). This is a ${band} effect.`;
+    } else {
+      line = `Effect size: ${formatEffectSizeValue(roundedEffectSize)} sigma (${formatEffectSizeValue(roundedEffectSize)} standard deviations below chance). This is a ${band} below-chance effect.`;
+    }
+    return {
+      available: true,
+      value: roundedEffectSize,
+      absoluteValue,
+      zScore,
+      totalTrials,
+      sqrtTrials,
+      band,
+      line,
+      direction
+    };
+  }
+
   function getOverallSignificanceContext(summaryStats, levelBreakdown = null) {
     const totalTrials = Number(summaryStats?.totalTrials || 0);
     if (totalTrials < 1) {
@@ -14862,7 +14958,7 @@ This is an alternate test message to show now.`;
     const countsText = parts.length ? parts.join(", ") : "no scored levels";
 
     if (activeLevels.length === 1) {
-      return `Dataset makeup: ${countsText}. Level ${makeup.dominantLevel} contributes all the completed trials, so the overall interpretation is a Level ${makeup.dominantLevel} interpretation.`;
+      return "";
     }
 
     if (makeup.type === "dominant") {
@@ -15058,6 +15154,7 @@ This is an alternate test message to show now.`;
     const levelStats = getLevelStatsList(levelBreakdown);
     const overallInterpretation = buildOverallInterpretation(summaryStats, levelStats);
     const datasetMakeup = buildDatasetMakeupLine(levelStats, Number(summaryStats?.totalTrials || 0));
+    const effectSizeDetail = getEffectSizeDetail(summaryStats);
     const practiceTrendDetail = getPracticeTrendDetail(records, levelBreakdown);
     const persuasivenessProjectionDetail = getPersuasivenessProjectionDetail(summaryStats, levelBreakdown, records);
     const persuasivenessProjection = persuasivenessProjectionDetail.line;
@@ -15087,6 +15184,8 @@ This is an alternate test message to show now.`;
     return {
       overall_interpretation: overallInterpretation,
       dataset_makeup: datasetMakeup,
+      effect_size: effectSizeDetail.line,
+      effect_size_detail: effectSizeDetail,
       practice_trend: practiceTrendDetail.line,
       practice_trend_detail: practiceTrendDetail,
       persuasiveness_projection: persuasivenessProjection,
@@ -15227,6 +15326,7 @@ This is an alternate test message to show now.`;
       `Excess over chance: ${formatScoreValue(summaryStats.yourScore - summaryStats.chanceScore)}`,
       `Telepathic significance P: ${formatProbabilityValue(pValue)}`,
       `Telepathic significance method: ${significance.method}`,
+      interpretation.effect_size,
       "",
       "INTERPRETATION",
       `Overall interpretation: ${interpretation.overall_interpretation}`,
@@ -15280,6 +15380,7 @@ This is an alternate test message to show now.`;
     return [
       `Overall interpretation: ${interpretation.overall_interpretation || messages.headline || "unknown"}`,
       `${interpretation.dataset_makeup || "Dataset makeup: unknown"}`,
+      `${interpretation.effect_size || "Effect size: unknown"}`,
       `${interpretation.practice_trend || "Practice trend: unknown"}`,
       `${interpretation.persuasiveness_projection || "Projection: unknown"}`,
       ...(Array.isArray(interpretation.level_interpretations) && interpretation.level_interpretations.length
@@ -15805,10 +15906,10 @@ This is an alternate test message to show now.`;
       const exact = dominantLevel === 4 ? getLevelFourExactPValue(records) : getLevelOneExactPValue(records);
       return [
         `Method: exact binomial test for Level ${dominantLevel}.`,
-        `Completed scored trials (n) = ${exact.completedTrials}.`,
+        `Completed scored trials (N) = ${exact.completedTrials}.`,
         `Observed successes = ${exact.successes}.`,
         "Chance model: each trial has p = 0.5 of scoring a success under the null hypothesis.",
-        `Exact right-tail P = sum_{k=${exact.successes}}^${exact.completedTrials} C(${exact.completedTrials}, k) * (0.5^${exact.completedTrials}) = ${formatProbabilityValue(pValue)}.`,
+        `Exact right-tail binomial probability = sum_{k=${exact.successes}}^${exact.completedTrials} C(${exact.completedTrials}, k) * (0.5^${exact.completedTrials}) = ${formatProbabilityValue(pValue)}.`,
         `Chance score = ${formatScoreValue(chanceScore)}. Your score = ${formatScoreValue(yourScore)}.`
       ].join("\n");
     }
@@ -15818,7 +15919,7 @@ This is an alternate test message to show now.`;
       const exact = getExactEnumeratedLevelPValue(records, dominantLevel);
       return [
         `Method: exact score-enumeration test for Level ${dominantLevel}.`,
-        `Completed scored trials (n) = ${exact.completedTrials}.`,
+        `Completed scored trials (N) = ${exact.completedTrials}.`,
         `Observed total score = ${formatScoreValue(exact.observedScore)}.`,
         `Chance score = ${formatScoreValue(chanceScore)}. Your score = ${formatScoreValue(yourScore)}.`,
         `Null distribution support points = ${exact.pmf instanceof Map ? exact.pmf.size : 0}.`,
@@ -15840,6 +15941,54 @@ This is an alternate test message to show now.`;
       `Z = (Your score - Chance score) / sqrt(total variance) = (${formatAdvancedDetailNumber(yourScore, 6)} - ${formatAdvancedDetailNumber(chanceScore, 6)}) / sqrt(${formatAdvancedDetailNumber(totalVariance, 6)}) = ${formatAdvancedDetailNumber(zScore, 6)}.`,
       `One-tailed P = 1 - Phi(Z) = ${formatProbabilityValue(pValue)}.`
     ].join("\n");
+  }
+
+  function getEffectSizeInterpretationBandLine(absEffectSize) {
+    const value = Math.max(0, Number(absEffectSize || 0));
+    if (value < 0.02) {
+      return "0.00 to <0.02 sigma = negligible or extremely weak effect.";
+    }
+    if (value < 0.05) {
+      return "0.02 to <0.05 sigma = very small effect.";
+    }
+    if (value < 0.10) {
+      return "0.05 to <0.10 sigma = small but noticeable effect.";
+    }
+    if (value < 0.20) {
+      return "0.10 to <0.20 sigma = moderate effect.";
+    }
+    return "0.20 sigma and above = strong effect.";
+  }
+
+  function buildVisualizationEffectSizeDetail(interpretation, summaryStats) {
+    const detail = interpretation?.effect_size_detail || getEffectSizeDetail(summaryStats);
+    if (!detail?.available) {
+      return "Effect size cannot be calculated because there are no completed scored trials.";
+    }
+    const yourScore = Number(summaryStats?.yourScore || 0);
+    const chanceScore = Number(summaryStats?.chanceScore || 0);
+    const totalVariance = Number(summaryStats?.totalVariance || 0);
+    const cautionLine = detail.totalTrials < 20
+      ? "However, since N is small, this effect-size estimate is not yet reliable."
+      : "";
+    const mixedLevelNote = interpretation?.significance_method === "combined-standardized"
+      ? "For mixed-level datasets, this effect size summarizes the overall standardized departure from chance across the displayed combination of task levels."
+      : "";
+    return [
+      "Effect Size",
+      "Effect size estimates how strong the underlying effect is, without being inflated due to a large number of trials, which occurs in the case of the computed P value.",
+      mixedLevelNote,
+      "In this report, effect size is calculated as:",
+      "effect size = Z / sqrt(N)",
+      "where:",
+      "N = the number of completed scored trials",
+      `Z = (Your score - Chance score) / sqrt(total variance) = (${formatAdvancedDetailNumber(yourScore, 6)} - ${formatAdvancedDetailNumber(chanceScore, 6)}) / sqrt(${formatAdvancedDetailNumber(totalVariance, 6)}) = ${formatAdvancedDetailNumber(detail.zScore, 6)}.`,
+      `Completed scored trials (N) = ${detail.totalTrials}.`,
+      `sqrt(N) = ${formatAdvancedDetailNumber(detail.sqrtTrials, 6)}.`,
+      `Effect size = Z / sqrt(N) = ${formatAdvancedDetailNumber(detail.value, 6)} sigma.`,
+      `Interpretation band: ${getEffectSizeInterpretationBandLine(detail.absoluteValue)}`,
+      cautionLine
+    ].filter(Boolean).join("\n");
   }
 
   function buildVisualizationProjectionDetail(interpretation) {
@@ -16182,6 +16331,8 @@ This is an alternate test message to show now.`;
     visualizationAdvancedSignificanceOutput.textContent = [
       buildVisualizationSignificanceDetail(summaryStats, levelBreakdown, context.records),
       "",
+      buildVisualizationEffectSizeDetail(interpretation, summaryStats),
+      "",
       buildVisualizationProjectionDetail(interpretation)
     ].join("\n");
     visualizationAdvancedTrendOutput.textContent = buildVisualizationPracticeTrendDetail(interpretation);
@@ -16236,6 +16387,13 @@ This is an alternate test message to show now.`;
     probabilityLine.className = "report-summary-line";
     probabilityLine.textContent = probabilityText;
     visualizationSummary.append(probabilityLine);
+
+    if (interpretation.effect_size) {
+      const effectSizeLine = document.createElement("p");
+      effectSizeLine.className = "report-summary-line";
+      effectSizeLine.textContent = interpretation.effect_size;
+      visualizationSummary.append(effectSizeLine);
+    }
 
     const interpretationLine = document.createElement("p");
     interpretationLine.className = "report-summary-line";
