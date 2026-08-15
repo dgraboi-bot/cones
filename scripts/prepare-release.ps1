@@ -4,7 +4,9 @@ param(
 
   [string]$BaselineRef = "origin/main",
 
-  [switch]$AllowDirty
+  [switch]$AllowDirty,
+
+  [switch]$SyncManagedContentFromLive
 )
 
 $ErrorActionPreference = "Stop"
@@ -487,27 +489,49 @@ PY
   return $state
 }
 
+function Get-ManagedContentDriftSummary([hashtable]$LocalState, [hashtable]$RemoteState) {
+  $drift = New-Object System.Collections.Generic.List[string]
+
+  foreach ($key in @($RemoteState.Keys | Sort-Object)) {
+    if (-not $LocalState.ContainsKey($key)) {
+      $drift.Add("$key (exists on live authoritative content but not locally)")
+      continue
+    }
+    if ($LocalState[$key] -ne $RemoteState[$key]) {
+      $drift.Add("$key (local authoritative content differs from live authoritative content)")
+    }
+  }
+
+  foreach ($key in @($LocalState.Keys | Sort-Object)) {
+    if (-not $RemoteState.ContainsKey($key)) {
+      $drift.Add("$key (exists locally but not on live authoritative content)")
+    }
+  }
+
+  return @($drift | Sort-Object -Unique)
+}
+
+function Report-RemoteManagedContentDrift() {
+  $localState = Get-LocalManagedContentState
+  $remoteState = Get-RemoteManagedContentState
+  $drift = @(Get-ManagedContentDriftSummary -LocalState $localState -RemoteState $remoteState)
+  if (@($drift).Count -eq 0) {
+    Write-Host "Managed lesson content matches live authoritative content." -ForegroundColor Green
+    return
+  }
+
+  Write-Host "Managed lesson content drift detected between local authoritative content and live authoritative content." -ForegroundColor Yellow
+  Write-Host "Normal deploy will promote local authoritative content upward; it will not pull live content down automatically." -ForegroundColor Yellow
+  $drift | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor Yellow }
+  Write-Host "If you intend to recover live content back into local authoritative files, re-run prepare-release with -SyncManagedContentFromLive." -ForegroundColor Yellow
+}
+
 function Sync-RemoteManagedContentToLocalAuthoritative() {
   $localState = Get-LocalManagedContentState
   $remoteState = Get-RemoteManagedContentState
-  $mismatches = New-Object System.Collections.Generic.List[string]
+  $drift = @(Get-ManagedContentDriftSummary -LocalState $localState -RemoteState $remoteState)
 
-  foreach ($remoteKey in $remoteState.Keys) {
-    if (-not $localState.ContainsKey($remoteKey)) {
-      $mismatches.Add($remoteKey)
-      continue
-    }
-    if ($localState[$remoteKey] -ne $remoteState[$remoteKey]) {
-      $mismatches.Add($remoteKey)
-    }
-  }
-
-  $localOnlyKeys = @($localState.Keys | Where-Object { -not $remoteState.ContainsKey($_) } | Sort-Object)
-  if ($localOnlyKeys.Count -gt 0) {
-    $mismatches.AddRange([string[]]$localOnlyKeys)
-  }
-
-  if ($mismatches.Count -eq 0) {
+  if (@($drift).Count -eq 0) {
     Write-Host "Managed lesson content already matches live server state." -ForegroundColor Green
     return
   }
@@ -669,9 +693,13 @@ foreach ($relativePath in $deployFiles) {
 Assert-NoMojibakeInDeployFiles $deployFiles
 Assert-LocalPrivateContentInSync $privateContentSyncFiles
 Assert-LocalManagedLessonSetConsistent
-Sync-RemoteManagedContentToLocalAuthoritative
-Assert-LocalPrivateContentInSync $privateContentSyncFiles
-Assert-LocalManagedLessonSetConsistent
+if ($SyncManagedContentFromLive) {
+  Sync-RemoteManagedContentToLocalAuthoritative
+  Assert-LocalPrivateContentInSync $privateContentSyncFiles
+  Assert-LocalManagedLessonSetConsistent
+} else {
+  Report-RemoteManagedContentDrift
+}
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 
@@ -704,6 +732,7 @@ $manifest = [ordered]@{
   version = $Version
   baseline_ref = $BaselineRef
   allow_dirty = [bool]$AllowDirty
+  sync_managed_content_from_live = [bool]$SyncManagedContentFromLive
   repo_root = $repoRoot
   mirror_root = $mirrorRoot
   local_test_url = "http://localhost/telepathyexperiment/cones/telepathybeginner.html?v=$Version&open=launcher"

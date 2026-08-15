@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260815b";
+  const launcherBuildVersion = "20260815c";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -6940,9 +6940,11 @@ This is an alternate test message to show now.`;
       main.setAttribute("role", "button");
     }
 
-    const title = document.createElement("span");
-    title.className = "online-course-lesson-title";
-    title.textContent = String(normalizedRecord.title || "").trim();
+      const title = document.createElement("span");
+      title.className = "online-course-lesson-title";
+      const displayNumberText = String(normalizedRecord.display_number || "").trim();
+      const titleText = String(normalizedRecord.title || "").trim();
+      title.textContent = displayNumberText ? `LESSON ${displayNumberText} - ${titleText}` : titleText;
     main.appendChild(title);
 
     if (normalizedRecord.subcopy) {

@@ -301,15 +301,20 @@ Practical meaning:
 
 Additional authoring rule:
 
-- if lesson editing was done from `https://espgym.com`, the live private content store becomes newer first
-- before any normal deployment is packaged, the current live managed new-course content must be pulled back into the local authoritative lesson files under:
+- if lesson editing was done from `https://espgym.com`, the live private content store may become newer first
+- however, a normal deployment must **not** automatically pull live managed new-course content down over local authoritative lesson files
+- local authoritative managed content for deployment is:
   - `content_repo\new-learning-center-outline.json`
   - `content_repo\new-learning-center-lessons\...`
   - `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-outline.json`
   - `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-lessons\...`
+- if those local repo and local private copies agree, they are the deployment source of truth and are promoted upward to the live repo and live private content locations
+- if the local repo and local private managed content copies disagree, stop the release and resolve that local conflict first
+- if live managed content differs from local authoritative content during a normal deployment, report that drift but do not overwrite local content
+- live-to-local managed-content recovery is a separate deliberate action and should be run only when explicitly intended
 - do not assume a successful in-browser save on `espgym.com` has already updated the local authoring tree
 
-The deploy helper is expected to enforce this automatically for normal live pushes.
+The deploy helper is expected to enforce this automatically for normal live pushes by promoting local authoritative content upward and by refusing to auto-pull live content down unless an explicit recovery mode is requested.
 
 ## Deploy Completeness Guard
 

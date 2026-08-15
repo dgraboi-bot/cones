@@ -80,6 +80,7 @@ $replacements = @{
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"'';]+(&amp;|&)open=after-first-session-questions'; Replacement = "telepathybeginner.html?v=$Version`$1open=after-first-session-questions" },
     @{ Pattern = '(BeginnerUserManual_preserved_[^?''" ]+\.html)\?v=[^''"]+'; Replacement = "`$1?v=$Version" },
     @{ Pattern = 'telepathybeginner-email-test\.html\?v=[^'']+'; Replacement = "telepathybeginner-email-test.html?v=$Version" },
+    @{ Pattern = 'telepathy-difficulty-guide-panel-build\.png\?v=[^"]+'; Replacement = "telepathy-difficulty-guide-panel-build.png?v=$Version" },
     @{ Pattern = 'vendor/leaflet/leaflet\.js\?v=[^"]+'; Replacement = "vendor/leaflet/leaflet.js?v=$Version" },
     @{ Pattern = 'target-selection\.js\?v=[^"]+'; Replacement = "target-selection.js?v=$Version" },
     @{ Pattern = 'telepathybeginner\.js\?v=[^"]+'; Replacement = "telepathybeginner.js?v=$Version" }
