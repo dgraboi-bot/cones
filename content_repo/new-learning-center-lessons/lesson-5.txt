@@ -54,7 +54,7 @@ How This Analysis Interprets Sample Size Persuasiveness
 
 Important Caution
 
-[indent]Statistical significance does not prove that telepathy is real. It means only that the observed set of scores would be unlikely under chance alone.[/indent]
+[indent]Statistical significance does not prove that telepathy is real. It means only that the observed set of scores would be unlikely under the "null hypothesis" meaning, "under chance alone."[/indent]
 
 [indent]A convincing result should ideally show:[/indent]
 
@@ -106,23 +106,27 @@ The text provided on these pages summarizes what the data mean. In the 16-trial 
 
 1. The probability that you would get this score by chance alone is 10.51%.
 
-2. Interpretation:  Given the performance in these 16 trials, there are still too few completed scored trials for a meaningful overall interpretation.
+2. Effect size: 0.38 sigma (0.38 standard deviations above chance). This is a strong effect.
 
-3. Practice trend: more trials are needed before a meaningful practice trend can be estimated.
+Effect size is an estimate of how strong the telepathic effect itself appears to be. This is important because the P value and the number of completed trials do not tell exactly the same story. The P value tells how unlikely a result would be if chance alone were operating. But if more and more trials are added, even a weak effect can eventually produce a very impressive P value. In other words, a large number of trials can make a small effect look statistically dramatic. Effect size helps correct for this by estimating the strength of the underlying effect itself rather than how impressive the statistics look simply because the number of trials is large. Ideally, if the same level of performance continues as more trials are added, the effect size stays about the same even while the P value becomes more and more impressive. In this example, an effect size of 0.38 sigma means that the result is estimated to be 0.38 standard deviations above chance expectation, which is a strong effect. However, because this estimate is based on only 16 trials, it is still not very stable. With small numbers of trials, effect-size estimates can vary considerably, so more data are needed to see whether the effect size truly holds.
 
-4. Projection to significance: If performance continued at approximately this same level, the result would first fall below P < .01 (1%) at about 39 completed scored trials, projected P = .00959.
+3. Interpretation:  Given the performance in these 16 trials, there are still too few completed scored trials for a meaningful overall interpretation.
+
+4. Practice trend: more trials are needed before a meaningful practice trend can be estimated.
+
+5. Projection to significance: If performance continued at approximately this same level, the result would first fall below P < .01 (1%) at about 39 completed scored trials, projected P = .00959.
 
 What this means is that if performance remained at the same level, after 39 trials, the probability that chance would produce the same results is one percent. This is considered a "statistically significant" result by many.
 
-5. Projection to high persuasiveness: if performance continued at approximately this same level, the result would first enter the highly persuasive range at about 68 completed scored trials, projected P = .000993.
+6. Projection to high persuasiveness: if performance continued at approximately this same level, the result would first enter the highly persuasive range at about 68 completed scored trials, projected P = .000993.
 
 This says that if performance continued at the same level for 68 trials, the probability of the data reflecting chance is one in one thousand. If anyone could do this twice in a row, science would have to acknowledge that what is commonly called "telepathy" is real.
 
-6. Conclusion: Too few completed Level 1 trials are available to interpret conclusively.  
+7. Conclusion: Too few completed Level 1 trials are available to interpret conclusively.  
 
 These sixteen trials show promise, but are not enough to be statistically convincing. 
 
 
 To Think About
 
-[indent]You can create custom reports where you can specify the starting and ending trial number for the data to be visualized and analyzed statistically. But when you single out a particularly good run and turn it into a report, this is considered in statistics to be a “post hoc analysis” ("hoc" is Latin for "this"). Such data reports don’t have full credibility because even when flipping coins, there can be relatively long single runs of all heads or all tails, so the post hoc data could be focusing on random data that just looks significant. However, if there are legitimate reasons for doing this, for example, if before a formal study you gave subjects 10 practice trials, you have a legitimate reason for eliminating those trials – especially if you state beforehand in a filed document that you are going to eliminate the first 10 trials as "practice trials" in the data analysis.[/indent]
+[indent]You can create custom reports where you can specify the starting and ending trial number for the data to be visualized and analyzed statistically. But when you single out a particularly good run and turn it into a report, this is considered in statistics to be a “post hoc analysis” ("hoc" is Latin for "this"). Such data reports don’t have full credibility because you could just be picking out a particularly good run of chance correct responses, so the post hoc data could be focusing on random data that just looks significant. However, if there are legitimate reasons for doing excluding some responses, for example, if before a formal study you give subjects 10 practice trials, you have a legitimate reason for excluding those trials – especially if you state beforehand in a filed document that you are going to eliminate the first 10 trials as "practice trials" in the data analysis.[/indent]

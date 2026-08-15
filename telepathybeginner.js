@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260814a";
+  const launcherBuildVersion = "20260815a";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -340,35 +340,51 @@
   };
   const learningCenterCoursePageContent = [
     {
-      title: "DEVELOPING TELEPATHIC ABILITY THROUGH KNOWLEDGE AND PRACTICE",
-      paragraphs: [
-        "This course starts by presenting information that leads to a deeper understanding of telepathy and what receivers and senders of telepathic information should expect. Since a receiver of telepathic information must believe completely in the reality of telepathy, we will examine a few documented case studies and look at examples of what a few exceptionally gifted people were able to do with telepathic sensitivity.",
-        "We will also get an understanding of how the mind's eye works and an idea of how and why telepathy might work. As the course progresses, early on we will become familiar with the simple Level 1 operation of the telepathy task. And understand the importance of finding a partner or partners to work with, and how to schedule simple, short practice sessions spontaneously, when it feels like the right time to do a few trials.",
-        "When you have found a partner to work with, actual short and simple telepathy practice sessions can start, and we can look at mathematically analyzed personalized performance reports and examine introspectively what our minds do during practice and identifying potential areas of improvement.",
-        "This is a course in learning how to be more sensitive specifically to the visual information that can manifest in your 'mind's eye.' Your sensitivity can increase when you understand more about it, trust it without doubt, and have practiced and become so familiar with it that you accept it as matter-of-fact and have lost all anxiety about performance and results. Noted psi adept Ingo Swann advised: \"[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best\" [Swann, 1991/2017, p. 124]",
-        "COURSE CONTENTS",
-        "Lesson 1 - Achieving Success in Telepathy",
-        "Basic Information",
-        "Lesson 2 - Everything is Connected",
-        "Invisible connections everywhere",
-        "Lesson 3 - First Practice Session",
-        "Get familiar with the telepathy practice tool",
-        "Lesson 4 - Debriefing After First Live Telepathy Practice",
-        "Post live session debriefing",
-        "Lesson 5 - Understanding Performance Analysis",
-        "Statistics doesn't tell the whole story"
-      ],
+      title: "Developing Telepathic Ability Through Knowledge and Practice",
+      markup: [
+        "This course begins by presenting information that leads to a deeper understanding of telepathy and discusses what receivers and senders of telepathic information should expect. To be maximally effective, a receiver of telepathic information must believe completely in the reality of telepathy. Accordingly, we will examine a sampling of documented case studies to see examples of telepathic sensitivity. We will also get an understanding of how telepathy fits in with other ESP skills.",
+        "",
+        "The course will explain the operation of the telepathy practice task. After you have found a partner or partners to work with, practice sessions will start.",
+        "",
+        "We will examine introspectively what our minds do during practice and identify potential areas of improvement. You will learn how to understand the mathematically analyzed personalized performance reports.",
+        "",
+        "This is a course in learning how to be more sensitive to the visual information that can manifest in your 'mind's eye' at the same time that another person is looking at an image with you in mind. Your sensitivity can increase when you understand more about it, when you trust beyond doubt that the information is available, and have practiced and become so familiar with telepathy that you accept it as matter of fact and have lost all anxiety about performance and results. Noted ESP adept Ingo Swann advised: \"[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best[sup]1[/sup].\"",
+        "",
+        "**COURSE CONTENTS**",
+        "",
+        "[course-item]Lesson 1 - Achieving Success in Telepathy[/course-item]",
+        "[course-subitem]Basic information[/course-subitem]",
+        "",
+        "[course-item]Lesson 2 - Everything is Connected[/course-item]",
+        "[course-subitem]Invisible connections everywhere[/course-subitem]",
+        "",
+        "[course-item]Lesson 3 - First Practice Session[/course-item]",
+        "[course-subitem]Get familiar with the telepathy practice tool[/course-subitem]",
+        "",
+        "[course-item]Lesson 4 - Debriefing After First Live Telepathy Practice[/course-item]",
+        "[course-subitem]Post live session debriefing[/course-subitem]",
+        "",
+        "[course-item]Lesson 5 - Understanding Performance Analysis[/course-item]",
+        "[course-subitem]Statistics doesnâ€™t tell the whole story[/course-subitem]",
+        "",
+        "**NOTES**",
+        "1. [Swann, 1991/2017, p. 124]"
+      ].join("\n"),
       actions: []
     },
     {
-      title: "THE LESSONS",
-      paragraphs: [
-        "The lessons have concentrated information already known and understood about telepathy from diverse sources.",
-        "The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is tracked and analyzed for chance vs. better-than-chance performance, and can be viewed at any time by going to the Performance Reports menu item. Before one's performance can be understood to be unlikely to achieve by chance alone, you will need to complete a minimum of 20 trials, and beginners may start out performing at chance for many more trials before starting to get the hang of it - or not. Some will show natural talent and do well quickly. Others may take a while to do well, and others may never believe they can get the hang of it and give up.",
-        "Just know this: A sender cannot help but put the information out there when sending, whether they believe in telepathy or not. The information that is out there becomes available to everyone whether they believe in telepathy or not. It is just a question of perceiving it. Believe it. Try it. Do it.",
-        "The structured lessons are presented starting on Page 4 of this tab. They are presented as a set of checkpoints for each individual course objective in the suggested order. Simply come here click on each link and participate as called for in that lesson. Go at your own speed.",
-        "But before jumping in to the rest of this online course, it will be interesting to establish a baseline reference point. This is found on the next page (Page 3) of this tab. Please complete the questions in that questionnaire."
-      ],
+      title: "Getting Started",
+      markup: [
+        "The course collects information from different sources that is known and understood about telepathy.",
+        "",
+        "The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is analyzed for chance vs. better-than-chance performance and can be viewed at any time by going to Performance Reports. Before performance can be meaningfully interpreted to be unlikely to achieve by chance alone, you should complete at least 20 trials. Beginners may start out performing at chance for many trials before beginning to get the hang of it - or not. Some will show natural talent and quickly start performing at better than chance levels. Others may take a while to do well, and others may never believe they will get the hang of it and give up.",
+        "",
+        "Just know this: A sender cannot help but put the information out there when sending, whether they believe in telepathy or not. The information that is out there becomes available to you whether they believe in telepathy or not. It is just a question of perceiving it. Believe it. Try it. Do it.",
+        "",
+        "At this point, it will be interesting to establish a baseline. Please complete and save the questions in the questionnaire found on the next page (Page 3) of this series.",
+        "",
+        "The course lessons are accessed from page 4 of this tab. Simply go to page 4 and click on each link and participate as called for in that lesson. Go at your own speed."
+      ].join("\n"),
       actions: []
     },
     {
@@ -6603,6 +6619,16 @@ This is an alternate test message to show now.`;
       const indentedMatch = paragraph.match(/^\[indent\]([\s\S]*?)\[\/indent\]$/i);
       if (indentedMatch) {
         blocks.push(`<p class="learn-more-preview-indented">${renderLearnMoreInlineMarkup(String(indentedMatch[1] || "").trim())}</p>`);
+        return;
+      }
+      const courseItemMatch = paragraph.match(/^\[course-item\]([\s\S]*?)\[\/course-item\]$/i);
+      if (courseItemMatch) {
+        blocks.push(`<p class="learning-center-course-item">${renderLearnMoreInlineMarkup(String(courseItemMatch[1] || "").trim())}</p>`);
+        return;
+      }
+      const courseSubitemMatch = paragraph.match(/^\[course-subitem\]([\s\S]*?)\[\/course-subitem\]$/i);
+      if (courseSubitemMatch) {
+        blocks.push(`<p class="learning-center-course-subitem">${renderLearnMoreInlineMarkup(String(courseSubitemMatch[1] || "").trim())}</p>`);
         return;
       }
       blocks.push(`<p>${renderLearnMoreInlineMarkup(paragraph)}</p>`);
@@ -22172,9 +22198,38 @@ This is an alternate test message to show now.`;
     }
     if (learningCenterCourseCopy) {
       learningCenterCourseCopy.hidden = isBaselinePage || isLessonListPage;
-      learningCenterCourseCopy.innerHTML = (Array.isArray(content?.paragraphs) ? content.paragraphs : [])
-        .map((paragraph) => `<p class="about-section-copy">${escapeHtml(paragraph)}</p>`)
-        .join("");
+      const markupSource = String(content?.markup || "").trim();
+      if (normalizedPage === 1) {
+        learningCenterCourseCopy.innerHTML = [
+          `<div class="about-section-copy learning-center-course-rich-copy">`,
+          `<p>This course begins by presenting information that leads to a deeper understanding of telepathy and discusses what receivers and senders of telepathic information should expect. To be maximally effective, a receiver of telepathic information must believe completely in the reality of telepathy. Accordingly, we will examine a sampling of documented case studies to see examples of telepathic sensitivity. We will also get an understanding of how telepathy fits in with other ESP skills.</p>`,
+          `<p>The course will explain the operation of the telepathy practice task. After you have found a partner or partners to work with, practice sessions will start.</p>`,
+          `<p>We will examine introspectively what our minds do during practice and identify potential areas of improvement. You will learn how to understand the mathematically analyzed personalized performance reports.</p>`,
+          `<p>This is a course in learning how to be more sensitive to the visual information that can manifest in your 'mind's eye' at the same time that another person is looking at an image with you in mind. Your sensitivity can increase when you understand more about it, when you trust beyond doubt that the information is available, and have practiced and become so familiar with telepathy that you accept it as matter of fact and have lost all anxiety about performance and results. Noted ESP adept Ingo Swann advised: "[When you can achieve] a detached poise, a sort of disinterest ... the core ESP processes will work their best<sup>1</sup>."</p>`,
+          `<p class="learning-center-course-contents-heading"><strong>COURSE CONTENTS</strong></p>`,
+          `<div class="learning-center-course-outline">`,
+          `<p class="learning-center-course-item">Lesson 1 - Achieving Success in Telepathy</p>`,
+          `<p class="learning-center-course-subitem">Basic information</p>`,
+          `<p class="learning-center-course-item">Lesson 2 - Everything is Connected</p>`,
+          `<p class="learning-center-course-subitem">Invisible connections everywhere</p>`,
+          `<p class="learning-center-course-item">Lesson 3 - First Practice Session</p>`,
+          `<p class="learning-center-course-subitem">Get familiar with the telepathy practice tool</p>`,
+          `<p class="learning-center-course-item">Lesson 4 - Debriefing After First Live Telepathy Practice</p>`,
+          `<p class="learning-center-course-subitem">Post live session debriefing</p>`,
+          `<p class="learning-center-course-item">Lesson 5 - Understanding Performance Analysis</p>`,
+          `<p class="learning-center-course-subitem">Statistics doesnâ€™t tell the whole story</p>`,
+          `</div>`,
+          `<p><strong>NOTES</strong></p>`,
+          `<p>1. [Swann, 1991/2017, p. 124]</p>`,
+          `</div>`
+        ].join("");
+      } else if (markupSource) {
+        learningCenterCourseCopy.innerHTML = `<div class="about-section-copy learning-center-course-rich-copy">${renderLearnMorePreviewMarkup(markupSource)}</div>`;
+      } else {
+        learningCenterCourseCopy.innerHTML = (Array.isArray(content?.paragraphs) ? content.paragraphs : [])
+          .map((paragraph) => `<p class="about-section-copy">${escapeHtml(paragraph)}</p>`)
+          .join("");
+      }
     }
     if (learningCenterCourseActions) {
       learningCenterCourseActions.replaceChildren();

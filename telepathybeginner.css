@@ -4629,7 +4629,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260814a") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260815a") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
@@ -4932,6 +4932,61 @@ html.launcher-direct-open-pending body {
 .learning-center-shell .about-section-copy,
 .learning-center-shell .online-course-lesson-subcopy {
   color: rgba(236, 231, 222, 0.9);
+}
+
+.learning-center-course-rich-copy {
+  color: rgba(236, 231, 222, 0.9);
+}
+
+.learning-center-shell [data-learning-center-panel="course"] [data-learning-center-course-title] {
+  text-align: center;
+  text-transform: none;
+  margin-bottom: 0.85em;
+}
+
+.learning-center-course-rich-copy p,
+.learning-center-course-rich-copy .learn-more-preview-centered,
+.learning-center-course-rich-copy .learn-more-preview-indented {
+  margin: 0 0 1.1em;
+  color: inherit;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.learning-center-course-rich-copy p:last-child,
+.learning-center-course-rich-copy .learn-more-preview-centered:last-child,
+.learning-center-course-rich-copy .learn-more-preview-indented:last-child {
+  margin-bottom: 0;
+}
+
+.learning-center-course-rich-copy strong,
+.learning-center-course-rich-copy em,
+.learning-center-course-rich-copy sup {
+  color: inherit;
+}
+
+.learning-center-course-rich-copy .learning-center-course-contents-heading {
+  text-align: center;
+  margin: 1.25em 0 1.15em;
+}
+
+.learning-center-course-rich-copy .learning-center-course-outline {
+  margin-left: 13rem;
+  margin-bottom: 1.1em;
+}
+
+.learning-center-course-rich-copy .learning-center-course-item,
+.learning-center-course-rich-copy .learning-center-course-subitem {
+  margin-left: 0;
+}
+
+.learning-center-course-rich-copy .learning-center-course-item {
+  margin-bottom: 0.18em;
+}
+
+.learning-center-course-rich-copy .learning-center-course-subitem {
+  margin-top: 0;
+  margin-bottom: 1.05em;
 }
 
 .learning-center-shell [data-learning-center-panel="key-concepts"] .about-section-copy {
