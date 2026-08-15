@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260815a";
+  const launcherBuildVersion = "20260815b";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -365,7 +365,7 @@
         "[course-subitem]Post live session debriefing[/course-subitem]",
         "",
         "[course-item]Lesson 5 - Understanding Performance Analysis[/course-item]",
-        "[course-subitem]Statistics doesnâ€™t tell the whole story[/course-subitem]",
+        "[course-subitem]Statistics doesn't tell the whole story[/course-subitem]",
         "",
         "**NOTES**",
         "1. [Swann, 1991/2017, p. 124]"
@@ -477,22 +477,17 @@
   const afterFirstSessionReceiver = document.querySelector("[data-after-first-session-receiver]");
   const afterFirstSessionSender = document.querySelector("[data-after-first-session-sender]");
   const afterFirstSessionForm = document.querySelector("[data-after-first-session-form]");
-  const afterFirstSessionTrialStartInput = document.querySelector("[data-after-first-session-trial-start]");
-  const afterFirstSessionTrialEndInput = document.querySelector("[data-after-first-session-trial-end]");
   const afterFirstSessionTrialsReceiverInput = document.querySelector("[data-after-first-session-trials-receiver]");
   const afterFirstSessionTrialsSenderInput = document.querySelector("[data-after-first-session-trials-sender]");
+  const afterFirstSessionQuietMindInputs = Array.from(document.querySelectorAll("[data-after-first-session-quiet-mind]"));
   const afterFirstSessionLookMindEyeInputs = Array.from(document.querySelectorAll("[data-after-first-session-look-mind-eye]"));
   const afterFirstSessionTrustMindEyeInputs = Array.from(document.querySelectorAll("[data-after-first-session-trust-mind-eye]"));
   const afterFirstSessionClosedEyesInputs = Array.from(document.querySelectorAll("[data-after-first-session-closed-eyes]"));
   const afterFirstSessionAnythingShowedInputs = Array.from(document.querySelectorAll("[data-after-first-session-anything-showed]"));
   const afterFirstSessionPerceivedColorInputs = Array.from(document.querySelectorAll("[data-after-first-session-perceived-color]"));
-  const afterFirstSessionColorWhereInput = document.querySelector("[data-after-first-session-color-where]");
-  const afterFirstSessionAttentionMagnetCountInputs = Array.from(document.querySelectorAll("[data-after-first-session-attention-magnet-count]"));
-  const afterFirstSessionArrangementInputs = Array.from(document.querySelectorAll("[data-after-first-session-arrangement]"));
+  const afterFirstSessionConeDiscriminationInputs = Array.from(document.querySelectorAll("[data-after-first-session-cone-discrimination]"));
   const afterFirstSessionShapePersistenceInputs = Array.from(document.querySelectorAll("[data-after-first-session-shape-persistence]"));
   const afterFirstSessionRememberShapeInputs = Array.from(document.querySelectorAll("[data-after-first-session-remember-shape]"));
-  const afterFirstSessionNamedAnythingInputs = Array.from(document.querySelectorAll("[data-after-first-session-named-anything]"));
-  const afterFirstSessionNameAccurateInput = document.querySelector("[data-after-first-session-name-accurate]");
   const afterFirstSessionStatus = document.querySelector("[data-after-first-session-status]");
   const afterFirstSessionSaveButton = document.querySelector("[data-save-after-first-session-questions]");
   const researchInterestForm = document.querySelector("[data-research-interest-form]");
@@ -6947,7 +6942,7 @@ This is an alternate test message to show now.`;
 
     const title = document.createElement("span");
     title.className = "online-course-lesson-title";
-    title.textContent = `LESSON ${normalizedRecord.display_number} - ${normalizedRecord.title}`;
+    title.textContent = String(normalizedRecord.title || "").trim();
     main.appendChild(title);
 
     if (normalizedRecord.subcopy) {
@@ -21826,58 +21821,38 @@ This is an alternate test message to show now.`;
     }
   }
 
-  function populateAfterFirstSessionQuestionsForm(saved = null) {
-    const response = saved && typeof saved === "object" ? saved : {};
-    if (afterFirstSessionTrialStartInput) {
-      afterFirstSessionTrialStartInput.value = String(response.trial_start || "");
+    function populateAfterFirstSessionQuestionsForm(saved = null) {
+      const response = saved && typeof saved === "object" ? saved : {};
+      if (afterFirstSessionTrialsReceiverInput) {
+        afterFirstSessionTrialsReceiverInput.value = String(response.trials_as_receiver || "");
+      }
+      if (afterFirstSessionTrialsSenderInput) {
+        afterFirstSessionTrialsSenderInput.value = String(response.trials_as_sender || "");
+      }
+      setBaselineRadioValue(afterFirstSessionQuietMindInputs, response.quiet_mind);
+      setBaselineRadioValue(afterFirstSessionLookMindEyeInputs, response.look_mind_eye);
+      setBaselineRadioValue(afterFirstSessionTrustMindEyeInputs, response.trust_mind_eye);
+      setBaselineRadioValue(afterFirstSessionClosedEyesInputs, response.closed_eyes);
+      setBaselineRadioValue(afterFirstSessionPerceivedColorInputs, response.perceived_color);
+      setBaselineRadioValue(afterFirstSessionConeDiscriminationInputs, response.cone_discrimination);
+      setBaselineRadioValue(afterFirstSessionShapePersistenceInputs, response.shape_persistence);
+      setBaselineRadioValue(afterFirstSessionRememberShapeInputs, response.remember_shape);
     }
-    if (afterFirstSessionTrialEndInput) {
-      afterFirstSessionTrialEndInput.value = String(response.trial_end || "");
-    }
-    if (afterFirstSessionTrialsReceiverInput) {
-      afterFirstSessionTrialsReceiverInput.value = String(response.trials_as_receiver || "");
-    }
-    if (afterFirstSessionTrialsSenderInput) {
-      afterFirstSessionTrialsSenderInput.value = String(response.trials_as_sender || "");
-    }
-    setBaselineRadioValue(afterFirstSessionLookMindEyeInputs, response.look_mind_eye);
-    setBaselineRadioValue(afterFirstSessionTrustMindEyeInputs, response.trust_mind_eye);
-    setBaselineRadioValue(afterFirstSessionClosedEyesInputs, response.closed_eyes);
-    setBaselineRadioValue(afterFirstSessionAnythingShowedInputs, response.anything_showed);
-    setBaselineRadioValue(afterFirstSessionPerceivedColorInputs, response.perceived_color);
-    if (afterFirstSessionColorWhereInput) {
-      afterFirstSessionColorWhereInput.value = String(response.color_where || "");
-    }
-    setBaselineRadioValue(afterFirstSessionAttentionMagnetCountInputs, response.attention_magnet_count);
-    setBaselineRadioValue(afterFirstSessionArrangementInputs, response.arrangement);
-    setBaselineRadioValue(afterFirstSessionShapePersistenceInputs, response.shape_persistence);
-    setBaselineRadioValue(afterFirstSessionRememberShapeInputs, response.remember_shape);
-    setBaselineRadioValue(afterFirstSessionNamedAnythingInputs, response.named_anything);
-    if (afterFirstSessionNameAccurateInput) {
-      afterFirstSessionNameAccurateInput.value = String(response.name_accurate || "");
-    }
-  }
 
-  function collectAfterFirstSessionQuestionsFormResponse() {
-    return {
-      trial_start: String(afterFirstSessionTrialStartInput?.value || "").trim(),
-      trial_end: String(afterFirstSessionTrialEndInput?.value || "").trim(),
-      trials_as_receiver: String(afterFirstSessionTrialsReceiverInput?.value || "").trim(),
-      trials_as_sender: String(afterFirstSessionTrialsSenderInput?.value || "").trim(),
-      look_mind_eye: getBaselineRadioValue(afterFirstSessionLookMindEyeInputs),
-      trust_mind_eye: getBaselineRadioValue(afterFirstSessionTrustMindEyeInputs),
-      closed_eyes: getBaselineRadioValue(afterFirstSessionClosedEyesInputs),
-      anything_showed: getBaselineRadioValue(afterFirstSessionAnythingShowedInputs),
-      perceived_color: getBaselineRadioValue(afterFirstSessionPerceivedColorInputs),
-      color_where: String(afterFirstSessionColorWhereInput?.value || "").trim(),
-      attention_magnet_count: getBaselineRadioValue(afterFirstSessionAttentionMagnetCountInputs),
-      arrangement: getBaselineRadioValue(afterFirstSessionArrangementInputs),
-      shape_persistence: getBaselineRadioValue(afterFirstSessionShapePersistenceInputs),
-      remember_shape: getBaselineRadioValue(afterFirstSessionRememberShapeInputs),
-      named_anything: getBaselineRadioValue(afterFirstSessionNamedAnythingInputs),
-      name_accurate: String(afterFirstSessionNameAccurateInput?.value || "").trim()
-    };
-  }
+    function collectAfterFirstSessionQuestionsFormResponse() {
+      return {
+        trials_as_receiver: String(afterFirstSessionTrialsReceiverInput?.value || "").trim(),
+        trials_as_sender: String(afterFirstSessionTrialsSenderInput?.value || "").trim(),
+        quiet_mind: getBaselineRadioValue(afterFirstSessionQuietMindInputs),
+        look_mind_eye: getBaselineRadioValue(afterFirstSessionLookMindEyeInputs),
+        trust_mind_eye: getBaselineRadioValue(afterFirstSessionTrustMindEyeInputs),
+        closed_eyes: getBaselineRadioValue(afterFirstSessionClosedEyesInputs),
+        perceived_color: getBaselineRadioValue(afterFirstSessionPerceivedColorInputs),
+        cone_discrimination: getBaselineRadioValue(afterFirstSessionConeDiscriminationInputs),
+        shape_persistence: getBaselineRadioValue(afterFirstSessionShapePersistenceInputs),
+        remember_shape: getBaselineRadioValue(afterFirstSessionRememberShapeInputs)
+      };
+    }
 
   async function renderAfterFirstSessionQuestionsView() {
     const state = readLauncherState();
@@ -22217,7 +22192,7 @@ This is an alternate test message to show now.`;
           `<p class="learning-center-course-item">Lesson 4 - Debriefing After First Live Telepathy Practice</p>`,
           `<p class="learning-center-course-subitem">Post live session debriefing</p>`,
           `<p class="learning-center-course-item">Lesson 5 - Understanding Performance Analysis</p>`,
-          `<p class="learning-center-course-subitem">Statistics doesnâ€™t tell the whole story</p>`,
+          `<p class="learning-center-course-subitem">Statistics doesn't tell the whole story</p>`,
           `</div>`,
           `<p><strong>NOTES</strong></p>`,
           `<p>1. [Swann, 1991/2017, p. 124]</p>`,

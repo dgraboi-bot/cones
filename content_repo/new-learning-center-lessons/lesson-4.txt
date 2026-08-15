@@ -12,7 +12,7 @@ type=lesson-page
 
 ACTION LINK: [action:after-first-session]After First Session Questions[/action]
 
-[center]Use “BACK” to return here.[/center]
+[center]Use “RETURN TO LESSON” to return here.[/center]
 
 [indent]By this point you have filled out the Questionnaire After First Live Telepathy Practice.[/indent]
 

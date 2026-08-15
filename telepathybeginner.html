@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260815a">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260815b">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260815a">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260815a">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260815a">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260815b">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260815b">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260815b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260815a">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260815a">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260815a">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260815b">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260815b">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260815b">
   <script>
     (function () {
-      var buildVersion = "20260815a";
+      var buildVersion = "20260815b";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -558,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               Back
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260815a</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260815b</span>
           </div>
         </div>
 
@@ -1324,14 +1324,6 @@
             <form class="baseline-questions-form" data-after-first-session-form>
               <div class="baseline-trial-summary-grid">
                 <div class="settings-view-field">
-                  <label class="settings-view-label" for="afterFirstSessionTrialStart">Trial number started with</label>
-                  <input class="settings-view-input" id="afterFirstSessionTrialStart" type="number" min="0" step="1" data-after-first-session-trial-start>
-                </div>
-                <div class="settings-view-field">
-                  <label class="settings-view-label" for="afterFirstSessionTrialEnd">Trial number ended with</label>
-                  <input class="settings-view-input" id="afterFirstSessionTrialEnd" type="number" min="0" step="1" data-after-first-session-trial-end>
-                </div>
-                <div class="settings-view-field">
                   <label class="settings-view-label" for="afterFirstSessionTrialsReceiver">How many trials did you do as receiver?</label>
                   <input class="settings-view-input" id="afterFirstSessionTrialsReceiver" type="number" min="0" step="1" data-after-first-session-trials-receiver>
                 </div>
@@ -1342,92 +1334,68 @@
               </div>
 
               <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">1. Were you able to look at the contents of your mind's eye?</legend>
+                <legend class="settings-view-label">1. Were you able to quiet your mind before attempting to do telepathy?</legend>
                 <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionLookMindEye" value="Yes" data-after-first-session-look-mind-eye> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionLookMindEye" value="No" data-after-first-session-look-mind-eye> <span>No</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionQuietMind" value="Yes" data-after-first-session-quiet-mind> <span>Yes</span></label>
+                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionQuietMind" value="No" data-after-first-session-quiet-mind> <span>No</span></label>
                 </div>
               </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">2. Did you trust that the right information would be in your mind's eye?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionTrustMindEye" value="Yes" data-after-first-session-trust-mind-eye> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionTrustMindEye" value="No" data-after-first-session-trust-mind-eye> <span>No</span></label>
-                </div>
-              </fieldset>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">3. Did you trust that the right information would be in your mind's eye?</legend>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionTrustMindEye" value="Yes" data-after-first-session-trust-mind-eye> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionTrustMindEye" value="No" data-after-first-session-trust-mind-eye> <span>No</span></label>
+                  </div>
+                </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">3. Did you close your eyes and focus on the contents of your mind's eye at the end of the countdown?</legend>
-                <p class="settings-view-hint">Closing the eyes is optional, but is often helpful.</p>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionClosedEyes" value="Yes" data-after-first-session-closed-eyes> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionClosedEyes" value="No" data-after-first-session-closed-eyes> <span>No</span></label>
-                </div>
-              </fieldset>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">2. Did you close your eyes and focus on the contents of your mind's eye at the end of the countdown?</legend>
+                  <p class="settings-view-hint">Closing the eyes is optional, but is often helpful.</p>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionClosedEyes" value="Yes" data-after-first-session-closed-eyes> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionClosedEyes" value="No" data-after-first-session-closed-eyes> <span>No</span></label>
+                  </div>
+                </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">4. Did anything, probably quite unclear and dim, but with some clear-enough features, show up in your mind's eye?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAnythingShowed" value="Yes" data-after-first-session-anything-showed> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAnythingShowed" value="No" data-after-first-session-anything-showed> <span>No</span></label>
-                </div>
-              </fieldset>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">4. Did any surprising shapes appear in your mind's eye after the countdown?</legend>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionLookMindEye" value="Yes" data-after-first-session-look-mind-eye> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionLookMindEye" value="No" data-after-first-session-look-mind-eye> <span>No</span></label>
+                  </div>
+                </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">5. Did you perceive any color anywhere?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionPerceivedColor" value="Yes" data-after-first-session-perceived-color> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionPerceivedColor" value="No" data-after-first-session-perceived-color> <span>No</span></label>
-                </div>
-                <label class="settings-view-label" for="afterFirstSessionColorWhere">If yes, where? (left, right, ...)</label>
-                <input class="settings-view-input" id="afterFirstSessionColorWhere" type="text" data-after-first-session-color-where>
-              </fieldset>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">5. Did you perceive any color?</legend>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionPerceivedColor" value="Yes" data-after-first-session-perceived-color> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionPerceivedColor" value="No" data-after-first-session-perceived-color> <span>No</span></label>
+                  </div>
+                </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">6. How many attention magnets did you perceive in the visual shape(s) in your mind's eye?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAttentionMagnetCount" value="Zero" data-after-first-session-attention-magnet-count> <span>Zero</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAttentionMagnetCount" value="One" data-after-first-session-attention-magnet-count> <span>One</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionAttentionMagnetCount" value="More than one" data-after-first-session-attention-magnet-count> <span>More than one</span></label>
-                </div>
-              </fieldset>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">6. Were you able to discriminate one cone from three cones at least sometimes?</legend>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionConeDiscrimination" value="Yes" data-after-first-session-cone-discrimination> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionConeDiscrimination" value="No" data-after-first-session-cone-discrimination> <span>No</span></label>
+                  </div>
+                </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">7. If there was more than one shape, how were the shapes arranged?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Horizontally" data-after-first-session-arrangement> <span>Horizontally</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Vertically" data-after-first-session-arrangement> <span>Vertically</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Diagonally up from bottom left" data-after-first-session-arrangement> <span>Diagonally up from bottom left</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionArrangement" value="Diagonally down from top left" data-after-first-session-arrangement> <span>Diagonally down from top left</span></label>
-                </div>
-              </fieldset>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">7. Did shapes fade in and out of perception?</legend>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionShapePersistence" value="Yes" data-after-first-session-shape-persistence> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionShapePersistence" value="No" data-after-first-session-shape-persistence> <span>No</span></label>
+                  </div>
+                </fieldset>
 
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">8. Were the shape(s) constantly present, or did shapes fade in and out of perception?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionShapePersistence" value="Constant" data-after-first-session-shape-persistence> <span>Constant</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionShapePersistence" value="Fading in and out" data-after-first-session-shape-persistence> <span>Fading in and out</span></label>
+                <fieldset class="baseline-question-group">
+                  <legend class="settings-view-label">8. Did you make an effort to remember the visual shape of what you saw fleetingly?</legend>
+                  <div class="baseline-choice-grid">
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionRememberShape" value="Yes" data-after-first-session-remember-shape> <span>Yes</span></label>
+                    <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionRememberShape" value="No" data-after-first-session-remember-shape> <span>No</span></label>
                 </div>
-              </fieldset>
-
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">9. Did you make an effort to remember the exact visual shape of what you saw fleetingly?</legend>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionRememberShape" value="Yes" data-after-first-session-remember-shape> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionRememberShape" value="No" data-after-first-session-remember-shape> <span>No</span></label>
-                </div>
-              </fieldset>
-
-              <fieldset class="baseline-question-group">
-                <legend class="settings-view-label">10. Were the visual features clear enough to give a name to anything?</legend>
-                <p class="settings-view-hint">It's usually better not to name.</p>
-                <div class="baseline-choice-grid">
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionNamedAnything" value="Yes" data-after-first-session-named-anything> <span>Yes</span></label>
-                  <label class="settings-view-checkbox"><input type="radio" name="afterFirstSessionNamedAnything" value="No" data-after-first-session-named-anything> <span>No</span></label>
-                </div>
-                <label class="settings-view-label" for="afterFirstSessionNameAccurate">If so, did the name turn out to be accurate?</label>
-                <input class="settings-view-input" id="afterFirstSessionNameAccurate" type="text" data-after-first-session-name-accurate>
               </fieldset>
             </form>
 
@@ -1474,7 +1442,7 @@
 
           <section class="telepathy-difficulty-guide-static-shell" aria-label="Telepathy Exercises with Graded Levels of Difficulty">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill telepathy-difficulty-guide-static-back" type="button" data-close-telepathy-difficulty-guide>BACK</button>
-            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260815a" alt="Telepathy exercises with graded levels of difficulty panel">
+            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260815b" alt="Telepathy exercises with graded levels of difficulty panel">
           </section>
         </section>
 
@@ -2637,8 +2605,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260815a'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260815a'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260815b'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260815b'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3549,10 +3517,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260815a"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260815b"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260815a"></script>
-<script src="telepathybeginner.js?v=20260815a"></script>
+<script src="target-selection.js?v=20260815b"></script>
+<script src="telepathybeginner.js?v=20260815b"></script>
 </body>
 </html>
 
