@@ -1,6 +1,7 @@
 lesson-id=lesson-2
 number=2
 title=Everything is Connected
+subcopy=Invisible connections everywhere
 type=lesson-page
 
 [center]**Everything is Connected**[/center]

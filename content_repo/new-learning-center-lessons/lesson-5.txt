@@ -1,6 +1,6 @@
 lesson-id=lesson-5
 number=5
-title=UNDERSTANDING PERFORMANCE ANALYSIS
+title=Understanding Performance Analysis
 subcopy=Statistics doesn’t tell the whole story
 type=lesson-page
 

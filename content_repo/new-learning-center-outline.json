@@ -4,35 +4,35 @@
     {
       "id": "lesson-1",
       "display_number": "1",
-      "title": "ACHIEVING SUCCESS IN TELEPATHY",
-      "subcopy": "Basic Information",
+      "title": "Achieving Success in Telepathy",
+      "subcopy": "Basic information",
       "type": "lesson-page"
     },
     {
       "id": "lesson-2",
       "display_number": "2",
       "title": "Everything is Connected",
-      "subcopy": "",
+      "subcopy": "Invisible connections everywhere",
       "type": "lesson-page"
     },
     {
       "id": "lesson-3",
       "display_number": "3",
-      "title": "FIRST PRACTICE SESSION",
-      "subcopy": "Get familiar with the telapathy practice tool",
+      "title": "First Practice Session",
+      "subcopy": "Get familiar with the telepathy practice tool",
       "type": "lesson-page"
     },
     {
       "id": "lesson-4",
       "display_number": "4",
-      "title": "DEBRIEFING AFTER FIRST LIVE TELEPATHY PRACTICE",
+      "title": "Debriefing After First Live Telepathy Practice",
       "subcopy": "Post live session debriefing",
       "type": "lesson-page"
     },
     {
       "id": "lesson-5",
       "display_number": "5",
-      "title": "UNDERSTANDING PERFORMANCE ANALYSIS",
+      "title": "Understanding Performance Analysis",
       "subcopy": "Statistics doesn’t tell the whole story",
       "type": "lesson-page"
     }

@@ -1,7 +1,7 @@
 lesson-id=lesson-1
 number=1
-title=ACHIEVING SUCCESS IN TELEPATHY
-subcopy=Basic Information
+title=Achieving Success in Telepathy
+subcopy=Basic information
 type=lesson-page
 
 [center]**Achieving Success In Telepathy**[/center]

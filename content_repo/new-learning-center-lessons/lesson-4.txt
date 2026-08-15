@@ -1,6 +1,6 @@
 lesson-id=lesson-4
 number=4
-title=DEBRIEFING AFTER FIRST LIVE TELEPATHY PRACTICE
+title=Debriefing After First Live Telepathy Practice
 subcopy=Post live session debriefing
 type=lesson-page
 

@@ -1,7 +1,7 @@
 lesson-id=lesson-3
 number=3
-title=FIRST PRACTICE SESSION
-subcopy=Get familiar with the telapathy practice tool
+title=First Practice Session
+subcopy=Get familiar with the telepathy practice tool
 type=lesson-page
 
 [center]**First Practice Session**[/center]
