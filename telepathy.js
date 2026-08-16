@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260815c";
+  const runtimeBuildVersion = "20260816a";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -86,7 +86,7 @@
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260815c";
+  const launcherBuildVersion = "20260816a";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),

@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260815c";
+  const launcherBuildVersion = "20260816a";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -230,8 +230,11 @@
     "concept-telepathy": {
       title: "Telepathy",
       paragraphs: [
-        "This concept page is still being developed.",
-        "For now, telepathy here means the apparent transfer of information between minds without the known senses."
+        "In ESP GYM, the focus is on visual telepathy: the Receiver attempts to perceive visual information associated with the Senderâ€™s attention to an image.",
+        "Because the impressions that are received are usually subtle and short-lived, the Receiver benefits from quieting the mind, reducing internal chatter, and becoming calmly attentive to any surprising visual information that is perceived at the moment the information is most likely to appear.",
+        "The task is not to force meaning onto the experience, but to observe carefully what appears spontaneously and to remember what was perceived in the mindâ€™s eye, whether the eyes are open or closed.",
+        "When the Receiver correctly identifies the image the Sender was viewing, immediate positive feedback is given, and such rapid reinforcement has been shown to assist learning.",
+        "Even though telepathy is not yet understood by modern science, by now enough evidence has accumulated to convince many scientists that it is real."
       ]
     },
     "concept-sender": {
@@ -292,7 +295,7 @@
       paragraphs: [
         "For centuries we believed that the world was flat. After all, it looks flat. It was hard to accept the idea that we are actually on a ball in space.",
         "It is also hard to accept the idea that absolutely everything is connected. After all, everything does not look connected. And the connection appears to be two-way. How else can one explain the evidence that Harold McCoy, a prominent dowser in our time, was able to \"map douse\" (he could look at a map and pinpoint where to drill for water) and was also able to change the course of the flow of underground water? Read about this and more in his book here. <Link to book.>",
-        "The fact that ESP works is based on the notion that EVERYTHING IS CONNECTED. The connections are invisible, but they are there nevertheless, and a human mind in the right state has the ability to tune in to possibly everything. This becomes apparent as the evidence mounts from reported cases (see Lesson xxx)."
+        "The fact that ESP works is based on the notion that EVERYTHING IS CONNECTED. The connections are invisible, but they are there nevertheless, and a human mind in the right state has the ability to tune in to possibly everything. This becomes apparent as the evidence mounts from reported cases (see Lesson 2)."
       ]
     },
     "concept-dont-worry-how-this-works": {
@@ -305,10 +308,10 @@
     "concept-lack-of-fusion": {
       title: "Telepathic Image Perception is in Bits and Pieces",
       paragraphs: [
-        "\"All parts are correctly perceived, but will not connect to form a whole\" - Ingo Swann",
-        "Swann called this difficulty in grouping of local elements into recognized objects lack of fusion.",
-        "Czech psychometrist Otto Reimann mentioned that his \"... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas\" - xxx Schmidt",
-        "Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as \"low contrast, low intensity and low resolution.\"",
+        "Bits And Pieces of Vague Impressionistic Visual Information",
+        "Ingo Swann, a noted psychic mentioned, \"... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear\" (1991/2017, p. 33). \"All parts are correctly perceived, but will not connect to form a whole.\" Swann called this difficulty in grouping of local elements into recognized objects \"lack of fusion.\" Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as \"low contrast, low intensity and low resolution.\"",
+        "Hubbard & Langford mention, \"Accomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. ... correct visual impressions are largely indistinct in outline\" (1986, pp. 6-7).",
+        "Czech psychometrist Otto Reimann mentioned that his \"... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas\" (Schmidt, 1930, as cited in Barrington et al., 2005, p. 157).",
         "When observing the contents of your mind's eye during telepathic image perception, don't expect to see the whole image clearly by any means. What will be perceived will be somewhat disconnected bits and pieces, visual features, but not a connected whole like what is seen when using your eyes."
       ]
     },
@@ -326,15 +329,6 @@
         "Those who don't believe that telepathy exists are very less likely to experience it. A person who wants to be able to receive information telepathically must not only believe that telepathy works, but that it work for them.",
         "It is easier to believe that \"it might work for others, but not for me.\" But that kind of belief is a lot less productive than, \"Yes! It can and will work for me!\"",
         "Interestingly, it has been shown that a sender does not have to believe in telepathy in order to competently send telepathic information. This means that the information gets put out there independent of one's belief system."
-      ]
-    },
-    "concept-bits-and-pieces": {
-      title: "Bits And Pieces",
-      paragraphs: [
-        "BITS AND PIECES OF VAGUE IMPRESSIONISTIC VISUAL INFORMATION",
-        "Ingo Swann, a noted psychic [1991/2017, p. 33] mentioned, \"... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear.\" Hubbard & Langford (1986, pp. 6-7) mention, \"Accomplished viewers appear to agree that correct [remote viewing] data is perceived as impressionistic and generally vague. ... correct visual impressions are largely indistinct in outline.\"",
-        "\"By subjective report, the \"data access window\" is approximately 0.5 to 1 second in duration\" (Hubbard & Langford, 1986, p. 5). Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as \"low contrast, low intensity and low resolution.\"",
-        "Otto Reimann, a recognized Czech psychometrist mentioned that his \" ... information about the target did not come to him, he said, as one piece altogether, like a photograph. Instead, as metaphors of the process he preferred those of slowly building a mosaic from tiny pieces of stone or painting a portrait by repeated applications of pigment to a canvas\" [Schmidt, 1930, as cited in Barrington et al., 2005, p. 157]."
       ]
     }
   };

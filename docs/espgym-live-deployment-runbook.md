@@ -383,6 +383,12 @@ Practical meaning:
 
 - local debugging should not begin after asset changes until the local debug helper succeeds
 - the preferred test URL should come from the helper output, not from memory
+- after any JavaScript edit, run a syntax check before handing over a local test URL:
+  - `node --check C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.js`
+  - and also run `node --check` on any other changed JS file involved in the edit
+- do not send the user to a local test URL until those syntax checks pass cleanly
+- after syntax checks pass, mirror-sync `C:\xampp\htdocs\telepathyexperiment\cones` to `C:\xampp\htdocs\cones` before claiming the local build is ready
+- if `http://localhost/...` behaves strangely on this machine because of stale cache or service-worker state, prefer the equivalent `http://127.0.0.1/...` URL for local browser testing because it uses a separate origin and bypasses that stale local browser state
 
 ## Lesson Autobackup Retention
 
