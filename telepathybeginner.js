@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260816b";
+  const launcherBuildVersion = "20260816c";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -1556,6 +1556,7 @@ ${calmPracticeMessage}`;
     4: "In Level 4 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
     5: 'In Level 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
+  const remoteViewExplanationCopy = "After the countdown ends, an image appears on the Remote Device.\nTry to perceive that image using ESP. When you are ready, you are\nshown two images. Select the one that best matches what you perceived.";
   const roleSkillExplanationCopy = {
     sender: 'The Sender must learn to look intently at an image and "put it out there" strongly. Where exactly is "out there" is a good question.',
     receiver: 'The Receiver must learn to look at the contents of the Receiver\'s "mind\'s eye" and trust what appears to pop in, and remember what was seen in that relatively short span of time.',
@@ -7188,6 +7189,9 @@ ${calmPracticeMessage}`;
       if (allowClaimPrompt) {
         throw new Error(`${fieldName} is not an accepted unique handle. To use it, first choose a unique name and claim that handle.`);
       }
+      if (String(fieldName || "").trim().toLowerCase() === "remote display identifier") {
+        throw new Error('Remote Device identifier is not an accepted unique name. If not already done, bring up ESP GYM on that device, go to "Setup Website Features" and claim a unique name for use on that device. Then enter that device name in the Remote Device field here.');
+      }
       throw new Error(`${fieldName} is not an accepted unique handle. That person must claim the handle for themselves before you can use it here.`);
     }
     return String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier;
@@ -10585,6 +10589,10 @@ ${calmPracticeMessage}`;
   function setRoleDifficultyLabel(role, level) {
     const label = difficultyLabels.find((item) => item.dataset.pairDifficultyLabel === role);
     if (label) {
+      if (label.dataset.staticLevelLabel === "remote-viewer") {
+        label.classList.remove("role-card-level-hidden");
+        return;
+      }
       if (!label.dataset.placeholder) {
         label.dataset.placeholder = String(label.textContent || "Level 1").trim() || "Level 1";
       }
@@ -11021,14 +11029,16 @@ ${calmPracticeMessage}`;
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const setupWrap = getRoleSetupWrap(role);
-    const explanation = getDifficultyExplanation(level);
+    const explanation = role === "remote-viewer"
+      ? remoteViewExplanationCopy
+      : getDifficultyExplanation(level);
     if (!note || !panel || !explanation) {
       return;
     }
     note.dataset.previewActive = "true";
     note.textContent = explanation;
     if (setupWrap) {
-      const ownIdentifier = String(readRoleFormValues(role)?.ownName || "").trim();
+      const ownIdentifier = String(readVisibleRoleIdentifiers(role)?.ownName || "").trim();
       const shouldShowSetupPrompt = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
       setupWrap.hidden = !shouldShowSetupPrompt;
       setupWrap.dataset.previewActive = shouldShowSetupPrompt ? "true" : "";
@@ -11058,7 +11068,7 @@ ${calmPracticeMessage}`;
     }
     if (setupWrap) {
       setupWrap.dataset.previewActive = "";
-      const ownIdentifier = String(readRoleFormValues(role)?.ownName || "").trim();
+      const ownIdentifier = String(readVisibleRoleIdentifiers(role)?.ownName || "").trim();
       const ownStatus = getCachedIdentifierStatus(ownIdentifier);
       const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
       const usesTemporaryIdentity = isLandingExploreTemporaryIdentity(ownIdentifier);
@@ -11086,6 +11096,10 @@ ${calmPracticeMessage}`;
   }
 
   function previewLevelExplanationFromCurrentLabel(role) {
+    if (role === "remote-viewer") {
+      showRoleLevelExplanation(role, "1");
+      return;
+    }
     const label = getDifficultyLabelElement(role);
     const match = String(label?.textContent || "").match(/Level\s+([12345])/i);
     if (!match) {
@@ -12446,10 +12460,10 @@ ${calmPracticeMessage}`;
       usesTemporaryIdentity
         ? buildTemporaryIdentityNote(temporaryIdentity.identifier)
         : ownUsesHandle
-          ? ""
+          ? calmPracticeMessage
           : "This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being."
     );
-    setRoleFeatureSetupPrompt("remote-viewer", !usesTemporaryIdentity && ownUsesHandle && setupPromptVisible);
+    setRoleFeatureSetupPrompt("remote-viewer", !usesTemporaryIdentity && !ownUsesHandle && setupPromptVisible);
     if (shouldShowEspLessonForRole("remote-viewer")) {
       void refreshRoleEspLesson("remote-viewer");
     } else {
@@ -16044,9 +16058,9 @@ ${calmPracticeMessage}`;
       "In this report, effect size is calculated as:",
       "effect size = Z / sqrt(N)",
       "where:",
-      "N = the number of completed scored trials",
-      `Z = (Your score - Chance score) / sqrt(total variance) = (${formatAdvancedDetailNumber(yourScore, 6)} - ${formatAdvancedDetailNumber(chanceScore, 6)}) / sqrt(${formatAdvancedDetailNumber(totalVariance, 6)}) = ${formatAdvancedDetailNumber(detail.zScore, 6)}.`,
-      `Completed scored trials (N) = ${detail.totalTrials}.`,
+      `N = the number of completed scored trials = ${detail.totalTrials}.`,
+      `sigma (the standard deviation) = sqrt(total variance) = sqrt(${formatAdvancedDetailNumber(totalVariance, 6)}) = ${formatAdvancedDetailNumber(Math.sqrt(Math.max(0, Number(totalVariance) || 0)), 6)}.`,
+      `Z = (Your score - Chance score) / sigma = (${formatAdvancedDetailNumber(yourScore, 6)} - ${formatAdvancedDetailNumber(chanceScore, 6)}) / ${formatAdvancedDetailNumber(Math.sqrt(Math.max(0, Number(totalVariance) || 0)), 6)} = ${formatAdvancedDetailNumber(detail.zScore, 6)}.`,
       `sqrt(N) = ${formatAdvancedDetailNumber(detail.sqrtTrials, 6)}.`,
       `Effect size = Z / sqrt(N) = ${formatAdvancedDetailNumber(detail.value, 6)} sigma.`,
       `Interpretation band: ${getEffectSizeInterpretationBandLine(detail.absoluteValue)}`,
