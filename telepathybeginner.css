@@ -1016,83 +1016,6 @@ body {
   z-index: 2;
 }
 
-.beginner-top-menu-button {
-  gap: 10px;
-}
-
-.beginner-top-menu-icon {
-  display: inline-flex;
-  width: 16px;
-  height: 12px;
-  position: relative;
-  flex: 0 0 auto;
-}
-
-.beginner-top-menu-icon::before,
-.beginner-top-menu-icon::after,
-.beginner-top-menu-icon span {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 16px;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.beginner-top-menu-icon::before {
-  top: 0;
-}
-
-.beginner-top-menu-icon span {
-  top: 5px;
-}
-
-.beginner-top-menu-icon::after {
-  top: 10px;
-}
-
-.beginner-title-icon-only {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 42px;
-  margin-top: 0;
-}
-
-.options-title-menu-icon {
-  display: inline-flex;
-  width: 34px;
-  height: 24px;
-  position: relative;
-  color: rgba(255, 241, 230, 0.92);
-}
-
-.options-title-menu-icon::before,
-.options-title-menu-icon::after,
-.options-title-menu-icon span {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 34px;
-  height: 4px;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.18);
-}
-
-.options-title-menu-icon::before {
-  top: 0;
-}
-
-.options-title-menu-icon span {
-  top: 10px;
-}
-
-.options-title-menu-icon::after {
-  top: 20px;
-}
-
 .beginner-top-button:hover,
 .beginner-top-button:focus-visible,
 .beginner-top-link:hover,
@@ -1234,6 +1157,13 @@ body {
   text-align: center;
   font-size: clamp(2rem, 5vw, 3.4rem);
   line-height: 1.05;
+}
+
+.options-title-text {
+  font-size: clamp(1.15rem, 2.15vw, 1.55rem);
+  line-height: 1.08;
+  letter-spacing: 0.12em;
+  font-weight: 600;
 }
 
 .beginner-subtitle {
@@ -4629,7 +4559,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260816a") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260816b") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

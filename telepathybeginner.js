@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260816a";
+  const launcherBuildVersion = "20260816b";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -230,9 +230,9 @@
     "concept-telepathy": {
       title: "Telepathy",
       paragraphs: [
-        "In ESP GYM, the focus is on visual telepathy: the Receiver attempts to perceive visual information associated with the Senderâ€™s attention to an image.",
+        "In ESP GYM, the focus is on visual telepathy: the Receiver attempts to perceive visual information associated with the Sender's attention to an image.",
         "Because the impressions that are received are usually subtle and short-lived, the Receiver benefits from quieting the mind, reducing internal chatter, and becoming calmly attentive to any surprising visual information that is perceived at the moment the information is most likely to appear.",
-        "The task is not to force meaning onto the experience, but to observe carefully what appears spontaneously and to remember what was perceived in the mindâ€™s eye, whether the eyes are open or closed.",
+        "The task is not to force meaning onto the experience, but to observe carefully what appears spontaneously and to remember what was perceived in the mind's eye, whether the eyes are open or closed.",
         "When the Receiver correctly identifies the image the Sender was viewing, immediate positive feedback is given, and such rapid reinforcement has been shown to assist learning.",
         "Even though telepathy is not yet understood by modern science, by now enough evidence has accumulated to convince many scientists that it is real."
       ]
@@ -1083,6 +1083,8 @@
   const roleLessonFadeTimers = new Map();
   const roleLessonFadeTokens = new Map();
   const roleLessonFadeDurationMs = 3150;
+  const roleLevelPreviewClearTimers = new Map();
+  const roleLevelPreviewGraceMs = 5000;
   const roleLessonSessionIds = {
     sender: 0,
     receiver: 0,
@@ -1257,13 +1259,12 @@ The following linked readings can be used as a small study sequence for users in
 [*] HOW TO USE THESE READINGS
 ----------------------------
 The best use of this material is not to read it once and forget it, but to let it accompany practice. Read one case, reflect on what kind of information transfer it seems to suggest, then return to the app and train. Over time, the cases, the reports, and your own practice data begin to inform one another. That is the spirit in which this section is provided.`;
-  const defaultEspLessonsText = `[*] Paragraph One
+  const calmPracticeMessage = `Quiet your mind.
+Let go of expectation.
+When the countdown ends, notice whatever appears.`;
+  const defaultEspLessonsText = `[*] Practice Reminder
 ----------------
-This is simply a test message for now.
-
-[*] Paragraph Two
-----------------
-This is an alternate test message to show now.`;
+${calmPracticeMessage}`;
   let espLessonsSourceText = defaultEspLessonsText;
   let stripePublicConfigCache = null;
   let stripeCheckoutInFlight = false;
@@ -7977,7 +7978,7 @@ This is an alternate test message to show now.`;
     } else if (isVisitorRole) {
       setRoleDefaultNoteHtml(role, buildVisitorRoleNoteHtml(role), buildVisitorRoleNote(role));
     } else if (ownUsesHandle) {
-      setRoleDefaultNoteText(role, "");
+      setRoleDefaultNoteText(role, calmPracticeMessage);
     } else {
       setRoleDefaultNoteHtml(role, buildDefaultEmailIdentityNoteHtml(role), buildDefaultEmailIdentityNote(role));
     }
@@ -7992,7 +7993,7 @@ This is an alternate test message to show now.`;
         : "Choose unique name instead of email address";
     }
     setRoleVisitorProPrompt(role, false);
-    setRoleFeatureSetupPrompt(role, !usesTemporaryIdentity && ownUsesHandle && setupPromptVisible);
+    setRoleFeatureSetupPrompt(role, !usesTemporaryIdentity && !ownUsesHandle && setupPromptVisible);
     if (shouldShowEspLessonForRole(role)) {
       void refreshRoleEspLesson(role);
     } else {
@@ -10297,6 +10298,10 @@ This is an alternate test message to show now.`;
     if (!["sender", "receiver"].includes(normalizedRole)) {
       return;
     }
+    if (!isRunningAsInstalledApp()) {
+      window.alert("Partner messaging requires the installed ESP GYM app on this device. You are currently in browser mode. Please use Setup Website Features to install the app and enable partner messaging first.");
+      return;
+    }
     const availabilityReason = getRoleMessageAvailabilityReason(normalizedRole);
     if (availabilityReason) {
       window.alert(availabilityReason);
@@ -11011,15 +11016,23 @@ This is an alternate test message to show now.`;
     if (isRoleMessageAreaVisible(role)) {
       return;
     }
+    clearRoleLevelPreviewClearTimer(role);
     clearRoleLessonDisplay(role);
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
+    const setupWrap = getRoleSetupWrap(role);
     const explanation = getDifficultyExplanation(level);
     if (!note || !panel || !explanation) {
       return;
     }
     note.dataset.previewActive = "true";
     note.textContent = explanation;
+    if (setupWrap) {
+      const ownIdentifier = String(readRoleFormValues(role)?.ownName || "").trim();
+      const shouldShowSetupPrompt = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
+      setupWrap.hidden = !shouldShowSetupPrompt;
+      setupWrap.dataset.previewActive = shouldShowSetupPrompt ? "true" : "";
+    }
     panel.classList.add("is-level-preview");
   }
 
@@ -11030,6 +11043,7 @@ This is an alternate test message to show now.`;
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const contactWrap = getRoleNoteContactWrap(role);
+    const setupWrap = getRoleSetupWrap(role);
     if (!note || !panel) {
       return;
     }
@@ -11041,6 +11055,15 @@ This is an alternate test message to show now.`;
     if (contactWrap) {
       contactWrap.hidden = true;
       contactWrap.dataset.previewActive = "";
+    }
+    if (setupWrap) {
+      setupWrap.dataset.previewActive = "";
+      const ownIdentifier = String(readRoleFormValues(role)?.ownName || "").trim();
+      const ownStatus = getCachedIdentifierStatus(ownIdentifier);
+      const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
+      const usesTemporaryIdentity = isLandingExploreTemporaryIdentity(ownIdentifier);
+      const setupPromptVisible = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier, ownStatus);
+      setupWrap.hidden = !(setupPromptVisible && !usesTemporaryIdentity && !ownUsesHandle);
     }
     if (!defaultText) {
       void refreshRoleEspLesson(role);
@@ -11085,6 +11108,29 @@ This is an alternate test message to show now.`;
     }
     label.dataset.previewDelayTimer = "0";
     label.dataset.previewClearTimer = "0";
+  }
+
+  function clearRoleLevelPreviewClearTimer(role) {
+    const normalizedRole = String(role || "").trim();
+    const existingTimer = Number(roleLevelPreviewClearTimers.get(normalizedRole) || 0);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+      roleLevelPreviewClearTimers.delete(normalizedRole);
+    }
+  }
+
+  function scheduleRoleLevelExplanationClear(role, delayMs = roleLevelPreviewGraceMs) {
+    const normalizedRole = String(role || "").trim();
+    if (!normalizedRole) {
+      return;
+    }
+    clearRoleLevelPreviewClearTimer(normalizedRole);
+    const timerId = window.setTimeout(() => {
+      roleLevelPreviewClearTimers.delete(normalizedRole);
+      clearRoleLevelExplanation(normalizedRole);
+      getDifficultyLabelElement(normalizedRole)?.classList.remove("is-guided-preview");
+    }, Math.max(120, Number(delayMs) || roleLevelPreviewGraceMs));
+    roleLevelPreviewClearTimers.set(normalizedRole, timerId);
   }
 
   function isDifficultyExplanationLocked(role) {
@@ -28867,20 +28913,20 @@ This is an alternate test message to show now.`;
       return;
     }
     stack.addEventListener("mouseenter", () => {
+      clearRoleLevelPreviewClearTimer(role);
       previewLevelExplanationFromCurrentLabel(role);
     });
     stack.addEventListener("mouseleave", () => {
-      clearRoleLevelExplanation(role);
-      getDifficultyLabelElement(role)?.classList.remove("is-guided-preview");
+      scheduleRoleLevelExplanationClear(role);
     });
     stack.addEventListener("focusin", () => {
+      clearRoleLevelPreviewClearTimer(role);
       previewLevelExplanationFromCurrentLabel(role);
     });
     stack.addEventListener("focusout", () => {
       window.setTimeout(() => {
         if (!stack.contains(document.activeElement)) {
-          clearRoleLevelExplanation(role);
-          getDifficultyLabelElement(role)?.classList.remove("is-guided-preview");
+          scheduleRoleLevelExplanationClear(role);
         }
       }, 0);
     });
@@ -28892,6 +28938,7 @@ This is an alternate test message to show now.`;
     }
     label.addEventListener("mouseenter", () => {
       clearDifficultyPreviewTimers(label);
+      clearRoleLevelPreviewClearTimer(role);
       previewLevelExplanationFromCurrentLabel(role);
     });
     label.addEventListener("mouseleave", () => {
@@ -28899,19 +28946,18 @@ This is an alternate test message to show now.`;
       if (stack?.matches(":hover")) {
         return;
       }
-      clearRoleLevelExplanation(role);
-      label.classList.remove("is-guided-preview");
+      scheduleRoleLevelExplanationClear(role);
     });
     label.addEventListener("focusin", () => {
       clearDifficultyPreviewTimers(label);
+      clearRoleLevelPreviewClearTimer(role);
       previewLevelExplanationFromCurrentLabel(role);
     });
     label.addEventListener("focusout", () => {
       window.setTimeout(() => {
         const stack = label.closest("[data-role-difficulty-stack]");
         if (!label.matches(":focus") && !(stack && stack.contains(document.activeElement))) {
-          clearRoleLevelExplanation(role);
-          label.classList.remove("is-guided-preview");
+          scheduleRoleLevelExplanationClear(role);
         }
       }, 0);
     });
