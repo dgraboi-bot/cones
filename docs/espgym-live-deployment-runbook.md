@@ -904,6 +904,16 @@ The following exact surfaces are known to require inspection and, when applicabl
 - home link to `telepathybeginner.html?v=...&open=launcher`
 - `telepathy.js?v=...`
 
+Runtime cache-busting rule:
+
+- If you changed runtime behavior or styling in `telepathy.js` or `telepathy.css`, do not assume the fresh launcher alone is enough.
+- You must verify that both `sender.html` and `receiver.html` now reference the same new build string in:
+  - `telepathy.css?v=...`
+  - `telepathy.js?v=...`
+  - the launcher home link `telepathybeginner.html?v=...&open=launcher`
+- If those runtime shell files still point at an older build, the launcher can look fresh while the live runtime still serves stale JS/CSS.
+- Before handing off a local test URL after runtime changes, confirm the visible URL version, `telepathy.js` `runtimeBuildVersion`, and the versioned asset references inside `sender.html` and `receiver.html` all match.
+
 #### `telepathybeginner.webmanifest`
 
 - `start_url`

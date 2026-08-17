@@ -48,7 +48,8 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260816c";
+  const runtimeBuildVersion = "20260817h";
+  const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -66,6 +67,7 @@
   const guidedTourLauncherOriginRestoreKey = "cones-guided-tour-launcher-origin-restore-v1";
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const probeDeeperReturnKey = "cones-probe-deeper-return-v1";
+  const coveredScreenInstructionDismissKey = "cones-covered-screen-instruction-dismiss-v1";
   let guidedStandaloneProbeTopicId = "";
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
@@ -78,15 +80,22 @@
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   let runtimePrefillSettingsOverride = null;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
+  const isRemoteViewerCoveredMode = runtimeMode === "remote-viewer-covered";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
   const isRobotSenderMode = runtimeMode === "robot-sender";
   const isRobotReceiverMode = runtimeMode === "robot-receiver";
   const isRobotSimulationMode = isRobotSenderMode || isRobotReceiverMode;
+  const isRemoteViewerLikeMode = isRemoteViewerMode || isRemoteViewerCoveredMode;
+  const isRobotSenderLikeMode = isRobotSenderMode || isRemoteViewerCoveredMode;
+  const isLocalSimulationMode = isRobotSimulationMode || isRemoteViewerCoveredMode;
   const isGuidedReceiverTour = role === "receiver" && guidedTourMode === "receiver-experience";
   const isGuidedSenderTour = role === "sender" && guidedTourMode === "sender-experience";
+  function showLocalRuntimeDebugAlert(id, details = "") {
+    return;
+  }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260816c";
+  const launcherBuildVersion = "20260817h";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -171,6 +180,9 @@
   let confidenceButton = null;
   let twoChoiceButton = null;
   let instructionPanel = null;
+  let coveredScreenInstructionOverlay = null;
+  let coveredScreenInstructionCheckbox = null;
+  let coveredScreenInstructionResolve = null;
   let pendingGuessLayoutNumbers = [];
   let pendingGuessArrangementCodes = [];
   let pendingConfidenceValue = 5;
@@ -530,7 +542,7 @@
       }
       return [levelOneChoiceNodes.get("count-3")].filter(Boolean);
     }
-    if (isLevelFourDifficulty()) {
+    if (isLevelFourLikeRound()) {
       const actualChoiceIndex = Number(activeRound.image_sent_index);
       return [levelFourChoiceNodes.get(actualChoiceIndex)].filter(Boolean);
     }
@@ -1360,11 +1372,15 @@
   }
 
   function isLevelFourDifficulty() {
-    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "4" && !isRemoteViewerMode && !isRemoteDisplayMode;
+    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "4" && !isRemoteViewerLikeMode && !isRemoteDisplayMode;
+  }
+
+  function isLevelFourLikeRound(roundLike = activeRound) {
+    return isImagePairRound(roundLike) || isLevelFourDifficulty();
   }
 
   function getLevelFourChoiceUrls(roundLike = activeRound) {
-    if (!roundLike || String(roundLike?.stimulus_kind || "") !== "image_pair") {
+    if (!isImagePairRound(roundLike)) {
       return null;
     }
 
@@ -1385,6 +1401,56 @@
       return "";
     }
     return String(roundLike.image_sent || "").trim();
+  }
+
+  function normalizeImageChoiceComparisonValue(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+
+    try {
+      const url = new URL(raw, window.location.href);
+      const pathname = String(url.pathname || "").trim();
+      const fileName = pathname.split("/").filter(Boolean).pop() || pathname;
+      return fileName.toLowerCase();
+    } catch (error) {
+      return raw
+        .split(/[?#]/, 1)[0]
+        .split("/")
+        .filter(Boolean)
+        .pop()
+        ?.toLowerCase() || raw.toLowerCase();
+    }
+  }
+
+  function getResolvedLevelFourActualChoiceIndex(roundLike = activeRound) {
+    if (!isImagePairRound(roundLike)) {
+      return null;
+    }
+
+    const sentImage = String(roundLike?.image_sent || "").trim();
+    const choiceA = String(roundLike?.image_choice_a || "").trim();
+    const choiceB = String(roundLike?.image_choice_b || "").trim();
+    const normalizedSentImage = normalizeImageChoiceComparisonValue(sentImage);
+    const normalizedChoiceA = normalizeImageChoiceComparisonValue(choiceA);
+    const normalizedChoiceB = normalizeImageChoiceComparisonValue(choiceB);
+
+    if (sentImage && choiceA && sentImage === choiceA) {
+      return 1;
+    }
+    if (sentImage && choiceB && sentImage === choiceB) {
+      return 2;
+    }
+    if (normalizedSentImage && normalizedChoiceA && normalizedSentImage === normalizedChoiceA) {
+      return 1;
+    }
+    if (normalizedSentImage && normalizedChoiceB && normalizedSentImage === normalizedChoiceB) {
+      return 2;
+    }
+
+    const indexedChoice = Number(roundLike?.image_sent_index ?? 0) || null;
+    return indexedChoice === 1 || indexedChoice === 2 ? indexedChoice : null;
   }
 
   async function preloadRuntimeImage(imageUrl) {
@@ -1437,6 +1503,9 @@
   }
 
   function getWaitingOnlinePrompt() {
+    if (isRemoteViewerCoveredMode) {
+      return "Preparing covered-screen remote-viewing trial...";
+    }
     if (role === "sender") {
       return isRemoteDisplayMode
         ? "Waiting for remote viewer to be online..."
@@ -1449,6 +1518,9 @@
   }
 
   function getWaitingReadyPrompt() {
+    if (isRemoteViewerCoveredMode) {
+      return "Preparing covered-screen remote-viewing trial...";
+    }
     return isRemoteDisplayMode
       ? "Waiting for remote viewer to be ready..."
       : "Waiting for the receiver to be ready...";
@@ -1461,20 +1533,25 @@
   }
 
   function getReceiverPressReadyPrompt() {
-    return isRemoteViewerMode
+    return isRemoteViewerLikeMode
       ? "Press when ready to remote view."
       : "Press when ready to receive.";
   }
 
   function getReceiverWaitingStartPrompt() {
-    return isRemoteViewerMode
+    if (isRemoteViewerCoveredMode) {
+      return "";
+    }
+    return isRemoteViewerLikeMode
       ? "Waiting for remote viewer display to begin..."
       : "Waiting for sender to begin...";
   }
 
   function getReceiverDonePrompt() {
-    return isRemoteViewerMode
-      ? "Press here when done remote viewing."
+    return isRemoteViewerLikeMode
+      ? (isRemoteViewerCoveredMode
+          ? "Tap anywhere on the screen when done remote viewing."
+          : "Press here when done remote viewing.")
       : "Press here when done receiving.";
   }
 
@@ -1676,6 +1753,10 @@
 
   function isSingleChoiceDifficulty() {
     return isLevelOneDifficulty() || isLevelTwoDifficulty();
+  }
+
+  function isImagePairRound(roundLike = activeRound) {
+    return String(roundLike?.stimulus_kind || "") === "image_pair";
   }
 
   function getLevelOneCountChoiceFromLayoutNumber(layoutNumber) {
@@ -1906,9 +1987,13 @@
 
   function buildRobotSimulationPayload() {
     const state = ensureRobotSimulationState();
-    const difficultyLevel = getRequestedDifficultyLevel();
+    const difficultyLevel = isRemoteViewerCoveredMode ? "4" : getRequestedDifficultyLevel();
     if (isRobotSenderMode) {
       state.sender_online = true;
+    }
+    if (isRemoteViewerCoveredMode) {
+      state.sender_online = true;
+      state.receiver_online = true;
     }
     if (isRobotReceiverMode) {
       state.receiver_online = true;
@@ -1924,12 +2009,18 @@
   }
 
   function bootstrapRobotSimulation() {
-    if (!isRobotSimulationMode || robotSimulationBootstrapped) {
+    if (!isLocalSimulationMode || robotSimulationBootstrapped) {
       return;
     }
     robotSimulationBootstrapped = true;
     const state = ensureRobotSimulationState();
-    currentPairDifficultyLevel = getRequestedDifficultyLevel();
+    currentPairDifficultyLevel = isRemoteViewerCoveredMode ? "4" : getRequestedDifficultyLevel();
+
+    if (isRemoteViewerCoveredMode) {
+      state.sender_online = true;
+      state.receiver_online = true;
+      return;
+    }
 
     scheduleRobotSimulationStep(() => {
       if (isRobotSenderMode) {
@@ -1996,7 +2087,7 @@
     const difficultyLevel = getRequestedDifficultyLevel();
     const roundId = `robot-${Date.now().toString(36)}-${String(++robotSimulationRoundCounter).padStart(3, "0")}`;
     const senderClientId = isRobotReceiverMode ? clientId : robotSimulationIdentifier;
-    const receiverClientId = isRobotSenderMode ? clientId : robotSimulationIdentifier;
+    const receiverClientId = isRobotSenderLikeMode ? clientId : robotSimulationIdentifier;
     const round = {
       id: roundId,
       sender_client_id: senderClientId,
@@ -2019,7 +2110,7 @@
       image_sent: ""
     };
 
-    if (difficultyLevel === "4") {
+    if (difficultyLevel === "4" || isRemoteViewerCoveredMode) {
       const pairs = await loadRobotLevelFourPairs();
       if (pairs.length) {
         const pair = pairs[randomInt(0, pairs.length - 1)];
@@ -2084,7 +2175,7 @@
   }
 
   function resetRobotSimulationRoundState() {
-    if (!isRobotSimulationMode) {
+    if (!isLocalSimulationMode) {
       return;
     }
     const state = ensureRobotSimulationState();
@@ -2105,23 +2196,80 @@
   }
 
   async function scheduleRobotSenderRoundStart() {
-    if (!isRobotSenderMode || localRoundRunning || roundScheduled || robotSimulationRoundStarterHandle !== null) {
+    if (!isRobotSenderLikeMode || localRoundRunning || roundScheduled || robotSimulationRoundStarterHandle !== null) {
+      logCoveredScreenTrace("round_start_skipped_precheck", {
+        has_existing_timeout: robotSimulationRoundStarterHandle !== null
+      });
       return;
     }
+    logCoveredScreenTrace("round_start_scheduled");
     robotSimulationRoundStarterHandle = window.setTimeout(async () => {
       robotSimulationRoundStarterHandle = null;
       if (!receiverReady || localRoundRunning || roundScheduled) {
+        logCoveredScreenTrace("round_start_aborted_after_timeout");
         return;
       }
       const state = ensureRobotSimulationState();
       const startServerMs = estimatedServerNowMs();
       const round = await createRobotRound(startServerMs);
+      logCoveredScreenTrace("round_created", {
+        round_id: round?.id || "",
+        round_stimulus_kind: round?.stimulus_kind || ""
+      });
       state.round = round;
       state.post_round = null;
       state.receiver_view.phase = "idle";
       scheduleSynchronizedRound(round);
       applyRemoteState(buildRobotSimulationPayload());
-    }, randomInt(2900, 3700));
+    }, isRemoteViewerCoveredMode ? 250 : randomInt(2900, 3700));
+  }
+
+  async function startCoveredScreenRoundNow() {
+    if (!isRemoteViewerCoveredMode || localRoundRunning || roundScheduled) {
+      logCoveredScreenTrace("direct_round_start_skipped");
+      return;
+    }
+
+    let failureStage = "initializing";
+    try {
+      showLocalRuntimeDebugAlert(11, `mode=${runtimeMode} ui=${currentUiMode}`);
+      failureStage = "logging start";
+      logCoveredScreenTrace("direct_round_start_begin");
+      failureStage = "loading simulation state";
+      const state = ensureRobotSimulationState();
+      failureStage = "reading clock";
+      const startServerMs = estimatedServerNowMs();
+      failureStage = "creating round";
+      const round = await createRobotRound(startServerMs);
+      failureStage = "logging round";
+      logCoveredScreenTrace("direct_round_created", {
+        round_id: round?.id || "",
+        round_stimulus_kind: round?.stimulus_kind || ""
+      });
+      failureStage = "writing round state";
+      state.round = round;
+      state.post_round = null;
+      state.receiver_view.phase = "idle";
+      failureStage = "scheduling synchronized countdown";
+      scheduleSynchronizedRound(round);
+      failureStage = "applying local remote state";
+      applyRemoteState(buildRobotSimulationPayload());
+    } catch (error) {
+      const prompt = `Unable to start covered-screen remote-viewing during ${failureStage}. Please try again.`;
+      receiverReady = false;
+      localRoundRunning = false;
+      roundScheduled = false;
+      currentUiMode = "receiver-ready";
+      setPrompt(prompt, true, prompt);
+      updateSettingsGearVisibility();
+      void logDebugEvent("covered_screen_direct_round_start_error", {
+        role,
+        runtime_mode: runtimeMode,
+        failure_stage: failureStage,
+        message: error instanceof Error ? error.message : String(error || ""),
+        stack: error instanceof Error ? String(error.stack || "") : ""
+      });
+    }
   }
 
   function runRobotReceiverSimulationAfterRound() {
@@ -3361,6 +3509,11 @@
   }
 
   function showCountdownValue(value) {
+    countdownBox.classList.remove("hidden");
+    countdownBox.classList.remove("interactive");
+    countdownBox.removeAttribute("role");
+    countdownBox.removeAttribute("tabindex");
+    countdownBox.removeAttribute("aria-label");
     countdownNumber.textContent = value;
     countdownNumber.classList.remove("prompt");
     countdownNumber.classList.remove("compact");
@@ -3371,10 +3524,119 @@
   }
 
   function getLauncherReturnRole() {
-    if (isRemoteViewerMode || isRemoteDisplayMode) {
+    if (isRemoteViewerMode || isRemoteViewerCoveredMode || isRemoteDisplayMode) {
       return "remote-viewer";
     }
     return role === "sender" ? "sender" : "receiver";
+  }
+
+  function isLikelyTouchRuntimeDevice() {
+    return Number(navigator.maxTouchPoints || 0) > 0;
+  }
+
+  function getCoveredScreenInstructionMessage() {
+    const clearInstruction = isLikelyTouchRuntimeDevice()
+      ? "WHEN DONE REMOTE VIEWING THE COVERED SCREEN, BEFORE CONTINUING, TAP ANYWHERE ON THE SCREEN TO CLEAR THE DISPLAYED IMAGE."
+      : "WHEN DONE REMOTE VIEWING THE COVERED SCREEN, BEFORE CONTINUING, TAP ANY KEY TO CLEAR THE DISPLAYED IMAGE.";
+    return `${clearInstruction}\n\nCOVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.`;
+  }
+
+  function ensureCoveredScreenInstructionOverlay() {
+    if (coveredScreenInstructionOverlay) {
+      return coveredScreenInstructionOverlay;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "covered-screen-runtime-instruction-backdrop hidden";
+
+    const dialog = document.createElement("section");
+    dialog.className = "covered-screen-runtime-instruction-modal";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "coveredScreenRuntimeInstructionTitle");
+
+    const title = document.createElement("h2");
+    title.className = "covered-screen-runtime-instruction-title";
+    title.id = "coveredScreenRuntimeInstructionTitle";
+    title.textContent = "Covered Screen Clairvoyance/Remote Viewing";
+
+    const copy = document.createElement("p");
+    copy.className = "covered-screen-runtime-instruction-copy";
+    copy.setAttribute("data-covered-screen-runtime-instruction-copy", "");
+
+    const checkboxRow = document.createElement("label");
+    checkboxRow.className = "covered-screen-runtime-instruction-checkbox";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.setAttribute("data-covered-screen-runtime-instruction-checkbox", "");
+
+    const checkboxText = document.createElement("span");
+    checkboxText.textContent = "Don't show this message again in this session.";
+
+    checkboxRow.append(checkbox, checkboxText);
+
+    const actions = document.createElement("div");
+    actions.className = "covered-screen-runtime-instruction-actions";
+
+    const okButton = document.createElement("button");
+    okButton.type = "button";
+    okButton.className = "confidence-button";
+    okButton.textContent = "OK";
+
+    actions.append(okButton);
+    dialog.append(title, copy, checkboxRow, actions);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    const closeOverlay = (accepted) => {
+      overlay.classList.add("hidden");
+      if (accepted && checkbox.checked) {
+        try {
+          window.sessionStorage.setItem(coveredScreenInstructionDismissKey, "1");
+        } catch (_) {
+          // Ignore session-storage failures.
+        }
+      }
+      const resolver = coveredScreenInstructionResolve;
+      coveredScreenInstructionResolve = null;
+      if (typeof resolver === "function") {
+        resolver(accepted);
+      }
+    };
+
+    okButton.addEventListener("click", () => closeOverlay(true));
+    dialog.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    coveredScreenInstructionOverlay = overlay;
+    coveredScreenInstructionCheckbox = checkbox;
+    return overlay;
+  }
+
+  async function confirmCoveredScreenInstructionBeforeCoveredRestart() {
+    try {
+      if (window.sessionStorage.getItem(coveredScreenInstructionDismissKey) === "1") {
+        return true;
+      }
+    } catch (_) {
+      // Ignore session-storage failures.
+    }
+
+    const overlay = ensureCoveredScreenInstructionOverlay();
+    const copy = overlay.querySelector("[data-covered-screen-runtime-instruction-copy]");
+    if (copy) {
+      copy.textContent = getCoveredScreenInstructionMessage();
+    }
+    if (coveredScreenInstructionCheckbox) {
+      coveredScreenInstructionCheckbox.checked = false;
+    }
+    overlay.classList.remove("hidden");
+
+    return await new Promise((resolve) => {
+      coveredScreenInstructionResolve = resolve;
+    });
   }
 
   function buildLauncherReturnUrl(options = {}) {
@@ -3425,6 +3687,9 @@
     const requestedScrollY = Number(options.scrollY);
     if (Number.isFinite(requestedScrollY) && requestedScrollY >= 0) {
       params.set("scroll_y", String(Math.max(0, Math.round(requestedScrollY))));
+    }
+    if (options.coveredSessionEnded) {
+      params.set("covered_session_end", "1");
     }
     params.set("v", launcherBuildVersion);
 
@@ -3832,6 +4097,7 @@
 
   function clearStageVisibility() {
     clearImageBlinkCycle();
+    stage?.classList.remove("covered-screen-reveal");
     arrangementNodes.forEach((node) => {
       node.classList.remove("visible");
     });
@@ -3974,7 +4240,7 @@
   async function abortTrialAndReturnHome(options = {}) {
     clearRobotSimulationTimers();
     try {
-      if (!isRobotSimulationMode) {
+      if (!isLocalSimulationMode) {
         const response = await api("abort_to_home");
         await appendTrialServerRecord(response?.state || {}, { aborted: true });
       } else if (activeRound?.id) {
@@ -4012,6 +4278,25 @@
     } catch (error) {
       // Ignore debug logging failures.
     }
+  }
+
+  function logCoveredScreenTrace(label, details = {}) {
+    if (!isRemoteViewerCoveredMode) {
+      return;
+    }
+    void logDebugEvent(`covered_screen_${label}`, {
+      runtime_mode: runtimeMode,
+      current_ui_mode: currentUiMode,
+      receiver_ready: receiverReady,
+      awaiting_receiver_done: awaitingReceiverDone,
+      receiver_choice_open: receiverChoiceOpen,
+      receiver_transitioning_screen: receiverTransitioningScreen,
+      local_round_running: localRoundRunning,
+      round_scheduled: roundScheduled,
+      receiver_mirror_phase: receiverMirrorPhase,
+      active_round_id: activeRound?.id || "",
+      ...details
+    });
   }
 
   async function traceClientEvent(label, details = {}) {
@@ -4516,7 +4801,7 @@
     }
 
     const grid = document.createElement("div");
-    grid.className = "image-pair-grid arrangement";
+    grid.className = "image-pair-grid";
     grid.id = "receiverLevelFourChoiceGrid";
 
     [1, 2].forEach((choiceIndex) => {
@@ -4538,7 +4823,7 @@
     }
 
     const grid = document.createElement("div");
-    grid.className = "image-pair-grid arrangement read-only";
+    grid.className = "image-pair-grid read-only";
     grid.id = "senderLevelFourChoiceGrid";
 
     [1, 2].forEach((choiceIndex) => {
@@ -4553,7 +4838,7 @@
 
   function buildImageDisplayPanel() {
     const panel = document.createElement("section");
-    panel.className = "image-display-panel arrangement";
+    panel.className = "image-display-panel";
     panel.id = `${role}ImageDisplayPanel`;
 
     const image = document.createElement("img");
@@ -4582,7 +4867,7 @@
     const enough = document.createElement("button");
     enough.className = "confidence-button decision-button";
     enough.type = "button";
-    enough.textContent = "Thanks! I've had enough for now.";
+    enough.textContent = isRemoteViewerCoveredMode ? "End Session" : "Thanks! I've had enough for now.";
     enough.addEventListener("click", () => {
       void submitPostRoundChoice("enough");
     });
@@ -4590,7 +4875,7 @@
     const another = document.createElement("button");
     another.className = "confidence-button decision-button";
     another.type = "button";
-    another.textContent = "Another?";
+    another.textContent = isRemoteViewerCoveredMode ? "Continue Session" : "Another?";
     another.addEventListener("click", () => {
       void submitPostRoundChoice("another");
     });
@@ -4718,11 +5003,43 @@
     arrangementNodes.forEach((node) => {
       node.classList.remove("visible");
     });
+    imageDisplayPanel.classList.toggle("covered-screen-mode", isRemoteViewerCoveredMode);
+    imageDisplayPanel.classList.toggle("interactive", isRemoteViewerCoveredMode);
+    if (isRemoteViewerCoveredMode) {
+      stage?.classList.add("covered-screen-reveal");
+      imageDisplayPanel.style.width = "";
+      imageDisplayPanel.style.height = "";
+      imageDisplayPanel.style.maxWidth = "";
+      imageDisplayPanel.style.maxHeight = "";
+      imageDisplayElement.style.width = "";
+      imageDisplayElement.style.height = "";
+      imageDisplayElement.style.maxWidth = "";
+      imageDisplayElement.style.maxHeight = "";
+      imageDisplayPanel.setAttribute("role", "button");
+      imageDisplayPanel.setAttribute("tabindex", "0");
+      imageDisplayPanel.setAttribute("aria-label", getReceiverDonePrompt());
+    } else {
+      imageDisplayPanel.style.width = "";
+      imageDisplayPanel.style.height = "";
+      imageDisplayPanel.style.maxWidth = "";
+      imageDisplayPanel.style.maxHeight = "";
+      imageDisplayElement.style.width = "";
+      imageDisplayElement.style.height = "";
+      imageDisplayElement.style.maxWidth = "";
+      imageDisplayElement.style.maxHeight = "";
+      imageDisplayPanel.removeAttribute("role");
+      imageDisplayPanel.removeAttribute("tabindex");
+      imageDisplayPanel.removeAttribute("aria-label");
+    }
     imageDisplayElement.src = String(imageUrl || "").trim();
     imageDisplayElement.style.visibility = "visible";
     imageDisplayCaption.textContent = captionText;
+    imageDisplayCaption.style.display = captionText ? "block" : "none";
     imageDisplayPanel.classList.add("visible");
     startImageBlinkCycle();
+    logCoveredScreenTrace("image_display_shown", {
+      image_url: String(imageUrl || "").trim()
+    });
   }
 
   function buildChoiceGrid() {
@@ -4759,6 +5076,9 @@
   }
 
   function getChoiceGridKey() {
+    if (isImagePairRound()) {
+      return role === "receiver" ? "receiver-level-four-choice-grid" : "sender-level-four-choice-grid";
+    }
     if (isLevelOneDifficulty()) {
       return role === "receiver" ? "receiver-level-one-choice-grid" : "sender-level-one-choice-grid";
     }
@@ -4767,7 +5087,7 @@
       return role === "receiver" ? "receiver-level-two-choice-grid" : "sender-level-two-choice-grid";
     }
 
-    if (isLevelFourDifficulty()) {
+    if (isLevelFourLikeRound()) {
       return role === "receiver" ? "receiver-level-four-choice-grid" : "sender-level-four-choice-grid";
     }
 
@@ -4775,6 +5095,9 @@
   }
 
   function getActiveSelectionNodesMap() {
+    if (isImagePairRound()) {
+      return role === "receiver" ? levelFourChoiceNodes : senderLevelFourChoiceNodes;
+    }
     if (isLevelOneDifficulty()) {
       return role === "receiver" ? levelOneChoiceNodes : senderLevelOneChoiceNodes;
     }
@@ -4783,7 +5106,7 @@
       return role === "receiver" ? levelTwoChoiceNodes : senderLevelTwoChoiceNodes;
     }
 
-    if (isLevelFourDifficulty()) {
+    if (isLevelFourLikeRound()) {
       return role === "receiver" ? levelFourChoiceNodes : senderLevelFourChoiceNodes;
     }
 
@@ -4797,7 +5120,8 @@
       return;
     }
 
-    if (isLevelFourDifficulty()) {
+    showLocalRuntimeDebugAlert(13, `key=${getChoiceGridKey()} imagepair=${isImagePairRound() ? 1 : 0} level=${currentPairDifficultyLevel}`);
+    if (isImagePairRound() || isLevelFourDifficulty()) {
       const choiceUrls = getLevelFourChoiceUrls();
       setLevelFourChoiceImages(getActiveSelectionNodesMap(), choiceUrls);
     }
@@ -5099,7 +5423,8 @@
     });
   }
 
-  function renderChoiceSelection(nodesMap, selectedLayoutNumbers, actualLayoutNumber = null) {
+  function renderChoiceSelection(nodesMap, selectedLayoutNumbers, actualLayoutNumber = null, options = {}) {
+    const resultMode = !!options.resultMode;
     const shouldShowChoiceOrder = !isLevelOneDifficulty() && selectedLayoutNumbers.length > 1;
 
     nodesMap.forEach((node) => {
@@ -5113,9 +5438,12 @@
       });
 
       const isSelected = choiceOrders.length > 0;
-      node.classList.toggle("pending", isSelected);
-      node.classList.toggle("selected", isSelected);
-      node.classList.toggle("actual", actualLayoutNumber === layoutNumber);
+      const isActual = actualLayoutNumber === layoutNumber;
+      const isIncorrectSelected = false;
+      node.classList.toggle("pending", !resultMode && isSelected);
+      node.classList.toggle("selected", !resultMode && isSelected);
+      node.classList.toggle("actual", isActual);
+      node.classList.toggle("incorrect-selected", isIncorrectSelected);
 
       if (isSelected && shouldShowChoiceOrder) {
         node.setAttribute("data-choice-order", choiceOrders.join(","));
@@ -5123,6 +5451,14 @@
         node.removeAttribute("data-choice-order");
       }
     });
+
+    if (isRemoteViewerCoveredMode && isLevelFourLikeRound()) {
+      logCoveredScreenTrace("choice_selection_rendered", {
+        selected_layout_numbers: selectedLayoutNumbers,
+        actual_layout_number: actualLayoutNumber,
+        result_mode: resultMode
+      });
+    }
   }
 
   function resetReceiverChoices() {
@@ -5541,6 +5877,11 @@
 
     currentUiMode = "receiver-waiting-start";
     hideStage();
+    if (isRemoteViewerCoveredMode) {
+      countdownBox.classList.add("hidden");
+      updateSettingsGearVisibility();
+      return;
+    }
     setPrompt(getReceiverWaitingStartPrompt(), false);
     updateSettingsGearVisibility();
   }
@@ -5672,6 +6013,36 @@
     };
   }
 
+  function playReceiverClearConfirmBeep() {
+    if (!audioContext) {
+      return;
+    }
+
+    stopBeep();
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(1380, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.008);
+    gain.gain.linearRampToValueAtTime(0.0001, now + 0.075);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.08);
+
+    activeOscillator = oscillator;
+    activeGain = gain;
+
+    oscillator.onended = () => {
+      stopBeep();
+    };
+  }
+
   async function playPositiveReinforcementSound() {
     if (!getPositiveReinforcementEnabled()) {
       return;
@@ -5724,12 +6095,29 @@
     receiverDoneReactionMs = null;
     countdownNumber.textContent = "";
     countdownNumber.classList.remove("prompt");
-    countdownBox.classList.remove("hidden");
-    countdownBox.classList.add("interactive");
-    countdownBox.setAttribute("role", "button");
-    countdownBox.setAttribute("tabindex", "0");
-    countdownBox.setAttribute("aria-label", getReceiverDonePrompt());
     receiverPressedDoneEarly = false;
+    if (isRemoteViewerCoveredMode && isImagePairRound(activeRound)) {
+      countdownBox.classList.add("hidden");
+      countdownBox.classList.remove("interactive");
+      countdownBox.removeAttribute("role");
+      countdownBox.removeAttribute("tabindex");
+      countdownBox.removeAttribute("aria-label");
+      const imageUrl = getLevelFourSentImageUrl(activeRound);
+      if (imageUrl) {
+        clearStageVisibility();
+        showStage();
+        showImageDisplay(imageUrl, "");
+      }
+    } else {
+      countdownBox.classList.remove("hidden");
+      countdownBox.classList.add("interactive");
+      countdownBox.setAttribute("role", "button");
+      countdownBox.setAttribute("tabindex", "0");
+      countdownBox.setAttribute("aria-label", getReceiverDonePrompt());
+    }
+    logCoveredScreenTrace("receiver_reveal_started", {
+      round_id: activeRound?.id || ""
+    });
     playReceiverBeep();
     updateSettingsGearVisibility();
 
@@ -5743,6 +6131,11 @@
       (guidedReceiverTourState?.step?.id === "receiving-intro" ||
        guidedReceiverTourState?.step?.id === "receiving-observe")
     ) {
+      doneTimeoutHandle = null;
+      return;
+    }
+
+    if (isRemoteViewerCoveredMode && isImagePairRound(activeRound)) {
       doneTimeoutHandle = null;
       return;
     }
@@ -5804,7 +6197,7 @@
       return;
     }
 
-    if (isLevelFourDifficulty()) {
+    if (isLevelFourLikeRound()) {
       const actualLayoutNumber = revealActual
         ? (Number(activeRound?.image_sent_index ?? 0) || null)
         : null;
@@ -5851,7 +6244,7 @@
       getResolvedActualArrangementCode(remoteState.round) ||
       getResolvedActualArrangementCode(activeRound);
 
-    if (!selectedLayoutNumbers.length || !actualArrangementCode) {
+    if (!selectedLayoutNumbers.length || (!actualArrangementCode && !isLevelFourLikeRound(remoteState.round) && !isLevelFourLikeRound(activeRound))) {
       return;
     }
 
@@ -5861,8 +6254,8 @@
       return;
     }
 
-    if (isLevelFourDifficulty()) {
-      const actualLayoutNumber = Number(remoteState.round?.image_sent_index ?? activeRound?.image_sent_index ?? 0) || null;
+    if (isLevelFourLikeRound(remoteState.round) || isLevelFourLikeRound(activeRound)) {
+      const actualLayoutNumber = getResolvedLevelFourActualChoiceIndex(remoteState.round) || getResolvedLevelFourActualChoiceIndex(activeRound);
       setLevelFourChoiceImages(senderLevelFourChoiceNodes, getLevelFourChoiceUrls(remoteState.round) || getLevelFourChoiceUrls(activeRound));
       renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
       clearStageVisibility();
@@ -5876,8 +6269,8 @@
   }
 
   function getActualReceiverResultLayoutNumber(actualArrangementCode) {
-    if (isLevelFourDifficulty()) {
-      return Number(activeRound?.image_sent_index ?? 0) || null;
+    if (isLevelFourLikeRound()) {
+      return getResolvedLevelFourActualChoiceIndex(activeRound);
     }
     if (isLevelOneDifficulty()) {
       return getLevelOneCountChoiceFromLayoutNumber(getLayoutNumberFromArrangementCode(actualArrangementCode));
@@ -5955,8 +6348,8 @@
     hideSenderConfidenceMirror();
 
     if (phase === "choices") {
-      if (isLevelFourDifficulty()) {
-        const actualLayoutNumber = Number(remoteState.round?.image_sent_index ?? activeRound?.image_sent_index ?? 0) || null;
+      if (isLevelFourLikeRound(remoteState.round) || isLevelFourLikeRound(activeRound)) {
+        const actualLayoutNumber = getResolvedLevelFourActualChoiceIndex(remoteState.round) || getResolvedLevelFourActualChoiceIndex(activeRound);
         setLevelFourChoiceImages(senderLevelFourChoiceNodes, getLevelFourChoiceUrls(remoteState.round) || getLevelFourChoiceUrls(activeRound));
         renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
         clearStageVisibility();
@@ -5975,8 +6368,8 @@
     }
 
     if (phase === "results" || phase === "confidence-final") {
-      if (isLevelFourDifficulty()) {
-        const actualLayoutNumber = Number(remoteState.round?.image_sent_index ?? activeRound?.image_sent_index ?? 0) || null;
+      if (isLevelFourLikeRound(remoteState.round) || isLevelFourLikeRound(activeRound)) {
+        const actualLayoutNumber = getResolvedLevelFourActualChoiceIndex(remoteState.round) || getResolvedLevelFourActualChoiceIndex(activeRound);
         setLevelFourChoiceImages(senderLevelFourChoiceNodes, getLevelFourChoiceUrls(remoteState.round) || getLevelFourChoiceUrls(activeRound));
         renderChoiceSelection(senderLevelFourChoiceNodes, selectedLayoutNumbers, actualLayoutNumber);
         clearStageVisibility();
@@ -6002,9 +6395,16 @@
   }
 
   function markReceiverResult(actualArrangementCode, selectedArrangementCodes) {
+    showLocalRuntimeDebugAlert(14, `actualChoice=${getResolvedLevelFourActualChoiceIndex(activeRound) || 0} imagepair=${isImagePairRound(activeRound) ? 1 : 0}`);
     maybePlayPositiveReinforcement(actualArrangementCode, pendingGuessLayoutNumbers);
+    currentUiMode = "receiver-results";
+    logCoveredScreenTrace("mark_receiver_result_enter", {
+      actual_arrangement_code: actualArrangementCode,
+      selected_layout_numbers: pendingGuessLayoutNumbers,
+      selected_layout_numbers_argument: selectedArrangementCodes
+    });
 
-    if (isLevelFourDifficulty()) {
+    if (isLevelFourLikeRound()) {
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
@@ -6018,12 +6418,16 @@
         node.setAttribute("tabindex", "-1");
         node.blur();
       });
-      const actualLayoutNumber = Number(activeRound?.image_sent_index ?? 0) || null;
+      const actualLayoutNumber = getResolvedLevelFourActualChoiceIndex(activeRound);
       setLevelFourChoiceImages(levelFourChoiceNodes, getLevelFourChoiceUrls(activeRound));
-      renderChoiceSelection(levelFourChoiceNodes, pendingGuessLayoutNumbers, actualLayoutNumber);
+      renderChoiceSelection(levelFourChoiceNodes, pendingGuessLayoutNumbers, actualLayoutNumber, { resultMode: true });
       if (!postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
+      logCoveredScreenTrace("mark_receiver_result_level4_ready", {
+        actual_layout_number: actualLayoutNumber,
+        choice_urls: getLevelFourChoiceUrls(activeRound)
+      });
       notifyGuidedReceiverTourPhase("result");
       return;
     }
@@ -6140,9 +6544,9 @@
       setDecisionSelection(choice);
     }
 
-    if (isRobotSimulationMode) {
+    if (isLocalSimulationMode) {
       const state = ensureRobotSimulationState();
-      const automatedSenderChoice = role === "receiver" && isRobotSenderMode
+      const automatedSenderChoice = role === "receiver" && isRobotSenderLikeMode
         ? choice
         : String(state.post_round?.sender_choice || "");
       state.post_round = {
@@ -6192,7 +6596,7 @@
       senderTrialBackSuppressed = false;
     }
 
-    if (isRobotSimulationMode) {
+    if (isLocalSimulationMode) {
       currentPairDifficultyLevel = getRequestedDifficultyLevel();
       if (postRoundAutoClearHandle !== null) {
         window.clearTimeout(postRoundAutoClearHandle);
@@ -6226,9 +6630,32 @@
       resetRobotSimulationRoundState();
       activeRound = null;
       if (mode === "continue") {
-        if (isRobotSenderMode) {
+        if (isRemoteViewerCoveredMode) {
           receiverReady = true;
-          showReceiverReadyState();
+          currentUiMode = "receiver-ready";
+          countdownBox.classList.add("hidden");
+          updateSettingsGearVisibility();
+          void (async () => {
+            const confirmed = await confirmCoveredScreenInstructionBeforeCoveredRestart();
+            if (!confirmed) {
+              currentUiMode = "receiver-ready";
+              setPrompt(getReceiverPressReadyPrompt(), true, getReceiverPressReadyPrompt());
+              updateSettingsGearVisibility();
+              return;
+            }
+            currentUiMode = "receiver-waiting-start";
+            countdownBox.classList.add("hidden");
+            updateSettingsGearVisibility();
+            void startCoveredScreenRoundNow();
+          })();
+        } else if (isRobotSenderLikeMode) {
+          receiverReady = true;
+          currentUiMode = "receiver-waiting-start";
+          setPrompt(
+            getReceiverWaitingStartPrompt(),
+            false
+          );
+          updateSettingsGearVisibility();
           void scheduleRobotSenderRoundStart();
         } else {
           applyRemoteState(buildRobotSimulationPayload());
@@ -6287,6 +6714,9 @@
     }
 
     const postRound = remoteState.post_round;
+    if (postRound) {
+      showLocalRuntimeDebugAlert(15, `receiver=${postRound.receiver_choice || ""} sender=${postRound.sender_choice || ""} resolved=${postRound.resolved || ""}`);
+    }
 
     void logDebugEvent("post_round_render", {
       role,
@@ -6406,22 +6836,31 @@
   }
 
   function beginReceiverSelection(selectionLimit) {
-    receiverSelectionLimit = (isLevelOneDifficulty() || isLevelFourDifficulty()) ? 1 : selectionLimit;
+    receiverSelectionLimit = (isLevelOneDifficulty() || isLevelFourLikeRound()) ? 1 : selectionLimit;
     pendingGuessLayoutNumbers = [];
     pendingGuessArrangementCodes = [];
     choiceInstructionShown = false;
     receiverMirrorPhase = "choices";
+    currentUiMode = "receiver-choices";
+    receiverReady = false;
+    clearStageVisibility();
     hideInstructionPanel();
     hideConfidencePanel();
     hideDecisionPanel();
     hideMessagePanel();
     resetReceiverChoices();
     showChoiceGrid();
+    logCoveredScreenTrace("receiver_selection_begun", {
+      selection_limit: receiverSelectionLimit
+    });
     void pushReceiverViewState();
   }
 
   async function handleReceiverChoice(layoutNumber) {
     if (!activeRound || !activeRound.id || !receiverChoiceOpen) {
+      logCoveredScreenTrace("receiver_choice_ignored", {
+        attempted_layout_number: layoutNumber
+      });
       return;
     }
     dismissGuidedReceiverTourLiveStep("choices");
@@ -6431,6 +6870,10 @@
     pendingGuessLayoutNumbers.push(layoutNumber);
     pendingGuessArrangementCodes.push(arrangementCode);
     markPendingChoices(pendingGuessLayoutNumbers);
+    logCoveredScreenTrace("receiver_choice_selected", {
+      selected_layout_numbers: pendingGuessLayoutNumbers,
+      selected_arrangement_codes: pendingGuessArrangementCodes
+    });
     void pushReceiverViewState();
     void triggerImmediateSync();
 
@@ -6467,8 +6910,12 @@
     maybePlayPositiveReinforcementAtSelection(pendingGuessLayoutNumbers);
     receiverTransitioningScreen = true;
     const transitionDelayMs = receiverSelectionLimit <= 1
-      ? (isLevelOneDifficulty() ? 2000 : 3500)
+      ? (isLevelOneDifficulty() ? 2000 : (isLevelFourLikeRound() ? 1200 : 3500))
       : 1000;
+    logCoveredScreenTrace("receiver_selection_finalizing", {
+      transition_delay_ms: transitionDelayMs,
+      selected_layout_numbers: pendingGuessLayoutNumbers
+    });
     window.setTimeout(() => {
       hideChoiceGrid();
       hideMessagePanel();
@@ -6482,6 +6929,7 @@
         void submitReceiverGuessAndReveal();
       }
       receiverTransitioningScreen = false;
+      logCoveredScreenTrace("receiver_selection_transition_complete");
       void triggerImmediateSync();
     }, transitionDelayMs);
   }
@@ -6515,7 +6963,11 @@
         done_reaction_ms: doneReactionMs
       });
 
-      if (isRobotSenderMode) {
+      if (isRobotSenderLikeMode) {
+        logCoveredScreenTrace("submit_guess_local_start", {
+          guess_layout_number: guessLayoutNumber,
+          selected_arrangement_codes: selectedArrangementCodes
+        });
         activeRound.guess_layout_number = guessLayoutNumber;
         activeRound.second_guess_layout_number = secondGuessLayoutNumber;
         activeRound.guess_confidence = confidence;
@@ -6524,12 +6976,16 @@
         activeRound.completed_server_ms = activeRound.guess_submitted_ms;
         activeRound.last_activity_ms = activeRound.guess_submitted_ms;
         const actualArrangementCode = getResolvedActualArrangementCode(activeRound);
-        const isImagePairRound = String(activeRound?.stimulus_kind || "") === "image_pair";
         hideConfidencePanel();
         hideInstructionPanel();
         receiverMirrorPhase = "results";
         postRoundChoiceSubmitted = false;
+        logCoveredScreenTrace("submit_guess_local_before_result", {
+          actual_arrangement_code: actualArrangementCode,
+          actual_choice_index: getResolvedLevelFourActualChoiceIndex(activeRound)
+        });
         markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        logCoveredScreenTrace("submit_guess_local_after_result");
         void appendTrialServerRecord(buildRobotSimulationPayload().state);
         void pushReceiverViewState();
         void triggerImmediateSync();
@@ -6568,7 +7024,7 @@
           round_id: activeRound?.id ?? "",
           actual_arrangement_code: actualArrangementCode,
           actual_layout_number: activeRound?.layout_number ?? "",
-          actual_image_sent_index: activeRound?.image_sent_index ?? "",
+          actual_image_sent_index: getResolvedLevelFourActualChoiceIndex(activeRound) ?? "",
           actual_image_sent: activeRound?.image_sent ?? "",
           selected_arrangement_codes: selectedArrangementCodes,
           confidence,
@@ -6587,6 +7043,13 @@
         }
       }
     } catch (error) {
+      void logDebugEvent("receiver_submit_guess_error", {
+        role,
+        runtime_mode: runtimeMode,
+        round_id: activeRound?.id ?? "",
+        message: error instanceof Error ? error.message : String(error || ""),
+        stack: error instanceof Error ? String(error.stack || "") : ""
+      });
       if (confidenceButton) {
         confidenceButton.disabled = false;
       }
@@ -6612,15 +7075,28 @@
     if (String(round?.stimulus_kind || "") === "image_pair") {
       void preloadLevelFourRoundAssets(round);
     }
+    const syncStartLocalMs = round.start_server_ms - serverOffsetMs;
     resetReceiverChoices();
     updateSettingsGearVisibility();
-
-    const syncStartLocalMs = round.start_server_ms - serverOffsetMs;
-    const checkpoints = [
-      { delayMs: 2000, value: "3" },
-      { delayMs: 4000, value: "2" },
-      { delayMs: 6000, value: "1" }
-    ];
+    logCoveredScreenTrace("synchronized_round_scheduled", {
+      round_id: round.id,
+      sync_start_local_ms: syncStartLocalMs
+    });
+    const checkpoints = isRemoteViewerCoveredMode
+      ? [
+          { delayMs: 2000, value: "7" },
+          { delayMs: 4000, value: "6" },
+          { delayMs: 6000, value: "5" },
+          { delayMs: 8000, value: "4" },
+          { delayMs: 10000, value: "3" },
+          { delayMs: 12000, value: "2" },
+          { delayMs: 14000, value: "1" }
+        ]
+      : [
+          { delayMs: 2000, value: "3" },
+          { delayMs: 4000, value: "2" },
+          { delayMs: 6000, value: "1" }
+        ];
 
     hideChoiceGrid();
     clearStageVisibility();
@@ -6636,7 +7112,8 @@
       }, timeoutMs);
     });
 
-    const finishDelayMs = Math.max(0, syncStartLocalMs + 8000 - Date.now());
+    const roundRevealDelayMs = isRemoteViewerCoveredMode ? 16000 : 8000;
+    const finishDelayMs = Math.max(0, syncStartLocalMs + roundRevealDelayMs - Date.now());
     setTimeout(() => {
       if (role === "sender") {
         if (!isControllingSenderRound(round)) {
@@ -6810,18 +7287,24 @@
       void api("clear_partner_finished_notice")
         .catch(() => null)
         .finally(() => {
-          navigateToBeginnerFrontPage();
+          navigateToBeginnerFrontPage({
+            coveredSessionEnded: isRemoteViewerCoveredMode
+          });
         });
       return;
     }
 
     if (currentUiMode === "authorization-ended") {
-      navigateToBeginnerFrontPage();
+      navigateToBeginnerFrontPage({
+        coveredSessionEnded: isRemoteViewerCoveredMode
+      });
       return;
     }
 
     if (currentUiMode === "role-conflict") {
-      navigateToBeginnerFrontPage();
+      navigateToBeginnerFrontPage({
+        coveredSessionEnded: isRemoteViewerCoveredMode
+      });
       return;
     }
 
@@ -6833,11 +7316,18 @@
     if (role === "receiver" && currentUiMode === "receiver-ready") {
       dismissGuidedReceiverTourLiveStep("ready");
       receiverReady = true;
-      showReceiverReadyState();
-      void ensureReceiverAudioUnlocked();
-      if (isRobotSenderMode) {
-        void scheduleRobotSenderRoundStart();
+      showLocalRuntimeDebugAlert(10, `covered=${isRemoteViewerCoveredMode ? 1 : 0} robotSenderLike=${isRobotSenderLikeMode ? 1 : 0} mode=${runtimeMode}`);
+      if (isRemoteViewerCoveredMode) {
+        currentUiMode = "receiver-waiting-start";
+        countdownBox.classList.add("hidden");
+        void startCoveredScreenRoundNow();
+      } else {
+        showReceiverReadyState();
+        if (isRobotSenderLikeMode) {
+          void scheduleRobotSenderRoundStart();
+        }
       }
+      void ensureReceiverAudioUnlocked();
       return;
     }
 
@@ -6993,6 +7483,10 @@
     if (isRobotReceiverMode) {
       remoteState.receiver_online = true;
     }
+    if (isRemoteViewerCoveredMode) {
+      remoteState.sender_online = true;
+      remoteState.receiver_online = true;
+    }
 
     if (remoteState.authorization_notice) {
       void logDebugEvent("authorization_notice_seen", {
@@ -7068,11 +7562,33 @@
     void appendTrialServerRecord(remoteState);
 
     if (normalizedRound) {
+      logCoveredScreenTrace("apply_remote_state_normalized_round", {
+        round_id: normalizedRound.id
+      });
       scheduleSynchronizedRound(normalizedRound);
       return;
     }
 
     if (renderPostRoundState(remoteState)) {
+      logCoveredScreenTrace("apply_remote_state_post_round_rendered");
+      return;
+    }
+
+    if (
+      isRemoteViewerCoveredMode &&
+      (
+        awaitingReceiverDone ||
+        receiverChoiceOpen ||
+        receiverTransitioningScreen ||
+        confidenceScreenOpen ||
+        instructionScreenOpen ||
+        receiverMirrorPhase === "choices" ||
+        receiverMirrorPhase === "confidence" ||
+        receiverMirrorPhase === "confidence-final" ||
+        receiverMirrorPhase === "results"
+      )
+    ) {
+      logCoveredScreenTrace("apply_remote_state_preserving_local_receiver_state");
       return;
     }
 
@@ -7082,7 +7598,7 @@
       }
 
       if (!remoteState.receiver_online) {
-        if (!isRobotSimulationMode && wasRunInProgress(remoteState)) {
+        if (!isLocalSimulationMode && wasRunInProgress(remoteState)) {
           void appendTrialServerRecord(remoteState, { aborted: true });
           showPartnerDisconnectState("Receiver disconnect - run over");
           return;
@@ -7108,7 +7624,7 @@
     }
 
     if (!remoteState.sender_online) {
-      if (!isRobotSimulationMode && wasRunInProgress(remoteState)) {
+      if (!isLocalSimulationMode && wasRunInProgress(remoteState)) {
         void appendTrialServerRecord(remoteState, { aborted: true });
         showPartnerDisconnectState("Sender disconnect - run over");
         return;
@@ -7143,7 +7659,7 @@
   }
 
   async function syncState() {
-    if (isRobotSimulationMode) {
+    if (isLocalSimulationMode) {
       bootstrapRobotSimulation();
       applyRemoteState(buildRobotSimulationPayload());
       return;
@@ -7206,6 +7722,7 @@
         page: role === "sender" ? "sender.html" : "receiver.html",
         runtime_mode: runtimeMode
       });
+      showLocalRuntimeDebugAlert(9, `boot role=${role} mode=${runtimeMode}`);
       if (isRemoteDisplayMode) {
         document.title = "Cones Remote Viewing Display";
       } else if (isRemoteViewerMode) {
@@ -7213,6 +7730,43 @@
       }
     countdownBox.addEventListener("click", handleActionPress);
     countdownBox.addEventListener("keydown", handleActionKeydown);
+    document.addEventListener("click", (event) => {
+      if (
+        isRemoteViewerCoveredMode &&
+        role === "receiver" &&
+        awaitingReceiverDone &&
+        (currentUiMode === "receiver-done" || currentUiMode === "receiver-reveal")
+      ) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon")) {
+          return;
+        }
+        noteUserInteraction();
+        playReceiverClearConfirmBeep();
+        handleActionPress();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (
+        !isRemoteViewerCoveredMode ||
+        role !== "receiver" ||
+        !awaitingReceiverDone ||
+        (currentUiMode !== "receiver-done" && currentUiMode !== "receiver-reveal")
+      ) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon")) {
+        return;
+      }
+      if (event.defaultPrevented) {
+        return;
+      }
+      event.preventDefault();
+      noteUserInteraction();
+      playReceiverClearConfirmBeep();
+      handleActionPress();
+    });
     settingsGear?.addEventListener("click", openSettings);
     waitingBackButton?.addEventListener("click", () => {
       noteUserInteraction();

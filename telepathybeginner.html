@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260816c">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260817h">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260816c">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260816c">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260816c">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260817h">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260817h">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260817h">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260816c">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260816c">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260816c">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260817h">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260817h">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260817h">
   <script>
     (function () {
-      var buildVersion = "20260816c";
+      var buildVersion = "20260817h";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -557,7 +557,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260816c</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260817h</span>
           </div>
         </div>
 
@@ -1432,7 +1432,7 @@
 
           <section class="telepathy-difficulty-guide-static-shell" aria-label="Telepathy Exercises with Graded Levels of Difficulty">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill telepathy-difficulty-guide-static-back" type="button" data-close-telepathy-difficulty-guide>BACK</button>
-            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260816c" alt="Telepathy exercises with graded levels of difficulty panel">
+            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260817h" alt="Telepathy exercises with graded levels of difficulty panel">
           </section>
         </section>
 
@@ -1719,6 +1719,7 @@
                 <div class="role-form role-form-static" data-remote-viewer-form aria-label="Remote viewer setup">
                   <div class="role-email-note" aria-label="Remote viewing guidance">
                     <p data-role-identifier-note="remote-viewer">This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being.</p>
+                    <p class="role-note-mode-status" data-remote-view-mode-status hidden></p>
                     <div class="role-lesson-wrap" data-role-lesson-wrap="remote-viewer" hidden>
                       <div class="role-lesson-header">
                         <span class="role-lesson-title" data-role-lesson-title="remote-viewer"></span>
@@ -1737,7 +1738,7 @@
                   <label class="role-field role-field-own">
                     <div class="remote-viewer-label-row">
                       <span class="role-field-label" data-remote-viewer-own-label>You</span>
-                      <label class="settings-view-checkbox remote-viewer-display-toggle">
+                      <label class="settings-view-checkbox remote-viewer-display-toggle" data-remote-viewer-display-toggle-wrap>
                         <input type="checkbox" data-remote-viewer-display-device>
                         <span>check here if this is a remote viewing display device</span>
                       </label>
@@ -1757,7 +1758,7 @@
                       </div>
                     </div>
                   </label>
-                  <label class="role-field role-field-partner">
+                  <label class="role-field role-field-partner" data-remote-viewer-partner-field>
                     <span class="role-field-label" data-remote-viewer-partner-label>Remote Device</span>
                     <input
                       class="role-input"
@@ -2171,6 +2172,52 @@
             </div>
           </section>
         </section>
+
+        <div class="remote-view-mode-overlay beginner-view-hidden" data-remote-view-mode-overlay aria-hidden="true">
+          <div class="remote-view-mode-dialog" data-remote-view-mode-dialog role="dialog" aria-modal="true" aria-labelledby="remoteViewModeTitle">
+            <h2 class="remote-view-mode-title" id="remoteViewModeTitle">Choose how you want to simulate the remote display for this session.</h2>
+            <div class="remote-view-mode-grid">
+              <section class="remote-view-mode-card" aria-labelledby="remoteViewModeCoveredTitle">
+                <div class="remote-view-mode-illustration remote-view-mode-illustration-covered" aria-hidden="true">
+                  <figure class="remote-view-mode-covered-figure">
+                    <img
+                      class="remote-view-mode-covered-photo"
+                      src="assets/lesson-images/screencover.jpg"
+                      alt="A sketchbook placed in front of the monitor to hide the screen area where the target image appears."
+                    />
+                    <figcaption class="remote-view-mode-covered-caption">Here, a sketchbook has been used to cover the part of the monitor screen where the target image appears.</figcaption>
+                  </figure>
+                </div>
+                <h3 class="remote-view-mode-card-title" id="remoteViewModeCoveredTitle">Covered Screen Simulation</h3>
+                <p class="remote-view-mode-card-copy">A target image will appear in the display square on this device after the beep. Cover that square before the trial so you cannot see the image. When it is displayed, try to perceive it using ESP. Then click anywhere on the screen to clear the image.</p>
+                <button class="options-button remote-view-mode-select" type="button" data-remote-view-mode-select="covered-screen">SELECT</button>
+              </section>
+              <section class="remote-view-mode-card" aria-labelledby="remoteViewModeDeviceTitle">
+                <div class="remote-view-mode-illustration remote-view-mode-illustration-device" aria-hidden="true">
+                  <div class="remote-view-mode-device-pair">
+                    <div class="remote-view-mode-device remote-view-mode-device-remote">
+                      <div class="remote-view-mode-screen remote-view-mode-screen-glow">
+                        <div class="remote-view-mode-remote-image"></div>
+                      </div>
+                      <div class="remote-view-mode-device-label">remote device</div>
+                    </div>
+                    <div class="remote-view-mode-device-divider"></div>
+                    <div class="remote-view-mode-device remote-view-mode-device-viewer">
+                      <div class="remote-view-mode-screen remote-view-mode-screen-viewer"></div>
+                      <div class="remote-view-mode-device-label">your device</div>
+                    </div>
+                  </div>
+                </div>
+                <h3 class="remote-view-mode-card-title" id="remoteViewModeDeviceTitle">Remote Device Simulation</h3>
+                <p class="remote-view-mode-card-copy">A target image will appear on a remote display you have set up with a unique name. After the receiving period, you will be shown two images and asked to choose the one that best matches what you perceived.</p>
+                <button class="options-button remote-view-mode-select" type="button" data-remote-view-mode-select="remote-device">SELECT</button>
+              </section>
+            </div>
+            <div class="remote-view-mode-actions">
+              <button class="options-button remote-view-mode-cancel" type="button" data-remote-view-mode-cancel>CANCEL</button>
+            </div>
+          </div>
+        </div>
 
         <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="unique-name-change" aria-labelledby="uniqueNameChangeTitle">
           <div class="beginner-top-row">
@@ -2596,8 +2643,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260816c'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260816c'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260817h'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260817h'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3508,10 +3555,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260816c"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260817h"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260816c"></script>
-<script src="telepathybeginner.js?v=20260816c"></script>
+<script src="target-selection.js?v=20260817h"></script>
+<script src="telepathybeginner.js?v=20260817h"></script>
 </body>
 </html>
 

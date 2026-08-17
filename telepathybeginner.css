@@ -2738,6 +2738,8 @@ body.lesson-image-overlay-open {
   place-items: center;
   padding: 24px;
   background: rgba(0, 0, 0, 0.72);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .handle-overlay.beginner-view-hidden {
@@ -2746,6 +2748,7 @@ body.lesson-image-overlay-open {
 
 .handle-dialog {
   width: min(100%, 560px);
+  max-height: calc(100vh - 48px);
   padding: 24px;
   border: 1px solid var(--brand-surface-border);
   border-radius: 24px;
@@ -2753,6 +2756,7 @@ body.lesson-image-overlay-open {
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
     rgba(8, 8, 8, 0.96);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.38);
+  overflow-y: auto;
 }
 
 .explore-pro-dialog {
@@ -3612,6 +3616,36 @@ body.lesson-image-overlay-open {
   font-size: 1.45rem;
 }
 
+.covered-screen-instruction-modal {
+  width: min(620px, 100%);
+}
+
+.covered-screen-instruction-title {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.covered-screen-instruction-copy {
+  margin: 0;
+  color: rgba(246, 243, 239, 0.95);
+  line-height: 1.55;
+  text-align: center;
+  font-size: 1rem;
+  white-space: pre-line;
+}
+
+.covered-screen-instruction-checkbox {
+  margin-top: 18px;
+}
+
+.covered-screen-instruction-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
 .named-report-modal-summary {
   margin-top: 12px;
   padding: 14px 16px;
@@ -3674,6 +3708,246 @@ body.lesson-image-overlay-open {
   max-width: 180px;
   padding: 8px 10px;
   font-size: 0.84rem;
+}
+
+.remote-view-mode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1220;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 6, 12, 0.76);
+  backdrop-filter: blur(5px);
+}
+
+.remote-view-mode-overlay:not(.beginner-view-hidden) {
+  display: grid;
+}
+
+.remote-view-mode-dialog {
+  width: min(920px, 100%);
+  max-height: min(88vh, 900px);
+  overflow: auto;
+  padding: 26px;
+  border-radius: 28px;
+  border: 1px solid var(--brand-surface-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
+    rgba(11, 18, 33, 0.97);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 28px 56px rgba(0, 0, 0, 0.44);
+}
+
+.remote-view-mode-title {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  text-align: center;
+  line-height: 1.32;
+}
+
+.remote-view-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.remote-view-mode-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(6, 12, 24, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 14px;
+}
+
+.remote-view-mode-illustration {
+  min-height: 148px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(62, 108, 193, 0.28), rgba(7, 12, 24, 0.58));
+  border: 1px solid rgba(127, 188, 255, 0.22);
+}
+
+.remote-view-mode-illustration-covered {
+  padding: 14px;
+}
+
+.remote-view-mode-device,
+.remote-view-mode-screen {
+  border-radius: 18px;
+}
+
+.remote-view-mode-covered-figure {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.remote-view-mode-covered-photo {
+  display: block;
+  width: 100%;
+  max-height: 196px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 16px;
+  border: 1px solid rgba(162, 201, 255, 0.28);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.remote-view-mode-covered-caption {
+  margin: 0;
+  color: rgba(235, 242, 255, 0.92);
+  font-size: 0.84rem;
+  line-height: 1.42;
+  text-align: center;
+}
+
+.remote-view-mode-device {
+  background: linear-gradient(180deg, rgba(40, 73, 132, 0.92), rgba(24, 44, 84, 0.94));
+  border: 1px solid rgba(162, 201, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.remote-view-mode-device-covered {
+  width: 180px;
+  height: 112px;
+  padding: 14px;
+}
+
+.remote-view-mode-screen {
+  width: 100%;
+  height: 100%;
+  background: rgba(2, 6, 14, 0.88);
+  position: relative;
+  overflow: hidden;
+}
+
+.remote-view-mode-screen-cover {
+  position: absolute;
+  inset: 14% 18%;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(52, 60, 72, 0.92), rgba(32, 39, 48, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.remote-view-mode-device-pair {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  transform: translateY(-8px);
+}
+
+.remote-view-mode-device-divider {
+  width: 18px;
+  height: 122px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(139, 180, 234, 0.72) 0 6px,
+      rgba(31, 58, 96, 0.94) 6px 12px
+    );
+  clip-path: polygon(35% 0%, 65% 0%, 85% 8%, 65% 16%, 85% 24%, 65% 32%, 85% 40%, 65% 48%, 85% 56%, 65% 64%, 85% 72%, 65% 80%, 85% 88%, 65% 100%, 35% 100%, 15% 92%, 35% 84%, 15% 76%, 35% 68%, 15% 60%, 35% 52%, 15% 44%, 35% 36%, 15% 28%, 35% 20%, 15% 12%, 35% 4%);
+}
+
+.remote-view-mode-device-viewer,
+.remote-view-mode-device-remote {
+  width: 118px;
+  height: 86px;
+  padding: 12px;
+}
+
+.remote-view-mode-device-viewer {
+  position: relative;
+}
+
+.remote-view-mode-screen-glow {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(126, 202, 255, 0.66), rgba(126, 202, 255, 0.08) 48%, rgba(2, 6, 14, 0.92) 72%),
+    rgba(2, 6, 14, 0.9);
+}
+
+.remote-view-mode-screen-viewer {
+  background:
+    linear-gradient(180deg, rgba(10, 18, 34, 0.96), rgba(3, 7, 16, 0.96));
+}
+
+.remote-view-mode-remote-image {
+  position: absolute;
+  inset: 10px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent),
+    radial-gradient(circle at 24% 26%, rgba(255, 222, 138, 0.95), rgba(255, 222, 138, 0.08) 18%, transparent 19%),
+    linear-gradient(180deg, rgba(126, 168, 224, 0.92) 0 36%, rgba(63, 109, 166, 0.94) 36% 60%, rgba(31, 58, 96, 0.96) 60%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.remote-view-mode-device-label {
+  margin-top: 18px;
+  color: rgba(223, 236, 255, 0.94);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.remote-view-mode-card-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.12rem;
+}
+
+.remote-view-mode-card-copy {
+  margin: 0;
+  color: rgba(246, 243, 239, 0.92);
+  line-height: 1.5;
+}
+
+.remote-view-mode-select {
+  justify-self: start;
+  min-width: 120px;
+}
+
+.remote-view-mode-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.remote-view-mode-cancel {
+  min-width: 140px;
+}
+
+.role-note-mode-status {
+  margin-top: 10px;
+  margin-bottom: 0;
+  color: rgba(196, 226, 255, 0.94);
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .remote-view-mode-dialog {
+    padding: 20px;
+  }
+
+  .remote-view-mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .remote-view-mode-select,
+  .remote-view-mode-cancel {
+    width: 100%;
+    justify-self: stretch;
+  }
 }
 
 .visualization-swatch {
@@ -4591,7 +4865,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260816c") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260817h") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
