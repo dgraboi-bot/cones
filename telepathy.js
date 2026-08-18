@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260817h";
+  const runtimeBuildVersion = "20260818a";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -95,7 +95,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260817h";
+  const launcherBuildVersion = "20260818a";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1281,7 +1281,7 @@
       const settings = readSettings();
       const raw = localStorage.getItem(launcherStorageKey);
       const parsed = raw ? JSON.parse(raw) : {};
-      const returnRole = role === "sender" ? "sender" : "receiver";
+      const returnRole = getLauncherReturnRole();
       const visitorDisplayName = getPreferredVisitorDisplayName(returnRole);
       const internalIdentifier = String(settings.own_email || "").trim();
       const shouldReturnAsVisitor = !!visitorDisplayName && isInternalVisitorIdentifier(internalIdentifier);
@@ -1303,7 +1303,7 @@
       parsed.difficultyLevel = returnDifficulty;
       parsed.roleDifficultyLevels[returnRole] = returnDifficulty;
 
-      if (isRobotSimulationMode) {
+      if (isRobotSimulationMode || isRemoteViewerCoveredMode) {
         parsed.currentPartners[returnRole] = robotSimulationIdentifier;
       }
 
@@ -1326,7 +1326,7 @@
         parsed.visitorLockedName = "";
       }
 
-      if (isRobotSimulationMode && internalIdentifier) {
+      if ((isRobotSimulationMode || isRemoteViewerCoveredMode) && internalIdentifier) {
         parsed.robotSimulationDifficultyLevels[buildLauncherRobotDifficultyKey(returnRole, internalIdentifier)] = returnDifficulty;
       }
 
@@ -1340,7 +1340,7 @@
           runtime_own_email: internalIdentifier,
           visitor_display_name: visitorDisplayName,
           difficulty_level: returnDifficulty,
-          robot_mode: isRobotSimulationMode
+          robot_mode: isRobotSimulationMode || isRemoteViewerCoveredMode
         });
       }
     } catch (error) {
@@ -1504,7 +1504,7 @@
 
   function getWaitingOnlinePrompt() {
     if (isRemoteViewerCoveredMode) {
-      return "Preparing covered-screen remote-viewing trial...";
+      return "Preparing trial.";
     }
     if (role === "sender") {
       return isRemoteDisplayMode
@@ -1519,7 +1519,7 @@
 
   function getWaitingReadyPrompt() {
     if (isRemoteViewerCoveredMode) {
-      return "Preparing covered-screen remote-viewing trial...";
+      return "Preparing trial.";
     }
     return isRemoteDisplayMode
       ? "Waiting for remote viewer to be ready..."
@@ -1534,7 +1534,7 @@
 
   function getReceiverPressReadyPrompt() {
     return isRemoteViewerLikeMode
-      ? "Press when ready to remote view."
+      ? "Press when ready."
       : "Press when ready to receive.";
   }
 
@@ -1987,7 +1987,7 @@
 
   function buildRobotSimulationPayload() {
     const state = ensureRobotSimulationState();
-    const difficultyLevel = isRemoteViewerCoveredMode ? "4" : getRequestedDifficultyLevel();
+    const difficultyLevel = getRequestedDifficultyLevel();
     if (isRobotSenderMode) {
       state.sender_online = true;
     }
@@ -2014,7 +2014,7 @@
     }
     robotSimulationBootstrapped = true;
     const state = ensureRobotSimulationState();
-    currentPairDifficultyLevel = isRemoteViewerCoveredMode ? "4" : getRequestedDifficultyLevel();
+    currentPairDifficultyLevel = getRequestedDifficultyLevel();
 
     if (isRemoteViewerCoveredMode) {
       state.sender_online = true;
@@ -2110,7 +2110,7 @@
       image_sent: ""
     };
 
-    if (difficultyLevel === "4" || isRemoteViewerCoveredMode) {
+    if (difficultyLevel === "4") {
       const pairs = await loadRobotLevelFourPairs();
       if (pairs.length) {
         const pair = pairs[randomInt(0, pairs.length - 1)];
@@ -3558,7 +3558,7 @@
     const title = document.createElement("h2");
     title.className = "covered-screen-runtime-instruction-title";
     title.id = "coveredScreenRuntimeInstructionTitle";
-    title.textContent = "Covered Screen Clairvoyance/Remote Viewing";
+    title.textContent = "Covered Screen";
 
     const copy = document.createElement("p");
     copy.className = "covered-screen-runtime-instruction-copy";
@@ -4954,6 +4954,25 @@
     });
   }
 
+  function buildArrangementImageDataUrl(layoutNumber) {
+    if (!preloadedConeImage || !layouts[layoutNumber]) {
+      return "";
+    }
+
+    const canvas = document.createElement("canvas");
+    renderChoiceCanvas(canvas, layoutNumber);
+
+    try {
+      return canvas.toDataURL("image/png");
+    } catch (error) {
+      logCoveredScreenTrace("arrangement_image_data_url_failed", {
+        layout_number: layoutNumber,
+        message: error?.message || String(error || "")
+      });
+      return "";
+    }
+  }
+
   function buildArrangement(layoutNumber) {
     const arrangement = document.createElement("div");
     arrangement.className = "arrangement";
@@ -5201,7 +5220,9 @@
       leftLabel.textContent = "The Sender Sent:";
       rightLabel.textContent = isRobotReceiverMode ? "The Robot Receiver Said:" : "The Receiver Said:";
     } else {
-      leftLabel.textContent = isRobotSenderMode ? "The Robot Sender Sent:" : "The Sender Sent:";
+      leftLabel.textContent = isRemoteViewerCoveredMode
+        ? "The Screen Displayed:"
+        : (isRobotSenderMode ? "The Robot Sender Sent:" : "The Sender Sent:");
       rightLabel.textContent = "You Said:";
     }
 
@@ -6096,17 +6117,31 @@
     countdownNumber.textContent = "";
     countdownNumber.classList.remove("prompt");
     receiverPressedDoneEarly = false;
-    if (isRemoteViewerCoveredMode && isImagePairRound(activeRound)) {
+    if (isRemoteViewerCoveredMode) {
       countdownBox.classList.add("hidden");
       countdownBox.classList.remove("interactive");
       countdownBox.removeAttribute("role");
       countdownBox.removeAttribute("tabindex");
       countdownBox.removeAttribute("aria-label");
-      const imageUrl = getLevelFourSentImageUrl(activeRound);
-      if (imageUrl) {
-        clearStageVisibility();
-        showStage();
-        showImageDisplay(imageUrl, "");
+      if (isImagePairRound(activeRound)) {
+        const imageUrl = getLevelFourSentImageUrl(activeRound);
+        if (imageUrl) {
+          clearStageVisibility();
+          showStage();
+          showImageDisplay(imageUrl, "");
+        }
+      } else {
+        const layoutNumber = Number(activeRound?.layout_number || 0);
+        if (Number.isInteger(layoutNumber) && layoutNumber >= 1 && layoutNumber <= 9) {
+          clearStageVisibility();
+          showStage();
+          const arrangementImageUrl = buildArrangementImageDataUrl(layoutNumber);
+          if (arrangementImageUrl) {
+            showImageDisplay(arrangementImageUrl, "");
+          } else {
+            showArrangement(layoutNumber);
+          }
+        }
       }
     } else {
       countdownBox.classList.remove("hidden");
@@ -6135,7 +6170,7 @@
       return;
     }
 
-    if (isRemoteViewerCoveredMode && isImagePairRound(activeRound)) {
+    if (isRemoteViewerCoveredMode) {
       doneTimeoutHandle = null;
       return;
     }

@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260817h">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260818a">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260817h">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260817h">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260817h">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260818a">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260818a">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260818a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260817h">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260817h">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260817h">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260818a">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260818a">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260818a">
   <script>
     (function () {
-      var buildVersion = "20260817h";
+      var buildVersion = "20260818a";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -557,7 +557,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260817h</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260818a</span>
           </div>
         </div>
 
@@ -1432,7 +1432,7 @@
 
           <section class="telepathy-difficulty-guide-static-shell" aria-label="Telepathy Exercises with Graded Levels of Difficulty">
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill telepathy-difficulty-guide-static-back" type="button" data-close-telepathy-difficulty-guide>BACK</button>
-            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260817h" alt="Telepathy exercises with graded levels of difficulty panel">
+            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260818a" alt="Telepathy exercises with graded levels of difficulty panel">
           </section>
         </section>
 
@@ -1705,11 +1705,14 @@
                 <button class="role-card-toggle" type="button" aria-expanded="false">
                   <span class="role-card-title" data-collapsed-title="I Will Remote View" data-expanded-title="Remote View">I Will Remote View</span>
                 </button>
-                <div class="role-card-level-stack role-card-remote-view-stack" data-role-difficulty-stack="remote-viewer">
-                  <span class="role-card-level role-card-remote-view-badge" data-pair-difficulty-label="remote-viewer" data-static-level-label="remote-viewer" tabindex="0" aria-label="Remote View">
-                    <span>Remote</span>
-                    <span>View</span>
-                  </span>
+                <button class="role-card-mode-badge role-card-remote-view-badge" type="button" data-remote-view-mode-open aria-label="Select remote viewing simulation mode">
+                  <span>Remote</span>
+                  <span>View</span>
+                </button>
+                <div class="role-card-level-stack" data-role-difficulty-stack="remote-viewer">
+                  <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="remote-viewer" data-direction="up" aria-label="Increase remote-viewing difficulty">&#9650;</button>
+                  <span class="role-card-level" data-pair-difficulty-label="remote-viewer" tabindex="0" aria-label="Remote Viewing Level">Level 4</span>
+                  <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="remote-viewer" data-direction="down" aria-label="Decrease remote-viewing difficulty">&#9660;</button>
                 </div>
                 <span class="role-card-tagline" data-role-skill-tagline="remote-viewer">Skill: Guided mind's eye perception</span>
                 <button class="role-card-inline-back" type="button" data-collapse-role-card="remote-viewer">BACK</button>
@@ -2643,8 +2646,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260817h'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260817h'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260818a'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260818a'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3555,10 +3558,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260817h"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260818a"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260817h"></script>
-<script src="telepathybeginner.js?v=20260817h"></script>
+<script src="target-selection.js?v=20260818a"></script>
+<script src="telepathybeginner.js?v=20260818a"></script>
 </body>
 </html>
 

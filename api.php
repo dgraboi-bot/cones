@@ -63,6 +63,7 @@ $debugLogFile = $stateDir . DIRECTORY_SEPARATOR . 'debug-log.txt';
 $safetyLogFile = $logsDir . DIRECTORY_SEPARATOR . 'safety-log.txt';
 $subscriptionEmailLogFile = $logsDir . DIRECTORY_SEPARATOR . 'subscription-email-log.txt';
 $lessonContentAuditLogFile = $logsDir . DIRECTORY_SEPARATOR . 'lesson-content-audit-log.txt';
+$adminLockLeaseMs = 20000;
 $adminSecret = 'x9Qm7L2v8T4p1Zadmin';
 $contentAutobackupRetentionMaxFiles = 8;
 $staleMs = 5000;
@@ -364,6 +365,105 @@ function get_debug_log_status(string $path): array
         'size_bytes' => $sizeBytes,
         'size_formatted' => format_bytes($sizeBytes)
     ];
+}
+
+function normalize_admin_client_id($value): string
+{
+    $candidate = trim((string) $value);
+    if ($candidate === '') {
+        return '';
+    }
+    if (strlen($candidate) > 120) {
+        $candidate = substr($candidate, 0, 120);
+    }
+    return preg_replace('/[^A-Za-z0-9._:-]/', '', $candidate) ?? '';
+}
+
+function normalize_admin_lock_record($value): ?array
+{
+    $record = is_array($value) ? $value : null;
+    if (!$record) {
+        return null;
+    }
+    $clientId = normalize_admin_client_id($record['client_id'] ?? '');
+    if ($clientId === '') {
+        return null;
+    }
+    return [
+        'client_id' => $clientId,
+        'claimed_ms' => isset($record['claimed_ms']) && is_numeric($record['claimed_ms']) ? (int) $record['claimed_ms'] : 0,
+        'last_seen_ms' => isset($record['last_seen_ms']) && is_numeric($record['last_seen_ms']) ? (int) $record['last_seen_ms'] : 0
+    ];
+}
+
+function get_active_admin_lock(array &$state, int $nowMs): ?array
+{
+    global $adminLockLeaseMs;
+    $lock = normalize_admin_lock_record($state['admin_lock'] ?? null);
+    if (!$lock) {
+        $state['admin_lock'] = null;
+        return null;
+    }
+    $lastSeenMs = max(0, (int) ($lock['last_seen_ms'] ?? 0));
+    if ($lastSeenMs <= 0 || ($nowMs - $lastSeenMs) > $adminLockLeaseMs) {
+        $state['admin_lock'] = null;
+        return null;
+    }
+    $state['admin_lock'] = $lock;
+    return $lock;
+}
+
+function build_admin_lock_conflict_message(): string
+{
+    return 'ADMIN / debugging is currently active from another device/browser. Admin access is temporarily locked to avoid conflicting admin/debug control.';
+}
+
+function claim_admin_lock(array &$state, string $clientId, int $nowMs): array
+{
+    $normalizedClientId = normalize_admin_client_id($clientId);
+    if ($normalizedClientId === '') {
+        throw new RuntimeException('Admin client id is required.');
+    }
+    $activeLock = get_active_admin_lock($state, $nowMs);
+    if ($activeLock && $activeLock['client_id'] !== $normalizedClientId) {
+        throw new RuntimeException(build_admin_lock_conflict_message());
+    }
+    $claimedMs = $activeLock && $activeLock['client_id'] === $normalizedClientId
+        ? max(0, (int) ($activeLock['claimed_ms'] ?? $nowMs))
+        : $nowMs;
+    $lock = [
+        'client_id' => $normalizedClientId,
+        'claimed_ms' => $claimedMs,
+        'last_seen_ms' => $nowMs
+    ];
+    $state['admin_lock'] = $lock;
+    return $lock;
+}
+
+function release_admin_lock(array &$state, string $clientId): bool
+{
+    $normalizedClientId = normalize_admin_client_id($clientId);
+    $lock = normalize_admin_lock_record($state['admin_lock'] ?? null);
+    if (!$lock || $normalizedClientId === '' || $lock['client_id'] !== $normalizedClientId) {
+        return false;
+    }
+    $state['admin_lock'] = null;
+    return true;
+}
+
+function require_admin_lock(array &$state, string $clientId, int $nowMs): array
+{
+    $normalizedClientId = normalize_admin_client_id($clientId);
+    if ($normalizedClientId === '') {
+        throw new RuntimeException('Admin client id is required.');
+    }
+    $activeLock = get_active_admin_lock($state, $nowMs);
+    if (!$activeLock || $activeLock['client_id'] !== $normalizedClientId) {
+        throw new RuntimeException(build_admin_lock_conflict_message());
+    }
+    $activeLock['last_seen_ms'] = $nowMs;
+    $state['admin_lock'] = $activeLock;
+    return $activeLock;
 }
 
 function load_app_mail_config(string $configDir): array
@@ -1243,6 +1343,16 @@ function send_unique_name_claim_verification_code(array &$state, string $current
     $cleanCurrentIdentifier = validate_participant_identifier_string($currentIdentifier, 'current_identifier', false);
     $cleanProposedHandle = trim((string) $proposedHandle);
     $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    append_debug_log(
+        (string) ($GLOBALS['debugLogFile'] ?? ''),
+        (bool) ($state['debug_enabled'] ?? false),
+        '[unique_name_claim_code:start] ' . json_encode([
+            'current_identifier' => $cleanCurrentIdentifier !== '' ? $cleanCurrentIdentifier : '(none)',
+            'proposed_handle' => $cleanProposedHandle,
+            'email_masked' => mask_email_for_display($cleanEmail),
+            'now_ms' => $nowMs
+        ], JSON_UNESCAPED_SLASHES)
+    );
 
     $probeState = $state;
     try {
@@ -1289,8 +1399,24 @@ function send_unique_name_claim_verification_code(array &$state, string $current
         "Enter this 5-character code in ESP GYM to finish claiming {$cleanProposedHandle} as your unique name.\r\n\r\n" .
         "This code expires in 15 minutes.\r\n";
 
-    sendAppMail($cleanEmail, '', $subject, $body);
+    sendAppMail($cleanEmail, '', $subject, $body, null, [
+        'flow' => 'unique_name_claim_code',
+        'proposed_handle' => $cleanProposedHandle,
+        'email_masked' => mask_email_for_display($cleanEmail),
+        'send_count' => $verification['send_count']
+    ]);
     $state['unique_name_claim_verifications'][$verificationKey] = $verification;
+    append_debug_log(
+        (string) ($GLOBALS['debugLogFile'] ?? ''),
+        (bool) ($state['debug_enabled'] ?? false),
+        '[unique_name_claim_code:stored] ' . json_encode([
+            'verification_key' => $verificationKey,
+            'proposed_handle' => $cleanProposedHandle,
+            'email_masked' => mask_email_for_display($cleanEmail),
+            'expires_ms' => $verification['expires_ms'],
+            'send_count' => $verification['send_count']
+        ], JSON_UNESCAPED_SLASHES)
+    );
 
     return [
         'proposed_handle' => $cleanProposedHandle,
@@ -3414,7 +3540,7 @@ function open_smtp_socket(array $config)
     return $socket;
 }
 
-function sendAppMail(string $to, string $bcc, string $subject, string $body, $attachment = null): array
+function sendAppMail(string $to, string $bcc, string $subject, string $body, $attachment = null, array $traceContext = []): array
 {
     global $configDir;
 
@@ -3428,6 +3554,17 @@ function sendAppMail(string $to, string $bcc, string $subject, string $body, $at
     if ($toList === []) {
         throw new RuntimeException('At least one valid To email address is required.');
     }
+    $tracePayload = [
+        'context' => $traceContext,
+        'to_masked' => array_map('mask_email_for_display', $toList),
+        'bcc_count' => count($bccList),
+        'subject' => trim($subject) !== '' ? $subject : '(no subject)'
+    ];
+    append_debug_log(
+        (string) ($GLOBALS['debugLogFile'] ?? ''),
+        (bool) (($GLOBALS['state']['debug_enabled'] ?? false) || ($GLOBALS['debugEnabled'] ?? false)),
+        '[sendAppMail:start] ' . json_encode($tracePayload, JSON_UNESCAPED_SLASHES)
+    );
 
     $messageParts = build_mail_message(
         (string) $config['from_email'],
@@ -3440,9 +3577,8 @@ function sendAppMail(string $to, string $bcc, string $subject, string $body, $at
         $attachment
     );
 
-    $socket = open_smtp_socket($config);
-
     try {
+        $socket = open_smtp_socket($config);
         smtp_send_command($socket, 'AUTH LOGIN', 334);
         smtp_send_command($socket, base64_encode((string) $config['username']), 334);
         smtp_send_command($socket, base64_encode((string) $config['password']), 235);
@@ -3458,8 +3594,27 @@ function sendAppMail(string $to, string $bcc, string $subject, string $body, $at
         fwrite($socket, $payload . "\r\n.\r\n");
         smtp_read_response($socket, 250);
         smtp_send_command($socket, 'QUIT', 221);
+        append_debug_log(
+            (string) ($GLOBALS['debugLogFile'] ?? ''),
+            (bool) (($GLOBALS['state']['debug_enabled'] ?? false) || ($GLOBALS['debugEnabled'] ?? false)),
+            '[sendAppMail:success] ' . json_encode($tracePayload, JSON_UNESCAPED_SLASHES)
+        );
+    } catch (Throwable $exception) {
+        append_debug_log(
+            (string) ($GLOBALS['debugLogFile'] ?? ''),
+            (bool) (($GLOBALS['state']['debug_enabled'] ?? false) || ($GLOBALS['debugEnabled'] ?? false)),
+            '[sendAppMail:error] ' . json_encode([
+                'context' => $traceContext,
+                'to_masked' => array_map('mask_email_for_display', $toList),
+                'subject' => trim($subject) !== '' ? $subject : '(no subject)',
+                'message' => $exception->getMessage()
+            ], JSON_UNESCAPED_SLASHES)
+        );
+        throw $exception;
     } finally {
-        fclose($socket);
+        if (isset($socket) && is_resource($socket)) {
+            fclose($socket);
+        }
     }
 
     return [
@@ -10292,6 +10447,7 @@ $action = isset($input['action'])
 $currentLessonDomain = normalize_lesson_domain($input['lesson_domain'] ?? ($_GET['lesson_domain'] ?? 'legacy'));
 $role = isset($input['role']) ? (string) $input['role'] : '';
 $clientId = isset($input['client_id']) ? (string) $input['client_id'] : '';
+$adminClientId = normalize_admin_client_id($input['admin_client_id'] ?? '');
 $sessionCode = isset($input['session_code']) ? trim((string) $input['session_code']) : '';
 if ($sessionCode === '') {
     $sessionCode = 'default-session';
@@ -10341,6 +10497,7 @@ if (!is_array($state)) {
         'handle_owners' => [],
         'explore_pro_verifications' => [],
         'explore_pro_trials' => [],
+        'admin_lock' => null,
         'stripe_users' => [],
         'stripe_customer_index' => [],
         'stripe_subscription_index' => [],
@@ -10385,6 +10542,7 @@ if (!array_key_exists('sessions', $state)) {
         'handle_owners' => [],
         'explore_pro_verifications' => [],
         'explore_pro_trials' => [],
+        'admin_lock' => null,
         'stripe_users' => [],
         'stripe_customer_index' => [],
         'stripe_subscription_index' => [],
@@ -10412,6 +10570,9 @@ if (!is_array($state['pair_difficulties'] ?? null)) {
 }
 if (!is_array($state['launcher_profiles'] ?? null)) {
     $state['launcher_profiles'] = [];
+}
+if (!array_key_exists('admin_lock', $state)) {
+    $state['admin_lock'] = null;
 }
 if (!is_array($state['user_preferences'] ?? null)) {
     $state['user_preferences'] = [];
@@ -10674,6 +10835,22 @@ $runtimeAuthorizationActions = [
     'post_round_choice',
     'clear_post_round'
 ];
+
+$adminLockExemptActions = [
+    'check_admin_secret',
+    'get_admin_access_mode',
+    'claim_admin_lock',
+    'release_admin_lock',
+    'record_launcher_visit'
+];
+
+if ($hasAdminAccess && !in_array($action, $adminLockExemptActions, true)) {
+    try {
+        require_admin_lock($state, $adminClientId, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 409);
+    }
+}
 
 if (is_array($session['timeout_notice'] ?? null)) {
     $timeoutNoticeCreatedMs = isset($session['timeout_notice']['created_ms']) && is_numeric($session['timeout_notice']['created_ms'])
@@ -11115,9 +11292,61 @@ if ($action === 'check_admin_secret') {
 }
 
 if ($action === 'get_admin_access_mode') {
+    $adminLock = get_active_admin_lock($state, $nowMs);
     $response = [
         'ok' => true,
         'easy_admin_enabled' => false,
+        'admin_lock_active' => is_array($adminLock),
+        'server_now_ms' => $nowMs
+    ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'claim_admin_lock') {
+    if (!$hasAdminAccess) {
+        fail_request($handle, $nowMs, 'Admin secret is required.', 403);
+    }
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id'], 'request');
+        $adminLock = claim_admin_lock($state, $adminClientId, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 409);
+    }
+    $response = [
+        'ok' => true,
+        'admin_lock' => $adminLock,
+        'server_now_ms' => $nowMs
+    ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'release_admin_lock') {
+    if (!$hasAdminAccess) {
+        fail_request($handle, $nowMs, 'Admin secret is required.', 403);
+    }
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id'], 'request');
+        $released = release_admin_lock($state, $adminClientId);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+    $response = [
+        'ok' => true,
+        'released' => $released,
         'server_now_ms' => $nowMs
     ];
     rewind($handle);
@@ -11640,8 +11869,26 @@ if ($action === 'send_unique_name_claim_code') {
         $currentIdentifier = validate_participant_identifier_string($input['current_identifier'] ?? '', 'current_identifier', false);
         $proposedHandle = trim((string) ($input['proposed_handle'] ?? ''));
         $email = validate_email_identifier_string($input['email'] ?? '', 'email', true);
+        append_debug_log(
+            $debugLogFile,
+            $debugEnabled,
+            '[send_unique_name_claim_code:request] ' . json_encode([
+                'current_identifier' => $currentIdentifier !== '' ? $currentIdentifier : '(none)',
+                'proposed_handle' => $proposedHandle,
+                'email_masked' => mask_email_for_display($email)
+            ], JSON_UNESCAPED_SLASHES)
+        );
         $verification = send_unique_name_claim_verification_code($state, $currentIdentifier, $proposedHandle, $email, $nowMs);
     } catch (Throwable $exception) {
+        append_debug_log(
+            $debugLogFile,
+            $debugEnabled,
+            '[send_unique_name_claim_code:error] ' . json_encode([
+                'message' => $exception->getMessage(),
+                'proposed_handle' => isset($proposedHandle) ? $proposedHandle : '',
+                'email_masked' => isset($email) ? mask_email_for_display($email) : ''
+            ], JSON_UNESCAPED_SLASHES)
+        );
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
@@ -11655,6 +11902,15 @@ if ($action === 'send_unique_name_claim_code') {
     ftruncate($handle, 0);
     fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
     fflush($handle);
+    append_debug_log(
+        $debugLogFile,
+        $debugEnabled,
+        '[send_unique_name_claim_code:response] ' . json_encode([
+            'proposed_handle' => $verification['proposed_handle'] ?? '',
+            'email_masked' => isset($verification['email']) ? mask_email_for_display((string) $verification['email']) : '',
+            'send_count' => $verification['send_count'] ?? 0
+        ], JSON_UNESCAPED_SLASHES)
+    );
     flock($handle, LOCK_UN);
     fclose($handle);
     echo json_encode($response);
@@ -13558,6 +13814,7 @@ $response = [
     'server_now_ms' => $nowMs,
     'session_code' => $sessionCode,
     'is_admin' => $hasAdminAccess,
+    'admin_lock_active' => $hasAdminAccess ? true : is_array(get_active_admin_lock($state, $nowMs)),
     'debug_enabled' => $debugEnabled,
     'subscription_emails_enabled' => !empty($state['subscription_emails_enabled']),
     'subscription_reminders_enabled' => !empty($state['subscription_reminders_enabled']),

@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260817h";
+  const launcherBuildVersion = "20260818a";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -867,6 +867,7 @@
   const inlineContactButtons = Array.from(document.querySelectorAll("[data-open-contact-inline]"));
   const difficultyStacks = Array.from(document.querySelectorAll("[data-role-difficulty-stack]"));
   const difficultyBumpButtons = Array.from(document.querySelectorAll("[data-role-difficulty-bump]"));
+  const remoteViewModeOpenButtons = Array.from(document.querySelectorAll("[data-remote-view-mode-open]"));
   const difficultyStatusBlocks = Array.from(document.querySelectorAll("[data-role-difficulty-status]"));
   const prominentDifficultyStatusBlocks = Array.from(document.querySelectorAll("[data-role-difficulty-status-prominent]"));
   const settingsCurrentPair = document.querySelector("[data-settings-current-pair]");
@@ -1350,6 +1351,7 @@ ${calmPracticeMessage}`;
   ].filter(Boolean);
   let launcherAdminState = {
       debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+      admin_lock_active: false,
       subscription_emails_enabled: false,
       subscription_reminders_enabled: false,
       easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
@@ -1381,6 +1383,7 @@ ${calmPracticeMessage}`;
   let activeAdminSubscriptionsGiftFilter = "all";
   let activeAdminSubscriptionsMismatchFilter = "all";
   let activeAdminSubscriptionsSearch = "";
+  let launcherAdminLockRefreshTimer = 0;
 
   function syncLauncherAdminStateFromDevicePrefs() {
     launcherAdminState.debug_enabled = !!launcherAdminDevicePrefs.debug_enabled;
@@ -1470,8 +1473,73 @@ ${calmPracticeMessage}`;
 
   function clearLauncherAdminSession() {
     launcherAdminSessionActive = false;
+    launcherAdminState.admin_lock_active = false;
     launcherAdminSecret = "";
+    stopLauncherAdminLockRefresh();
     renderAdminPrivilegeIndicator();
+  }
+
+  function hasLauncherAdminLease() {
+    return !!(launcherAdminSessionActive && launcherAdminState.admin_lock_active);
+  }
+
+  function stopLauncherAdminLockRefresh() {
+    if (launcherAdminLockRefreshTimer) {
+      window.clearInterval(launcherAdminLockRefreshTimer);
+      launcherAdminLockRefreshTimer = 0;
+    }
+  }
+
+  function startLauncherAdminLockRefresh() {
+    stopLauncherAdminLockRefresh();
+    if (!hasLauncherAdminLease()) {
+      return;
+    }
+    launcherAdminLockRefreshTimer = window.setInterval(() => {
+      if (!hasLauncherAdminLease()) {
+        stopLauncherAdminLockRefresh();
+        return;
+      }
+      void refreshAdminLease({ silent: true });
+    }, 5000);
+  }
+
+  async function claimAdminLease() {
+    const data = await launcherAdminApi("claim_admin_lock", {
+      admin_client_id: launcherPageInstanceId
+    });
+    launcherAdminState.admin_lock_active = !!data?.admin_lock;
+    renderAdminPrivilegeIndicator();
+    startLauncherAdminLockRefresh();
+    return data;
+  }
+
+  async function refreshAdminLease(options = {}) {
+    if (!hasLauncherAdminAccess()) {
+      launcherAdminState.admin_lock_active = false;
+      renderAdminPrivilegeIndicator();
+      stopLauncherAdminLockRefresh();
+      return null;
+    }
+    try {
+      const data = await launcherAdminApi("heartbeat", {
+        admin_client_id: launcherPageInstanceId
+      });
+      launcherAdminState.admin_lock_active = !!data?.admin_lock_active;
+      renderAdminPrivilegeIndicator();
+      if (!launcherAdminState.admin_lock_active) {
+        stopLauncherAdminLockRefresh();
+      }
+      return data;
+    } catch (error) {
+      launcherAdminState.admin_lock_active = false;
+      renderAdminPrivilegeIndicator();
+      stopLauncherAdminLockRefresh();
+      if (!options || !options.silent) {
+        throw error;
+      }
+      return null;
+    }
   }
 
   function updateLauncherAdminDevicePrefs(updates = {}) {
@@ -7653,7 +7721,7 @@ ${calmPracticeMessage}`;
         kicker.appendChild(document.createTextNode(" "));
         kicker.appendChild(badge);
       }
-      badge.hidden = !launcherAdminSessionActive;
+      badge.hidden = !hasLauncherAdminLease();
     });
   }
 
@@ -7688,15 +7756,35 @@ ${calmPracticeMessage}`;
       body: JSON.stringify({
         action,
         secret_candidate: getLauncherAdminSecretCandidate(),
+        admin_client_id: launcherPageInstanceId,
         ...payload
       })
     });
+    return parseApiResponse(response, `Admin request failed with status ${response.status}`);
+  }
 
-    if (!response.ok) {
-      throw new Error(`Admin request failed with status ${response.status}`);
+  async function enterAdminView(statusNode = null) {
+    if (!activateLauncherAdminSession()) {
+      return false;
     }
-
-    return response.json();
+    try {
+      await claimAdminLease();
+      showAdminView();
+      return true;
+    } catch (error) {
+      launcherAdminState.admin_lock_active = false;
+      renderAdminPrivilegeIndicator();
+      const message = error instanceof Error ? error.message : "Unable to enter Admin right now.";
+      if (statusNode) {
+        statusNode.textContent = message;
+        if ("dataset" in statusNode) {
+          statusNode.dataset.persistedMessage = message;
+        }
+      } else {
+        window.alert(message);
+      }
+      return false;
+    }
   }
 
   async function recordLauncherVisit() {
@@ -10628,10 +10716,6 @@ ${calmPracticeMessage}`;
   function setRoleDifficultyLabel(role, level) {
     const label = difficultyLabels.find((item) => item.dataset.pairDifficultyLabel === role);
     if (label) {
-      if (label.dataset.staticLevelLabel === "remote-viewer") {
-        label.classList.remove("role-card-level-hidden");
-        return;
-      }
       if (!label.dataset.placeholder) {
         label.dataset.placeholder = String(label.textContent || "Level 1").trim() || "Level 1";
       }
@@ -11282,6 +11366,10 @@ ${calmPracticeMessage}`;
     const receiverType = String(difficultyData?.pair_difficulty_meta?.receiver_type || "").trim().toLowerCase();
     const senderType = String(difficultyData?.pair_difficulty_meta?.sender_type || "").trim().toLowerCase();
 
+    if (normalizedRole === "remote-viewer") {
+      return 4;
+    }
+
     if (normalizedRole === "receiver") {
       if (receiverType === "pro" && senderType === "pro") {
         return Math.min(pairMax, 5);
@@ -11311,6 +11399,10 @@ ${calmPracticeMessage}`;
     const receiverType = String(difficultyData?.pair_difficulty_meta?.receiver_type || "").trim().toLowerCase();
     const senderType = String(difficultyData?.pair_difficulty_meta?.sender_type || "").trim().toLowerCase();
     const levelNumber = Number(attemptedLevel);
+
+    if (normalizedRole === "remote-viewer" && levelNumber >= 5) {
+      return "Remote viewing currently supports Levels 1 through 4.";
+    }
 
     if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "sender" && senderType === "pro" && receiverType !== "pro") {
       return "You are PRO, but this receiver is not PRO, so this pair cannot use Level 4.";
@@ -11529,9 +11621,7 @@ ${calmPracticeMessage}`;
 
   function getDifficultyRequirementMessage(role) {
     if (role === "remote-viewer") {
-      const ownLabel = String(document.querySelector("[data-remote-viewer-own-label]")?.textContent || "You").trim();
-      const partnerLabel = String(document.querySelector("[data-remote-viewer-partner-label]")?.textContent || "Remote Device").trim();
-      return `Enter both ${ownLabel} and ${partnerLabel} before going above Level 3.`;
+      return "Remote viewing currently supports Levels 1 through 4.";
     }
     const ownLabel = String(document.querySelector(`[data-own-identifier-label="${role}"]`)?.textContent || "You").trim();
     const partnerLabel = getPartnerIdentifierShortLabel(role);
@@ -12160,6 +12250,14 @@ ${calmPracticeMessage}`;
       latest.roleDifficultyLevels["remote-viewer"] = normalizedLevel;
       writeLauncherState(latest);
       writeRuntimeSettings("remote-viewer", { difficulty_level: normalizedLevel });
+      const ownIdentifier = String(readVisibleRoleIdentifiers("remote-viewer")?.ownName || latest.ownNames?.["remote-viewer"] || "").trim();
+      const coveredScreenMode = readRemoteViewSimulationMode(latest) === "covered-screen";
+      const partnerIdentifier = coveredScreenMode
+        ? robotSimulationIdentifier
+        : String(readVisibleRoleIdentifiers("remote-viewer")?.partnerName || latest.currentPartners?.["remote-viewer"] || "").trim();
+      if (ownIdentifier && isRobotSimulationIdentifier(partnerIdentifier)) {
+        persistRobotSimulationDifficulty("remote-viewer", ownIdentifier, normalizedLevel);
+      }
       persistVisibleRoleDifficulty("remote-viewer", normalizedLevel);
     }
   }
@@ -12496,8 +12594,8 @@ ${calmPracticeMessage}`;
 
   function getRemoteViewSimulationModeCopy(mode) {
     return normalizeRemoteViewSimulationMode(mode) === "covered-screen"
-      ? "Active mode: Covered Screen Clairvoyance/Remote Viewing"
-      : "Active mode: Remote Device Simulation";
+      ? "Mode: Covered Screen"
+      : "Mode: Remote Device";
   }
 
   function showRemoteViewModeOverlay() {
@@ -12520,7 +12618,7 @@ ${calmPracticeMessage}`;
     const coveredScreen = normalizeRemoteViewSimulationMode(mode) === "covered-screen";
     if (remoteViewerPartnerLabel) {
       remoteViewerPartnerLabel.textContent = coveredScreen
-        ? "Covered Screen Clairvoyance/Remote Viewing"
+        ? "Covered Screen"
         : (isDisplayDevice ? "Remote Viewer" : "Remote Device");
     }
     if (remoteViewerPartnerField) {
@@ -12691,15 +12789,20 @@ ${calmPracticeMessage}`;
       const state = readLauncherState();
       const roleSettings = readRoleSettings(role);
       const launcherProfile = getRemoteViewerProfileState(state, String(remoteViewerOwnInput?.value || "").trim());
+      const coveredScreenMode = readRemoteViewSimulationMode(state) === "covered-screen";
       const ownName =
         String(remoteViewerOwnInput?.value || "").trim() ||
         String(state.ownNames?.[role] || "").trim() ||
         roleSettings.ownName;
       const partnerName =
-        String(remoteViewerPartnerInput?.value || "").trim() ||
-        launcherProfile.currentPartner ||
-        String(state.currentPartners?.[role] || "").trim() ||
-        roleSettings.partnerName;
+        coveredScreenMode
+          ? robotSimulationIdentifier
+          : (
+              String(remoteViewerPartnerInput?.value || "").trim() ||
+              launcherProfile.currentPartner ||
+              String(state.currentPartners?.[role] || "").trim() ||
+              roleSettings.partnerName
+            );
       const sessionCode = buildSessionCodeFromNames(ownName, partnerName);
 
       if (!sessionCode) {
@@ -14924,7 +15027,7 @@ ${calmPracticeMessage}`;
     }
     return [
       `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
-      `The probability that you would get this score by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
+      `The probability that you would get this score or higher by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
     ];
   }
 
@@ -23689,10 +23792,11 @@ ${calmPracticeMessage}`;
     const finishAdjustment = markDifficultyAdjustment(role);
     setRoleDifficultyStatus(role, "");
     setDifficultyExplanationLocked(role, true);
+    const localMaxLevel = role === "remote-viewer" ? 4 : 3;
 
     if (!identifiers.ownName || !identifiers.partnerName) {
       const currentLevel = getDifficultyLocalLevel(role);
-      const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
+      const nextLevel = Math.max(1, Math.min(localMaxLevel, currentLevel + delta));
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
         persistRoleDifficultyPreference(role, String(nextLevel));
@@ -23712,7 +23816,7 @@ ${calmPracticeMessage}`;
       assertValidParticipantIdentifier(identifiers.partnerName, "Partner identifier");
     } catch (error) {
       const currentLevel = getDifficultyLocalLevel(role);
-      const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
+      const nextLevel = Math.max(1, Math.min(localMaxLevel, currentLevel + delta));
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
         persistRoleDifficultyPreference(role, String(nextLevel));
@@ -23729,7 +23833,7 @@ ${calmPracticeMessage}`;
     const pairContext = getPairContextForRole(role);
     if (!pairContext) {
       const currentLevel = getDifficultyLocalLevel(role);
-      const nextLevel = Math.max(1, Math.min(3, currentLevel + delta));
+      const nextLevel = Math.max(1, Math.min(localMaxLevel, currentLevel + delta));
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
         persistRoleDifficultyPreference(role, String(nextLevel));
@@ -23796,8 +23900,10 @@ ${calmPracticeMessage}`;
       persistResolvedPairDifficultyForRole(role, pairContext, visibleConfirmedLevel);
       setRoleDifficultyLabel(role, visibleConfirmedLevel);
       void refreshDifficultyLabels();
-      const pairLabel = describeDifficultyChange(role, pairContext);
-      setRoleDifficultyStatus(role, `${pairLabel} set to Level ${confirmedLevel}.`);
+      if (role !== "remote-viewer") {
+        const pairLabel = describeDifficultyChange(role, pairContext);
+        setRoleDifficultyStatus(role, `${pairLabel} set to Level ${confirmedLevel}.`);
+      }
       scheduleGuidedLevelExplanation(role, visibleConfirmedLevel);
     } catch (error) {
       setRoleDifficultyStatus(
@@ -24458,9 +24564,13 @@ ${calmPracticeMessage}`;
       adminStatus.textContent = "Loading admin data...";
     }
     try {
-      const data = await launcherAdminApi("heartbeat");
+      const data = await refreshAdminLease();
+      if (!data) {
+        throw new Error("Admin access is not active.");
+      }
         launcherAdminState = {
           debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+          admin_lock_active: !!data?.admin_lock_active,
           subscription_emails_enabled: !!data?.subscription_emails_enabled,
           subscription_reminders_enabled: !!data?.subscription_reminders_enabled,
           easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
@@ -24501,8 +24611,10 @@ ${calmPracticeMessage}`;
         renderAdminSubscriptionsView();
       }
     } catch (error) {
+      launcherAdminState.admin_lock_active = false;
+      renderAdminPrivilegeIndicator();
       if (adminStatus) {
-        adminStatus.textContent = "Unable to load admin data right now.";
+        adminStatus.textContent = String(error?.message || "Unable to load admin data right now.");
       }
     }
   }
@@ -27664,8 +27776,12 @@ ${calmPracticeMessage}`;
         if (requestedDifficultyLevel) {
           launcherState.difficultyLevel = requestedDifficultyLevel;
           launcherState.roleDifficultyLevels = launcherState.roleDifficultyLevels || {};
-          launcherState.roleDifficultyLevels.sender = requestedDifficultyLevel;
-          launcherState.roleDifficultyLevels.receiver = requestedDifficultyLevel;
+          if (requestedView === "remote-viewer") {
+            launcherState.roleDifficultyLevels["remote-viewer"] = requestedDifficultyLevel;
+          } else {
+            launcherState.roleDifficultyLevels.sender = requestedDifficultyLevel;
+            launcherState.roleDifficultyLevels.receiver = requestedDifficultyLevel;
+          }
           writeLauncherState(launcherState);
           if (
             ["sender", "receiver"].includes(requestedView) &&
@@ -28678,18 +28794,18 @@ ${calmPracticeMessage}`;
             settingsStatus.textContent = "";
             settingsStatus.dataset.persistedMessage = "";
           }
-          showAdminView();
+          await enterAdminView(settingsStatus);
           return;
         }
       }
 
       if (!desiredName) {
         if (activateLauncherAdminSession()) {
+          await enterAdminView(settingsStatus);
           if (settingsStatus) {
             settingsStatus.textContent = "";
             settingsStatus.dataset.persistedMessage = "";
           }
-          showAdminView();
           return;
         }
       }
@@ -29047,7 +29163,7 @@ ${calmPracticeMessage}`;
     const title = document.createElement("h2");
     title.className = "named-report-modal-title covered-screen-instruction-title";
     title.id = "coveredScreenInstructionTitle";
-    title.textContent = "Covered Screen Clairvoyance/Remote Viewing";
+    title.textContent = "Covered Screen";
 
     const copy = document.createElement("p");
     copy.className = "covered-screen-instruction-copy";
@@ -29257,18 +29373,18 @@ ${calmPracticeMessage}`;
         }
       }, 0);
     });
-    if (role === "remote-viewer") {
-      label.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const card = findRoleCard("remote-viewer");
-        if (!card?.classList.contains("active")) {
-          activateCard(card);
-          return;
-        }
-        showRemoteViewModeOverlay();
-      });
-    }
+  });
+  remoteViewModeOpenButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = findRoleCard("remote-viewer");
+      if (!card?.classList.contains("active")) {
+        activateCard(card);
+        return;
+      }
+      showRemoteViewModeOverlay();
+    });
   });
   remoteViewModeDialog?.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -29693,11 +29809,14 @@ ${calmPracticeMessage}`;
     const runtimeMode = coveredScreenMode
       ? "remote-viewer-covered"
       : (isDisplayDevice ? "remote-display" : "remote-viewer");
+    const requestedRemoteViewerDifficulty = normalizeDifficultyLevel(
+      getDifficultyLocalLevel("remote-viewer")
+    );
     showLocalLauncherDebugAlert(1, `mode=${remoteViewSimulationMode} covered=${coveredScreenMode ? 1 : 0} runtime=${runtimeMode}`);
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
       remoteDisplayDevice: isDisplayDevice,
-      difficultyLevel: coveredScreenMode ? "4" : undefined
+      difficultyLevel: requestedRemoteViewerDifficulty
     });
     showLocalLauncherDebugAlert(2, `target=${targetUrl}`);
     if (coveredScreenMode) {

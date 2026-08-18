@@ -707,6 +707,13 @@ body[data-guided-tour-active="1"] .settings-gear {
     min-height: 0;
   }
 
+  .stage.covered-screen-reveal.visible .arrangement.visible {
+    width: min(50vw, 50vh);
+    height: min(50vw, 50vh);
+    min-width: 220px;
+    min-height: 220px;
+  }
+
   .choice-grid {
     width: min(94vw, 680px);
     max-height: none;
@@ -801,6 +808,14 @@ body[data-guided-tour-active="1"] .settings-gear {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.stage.covered-screen-reveal.visible .arrangement.visible {
+  width: min(50vw, 50vh);
+  height: min(50vw, 50vh);
+  min-width: 220px;
+  min-height: 220px;
+  margin: 0;
 }
 
 .countdown-box.hidden {
