@@ -3764,21 +3764,55 @@ body.lesson-image-overlay-open {
 }
 
 .remote-view-mode-card {
+  width: 100%;
   padding: 18px;
   border-radius: 22px;
   background: rgba(6, 12, 24, 0.56);
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
   gap: 14px;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  text-align: left;
+}
+
+.remote-view-mode-card:hover,
+.remote-view-mode-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(127, 188, 255, 0.42);
+  background: rgba(9, 17, 32, 0.72);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+  outline: none;
+}
+
+.remote-view-mode-card,
+.remote-view-mode-card * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .remote-view-mode-illustration {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 0;
   min-height: 148px;
   border-radius: 20px;
   display: grid;
   place-items: center;
   background: linear-gradient(180deg, rgba(62, 108, 193, 0.28), rgba(7, 12, 24, 0.58));
   border: 1px solid rgba(127, 188, 255, 0.22);
+  cursor: pointer !important;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  text-align: inherit;
+}
+
+.remote-view-mode-illustration:hover,
+.remote-view-mode-illustration:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(127, 188, 255, 0.42);
+  background: linear-gradient(180deg, rgba(76, 129, 227, 0.34), rgba(9, 17, 32, 0.72));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+  outline: none;
 }
 
 .remote-view-mode-illustration-covered {
@@ -3920,13 +3954,8 @@ body.lesson-image-overlay-open {
   line-height: 1.5;
 }
 
-.remote-view-mode-select {
-  justify-self: start;
-  min-width: 120px;
-}
-
 .remote-view-mode-actions {
-  margin-top: 18px;
+  margin-top: 6px;
   display: flex;
   justify-content: center;
 }
@@ -3952,7 +3981,6 @@ body.lesson-image-overlay-open {
     grid-template-columns: 1fr;
   }
 
-  .remote-view-mode-select,
   .remote-view-mode-cancel {
     width: 100%;
     justify-self: stretch;
@@ -4874,7 +4902,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260818a") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260818b") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

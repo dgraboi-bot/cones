@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260818a";
+  const launcherBuildVersion = "20260818b";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -1030,7 +1030,8 @@
   const remoteViewModeOverlay = document.querySelector("[data-remote-view-mode-overlay]");
   const remoteViewModeDialog = document.querySelector("[data-remote-view-mode-dialog]");
   const remoteViewModeStatus = document.querySelector("[data-remote-view-mode-status]");
-  const remoteViewModeSelectButtons = Array.from(document.querySelectorAll("[data-remote-view-mode-select]"));
+  const remoteViewModeCards = Array.from(document.querySelectorAll("[data-remote-view-mode-card]"));
+  const remoteViewModeDeviceCopy = document.querySelector("[data-remote-view-mode-device-copy]");
   const remoteViewModeCancelButton = document.querySelector("[data-remote-view-mode-cancel]");
   const remoteViewerDisplayToggleWrap = document.querySelector("[data-remote-viewer-display-toggle-wrap]");
   const remoteViewerPartnerField = document.querySelector("[data-remote-viewer-partner-field]");
@@ -1641,7 +1642,7 @@ ${calmPracticeMessage}`;
     4: "In Level 4 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
     5: 'In Level 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
-  const remoteViewExplanationCopy = "After the countdown ends, an image appears on the Remote Device.\nTry to perceive that image using ESP. When you are ready, you are\nshown two images. Select the one that best matches what you perceived.";
+  const remoteViewExplanationCopy = "After the countdown ends, an image appears on the Remote Screen.\nTry to perceive that image using ESP. When you are ready, you are\nshown two images. Select the one that best matches what you perceived.";
   const roleSkillExplanationCopy = {
     sender: 'The Sender must learn to look intently at an image and "put it out there" strongly. Where exactly is "out there" is a good question.',
     receiver: 'The Receiver must learn to look at the contents of the Receiver\'s "mind\'s eye" and trust what appears to pop in, and remember what was seen in that relatively short span of time.',
@@ -12595,7 +12596,13 @@ ${calmPracticeMessage}`;
   function getRemoteViewSimulationModeCopy(mode) {
     return normalizeRemoteViewSimulationMode(mode) === "covered-screen"
       ? "Mode: Covered Screen"
-      : "Mode: Remote Device";
+      : "Mode: Remote Screen";
+  }
+
+  function buildRemoteViewModeDeviceCopy() {
+    const currentIdentifier = String(getCurrentTelepathyProIdentifier() || "").trim();
+    const identifierText = currentIdentifier || "no unique name currently recognized in this browser";
+    return `A target image will appear on a remote device running ESP PRO with any registered unique name, including ${identifierText}. Check the "remote viewing display device" checkbox and then fill the "Remote Viewer" field with ${identifierText} and press GO. After the receiving period, you will be shown two images and asked to choose the one that best matches what you perceived.`;
   }
 
   function showRemoteViewModeOverlay() {
@@ -12619,7 +12626,7 @@ ${calmPracticeMessage}`;
     if (remoteViewerPartnerLabel) {
       remoteViewerPartnerLabel.textContent = coveredScreen
         ? "Covered Screen"
-        : (isDisplayDevice ? "Remote Viewer" : "Remote Device");
+        : (isDisplayDevice ? "Remote Viewer" : "Remote Screen");
     }
     if (remoteViewerPartnerField) {
       remoteViewerPartnerField.hidden = false;
@@ -12634,7 +12641,12 @@ ${calmPracticeMessage}`;
         remoteViewerPartnerInput.hidden = true;
         remoteViewerPartnerInput.style.display = "none";
       } else {
-        remoteViewerPartnerInput.placeholder = "remote device handle";
+        if (isDisplayDevice) {
+          remoteViewerPartnerInput.value = "";
+          remoteViewerPartnerInput.placeholder = "";
+        } else {
+          remoteViewerPartnerInput.placeholder = "remote device unique name";
+        }
         remoteViewerPartnerInput.hidden = false;
         remoteViewerPartnerInput.style.display = "";
       }
@@ -12670,6 +12682,9 @@ ${calmPracticeMessage}`;
     if (remoteViewModeStatus) {
       remoteViewModeStatus.textContent = getRemoteViewSimulationModeCopy(mode);
       remoteViewModeStatus.hidden = false;
+    }
+    if (remoteViewModeDeviceCopy) {
+      remoteViewModeDeviceCopy.textContent = buildRemoteViewModeDeviceCopy();
     }
     applyRemoteViewerModePresentation(mode, !!remoteViewerDisplayDeviceCheckbox?.checked);
   }
@@ -29389,9 +29404,9 @@ ${calmPracticeMessage}`;
   remoteViewModeDialog?.addEventListener("click", (event) => {
     event.stopPropagation();
   });
-  remoteViewModeSelectButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const mode = normalizeRemoteViewSimulationMode(button.getAttribute("data-remote-view-mode-select") || "");
+  remoteViewModeCards.forEach((card) => {
+    const selectMode = () => {
+      const mode = normalizeRemoteViewSimulationMode(card.getAttribute("data-remote-view-mode-card") || "");
       logRemoteViewModeDebug("select_clicked", {
         mode,
         current_mode_before_write: readRemoteViewSimulationMode(),
@@ -29419,6 +29434,17 @@ ${calmPracticeMessage}`;
           field_inline_display: String(remoteViewerPartnerField?.style.display || "")
         });
       }, 0);
+    };
+
+    card.addEventListener("click", () => {
+      selectMode();
+    });
+
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectMode();
+      }
     });
   });
   remoteViewModeCancelButton?.addEventListener("click", () => {
