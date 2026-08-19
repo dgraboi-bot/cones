@@ -47,8 +47,8 @@
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
-  const exportSchemaVersion = "cones-trials-v5";
-  const runtimeBuildVersion = "20260818b";
+  const exportSchemaVersion = "cones-trials-v6";
+  const runtimeBuildVersion = "20260818c";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -68,6 +68,8 @@
   const learningCenterLessonReturnKey = "cones-learning-center-lesson-return-v1";
   const probeDeeperReturnKey = "cones-probe-deeper-return-v1";
   const coveredScreenInstructionDismissKey = "cones-covered-screen-instruction-dismiss-v1";
+  const reportSessionCountersStorageKey = "cones-report-session-counters-v1";
+  const activeReportSessionStorageKey = `cones-active-report-session-v1-${role}`;
   let guidedStandaloneProbeTopicId = "";
   const requestedRuntimeDifficultyLevel = normalizeDifficultyLevel(runtimeQuery.get("difficulty_level") || "1");
   const requestedIncludeConfidence = runtimeQuery.has("include_confidence")
@@ -95,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260818b";
+  const launcherBuildVersion = "20260818c";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1741,6 +1743,137 @@
     return String(identifier || "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function readJsonStorageValue(storageKey, fallbackValue) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        return fallbackValue;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : fallbackValue;
+    } catch (error) {
+      return fallbackValue;
+    }
+  }
+
+  function writeJsonStorageValue(storageKey, value) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(value));
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  }
+
+  function getCurrentSessionMode() {
+    return (isRemoteViewerLikeMode || isRemoteDisplayMode) ? "remote_viewing" : "telepathy";
+  }
+
+  function getCurrentRemoteViewingSubmode() {
+    if (isRemoteViewerCoveredMode) {
+      return "covered_screen";
+    }
+    if (isRemoteViewerMode || isRemoteDisplayMode) {
+      return "remote_screen";
+    }
+    return "";
+  }
+
+  function buildReportSessionSignature(receiverName, senderName, sessionMode, remoteViewingSubmode, level, source) {
+    return [
+      normalizeIdentifierForSession(receiverName),
+      normalizeIdentifierForSession(senderName),
+      String(sessionMode || "").trim().toLowerCase(),
+      String(remoteViewingSubmode || "").trim().toLowerCase(),
+      normalizeDifficultyLevel(level || "1"),
+      String(source || "real").trim().toLowerCase()
+    ].join("||");
+  }
+
+  function readReportSessionCounters() {
+    const parsed = readJsonStorageValue(reportSessionCountersStorageKey, {});
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  }
+
+  function writeReportSessionCounters(counters) {
+    writeJsonStorageValue(reportSessionCountersStorageKey, counters && typeof counters === "object" ? counters : {});
+  }
+
+  function readActiveReportSessionMeta() {
+    const parsed = readJsonStorageValue(activeReportSessionStorageKey, null);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  }
+
+  function writeActiveReportSessionMeta(meta) {
+    if (!meta || typeof meta !== "object") {
+      try {
+        localStorage.removeItem(activeReportSessionStorageKey);
+      } catch (error) {
+        // Ignore storage failures.
+      }
+      return;
+    }
+    writeJsonStorageValue(activeReportSessionStorageKey, meta);
+  }
+
+  function getOrCreateReportSessionMeta(round, remoteState) {
+    const senderProfile = remoteState?.sender_profile || {};
+    const receiverProfile = remoteState?.receiver_profile || {};
+    const receiverName = String(receiverProfile.name || "").trim();
+    const senderName = String(senderProfile.name || "").trim();
+    const sessionMode = getCurrentSessionMode();
+    const remoteViewingSubmode = getCurrentRemoteViewingSubmode();
+    const sessionLevel = normalizeDifficultyLevel(
+      round?.difficulty_level ||
+      round?.level ||
+      currentPairDifficultyLevel ||
+      "1"
+    );
+    const source = isRobotSimulationMode ? "simulation" : "real";
+    const signature = buildReportSessionSignature(
+      receiverName,
+      senderName,
+      sessionMode,
+      remoteViewingSubmode,
+      sessionLevel,
+      source
+    );
+    const active = readActiveReportSessionMeta();
+    if (active?.signature === signature && active?.session_id && Number(active?.session_number) >= 1) {
+      return {
+        signature,
+        sessionId: String(active.session_id),
+        sessionNumber: Number(active.session_number)
+      };
+    }
+
+    const counters = readReportSessionCounters();
+    const nextSessionNumber = Math.max(0, Number(counters[signature] || 0)) + 1;
+    counters[signature] = nextSessionNumber;
+    writeReportSessionCounters(counters);
+
+    const sessionId = [
+      sessionMode || "telepathy",
+      remoteViewingSubmode || "standard",
+      sessionLevel,
+      normalizeIdentifierForSession(receiverName) || "receiver",
+      normalizeIdentifierForSession(senderName) || "sender",
+      Date.now().toString(36),
+      Math.random().toString(36).slice(2, 8)
+    ].join("-");
+
+    writeActiveReportSessionMeta({
+      signature,
+      session_id: sessionId,
+      session_number: nextSessionNumber
+    });
+
+    return {
+      signature,
+      sessionId,
+      sessionNumber: nextSessionNumber
+    };
   }
 
   function isLevelOneDifficulty() {
@@ -5633,6 +5766,7 @@
       || Date.now()
     );
     const beepEndServerMs = Number.isFinite(recordedServerMs) ? recordedServerMs : Date.now();
+    const sessionMeta = getOrCreateReportSessionMeta(round, remoteState);
     const localBeepEndMs = beepEndServerMs - serverOffsetMs;
     const localCompleted = new Date(localBeepEndMs);
     const localDate = localCompleted.toLocaleDateString();
@@ -5659,9 +5793,26 @@
       isImagePairRound && Number.isInteger(imageChoiceIndex)
         ? (imageChoiceIndex === 1 ? imageChoiceA : (imageChoiceIndex === 2 ? imageChoiceB : ""))
         : "";
+    const sessionMode = getCurrentSessionMode();
+    const remoteViewingSubmode = getCurrentRemoteViewingSubmode();
+    const sessionLevel = normalizeDifficultyLevel(
+      round?.difficulty_level ||
+      round?.level ||
+      currentPairDifficultyLevel ||
+      "1"
+    );
+    const trialUtcMs = Math.round(beepEndServerMs);
+    const trialId = `${sessionMeta.sessionId}-${String(round?.id || "trial").trim() || "trial"}`;
 
     return [
       exportSchemaVersion,
+      trialId,
+      sessionMeta.sessionId,
+      sessionMode,
+      remoteViewingSubmode,
+      sessionLevel,
+      sessionMeta.sessionNumber,
+      trialUtcMs,
       round?.id || "",
       receiverProfile.name || "",
       senderProfile.name || "",
@@ -5699,6 +5850,13 @@
     const values = buildTrialFieldValues(round, remoteState, options);
     const keys = [
       "export schema/version",
+      "trial_id",
+      "session_id",
+      "session_mode",
+      "remote_viewing_submode",
+      "session_level",
+      "session_number",
+      "trial_utc_ms",
       "round_id",
       "rx name",
       "tx name",
@@ -6635,6 +6793,9 @@
       } catch (_) {
         // Ignore transient session-storage failures.
       }
+    }
+    if (mode === "end") {
+      writeActiveReportSessionMeta(null);
     }
 
     if (isLocalSimulationMode) {

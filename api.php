@@ -3760,6 +3760,13 @@ function get_trial_csv_headers(): array
 {
     return [
         'export schema/version',
+        'trial_id',
+        'session_id',
+        'session_mode',
+        'remote_viewing_submode',
+        'session_level',
+        'session_number',
+        'trial_utc_ms',
         'round_id',
         'rx name',
         'tx name',
@@ -3799,6 +3806,13 @@ function get_demo_pair_seed_definitions(): array
     ): array {
         return [
             'export schema/version' => '1',
+            'trial_id' => '',
+            'session_id' => '',
+            'session_mode' => '',
+            'remote_viewing_submode' => '',
+            'session_level' => '',
+            'session_number' => '',
+            'trial_utc_ms' => '',
             'round_id' => $roundId,
             'rx name' => $receiverName,
             'tx name' => $senderName,
@@ -4496,9 +4510,96 @@ function normalize_pair_storage_component(string $value): string
     return $normalized !== '' ? $normalized : 'blank';
 }
 
+function normalize_difficulty_level_string($value): string
+{
+    $level = trim((string) $value);
+    return in_array($level, ['1', '2', '3', '4', '5'], true) ? $level : '';
+}
+
 function build_pair_match_key(string $receiverName, string $senderName): string
 {
     return normalize_person_name_for_match($receiverName) . '|||' . normalize_person_name_for_match($senderName);
+}
+
+function normalize_report_source_value($value): string
+{
+    return strtolower(trim((string) $value)) === 'simulation' ? 'simulation' : 'real';
+}
+
+function normalize_report_session_mode_value($value): string
+{
+    $mode = strtolower(trim((string) $value));
+    if ($mode === 'remote_viewing') {
+        return 'remote_viewing';
+    }
+    return 'telepathy';
+}
+
+function normalize_report_remote_submode_value($value): string
+{
+    $submode = strtolower(trim((string) $value));
+    if ($submode === 'covered_screen') {
+        return 'covered_screen';
+    }
+    if ($submode === 'remote_screen') {
+        return 'remote_screen';
+    }
+    return '';
+}
+
+function get_trial_record_session_mode(array $record): string
+{
+    $explicit = trim((string) ($record['session_mode'] ?? ''));
+    if ($explicit !== '') {
+        return normalize_report_session_mode_value($explicit);
+    }
+    $source = normalize_report_source_value($record['_report_source'] ?? 'real');
+    $hasImagePairFields = trim((string) ($record['image pair id'] ?? '')) !== ''
+        || trim((string) ($record['sent image'] ?? '')) !== ''
+        || trim((string) ($record['rx image choice'] ?? '')) !== '';
+    if ($source === 'simulation' && $hasImagePairFields) {
+        return 'remote_viewing';
+    }
+    return 'telepathy';
+}
+
+function get_trial_record_remote_submode(array $record): string
+{
+    $explicit = trim((string) ($record['remote_viewing_submode'] ?? ''));
+    if ($explicit !== '') {
+        return normalize_report_remote_submode_value($explicit);
+    }
+    if (get_trial_record_session_mode($record) === 'remote_viewing') {
+        $hasConeLayout = trim((string) ($record['sent layout'] ?? '')) !== '';
+        return $hasConeLayout ? 'covered_screen' : 'remote_screen';
+    }
+    return '';
+}
+
+function get_trial_record_session_level(array $record): string
+{
+    return normalize_difficulty_level_string(
+        $record['session_level']
+        ?? $record['difficulty level']
+        ?? ''
+    );
+}
+
+function build_pair_report_bucket_key(
+    string $receiverName,
+    string $senderName,
+    string $source,
+    string $sessionMode,
+    string $remoteViewingSubmode,
+    string $sessionLevel
+): string {
+    return implode('|||', [
+        build_pair_match_key($receiverName, $senderName),
+        normalize_report_source_value($source),
+        normalize_report_session_mode_value($sessionMode),
+        normalize_report_remote_submode_value($remoteViewingSubmode),
+        normalize_difficulty_level_string($sessionLevel)
+    ]);
 }
 
 function is_demo_report_pair(string $receiverName, string $senderName): bool
@@ -7048,18 +7149,40 @@ function validate_selected_pair_payload($value, string $field = 'selected_pair')
         throw new RuntimeException($field . ' must be an object.');
     }
 
-    require_allowed_keys($value, ['receiver_name', 'sender_name', 'session_code', 'source', 'alias_receiver_names', 'alias_sender_names'], $field);
+    require_allowed_keys($value, [
+        'receiver_name',
+        'sender_name',
+        'session_code',
+        'source',
+        'session_mode',
+        'remote_viewing_submode',
+        'session_level',
+        'alias_receiver_names',
+        'alias_sender_names'
+    ], $field);
 
     $source = trim((string) ($value['source'] ?? ''));
     if ($source !== '' && $source !== 'real' && $source !== 'simulation') {
         throw new RuntimeException($field . '.source must be real or simulation.');
     }
+    $sessionMode = trim((string) ($value['session_mode'] ?? ''));
+    if ($sessionMode !== '' && $sessionMode !== 'telepathy' && $sessionMode !== 'remote_viewing') {
+        throw new RuntimeException($field . '.session_mode must be telepathy or remote_viewing.');
+    }
+    $remoteViewingSubmode = trim((string) ($value['remote_viewing_submode'] ?? ''));
+    if ($remoteViewingSubmode !== '' && $remoteViewingSubmode !== 'covered_screen' && $remoteViewingSubmode !== 'remote_screen') {
+        throw new RuntimeException($field . '.remote_viewing_submode must be covered_screen or remote_screen.');
+    }
+    $sessionLevel = normalize_difficulty_level_string($value['session_level'] ?? '');
 
     return [
         'receiver_name' => validate_report_participant_identifier_string($value['receiver_name'] ?? '', $field . '.receiver_name', true),
         'sender_name' => validate_report_participant_identifier_string($value['sender_name'] ?? '', $field . '.sender_name', true),
         'session_code' => validate_session_code_value($value['session_code'] ?? '', $field . '.session_code', false),
         'source' => $source !== '' ? $source : 'real',
+        'session_mode' => $sessionMode,
+        'remote_viewing_submode' => $remoteViewingSubmode,
+        'session_level' => $sessionLevel,
         'alias_receiver_names' => isset($value['alias_receiver_names']) && is_array($value['alias_receiver_names'])
             ? array_values(array_unique(array_map(
                 static fn($item): string => validate_report_participant_identifier_string($item, $field . '.alias_receiver_names[]', true),
@@ -8697,8 +8820,14 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
         if ($receiverName === '' || $senderName === '') {
             continue;
         }
-
-        $candidatePairKeys[build_pair_match_key($receiverName, $senderName)] = true;
+        $candidatePairKeys[build_pair_report_bucket_key(
+            $receiverName,
+            $senderName,
+            (string) ($candidatePair['source'] ?? 'real'),
+            (string) ($candidatePair['session_mode'] ?? 'telepathy'),
+            (string) ($candidatePair['remote_viewing_submode'] ?? ''),
+            (string) ($candidatePair['session_level'] ?? '')
+        )] = true;
     }
 
     $associatedNameSet = [];
@@ -8713,7 +8842,7 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
         return array_values(array_filter($records, static function (array $record): bool {
             $receiverName = trim((string) ($record['rx name'] ?? ''));
             $senderName = trim((string) ($record['tx name'] ?? ''));
-            $source = trim((string) ($record['_report_source'] ?? 'real'));
+            $source = normalize_report_source_value($record['_report_source'] ?? 'real');
             if (strcasecmp($source, 'simulation') === 0) {
                 return $receiverName !== '' && $senderName !== '';
             }
@@ -8725,7 +8854,15 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
     foreach ($records as $record) {
         $receiverName = trim((string) ($record['rx name'] ?? ''));
         $senderName = trim((string) ($record['tx name'] ?? ''));
-        $source = trim((string) ($record['_report_source'] ?? 'real'));
+        $source = normalize_report_source_value($record['_report_source'] ?? 'real');
+        $bucketKey = build_pair_report_bucket_key(
+            $receiverName,
+            $senderName,
+            $source,
+            get_trial_record_session_mode($record),
+            get_trial_record_remote_submode($record),
+            get_trial_record_session_level($record)
+        );
 
         if (strcasecmp($source, 'simulation') === 0) {
             $filtered[] = $record;
@@ -8733,8 +8870,7 @@ function filter_pair_trial_records(array $records, array $candidatePairs, array 
         }
 
         $pairKey = build_pair_match_key($receiverName, $senderName);
-
-        $matchesCandidatePair = $candidatePairKeys && isset($candidatePairKeys[$pairKey]);
+        $matchesCandidatePair = $candidatePairKeys && isset($candidatePairKeys[$bucketKey]);
         $receiverMatch = normalize_person_name_for_match($receiverName);
         $senderMatch = normalize_person_name_for_match($senderName);
         $matchesAssociatedName = $associatedNameSet

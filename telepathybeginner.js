@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260818b";
+  const launcherBuildVersion = "20260818c";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -6371,6 +6371,9 @@ ${calmPracticeMessage}`;
       sender_name: assertValidReportIdentifier(pairInfo?.senderName, `${fieldName} sender identifier`),
       session_code: assertValidSessionCode(pairInfo?.sessionCode, `${fieldName} session code`),
       source: String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real",
+      session_mode: normalizeReportSessionMode(pairInfo?.sessionMode),
+      remote_viewing_submode: normalizeReportRemoteViewingSubmode(pairInfo?.remoteViewingSubmode),
+      session_level: normalizeReportSessionLevel(pairInfo?.sessionLevel || ""),
       alias_receiver_names: aliasReceiverNames
         .map((value) => assertValidReportIdentifier(value, `${fieldName} alias receiver identifier`))
         .filter(Boolean),
@@ -6378,6 +6381,85 @@ ${calmPracticeMessage}`;
         .map((value) => assertValidReportIdentifier(value, `${fieldName} alias sender identifier`))
         .filter(Boolean)
     };
+  }
+
+  function normalizeReportSessionMode(value) {
+    return String(value || "").trim().toLowerCase() === "remote_viewing"
+      ? "remote_viewing"
+      : "telepathy";
+  }
+
+  function normalizeReportRemoteViewingSubmode(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "covered_screen") {
+      return "covered_screen";
+    }
+    if (normalized === "remote_screen") {
+      return "remote_screen";
+    }
+    return "";
+  }
+
+  function getReportRecordSessionMode(record) {
+    const explicit = String(record?.["session_mode"] || "").trim();
+    if (explicit) {
+      return normalizeReportSessionMode(explicit);
+    }
+    const source = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
+      ? "simulation"
+      : "real";
+    const hasImagePairFields = Boolean(
+      String(record?.["image pair id"] || "").trim() ||
+      String(record?.["sent image"] || "").trim() ||
+      String(record?.["rx image choice"] || "").trim()
+    );
+    if (source === "simulation" && hasImagePairFields) {
+      return "remote_viewing";
+    }
+    return "telepathy";
+  }
+
+  function normalizeReportSessionLevel(value) {
+    const normalized = String(value || "").trim();
+    return ["1", "2", "3", "4", "5"].includes(normalized) ? normalized : "";
+  }
+
+  function getReportRecordRemoteViewingSubmode(record) {
+    const explicit = String(record?.["remote_viewing_submode"] || "").trim();
+    if (explicit) {
+      return normalizeReportRemoteViewingSubmode(explicit);
+    }
+    if (getReportRecordSessionMode(record) === "remote_viewing") {
+      return String(record?.["sent layout"] || "").trim() ? "covered_screen" : "remote_screen";
+    }
+    return "";
+  }
+
+  function getReportRecordSessionLevel(record) {
+    return normalizeReportSessionLevel(record?.["session_level"] || record?.["difficulty level"] || "");
+  }
+
+  function getReportRecordSessionNumber(record) {
+    const value = Number(record?.["session_number"]);
+    return Number.isFinite(value) && value >= 1 ? Math.round(value) : 1;
+  }
+
+  function getReportRecordTrialUtcMs(record) {
+    const explicit = Number(record?.["trial_utc_ms"]);
+    if (Number.isFinite(explicit) && explicit > 0) {
+      return explicit;
+    }
+    return parseUtcMillis(record);
+  }
+
+  function buildReportBucketKey(receiverName, senderName, source, sessionMode, remoteViewingSubmode, sessionLevel) {
+    return [
+      buildPairMatchKey(receiverName, senderName),
+      String(source || "real").trim().toLowerCase() === "simulation" ? "simulation" : "real",
+      normalizeReportSessionMode(sessionMode),
+      normalizeReportRemoteViewingSubmode(remoteViewingSubmode),
+      normalizeReportSessionLevel(sessionLevel || "")
+    ].join("|||");
   }
 
   function readNamedReportsCache() {
@@ -12963,21 +13045,24 @@ ${calmPracticeMessage}`;
         .filter(Boolean)
     );
 
-    const addCandidate = (receiverName, senderName) => {
+    const addCandidate = (receiverName, senderName, options = {}) => {
       const receiver = getPreferredIdentifier(stripGuestDisplaySuffix(String(receiverName || "").trim()), state);
       const sender = getPreferredIdentifier(stripGuestDisplaySuffix(String(senderName || "").trim()), state);
       if (!receiver || !sender) {
         return;
       }
-      if (receiver.toLowerCase() === sender.toLowerCase()) {
+      const sessionMode = normalizeReportSessionMode(options.sessionMode);
+      const remoteViewingSubmode = normalizeReportRemoteViewingSubmode(options.remoteViewingSubmode);
+      const sessionLevel = normalizeReportSessionLevel(options.sessionLevel || "");
+      if (receiver.toLowerCase() === sender.toLowerCase() && sessionMode !== "remote_viewing") {
         return;
       }
       const key = buildPairMatchKey(receiver, sender);
-      const source = (
+      const source = String(options.source || (
         isRobotSimulationIdentifier(receiver) ||
         isRobotSimulationIdentifier(sender)
-      ) ? "simulation" : "real";
-      const sourceKey = `${key}|||${source}`;
+      ? "simulation" : "real")).trim().toLowerCase() === "simulation" ? "simulation" : "real";
+      const sourceKey = buildReportBucketKey(receiver, sender, source, sessionMode, remoteViewingSubmode, sessionLevel);
       if (seen.has(sourceKey)) {
         return;
       }
@@ -12999,7 +13084,10 @@ ${calmPracticeMessage}`;
           "rx name": receiver,
           "tx name": sender
         }),
-        source
+        source,
+        sessionMode,
+        remoteViewingSubmode,
+        sessionLevel
       });
     };
 
@@ -13037,6 +13125,27 @@ ${calmPracticeMessage}`;
       authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(senderSettings.ownName, state)))
     ) {
       addCandidate(senderSettings.partnerName, senderSettings.ownName);
+    }
+
+    const remoteViewerForm = readRoleFormValues("remote-viewer");
+    const remoteViewerSettings = readRoleSettings("remote-viewer");
+    const remoteViewerLevel = getDifficultyLocalLevel("remote-viewer");
+    const remoteViewMode = readRemoteViewSimulationMode(state);
+    const remoteViewingSubmode = remoteViewMode === "covered-screen" ? "covered_screen" : "remote_screen";
+    const remoteViewerPartner = remoteViewMode === "covered-screen"
+      ? robotSimulationIdentifier
+      : String(remoteViewerForm.partnerName || remoteViewerSettings.partnerName || "").trim();
+    if (
+      visitorMode ||
+      !authoritativeSelfIdentities.size ||
+      authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(remoteViewerForm.ownName, state)))
+    ) {
+      addCandidate(remoteViewerForm.ownName, remoteViewerPartner, {
+        source: "real",
+        sessionMode: "remote_viewing",
+        remoteViewingSubmode,
+        sessionLevel: remoteViewerLevel
+      });
     }
 
     const currentParticipants = getCurrentPairParticipants();
@@ -13086,13 +13195,8 @@ ${calmPracticeMessage}`;
     const candidatePairs = collectReportCandidatePairs();
     for (const candidate of candidatePairs) {
       const match = available.find((pairInfo) =>
-        !isNamedReportTarget(pairInfo) && (
-        pairInfo.key === candidate.key ||
-        (
-          pairInfo.baseKey === candidate.baseKey &&
-          String(pairInfo.source || "real").trim().toLowerCase() === String(candidate.source || "real").trim().toLowerCase()
-        )
-        )
+        !isNamedReportTarget(pairInfo) &&
+        pairInfo.key === candidate.key
       );
       if (match) {
         return match;
@@ -13172,6 +13276,9 @@ ${calmPracticeMessage}`;
     const senderName = String(selectedPair.sender_name || "").trim();
     const sessionCode = String(selectedPair.session_code || "").trim();
     const source = String(selectedPair.source || "real").trim().toLowerCase() === "simulation" ? "simulation" : "real";
+    const sessionMode = normalizeReportSessionMode(selectedPair.session_mode);
+    const remoteViewingSubmode = normalizeReportRemoteViewingSubmode(selectedPair.remote_viewing_submode);
+    const sessionLevel = normalizeReportSessionLevel(selectedPair.session_level || "");
     const aliasReceiverNames = Array.isArray(selectedPair.alias_receiver_names) ? selectedPair.alias_receiver_names.slice(0) : [];
     const aliasSenderNames = Array.isArray(selectedPair.alias_sender_names) ? selectedPair.alias_sender_names.slice(0) : [];
     const displayReceiverName = source === "simulation"
@@ -13194,6 +13301,9 @@ ${calmPracticeMessage}`;
       displaySenderName,
       sessionCode,
       source,
+      sessionMode,
+      remoteViewingSubmode,
+      sessionLevel,
       aliasReceiverNames,
       aliasSenderNames,
       reportTargetType: "named-report",
@@ -13210,9 +13320,7 @@ ${calmPracticeMessage}`;
     if (isNamedReportTarget(target)) {
       return String(target?.reportTitle || "").trim() || "Unnamed named file";
     }
-    const receiver = getPairInfoReceiverLabel(target) || "unknown";
-    const sender = getPairInfoSenderLabel(target) || "unknown";
-    return `${receiver}  ${sender}${target?.source === "simulation" ? "  (Simulation)" : ""}`;
+    return getVisualizationPairSummaryLine(target);
   }
 
   function getEffectiveSourcePairInfo(target) {
@@ -13228,6 +13336,9 @@ ${calmPracticeMessage}`;
       displaySenderName: String(target.displaySenderName || target.senderName || "").trim(),
       sessionCode: String(target.sessionCode || "").trim(),
       source: String(target.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real",
+      sessionMode: normalizeReportSessionMode(target.sessionMode),
+      remoteViewingSubmode: normalizeReportRemoteViewingSubmode(target.remoteViewingSubmode),
+      sessionLevel: normalizeReportSessionLevel(target.sessionLevel || ""),
       aliasReceiverNames: Array.isArray(target.aliasReceiverNames) ? target.aliasReceiverNames.slice(0) : [],
       aliasSenderNames: Array.isArray(target.aliasSenderNames) ? target.aliasSenderNames.slice(0) : []
     };
@@ -13293,6 +13404,9 @@ ${calmPracticeMessage}`;
           displaySenderName: String(pairInfo.displaySenderName || pairInfo.senderName || "").trim(),
           sessionCode: pairInfo.sessionCode,
           source: String(pairInfo.source || "real"),
+          sessionMode: normalizeReportSessionMode(pairInfo.sessionMode),
+          remoteViewingSubmode: normalizeReportRemoteViewingSubmode(pairInfo.remoteViewingSubmode),
+          sessionLevel: normalizeReportSessionLevel(pairInfo.sessionLevel || ""),
           latestUtcMillis: Number.NEGATIVE_INFINITY,
           recordCount: 0,
           aliasReceiverNames: Array.isArray(pairInfo.aliasReceiverNames) ? pairInfo.aliasReceiverNames.slice(0) : [],
@@ -13313,7 +13427,10 @@ ${calmPracticeMessage}`;
       const source = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
         ? "simulation"
         : "real";
-      const sourceKey = `${pairKey}|||${source}`;
+      const sessionMode = getReportRecordSessionMode(record);
+      const remoteViewingSubmode = getReportRecordRemoteViewingSubmode(record);
+      const sessionLevel = getReportRecordSessionLevel(record);
+      const sourceKey = buildReportBucketKey(receiverName, senderName, source, sessionMode, remoteViewingSubmode, sessionLevel);
       const displayReceiverName = source === "simulation"
         ? getSimulationReportDisplayName(receiverName, "receiver")
         : (isDemoReportPair(receiverName, senderName) ? formatDemoReportDisplayName(receiverName) : receiverName);
@@ -13349,6 +13466,9 @@ ${calmPracticeMessage}`;
           displaySenderName,
           sessionCode: getRecordSessionCode(record),
           source,
+          sessionMode,
+          remoteViewingSubmode,
+          sessionLevel,
           latestUtcMillis: currentMillis,
           recordCount: (existing?.recordCount || 0) + 1,
           aliasReceiverNames: Array.from(new Set([...(existing?.aliasReceiverNames || []), receiverNameRaw, receiverName])),
@@ -13566,11 +13686,7 @@ ${calmPracticeMessage}`;
       return "";
     }
     const utcMillisValues = scoredRecords
-      .map((record) => {
-        const utcText = String(record?.["utc time"] || "").trim();
-        const millis = utcText ? Date.parse(utcText) : NaN;
-        return Number.isFinite(millis) ? millis : Number.NaN;
-      })
+      .map((record) => getReportRecordTrialUtcMs(record))
       .filter((millis) => Number.isFinite(millis))
       .sort((left, right) => left - right);
     if (!utcMillisValues.length) {
@@ -13587,7 +13703,22 @@ ${calmPracticeMessage}`;
   function getVisualizationPairSummaryLine(pairInfo) {
     const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
     const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
-    return `Receiver-sender pair: ${receiverLabel}\u00A0-\u00A0${senderLabel}.`;
+    const sessionMode = normalizeReportSessionMode(pairInfo?.sessionMode);
+    const remoteViewingSubmode = normalizeReportRemoteViewingSubmode(pairInfo?.remoteViewingSubmode);
+    const sessionLevel = normalizeReportSessionLevel(pairInfo?.sessionLevel || "");
+    if (sessionMode === "remote_viewing") {
+      if (remoteViewingSubmode === "covered_screen") {
+        return sessionLevel
+          ? `${receiverLabel} (Remote Viewing) covered screen Level ${sessionLevel} data`
+          : `${receiverLabel} (Remote Viewing) covered screen Multi-level data`;
+      }
+      return sessionLevel
+        ? `${receiverLabel}\u00A0-\u00A0${senderLabel} (Remote Viewing) Level ${sessionLevel} remote screen data`
+        : `${receiverLabel}\u00A0-\u00A0${senderLabel} (Remote Viewing) remote screen Multi-level data`;
+    }
+    return sessionLevel
+      ? `${receiverLabel}\u00A0-\u00A0${senderLabel} (Telepathy) Level ${sessionLevel} data`
+      : `${receiverLabel}\u00A0-\u00A0${senderLabel} (Telepathy) Multi-level data`;
   }
 
   function getRecordsForReportPair(records, pairInfo) {
@@ -13611,6 +13742,9 @@ ${calmPracticeMessage}`;
     const targetSource = String(pairInfo?.source || "real").trim().toLowerCase() === "simulation"
       ? "simulation"
       : "real";
+    const targetSessionMode = normalizeReportSessionMode(pairInfo?.sessionMode);
+    const targetRemoteViewingSubmode = normalizeReportRemoteViewingSubmode(pairInfo?.remoteViewingSubmode);
+    const targetSessionLevel = normalizeReportSessionLevel(pairInfo?.sessionLevel || "");
     return (Array.isArray(records) ? records : [])
       .filter((record) => {
         const receiverName = getPreferredIdentifier(String(record?.["rx name"] || "").trim(), state);
@@ -13618,13 +13752,19 @@ ${calmPracticeMessage}`;
         const recordSource = String(record?._report_source || "real").trim().toLowerCase() === "simulation"
           ? "simulation"
           : "real";
+        const recordSessionMode = getReportRecordSessionMode(record);
+        const recordRemoteViewingSubmode = getReportRecordRemoteViewingSubmode(record);
+        const recordSessionLevel = getReportRecordSessionLevel(record);
         return (
           targetReceiverAliases.has(normalizePersonNameForPairMatch(receiverName)) &&
           targetSenderAliases.has(normalizePersonNameForPairMatch(senderName)) &&
-          recordSource === targetSource
+          recordSource === targetSource &&
+          recordSessionMode === targetSessionMode &&
+          recordRemoteViewingSubmode === targetRemoteViewingSubmode &&
+          recordSessionLevel === targetSessionLevel
         );
       })
-      .sort((left, right) => parseUtcMillis(left) - parseUtcMillis(right));
+      .sort((left, right) => getReportRecordTrialUtcMs(left) - getReportRecordTrialUtcMs(right));
   }
 
   function getRecordSessionCode(record) {
@@ -16015,6 +16155,9 @@ ${calmPracticeMessage}`;
 
       series.push({
         trialNumber: Number(startTrialNumber || 1) + series.length,
+        sessionNumber: getReportRecordSessionNumber(record),
+        localDate: String(record?.["local date"] || "").trim(),
+        localTime: String(record?.["local time"] || "").trim(),
         level: model.level,
         observed: model.observed,
         excess,
@@ -16898,7 +17041,8 @@ ${calmPracticeMessage}`;
         "stroke-width": 1.5
       });
       const title = createSvgElement("title");
-      title.textContent = `Trial ${point.trialNumber} | Level ${point.level} | Score ${point.scoreLabel} | Cumulative ${point.cumulativeExcess.toFixed(2)}`;
+      const localDateTime = [String(point.localDate || "").trim(), String(point.localTime || "").trim()].filter(Boolean).join(" ");
+      title.textContent = `Session ${point.sessionNumber} | ${localDateTime || "Unknown time"} | Level ${point.level} | Score ${point.scoreLabel}`;
       circle.appendChild(title);
       visualizationChart.appendChild(circle);
     });
