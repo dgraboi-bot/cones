@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260818c";
+  const launcherBuildVersion = "20260819a";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -13706,6 +13706,11 @@ ${calmPracticeMessage}`;
     const sessionMode = normalizeReportSessionMode(pairInfo?.sessionMode);
     const remoteViewingSubmode = normalizeReportRemoteViewingSubmode(pairInfo?.remoteViewingSubmode);
     const sessionLevel = normalizeReportSessionLevel(pairInfo?.sessionLevel || "");
+    const normalizedReceiverName = String(pairInfo?.receiverName || "").trim().toLowerCase();
+    const normalizedSenderName = String(pairInfo?.senderName || "").trim().toLowerCase();
+    const isSpecialTelepathicDemo =
+      normalizedReceiverName === "demo.level1.telepathic.receiver" &&
+      normalizedSenderName === "demo.level1.telepathic.sender";
     if (sessionMode === "remote_viewing") {
       if (remoteViewingSubmode === "covered_screen") {
         return sessionLevel
@@ -13715,6 +13720,11 @@ ${calmPracticeMessage}`;
       return sessionLevel
         ? `${receiverLabel}\u00A0-\u00A0${senderLabel} (Remote Viewing) Level ${sessionLevel} remote screen data`
         : `${receiverLabel}\u00A0-\u00A0${senderLabel} (Remote Viewing) remote screen Multi-level data`;
+    }
+    if (isSpecialTelepathicDemo) {
+      return sessionLevel
+        ? `demo.telepathic.receiver - (Telepathy) Level ${sessionLevel} data`
+        : "demo.telepathic.receiver - (Telepathy) Multi-level data";
     }
     return sessionLevel
       ? `${receiverLabel}\u00A0-\u00A0${senderLabel} (Telepathy) Level ${sessionLevel} data`
@@ -15457,6 +15467,8 @@ ${calmPracticeMessage}`;
     const totalTrials = Number(summaryStats?.totalTrials || 0);
     const levelBreakdown = Object.fromEntries(levelStats.map((entry) => [`level_${entry.level}`, entry]));
     const pValue = getOverallSignificanceContext(summaryStats, levelBreakdown).pValue;
+    const activeLevels = levelStats
+      .filter((entry) => Number(entry.completed_trials || 0) > 0);
     if (!Number.isFinite(pValue) || totalTrials < 1) {
       return "Not enough completed scored trials are available for overall interpretation.";
     }
@@ -15466,26 +15478,39 @@ ${calmPracticeMessage}`;
 
     if (makeup.type === "dominant") {
       const levelName = `Level ${makeup.dominantLevel}`;
+      const singleLevelDataset = activeLevels.length === 1;
       const sampleBand = getSampleStrengthBand(totalTrials);
       if (sampleBand === "too-small") {
         return `Given the performance in these ${totalTrials} trials, there are still too few completed scored trials for a meaningful overall interpretation.`;
       }
       if (sampleBand === "modest") {
         if (band === "strong") {
-          return `This report is dominated by ${levelName} trials and is mathematically significant overall, but the total number of completed scored trials is still modest. The result is promising, though not yet maximally persuasive.`;
+          return singleLevelDataset
+            ? "This report is mathematically significant overall, but the total number of completed scored trials is still modest. The result is promising, though not yet maximally persuasive."
+            : `This report is dominated by ${levelName} trials and is mathematically significant overall, but the total number of completed scored trials is still modest. The result is promising, though not yet maximally persuasive.`;
         }
         if (band === "suggestive") {
-          return `This report is dominated by ${levelName} trials and shows a suggestive overall result. The pattern is interesting, but more completed trials are needed before drawing a strong conclusion.`;
+          return singleLevelDataset
+            ? "This report shows a suggestive overall result. The pattern is interesting, but more completed trials are needed before drawing a strong conclusion."
+            : `This report is dominated by ${levelName} trials and shows a suggestive overall result. The pattern is interesting, but more completed trials are needed before drawing a strong conclusion.`;
         }
-        return `This report is dominated by ${levelName} trials and is currently consistent with chance overall.`;
+        return singleLevelDataset
+          ? "This report is currently consistent with chance overall."
+          : `This report is dominated by ${levelName} trials and is currently consistent with chance overall.`;
       }
       if (band === "strong") {
-        return `This report is dominated by ${levelName} trials and shows strong above-chance performance overall. With this many completed trials, the result is statistically strong and practically more persuasive.`;
+        return singleLevelDataset
+          ? "This report shows strong above-chance performance overall. With this many completed trials, the result is statistically strong and practically more persuasive."
+          : `This report is dominated by ${levelName} trials and shows strong above-chance performance overall. With this many completed trials, the result is statistically strong and practically more persuasive.`;
       }
       if (band === "suggestive") {
-        return `This report is dominated by ${levelName} trials and shows a suggestive overall result, but even with this many completed trials it is not yet strong enough to be considered convincing.`;
+        return singleLevelDataset
+          ? "This report shows a suggestive overall result, but even with this many completed trials it is not yet strong enough to be considered convincing."
+          : `This report is dominated by ${levelName} trials and shows a suggestive overall result, but even with this many completed trials it is not yet strong enough to be considered convincing.`;
       }
-      return `This report is dominated by ${levelName} trials and is consistent with chance overall, so no practical telepathic effect is indicated in the completed data.`;
+      return singleLevelDataset
+        ? "This report is consistent with chance overall, so no practical telepathic effect is indicated in the completed data."
+        : `This report is dominated by ${levelName} trials and is consistent with chance overall, so no practical telepathic effect is indicated in the completed data.`;
     }
 
     if (makeup.type === "mostly-mixed") {
