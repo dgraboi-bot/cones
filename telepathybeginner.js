@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260819a";
+  const launcherBuildVersion = "20260819c";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -13014,10 +13014,13 @@ ${calmPracticeMessage}`;
     const rawNames = [
       readRoleFormValues("sender").ownName,
       readRoleFormValues("receiver").ownName,
+      readRoleFormValues("remote-viewer").ownName,
       readRoleSettings("sender").ownName,
       readRoleSettings("receiver").ownName,
+      readRoleSettings("remote-viewer").ownName,
       String(state.ownNames?.sender || "").trim(),
-      String(state.ownNames?.receiver || "").trim()
+      String(state.ownNames?.receiver || "").trim(),
+      String(state.ownNames?.["remote-viewer"] || "").trim()
     ];
 
     return uniqueNames([
@@ -13141,7 +13144,7 @@ ${calmPracticeMessage}`;
       authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(remoteViewerForm.ownName, state)))
     ) {
       addCandidate(remoteViewerForm.ownName, remoteViewerPartner, {
-        source: "real",
+        source: isRobotSimulationIdentifier(remoteViewerPartner) ? "simulation" : "real",
         sessionMode: "remote_viewing",
         remoteViewingSubmode,
         sessionLevel: remoteViewerLevel
