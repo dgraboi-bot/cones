@@ -76,6 +76,16 @@ if (Test-Path -LiteralPath $lessonImageAssetsRoot) {
 }
 $deployFiles += $lessonImageAssetFiles
 
+$imagePairFiles = @()
+$imagePairsRoot = Join-Path $repoRoot "imagepairs"
+if (Test-Path -LiteralPath $imagePairsRoot) {
+  $imagePairFiles = Get-ChildItem -LiteralPath $imagePairsRoot -File -Recurse |
+    ForEach-Object {
+      $_.FullName.Substring($repoRoot.Length + 1)
+    }
+}
+$deployFiles += $imagePairFiles
+
 $verifyVersionFiles = @(
   "telepathybeginner.css",
   "target-selection.js",
@@ -134,6 +144,7 @@ $liveHashAuditFiles = @(
 )
 $liveHashAuditFiles += $newLearningCenterLessonFiles
 $liveHashAuditFiles += $lessonImageAssetFiles
+$liveHashAuditFiles += $imagePairFiles
 
 $privateContentSyncFiles = @(
   "content_repo\new-learning-center-outline.json"
@@ -222,6 +233,9 @@ function Test-IsCoveredDeployPath([string]$RelativePath) {
     return $true
   }
   if ($normalized.StartsWith("assets\lesson-images\", [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $true
+  }
+  if ($normalized.StartsWith("imagepairs\", [System.StringComparison]::OrdinalIgnoreCase)) {
     return $true
   }
   return $false

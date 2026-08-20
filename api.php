@@ -4493,6 +4493,103 @@ function store_uploaded_image_pair_file(string $imagePairsDir, array $filePayloa
     return $candidateName;
 }
 
+function create_gd_image_from_bytes(string $bytes, string $mime)
+{
+    $image = @imagecreatefromstring($bytes);
+    if ($image === false) {
+        throw new RuntimeException('Unable to decode uploaded image data.');
+    }
+    return $image;
+}
+
+function save_gd_image_to_path($image, string $path, string $mime): void
+{
+    $saved = false;
+    switch ($mime) {
+        case 'image/jpeg':
+        case 'image/jpg':
+            $saved = imagejpeg($image, $path, 90);
+            break;
+        case 'image/png':
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+            $saved = imagepng($image, $path, 6);
+            break;
+        case 'image/webp':
+            if (!function_exists('imagewebp')) {
+                throw new RuntimeException('WEBP images are not supported by this server.');
+            }
+            $saved = imagewebp($image, $path, 90);
+            break;
+        case 'image/gif':
+            $saved = imagegif($image, $path);
+            break;
+        default:
+            throw new RuntimeException('Unsupported image type for resize operation.');
+    }
+
+    if ($saved === false) {
+        throw new RuntimeException('Unable to save resized image.');
+    }
+}
+
+function resize_image_pair_file_if_needed(string $fullPath, int $maxDimension = 800): bool
+{
+    if (!is_file($fullPath)) {
+        throw new RuntimeException('Image file not found.');
+    }
+
+    $imageInfo = @getimagesize($fullPath);
+    if (!is_array($imageInfo) || count($imageInfo) < 2) {
+        throw new RuntimeException('Unable to read image dimensions.');
+    }
+
+    $width = (int) ($imageInfo[0] ?? 0);
+    $height = (int) ($imageInfo[1] ?? 0);
+    $mime = strtolower((string) ($imageInfo['mime'] ?? ''));
+    if ($width <= 0 || $height <= 0) {
+        throw new RuntimeException('Image dimensions are invalid.');
+    }
+
+    if ($width <= $maxDimension && $height <= $maxDimension) {
+        return false;
+    }
+
+    $scale = min($maxDimension / $width, $maxDimension / $height);
+    $newWidth = max(1, (int) round($width * $scale));
+    $newHeight = max(1, (int) round($height * $scale));
+
+    $sourceBytes = file_get_contents($fullPath);
+    if ($sourceBytes === false) {
+        throw new RuntimeException('Unable to read image file.');
+    }
+
+    $sourceImage = create_gd_image_from_bytes($sourceBytes, $mime);
+    $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+    if ($resizedImage === false) {
+        imagedestroy($sourceImage);
+        throw new RuntimeException('Unable to create resized image buffer.');
+    }
+
+    if ($mime === 'image/png' || $mime === 'image/webp' || $mime === 'image/gif') {
+        imagealphablending($resizedImage, false);
+        imagesavealpha($resizedImage, true);
+        $transparent = imagecolorallocatealpha($resizedImage, 0, 0, 0, 127);
+        imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
+    }
+
+    $copyOk = imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+    imagedestroy($sourceImage);
+    if ($copyOk === false) {
+        imagedestroy($resizedImage);
+        throw new RuntimeException('Unable to resize image.');
+    }
+
+    save_gd_image_to_path($resizedImage, $fullPath, $mime);
+    imagedestroy($resizedImage);
+    return true;
+}
+
 function normalize_person_name_for_match(string $value): string
 {
     return strtolower(trim(preg_replace('/\s+/', ' ', $value) ?? ''));
@@ -13361,6 +13458,96 @@ if ($action === 'add_image_pair' && $hasAdminAccess) {
                 'choice_b' => get_public_image_pair_url($storedB)
             ],
             'image_pair_count' => count((array) ($manifest['pairs'] ?? [])),
+            'server_now_ms' => $nowMs
+        ];
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'guarantee_image_pair_sizes' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id'], 'request');
+        $manifest = load_image_pairs_manifest($imagePairsManifestFile);
+        $resizedCount = 0;
+        $unchangedCount = 0;
+        $missingCount = 0;
+
+        foreach ((array) ($manifest['pairs'] ?? []) as $pair) {
+            foreach ((array) ($pair['images'] ?? []) as $imageFilename) {
+                $safeFilename = sanitize_image_pair_filename((string) $imageFilename);
+                $fullPath = $publicImagePairsDir . DIRECTORY_SEPARATOR . $safeFilename;
+                if (!is_file($fullPath)) {
+                    $missingCount += 1;
+                    continue;
+                }
+                if (resize_image_pair_file_if_needed($fullPath, 800)) {
+                    $resizedCount += 1;
+                } else {
+                    $unchangedCount += 1;
+                }
+            }
+        }
+
+        $response = [
+            'ok' => true,
+            'resized_count' => $resizedCount,
+            'unchanged_count' => $unchangedCount,
+            'missing_count' => $missingCount,
+            'server_now_ms' => $nowMs
+        ];
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'delete_image_pair' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'image_a_filename'], 'request');
+        $selectedFilename = sanitize_image_pair_filename((string) ($input['image_a_filename'] ?? ''));
+        $manifest = load_image_pairs_manifest($imagePairsManifestFile);
+        $pairs = array_values((array) ($manifest['pairs'] ?? []));
+        $deletedPair = null;
+        $remainingPairs = [];
+
+        foreach ($pairs as $pair) {
+            $pairImages = array_values((array) ($pair['images'] ?? []));
+            if ($deletedPair === null && in_array($selectedFilename, $pairImages, true)) {
+                $deletedPair = $pair;
+                continue;
+            }
+            $remainingPairs[] = $pair;
+        }
+
+        if (!is_array($deletedPair)) {
+            throw new RuntimeException('The selected image is not part of any available image pair. Operation cancelled.');
+        }
+
+        $manifest['pairs'] = $remainingPairs;
+        save_image_pairs_manifest($imagePairsManifestFile, $manifest);
+
+        $response = [
+            'ok' => true,
+            'deleted_pair' => build_image_pair_public_record($deletedPair),
+            'image_pair_count' => count($remainingPairs),
             'server_now_ms' => $nowMs
         ];
     } catch (Throwable $exception) {

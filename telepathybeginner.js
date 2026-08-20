@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260819c";
+  const launcherBuildVersion = "20260820d";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -948,6 +948,8 @@
   const imagePairPreviewB = document.querySelector("[data-image-pair-preview-b]");
   const imagePairStatus = document.querySelector("[data-image-pair-status]");
   const imagePairSubmitButton = document.querySelector("[data-image-pair-submit]");
+  const imagePairGuaranteeSizeButton = document.querySelector("[data-image-pair-guarantee-size]");
+  const imagePairDeleteButton = document.querySelector("[data-image-pair-delete]");
   const subscriptionEmailTemplateButtons = Array.from(document.querySelectorAll("[data-subscription-email-template-button]"));
   const subscriptionEmailAdminStatus = document.querySelector("[data-subscription-email-admin-status]");
   const subscriptionEmailSubjectInput = document.querySelector("[data-subscription-email-subject]");
@@ -13267,6 +13269,18 @@ ${calmPracticeMessage}`;
     return text.replace(/@espgym\.com$/i, "");
   }
 
+  function getDemoReportShortLabel(receiverName, senderName) {
+    const pairKey = buildPairMatchKey(receiverName, senderName);
+    const labelByPairKey = {
+      "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "demo: too-little",
+      "demo.level1.promising.receiver|||demo.level1.promising.sender": "demo: promising",
+      "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "demo: not-telepathic",
+      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "demo: telepathic",
+      "demo.mixed.level123.receiver|||demo.mixed.level123.sender": "demo: mixed-level123"
+    };
+    return labelByPairKey[pairKey] || "demo";
+  }
+
   function isNamedReportTarget(target) {
     return String(target?.reportTargetType || "").trim().toLowerCase() === "named-report";
   }
@@ -13557,15 +13571,15 @@ ${calmPracticeMessage}`;
         optionButton.classList.add("is-selected");
       }
       const isNamed = isNamedReportTarget(pairInfo);
-      const middleText = isNamed
-        ? `${getPairInfoReceiverLabel(pairInfo)} - ${getPairInfoSenderLabel(pairInfo)} | Trials ${pairInfo.startTrial}-${pairInfo.endTrial}`
-        : getPairInfoSenderLabel(pairInfo);
-      const rightText = isNamed
-        ? `Saved ${escapeHtml(String(pairInfo.savedCompletedTrialCount || 0))}`
-        : `${isDemoPairInfo(pairInfo) ? "Demo" : (pairInfo.source === "simulation" ? "Sim" : "Human")} ${escapeHtml(String(pairInfo.recordCount || 0))}`;
+      const leftText = isNamed
+        ? String(pairInfo.reportTitle || "Unnamed named file")
+        : getVisualizationPairSummaryLine(pairInfo);
+      const trialCount = isNamed
+        ? Math.max(0, Number(pairInfo.savedCompletedTrialCount || 0) || 0)
+        : Math.max(0, Number(pairInfo.recordCount || 0) || 0);
+      const rightText = `${escapeHtml(String(trialCount))} ${trialCount === 1 ? "trial" : "trials"}`;
       optionButton.innerHTML = `
-        <span class="report-pair-option-value">${escapeHtml(isNamed ? (pairInfo.reportTitle || "Unnamed named file") : getPairInfoReceiverLabel(pairInfo))}</span>
-        <span class="report-pair-option-value">${escapeHtml(middleText)}</span>
+        <span class="report-pair-option-value">${escapeHtml(leftText)}</span>
         <span class="report-pair-option-value">${rightText}</span>
       `;
       optionButton.addEventListener("click", () => {
@@ -13711,27 +13725,31 @@ ${calmPracticeMessage}`;
     const sessionLevel = normalizeReportSessionLevel(pairInfo?.sessionLevel || "");
     const normalizedReceiverName = String(pairInfo?.receiverName || "").trim().toLowerCase();
     const normalizedSenderName = String(pairInfo?.senderName || "").trim().toLowerCase();
-    const isSpecialTelepathicDemo =
-      normalizedReceiverName === "demo.level1.telepathic.receiver" &&
-      normalizedSenderName === "demo.level1.telepathic.sender";
+    const isDemoPair = isDemoReportPair(receiverLabel, senderLabel) || isDemoReportPair(pairInfo?.receiverName, pairInfo?.senderName);
+    const baseTelepathyLabel = isDemoPair
+      ? getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel)
+      : `${receiverLabel}\u00A0-\u00A0${senderLabel}`;
     if (sessionMode === "remote_viewing") {
       if (remoteViewingSubmode === "covered_screen") {
+        const coveredScreenLabel = isDemoPair
+          ? getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel)
+          : receiverLabel;
         return sessionLevel
-          ? `${receiverLabel} (Remote Viewing) covered screen Level ${sessionLevel} data`
-          : `${receiverLabel} (Remote Viewing) covered screen Multi-level data`;
+          ? `${coveredScreenLabel} (Remote Viewing) Level ${sessionLevel} covered screen data`
+          : `${coveredScreenLabel} (Remote Viewing) covered screen Multi-level data`;
       }
+      const remoteScreenSubject = normalizedSenderName === "robot"
+        ? (isDemoPair
+            ? getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel)
+            : receiverLabel)
+        : baseTelepathyLabel;
       return sessionLevel
-        ? `${receiverLabel}\u00A0-\u00A0${senderLabel} (Remote Viewing) Level ${sessionLevel} remote screen data`
-        : `${receiverLabel}\u00A0-\u00A0${senderLabel} (Remote Viewing) remote screen Multi-level data`;
-    }
-    if (isSpecialTelepathicDemo) {
-      return sessionLevel
-        ? `demo.telepathic.receiver - (Telepathy) Level ${sessionLevel} data`
-        : "demo.telepathic.receiver - (Telepathy) Multi-level data";
+        ? `${remoteScreenSubject} (Remote Viewing) Level ${sessionLevel} remote screen data`
+        : `${remoteScreenSubject} (Remote Viewing) remote screen Multi-level data`;
     }
     return sessionLevel
-      ? `${receiverLabel}\u00A0-\u00A0${senderLabel} (Telepathy) Level ${sessionLevel} data`
-      : `${receiverLabel}\u00A0-\u00A0${senderLabel} (Telepathy) Multi-level data`;
+      ? `${baseTelepathyLabel} (Telepathy) Level ${sessionLevel} data`
+      : `${baseTelepathyLabel} (Telepathy) Multi-level data`;
   }
 
   function getRecordsForReportPair(records, pairInfo) {
@@ -27896,6 +27914,102 @@ ${calmPracticeMessage}`;
     }
   }
 
+  async function guaranteeImagePairSizes() {
+    if (imagePairGuaranteeSizeButton) {
+      imagePairGuaranteeSizeButton.disabled = true;
+    }
+    if (imagePairSubmitButton) {
+      imagePairSubmitButton.disabled = true;
+    }
+    if (imagePairDeleteButton) {
+      imagePairDeleteButton.disabled = true;
+    }
+    if (imagePairStatus) {
+      imagePairStatus.textContent = "Guaranteeing maximum image size...";
+    }
+
+    try {
+      const response = await launcherAdminApi("guarantee_image_pair_sizes", {});
+      const resizedCount = Number(response?.resized_count || 0);
+      const unchangedCount = Number(response?.unchanged_count || 0);
+      const missingCount = Number(response?.missing_count || 0);
+      if (imagePairStatus) {
+        imagePairStatus.textContent = `Size check complete. Resized ${resizedCount} image(s), left ${unchangedCount} unchanged, missing ${missingCount}.`;
+      }
+    } catch (error) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = error instanceof Error ? error.message : "Unable to guarantee image sizes right now.";
+      }
+    } finally {
+      if (imagePairGuaranteeSizeButton) {
+        imagePairGuaranteeSizeButton.disabled = false;
+      }
+      if (imagePairSubmitButton) {
+        imagePairSubmitButton.disabled = false;
+      }
+      if (imagePairDeleteButton) {
+        imagePairDeleteButton.disabled = false;
+      }
+    }
+  }
+
+  async function deleteImagePairAdmin() {
+    const fileA = imagePairFileInputA?.files?.[0] || null;
+    if (!fileA) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = "Please choose Image A from the imagepairs folder before deleting.";
+      }
+      return;
+    }
+
+    if (imagePairDeleteButton) {
+      imagePairDeleteButton.disabled = true;
+    }
+    if (imagePairSubmitButton) {
+      imagePairSubmitButton.disabled = true;
+    }
+    if (imagePairGuaranteeSizeButton) {
+      imagePairGuaranteeSizeButton.disabled = true;
+    }
+    if (imagePairStatus) {
+      imagePairStatus.textContent = "Deleting image pair from JSON manifest...";
+    }
+
+    try {
+      const response = await launcherAdminApi("delete_image_pair", {
+        image_a_filename: String(fileA.name || "").trim()
+      });
+      const deletedPairId = String(response?.deleted_pair?.id || "").trim();
+      const deletedImages = Array.isArray(response?.deleted_pair?.images)
+        ? response.deleted_pair.images.map((value) => String(value || "").trim()).filter(Boolean)
+        : [];
+      resetImagePairAdminView();
+      if (imagePairStatus) {
+        const deletedImagesText = deletedImages.length
+          ? ` Deleted image files: ${deletedImages.join(" and ")}.`
+          : "";
+        imagePairStatus.textContent = deletedPairId
+          ? `Image pair ${deletedPairId} deleted from the JSON manifest.${deletedImagesText} The image files were left in the folder as orphans.`
+          : `Image pair deleted from the JSON manifest.${deletedImagesText} The image files were left in the folder as orphans.`;
+      }
+      void refreshAdminView();
+    } catch (error) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = error instanceof Error ? error.message : "Unable to delete that image pair right now.";
+      }
+    } finally {
+      if (imagePairDeleteButton) {
+        imagePairDeleteButton.disabled = false;
+      }
+      if (imagePairSubmitButton) {
+        imagePairSubmitButton.disabled = false;
+      }
+      if (imagePairGuaranteeSizeButton) {
+        imagePairGuaranteeSizeButton.disabled = false;
+      }
+    }
+  }
+
   async function applyLauncherOpenRequest() {
       let directOpenRevealHandled = false;
       try {
@@ -31449,6 +31563,12 @@ ${calmPracticeMessage}`;
   imagePairFileInputB?.addEventListener("change", updateImagePairPreview);
   imagePairSubmitButton?.addEventListener("click", () => {
     void submitImagePairAdmin();
+  });
+  imagePairGuaranteeSizeButton?.addEventListener("click", () => {
+    void guaranteeImagePairSizes();
+  });
+  imagePairDeleteButton?.addEventListener("click", () => {
+    void deleteImagePairAdmin();
   });
   openRotatingMessagesEditorButton?.addEventListener("click", showRotatingMessagesEditorView);
   closeRotatingMessagesEditorButton?.addEventListener("click", showAdminView);
