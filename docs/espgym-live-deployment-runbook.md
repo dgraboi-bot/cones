@@ -316,6 +316,28 @@ Additional authoring rule:
 
 The deploy helper is expected to enforce this automatically for normal live pushes by promoting local authoritative content upward and by refusing to auto-pull live content down unless an explicit recovery mode is requested.
 
+Additional authoring rule for Level 4 image pairs:
+
+- if image pairs are added, deleted, or resized from `https://espgym.com`, the live public `imagepairs/` folder may become newer first
+- however, a normal deployment must **not** automatically pull live `imagepairs/` content down over the local authoritative folder
+- local authoritative image-pair content for deployment is:
+  - `C:\xampp\htdocs\telepathyexperiment\cones\imagepairs\...`
+  - mirrored copy: `C:\xampp\htdocs\cones\imagepairs\...`
+- if live `imagepairs/` differs from local authoritative `imagepairs/` during a normal deployment, report that drift but do not overwrite local files
+- live-to-local `imagepairs/` recovery is a separate deliberate action and should be run only when explicitly intended
+- use:
+  - `powershell -ExecutionPolicy Bypass -File scripts\sync-imagepairs-from-live.ps1 -AuditOnly`
+  - or `powershell -ExecutionPolicy Bypass -File scripts\sync-imagepairs-from-live.ps1`
+- `prepare-release.ps1` may also be run with `-SyncImagePairsFromLive` when an explicit live-to-local recovery is intended before a release
+
+Practical meaning:
+
+- successful image-pair edits on `espgym.com` do not automatically update the local authoritative folder
+- before a release, either:
+  - keep the local authoritative `imagepairs/` folder as the intended source of truth, or
+  - deliberately pull the live `imagepairs/` state down first
+- do not assume a successful in-browser image-pair upload on `espgym.com` has already updated the local authoring tree
+
 ## Deploy Completeness Guard
 
 The deployment process must fail closed if a changed deploy-relevant file is not covered by the authoritative deploy set.

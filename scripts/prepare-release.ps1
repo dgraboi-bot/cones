@@ -6,7 +6,9 @@ param(
 
   [switch]$AllowDirty,
 
-  [switch]$SyncManagedContentFromLive
+  [switch]$SyncManagedContentFromLive,
+
+  [switch]$SyncImagePairsFromLive
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,6 +24,9 @@ $localPrivateContentRoot = "C:\xampp\telepathyexperiment_private\cones\content"
 $localDeploySyncBackupRoot = "C:\xampp\telepathyexperiment_private\cones\backup\deploy-live-managed-content-sync"
 $preparedReleaseRoot = "C:\xampp\telepathyexperiment_private\cones\release-prep"
 $preparedReleasePath = Join-Path $preparedReleaseRoot "prepared-release.json"
+$imagePairsRoot = Join-Path $repoRoot "imagepairs"
+$mirrorImagePairsRoot = Join-Path $mirrorRoot "imagepairs"
+$imagePairsSyncScript = Join-Path $PSScriptRoot "sync-imagepairs-from-live.ps1"
 $versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9]*'
 
 $deployFiles = @(
@@ -540,6 +545,80 @@ function Report-RemoteManagedContentDrift() {
   Write-Host "If you intend to recover live content back into local authoritative files, re-run prepare-release with -SyncManagedContentFromLive." -ForegroundColor Yellow
 }
 
+function Get-LocalImagePairsState([string]$Root) {
+  $state = @{}
+  if (Test-Path -LiteralPath $Root) {
+    Get-ChildItem -LiteralPath $Root -File | ForEach-Object {
+      $state[$_.Name] = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToUpperInvariant()
+    }
+  }
+  return $state
+}
+
+function Get-RemoteImagePairsState() {
+  $remoteCommand = @"
+python3 - <<'PY'
+import hashlib, os
+root = r'''/var/www/telepathyexperiment/cones/imagepairs'''
+if os.path.isdir(root):
+    for name in sorted(os.listdir(root)):
+        path = os.path.join(root, name)
+        if not os.path.isfile(path):
+            continue
+        with open(path, 'rb') as fh:
+            print(hashlib.sha256(fh.read()).hexdigest().upper(), name)
+PY
+"@
+  $output = Invoke-Plink $remoteCommand
+  $state = @{}
+  foreach ($line in @($output)) {
+    $trimmed = ([string]$line).Trim()
+    if (-not $trimmed) {
+      continue
+    }
+    $parts = $trimmed -split '\s+', 2
+    if ($parts.Count -ne 2) {
+      continue
+    }
+    $state[$parts[1].Trim()] = $parts[0].Trim().ToUpperInvariant()
+  }
+  return $state
+}
+
+function Get-ImagePairsDriftSummary([hashtable]$LocalState, [hashtable]$RemoteState) {
+  $drift = New-Object System.Collections.Generic.List[string]
+  foreach ($name in @($RemoteState.Keys | Sort-Object)) {
+    if (-not $LocalState.ContainsKey($name)) {
+      $drift.Add("$name (exists on live imagepairs but not locally)")
+      continue
+    }
+    if ($LocalState[$name] -ne $RemoteState[$name]) {
+      $drift.Add("$name (local imagepairs file differs from live)")
+    }
+  }
+  foreach ($name in @($LocalState.Keys | Sort-Object)) {
+    if (-not $RemoteState.ContainsKey($name)) {
+      $drift.Add("$name (exists locally in imagepairs but not live)")
+    }
+  }
+  return @($drift | Sort-Object -Unique)
+}
+
+function Report-RemoteImagePairsDrift() {
+  $localState = Get-LocalImagePairsState $imagePairsRoot
+  $remoteState = Get-RemoteImagePairsState
+  $drift = @(Get-ImagePairsDriftSummary -LocalState $localState -RemoteState $remoteState)
+  if (@($drift).Count -eq 0) {
+    Write-Host "Imagepairs folder matches live authoritative state." -ForegroundColor Green
+    return
+  }
+
+  Write-Host "Imagepairs drift detected between local authoritative folder and live server." -ForegroundColor Yellow
+  Write-Host "Normal deploy will promote the local authoritative imagepairs folder upward; it will not pull live imagepairs down automatically." -ForegroundColor Yellow
+  $drift | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor Yellow }
+  Write-Host "If you intend to recover live imagepairs back into the local authoritative folders, re-run prepare-release with -SyncImagePairsFromLive." -ForegroundColor Yellow
+}
+
 function Sync-RemoteManagedContentToLocalAuthoritative() {
   $localState = Get-LocalManagedContentState
   $remoteState = Get-RemoteManagedContentState
@@ -662,6 +741,9 @@ function Get-PreparedFileHashes([string[]]$RelativePaths) {
 if (-not (Test-Path -LiteralPath $bumpScript)) {
   throw "Missing bump script: $bumpScript"
 }
+if (-not (Test-Path -LiteralPath $imagePairsSyncScript)) {
+  throw "Missing imagepairs sync script: $imagePairsSyncScript"
+}
 
 Assert-ToolExists $plinkPath "plink"
 
@@ -714,6 +796,14 @@ if ($SyncManagedContentFromLive) {
 } else {
   Report-RemoteManagedContentDrift
 }
+if ($SyncImagePairsFromLive) {
+  & powershell -ExecutionPolicy Bypass -File $imagePairsSyncScript
+  if ($LASTEXITCODE -ne 0) {
+    throw "Live imagepairs sync failed."
+  }
+} else {
+  Report-RemoteImagePairsDrift
+}
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 
@@ -747,6 +837,7 @@ $manifest = [ordered]@{
   baseline_ref = $BaselineRef
   allow_dirty = [bool]$AllowDirty
   sync_managed_content_from_live = [bool]$SyncManagedContentFromLive
+  sync_imagepairs_from_live = [bool]$SyncImagePairsFromLive
   repo_root = $repoRoot
   mirror_root = $mirrorRoot
   local_test_url = "http://localhost/telepathyexperiment/cones/telepathybeginner.html?v=$Version&open=launcher"

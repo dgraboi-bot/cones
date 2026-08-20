@@ -4493,6 +4493,34 @@ function store_uploaded_image_pair_file(string $imagePairsDir, array $filePayloa
     return $candidateName;
 }
 
+function list_image_pair_filenames(string $imagePairsDir): array
+{
+    if (!is_dir($imagePairsDir)) {
+        return [];
+    }
+
+    $names = [];
+    $entries = scandir($imagePairsDir);
+    if ($entries === false) {
+        throw new RuntimeException('Unable to read the imagepairs folder.');
+    }
+
+    foreach ($entries as $entry) {
+        $name = trim((string) $entry);
+        if ($name === '' || $name === '.' || $name === '..') {
+            continue;
+        }
+        $fullPath = $imagePairsDir . DIRECTORY_SEPARATOR . $name;
+        if (!is_file($fullPath)) {
+            continue;
+        }
+        $names[] = $name;
+    }
+
+    natcasesort($names);
+    return array_values($names);
+}
+
 function create_gd_image_from_bytes(string $bytes, string $mime)
 {
     $image = @imagecreatefromstring($bytes);
@@ -13432,6 +13460,18 @@ if ($action === 'add_image_pair' && $hasAdminAccess) {
             throw new RuntimeException('Two image files are required.');
         }
 
+        $imageAName = sanitize_image_pair_filename((string) ($imageA['name'] ?? ''));
+        $imageBName = sanitize_image_pair_filename((string) ($imageB['name'] ?? ''));
+        if (strcasecmp($imageAName, $imageBName) === 0) {
+            throw new RuntimeException('Image A and Image B must be different files.');
+        }
+        if (is_file($publicImagePairsDir . DIRECTORY_SEPARATOR . $imageAName)) {
+            throw new RuntimeException("Image A already exists in the imagepairs folder. Choose a different file.");
+        }
+        if (is_file($publicImagePairsDir . DIRECTORY_SEPARATOR . $imageBName)) {
+            throw new RuntimeException("Image B already exists in the imagepairs folder. Choose a different file.");
+        }
+
         $storedA = store_uploaded_image_pair_file($publicImagePairsDir, $imageA);
         $storedB = store_uploaded_image_pair_file($publicImagePairsDir, $imageB);
 
@@ -13458,6 +13498,28 @@ if ($action === 'add_image_pair' && $hasAdminAccess) {
                 'choice_b' => get_public_image_pair_url($storedB)
             ],
             'image_pair_count' => count((array) ($manifest['pairs'] ?? [])),
+            'server_now_ms' => $nowMs
+        ];
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'list_image_pair_filenames' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id'], 'request');
+        $response = [
+            'ok' => true,
+            'filenames' => list_image_pair_filenames($publicImagePairsDir),
             'server_now_ms' => $nowMs
         ];
     } catch (Throwable $exception) {

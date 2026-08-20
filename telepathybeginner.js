@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260820e";
+  const launcherBuildVersion = "20260820f";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -1329,6 +1329,7 @@ ${calmPracticeMessage}`;
   let pendingUserTypeSelection = "standard";
   let imagePairPreviewUrlA = "";
   let imagePairPreviewUrlB = "";
+  let imagePairExistingFilenames = new Set();
   let activeSubscriptionEmailTemplateKey = "welcome";
   const stripeReturnIdentifierStorageKey = "cones-stripe-return-identifier-v1";
   const learningCenterLessonReturnActionSet = new Set([
@@ -27482,6 +27483,14 @@ ${calmPracticeMessage}`;
       return;
     }
 
+    const duplicateMessage = getImagePairDuplicateStatusMessage(fileA, fileB);
+    if (duplicateMessage) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = duplicateMessage;
+      }
+      return;
+    }
+
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = true;
     }
@@ -27633,6 +27642,38 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function refreshImagePairFilenameInventory() {
+    try {
+      const response = await launcherAdminApi("list_image_pair_filenames", {});
+      const filenames = Array.isArray(response?.filenames) ? response.filenames : [];
+      imagePairExistingFilenames = new Set(
+        filenames
+          .map((value) => String(value || "").trim().toLowerCase())
+          .filter(Boolean)
+      );
+    } catch (_error) {
+      imagePairExistingFilenames = new Set();
+    }
+  }
+
+  function getImagePairDuplicateStatusMessage(fileA, fileB) {
+    const fileAName = String(fileA?.name || "").trim();
+    const fileBName = String(fileB?.name || "").trim();
+    const normalizedA = fileAName.toLowerCase();
+    const normalizedB = fileBName.toLowerCase();
+
+    if (normalizedA && normalizedB && normalizedA === normalizedB) {
+      return "Image A and Image B must be different files.";
+    }
+    if (normalizedA && imagePairExistingFilenames.has(normalizedA)) {
+      return "Image A is already present in the imagepairs folder.";
+    }
+    if (normalizedB && imagePairExistingFilenames.has(normalizedB)) {
+      return "Image B is already present in the imagepairs folder.";
+    }
+    return "";
+  }
+
   function resetImagePairAdminView() {
     if (imagePairFileInputA) {
       imagePairFileInputA.value = "";
@@ -27698,6 +27739,14 @@ ${calmPracticeMessage}`;
         imagePairPreviewB.hidden = true;
       }
     }
+
+    const duplicateMessage = getImagePairDuplicateStatusMessage(fileA, fileB);
+    if (imagePairStatus) {
+      imagePairStatus.textContent = duplicateMessage;
+    }
+    if (imagePairSubmitButton) {
+      imagePairSubmitButton.disabled = Boolean(duplicateMessage);
+    }
   }
 
   function showImagePairAdminView() {
@@ -27727,6 +27776,7 @@ ${calmPracticeMessage}`;
     launcherView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     resetImagePairAdminView();
+    void refreshImagePairFilenameInventory();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
