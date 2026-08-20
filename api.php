@@ -13424,7 +13424,7 @@ if ($action === 'send_contact_message') {
 
 if ($action === 'add_image_pair' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'image_a', 'image_b'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'image_a', 'image_b'], 'request');
         $imageA = isset($input['image_a']) && is_array($input['image_a']) ? $input['image_a'] : [];
         $imageB = isset($input['image_b']) && is_array($input['image_b']) ? $input['image_b'] : [];
 
