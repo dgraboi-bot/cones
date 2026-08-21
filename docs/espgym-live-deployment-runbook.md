@@ -319,26 +319,22 @@ The deploy helper is expected to enforce this automatically for normal live push
 Additional authoring rule for Level 4 image pairs:
 
 - if image pairs are added, deleted, or resized from `https://espgym.com`, the live public `imagepairs/` folder may become newer first
-- however, a normal deployment must **not** automatically pull live `imagepairs/` content down over the local authoritative folder
-- local authoritative image-pair content for deployment is:
+- the live server copy of `imagepairs/` is the operational authority for image-pair admin work performed through `espgym.com`
+- local deployment copies for imagepairs are:
   - `C:\xampp\htdocs\telepathyexperiment\cones\imagepairs\...`
   - mirrored copy: `C:\xampp\htdocs\cones\imagepairs\...`
-- if live `imagepairs/` differs from local authoritative `imagepairs/` during a normal deployment, report that drift but do not overwrite local files
-- live-to-local `imagepairs/` recovery is a separate deliberate action and should be run only when explicitly intended
+- if live `imagepairs/` differs from the local copies during a normal deployment, prepare-release should first sync the live imagepairs state down into those local copies before continuing
+- live-to-local `imagepairs/` recovery still exists as a standalone action, but normal release prep should absorb this drift automatically
 - use:
   - `powershell -ExecutionPolicy Bypass -File scripts\sync-imagepairs-from-live.ps1 -AuditOnly`
   - or `powershell -ExecutionPolicy Bypass -File scripts\sync-imagepairs-from-live.ps1`
-- `prepare-release.ps1` may also be run with `-SyncImagePairsFromLive` when an explicit live-to-local recovery is intended before a release
-- in-app image-pair maintenance actions that mutate existing `imagepairs/` content, including `GUARANTEE SIZE` and `DELETE`, must run only from the localhost development copy
-- do not allow those maintenance actions to execute from `https://espgym.com`, because that would create live-first mutations outside the authoritative local imagepairs tree
+- `prepare-release.ps1` may still be run with `-SyncImagePairsFromLive` for an explicit recovery-first pass, but normal release prep should already sync live imagepairs down automatically when drift is detected
 
 Practical meaning:
 
-- successful image-pair edits on `espgym.com` do not automatically update the local authoritative folder
-- before a release, either:
-  - keep the local authoritative `imagepairs/` folder as the intended source of truth, or
-  - deliberately pull the live `imagepairs/` state down first
-- do not assume a successful in-browser image-pair upload on `espgym.com` has already updated the local authoring tree
+- successful image-pair add/delete actions on `espgym.com` update the live authoritative `imagepairs/` state first
+- normal release prep must refresh the local imagepairs copies from that live state before deployment continues
+- do not assume the local `imagepairs/` folder has already been updated until the release sync step has run
 
 ## Deploy Completeness Guard
 

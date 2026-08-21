@@ -13474,6 +13474,24 @@ if ($action === 'add_image_pair' && $hasAdminAccess) {
 
         $storedA = store_uploaded_image_pair_file($publicImagePairsDir, $imageA);
         $storedB = store_uploaded_image_pair_file($publicImagePairsDir, $imageB);
+        $resizedFiles = [];
+        foreach ([$storedA, $storedB] as $storedName) {
+            $fullPath = $publicImagePairsDir . DIRECTORY_SEPARATOR . $storedName;
+            $beforeInfo = @getimagesize($fullPath);
+            $beforeWidth = is_array($beforeInfo) ? (int) ($beforeInfo[0] ?? 0) : 0;
+            $beforeHeight = is_array($beforeInfo) ? (int) ($beforeInfo[1] ?? 0) : 0;
+            $wasResized = resize_image_pair_file_if_needed($fullPath, 800);
+            if ($wasResized) {
+                $afterInfo = @getimagesize($fullPath);
+                $resizedFiles[] = [
+                    'name' => $storedName,
+                    'before_width' => $beforeWidth,
+                    'before_height' => $beforeHeight,
+                    'after_width' => is_array($afterInfo) ? (int) ($afterInfo[0] ?? 0) : 0,
+                    'after_height' => is_array($afterInfo) ? (int) ($afterInfo[1] ?? 0) : 0
+                ];
+            }
+        }
 
         $manifest = load_image_pairs_manifest($imagePairsManifestFile);
         $nextNumericId = count((array) ($manifest['pairs'] ?? [])) + 1;
@@ -13497,6 +13515,8 @@ if ($action === 'add_image_pair' && $hasAdminAccess) {
                 'choice_a' => get_public_image_pair_url($storedA),
                 'choice_b' => get_public_image_pair_url($storedB)
             ],
+            'resized_files' => $resizedFiles,
+            'resized_count' => count($resizedFiles),
             'image_pair_count' => count((array) ($manifest['pairs'] ?? [])),
             'server_now_ms' => $nowMs
         ];
@@ -13536,58 +13556,7 @@ if ($action === 'list_image_pair_filenames' && $hasAdminAccess) {
     exit;
 }
 
-if ($action === 'guarantee_image_pair_sizes' && $hasAdminAccess) {
-    if (!is_localhost_request()) {
-        fail_request($handle, $nowMs, 'GUARANTEE SIZE is available only from the localhost development copy so the local authoritative imagepairs folder remains authoritative.', 403);
-    }
-    try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id'], 'request');
-        $manifest = load_image_pairs_manifest($imagePairsManifestFile);
-        $resizedCount = 0;
-        $unchangedCount = 0;
-        $missingCount = 0;
-
-        foreach ((array) ($manifest['pairs'] ?? []) as $pair) {
-            foreach ((array) ($pair['images'] ?? []) as $imageFilename) {
-                $safeFilename = sanitize_image_pair_filename((string) $imageFilename);
-                $fullPath = $publicImagePairsDir . DIRECTORY_SEPARATOR . $safeFilename;
-                if (!is_file($fullPath)) {
-                    $missingCount += 1;
-                    continue;
-                }
-                if (resize_image_pair_file_if_needed($fullPath, 800)) {
-                    $resizedCount += 1;
-                } else {
-                    $unchangedCount += 1;
-                }
-            }
-        }
-
-        $response = [
-            'ok' => true,
-            'resized_count' => $resizedCount,
-            'unchanged_count' => $unchangedCount,
-            'missing_count' => $missingCount,
-            'server_now_ms' => $nowMs
-        ];
-    } catch (Throwable $exception) {
-        fail_request($handle, $nowMs, $exception->getMessage(), 400);
-    }
-
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
-}
-
 if ($action === 'delete_image_pair' && $hasAdminAccess) {
-    if (!is_localhost_request()) {
-        fail_request($handle, $nowMs, 'DELETE is available only from the localhost development copy so the local authoritative imagepairs folder remains authoritative.', 403);
-    }
     try {
         require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'image_a_filename'], 'request');
         $selectedFilename = sanitize_image_pair_filename((string) ($input['image_a_filename'] ?? ''));

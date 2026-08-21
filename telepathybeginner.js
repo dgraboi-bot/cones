@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260821b";
+  const launcherBuildVersion = "20260821c";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -948,7 +948,6 @@
   const imagePairPreviewB = document.querySelector("[data-image-pair-preview-b]");
   const imagePairStatus = document.querySelector("[data-image-pair-status]");
   const imagePairSubmitButton = document.querySelector("[data-image-pair-submit]");
-  const imagePairGuaranteeSizeButton = document.querySelector("[data-image-pair-guarantee-size]");
   const imagePairDeleteButton = document.querySelector("[data-image-pair-delete]");
   const subscriptionEmailTemplateButtons = Array.from(document.querySelectorAll("[data-subscription-email-template-button]"));
   const subscriptionEmailAdminStatus = document.querySelector("[data-subscription-email-admin-status]");
@@ -27494,6 +27493,9 @@ ${calmPracticeMessage}`;
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = true;
     }
+    if (imagePairDeleteButton) {
+      imagePairDeleteButton.disabled = true;
+    }
     if (imagePairStatus) {
       imagePairStatus.textContent = "Uploading image pair...";
     }
@@ -27516,7 +27518,11 @@ ${calmPracticeMessage}`;
 
       resetImagePairAdminView();
       if (imagePairStatus) {
-        imagePairStatus.textContent = `Image pair ${String(response?.image_pair?.id || "").trim() || "saved"} added successfully.`;
+        const resizedFiles = Array.isArray(response?.resized_files) ? response.resized_files : [];
+        const resizedSummary = resizedFiles.length
+          ? ` ${resizedFiles.length} image${resizedFiles.length === 1 ? "" : "s"} adjusted to fit the 800 px limit.`
+          : "";
+        imagePairStatus.textContent = `Image pair ${String(response?.image_pair?.id || "").trim() || "saved"} added successfully.${resizedSummary}`;
       }
       void refreshAdminView();
     } catch (error) {
@@ -27526,6 +27532,9 @@ ${calmPracticeMessage}`;
     } finally {
       if (imagePairSubmitButton) {
         imagePairSubmitButton.disabled = false;
+      }
+      if (imagePairDeleteButton) {
+        imagePairDeleteButton.disabled = false;
       }
     }
   }
@@ -27674,29 +27683,6 @@ ${calmPracticeMessage}`;
     return "";
   }
 
-  function canRunLocalAuthoritativeImagePairMaintenance() {
-    return isLocalInfrastructureHost();
-  }
-
-  function getImagePairMaintenanceRestrictionMessage() {
-    if (canRunLocalAuthoritativeImagePairMaintenance()) {
-      return "";
-    }
-    return "GUARANTEE SIZE and DELETE are available only from the localhost development copy so the local authoritative imagepairs folder remains authoritative.";
-  }
-
-  function syncImagePairMaintenanceButtonState() {
-    const restricted = !canRunLocalAuthoritativeImagePairMaintenance();
-    if (imagePairGuaranteeSizeButton) {
-      imagePairGuaranteeSizeButton.disabled = restricted;
-      imagePairGuaranteeSizeButton.title = restricted ? "Use the localhost development copy for GUARANTEE SIZE." : "";
-    }
-    if (imagePairDeleteButton) {
-      imagePairDeleteButton.disabled = restricted;
-      imagePairDeleteButton.title = restricted ? "Use the localhost development copy for DELETE." : "";
-    }
-  }
-
   function resetImagePairAdminView() {
     if (imagePairFileInputA) {
       imagePairFileInputA.value = "";
@@ -27721,12 +27707,14 @@ ${calmPracticeMessage}`;
       imagePairPreviewB.hidden = true;
     }
     if (imagePairStatus) {
-      imagePairStatus.textContent = getImagePairMaintenanceRestrictionMessage();
+      imagePairStatus.textContent = "";
     }
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = false;
     }
-    syncImagePairMaintenanceButtonState();
+    if (imagePairDeleteButton) {
+      imagePairDeleteButton.disabled = false;
+    }
   }
 
   function updateImagePairPreview() {
@@ -27766,12 +27754,11 @@ ${calmPracticeMessage}`;
 
     const duplicateMessage = getImagePairDuplicateStatusMessage(fileA, fileB);
     if (imagePairStatus) {
-      imagePairStatus.textContent = duplicateMessage || getImagePairMaintenanceRestrictionMessage();
+      imagePairStatus.textContent = duplicateMessage;
     }
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = Boolean(duplicateMessage);
     }
-    syncImagePairMaintenanceButtonState();
   }
 
   function showImagePairAdminView() {
@@ -27989,60 +27976,7 @@ ${calmPracticeMessage}`;
     }
   }
 
-  async function guaranteeImagePairSizes() {
-    if (!canRunLocalAuthoritativeImagePairMaintenance()) {
-      if (imagePairStatus) {
-        imagePairStatus.textContent = getImagePairMaintenanceRestrictionMessage();
-      }
-      syncImagePairMaintenanceButtonState();
-      return;
-    }
-    if (imagePairGuaranteeSizeButton) {
-      imagePairGuaranteeSizeButton.disabled = true;
-    }
-    if (imagePairSubmitButton) {
-      imagePairSubmitButton.disabled = true;
-    }
-    if (imagePairDeleteButton) {
-      imagePairDeleteButton.disabled = true;
-    }
-    if (imagePairStatus) {
-      imagePairStatus.textContent = "Guaranteeing maximum image size...";
-    }
-
-    try {
-      const response = await launcherAdminApi("guarantee_image_pair_sizes", {});
-      const resizedCount = Number(response?.resized_count || 0);
-      const unchangedCount = Number(response?.unchanged_count || 0);
-      const missingCount = Number(response?.missing_count || 0);
-      if (imagePairStatus) {
-        imagePairStatus.textContent = `Size check complete. Resized ${resizedCount} image(s), left ${unchangedCount} unchanged, missing ${missingCount}.`;
-      }
-    } catch (error) {
-      if (imagePairStatus) {
-        imagePairStatus.textContent = error instanceof Error ? error.message : "Unable to guarantee image sizes right now.";
-      }
-    } finally {
-      if (imagePairGuaranteeSizeButton) {
-        imagePairGuaranteeSizeButton.disabled = false;
-      }
-      if (imagePairSubmitButton) {
-        imagePairSubmitButton.disabled = false;
-      }
-      if (imagePairDeleteButton) {
-        imagePairDeleteButton.disabled = false;
-      }
-    }
-  }
-
   async function deleteImagePairAdmin() {
-    if (!canRunLocalAuthoritativeImagePairMaintenance()) {
-      if (imagePairStatus) {
-        imagePairStatus.textContent = getImagePairMaintenanceRestrictionMessage();
-      }
-      syncImagePairMaintenanceButtonState();
-      return;
-    }
     const fileA = imagePairFileInputA?.files?.[0] || null;
     if (!fileA) {
       if (imagePairStatus) {
@@ -28056,9 +27990,6 @@ ${calmPracticeMessage}`;
     }
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = true;
-    }
-    if (imagePairGuaranteeSizeButton) {
-      imagePairGuaranteeSizeButton.disabled = true;
     }
     if (imagePairStatus) {
       imagePairStatus.textContent = "Deleting image pair from JSON manifest...";
@@ -28092,9 +28023,6 @@ ${calmPracticeMessage}`;
       }
       if (imagePairSubmitButton) {
         imagePairSubmitButton.disabled = false;
-      }
-      if (imagePairGuaranteeSizeButton) {
-        imagePairGuaranteeSizeButton.disabled = false;
       }
     }
   }
@@ -31652,9 +31580,6 @@ ${calmPracticeMessage}`;
   imagePairFileInputB?.addEventListener("change", updateImagePairPreview);
   imagePairSubmitButton?.addEventListener("click", () => {
     void submitImagePairAdmin();
-  });
-  imagePairGuaranteeSizeButton?.addEventListener("click", () => {
-    void guaranteeImagePairSizes();
   });
   imagePairDeleteButton?.addEventListener("click", () => {
     void deleteImagePairAdmin();

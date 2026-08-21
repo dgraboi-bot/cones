@@ -608,15 +608,7 @@ function Report-RemoteImagePairsDrift() {
   $localState = Get-LocalImagePairsState $imagePairsRoot
   $remoteState = Get-RemoteImagePairsState
   $drift = @(Get-ImagePairsDriftSummary -LocalState $localState -RemoteState $remoteState)
-  if (@($drift).Count -eq 0) {
-    Write-Host "Imagepairs folder matches live authoritative state." -ForegroundColor Green
-    return
-  }
-
-  Write-Host "Imagepairs drift detected between local authoritative folder and live server." -ForegroundColor Yellow
-  Write-Host "Normal deploy will promote the local authoritative imagepairs folder upward; it will not pull live imagepairs down automatically." -ForegroundColor Yellow
-  $drift | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor Yellow }
-  Write-Host "If you intend to recover live imagepairs back into the local authoritative folders, re-run prepare-release with -SyncImagePairsFromLive." -ForegroundColor Yellow
+  return $drift
 }
 
 function Sync-RemoteManagedContentToLocalAuthoritative() {
@@ -802,7 +794,18 @@ if ($SyncImagePairsFromLive) {
     throw "Live imagepairs sync failed."
   }
 } else {
-  Report-RemoteImagePairsDrift
+  $imagePairsDrift = @(Report-RemoteImagePairsDrift)
+  if ($imagePairsDrift.Count -eq 0) {
+    Write-Host "Imagepairs folder matches live authoritative state." -ForegroundColor Green
+  } else {
+    Write-Host "Imagepairs drift detected between local folders and the live authoritative imagepairs state." -ForegroundColor Yellow
+    $imagePairsDrift | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor Yellow }
+    Write-Host "Normal release prep will now sync live imagepairs down automatically before continuing." -ForegroundColor Yellow
+    & powershell -ExecutionPolicy Bypass -File $imagePairsSyncScript
+    if ($LASTEXITCODE -ne 0) {
+      throw "Automatic live imagepairs sync failed."
+    }
+  }
 }
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
