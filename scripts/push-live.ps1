@@ -215,8 +215,10 @@ foreach ($relativePath in @($manifest.deploy_files)) {
   $stagePath = "$stageRoot/$remoteRelative"
   $livePath = "$liveRoot/$remoteRelative"
   $snapshotFilePath = "$snapshotPath/$remoteRelative"
+  $liveDir = ($livePath -replace '/[^/]+$','')
+  $tempLivePath = "$liveDir/.codex_stage_$Version-" + [IO.Path]::GetFileName($livePath)
   Invoke-Plink "if [ -f '$livePath' ]; then cp '$livePath' '$snapshotFilePath'; fi" | Out-Null
-  Invoke-Plink "cp '$stagePath' '$livePath'" | Out-Null
+  Invoke-Plink "cp '$stagePath' '$tempLivePath' && mv -f '$tempLivePath' '$livePath'" | Out-Null
 }
 
 $privateDirs = @($privateContentRoot, "$privateContentRoot/new-learning-center-lessons")
