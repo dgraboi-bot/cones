@@ -329,6 +329,8 @@ Additional authoring rule for Level 4 image pairs:
   - `powershell -ExecutionPolicy Bypass -File scripts\sync-imagepairs-from-live.ps1 -AuditOnly`
   - or `powershell -ExecutionPolicy Bypass -File scripts\sync-imagepairs-from-live.ps1`
 - `prepare-release.ps1` may also be run with `-SyncImagePairsFromLive` when an explicit live-to-local recovery is intended before a release
+- in-app image-pair maintenance actions that mutate existing `imagepairs/` content, including `GUARANTEE SIZE` and `DELETE`, must run only from the localhost development copy
+- do not allow those maintenance actions to execute from `https://espgym.com`, because that would create live-first mutations outside the authoritative local imagepairs tree
 
 Practical meaning:
 

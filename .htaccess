@@ -4,10 +4,10 @@ RewriteEngine On
 # root and legacy index requests on espgym.com should land on the versioned launcher URL
 # explicitly, instead of depending on DirectoryIndex fallthrough.
 RewriteCond %{HTTP_HOST} ^(?:www\.)?espgym\.com$ [NC]
-RewriteRule ^$ https://espgym.com/telepathybeginner.html?v=20260820f&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
+RewriteRule ^$ https://espgym.com/telepathybeginner.html?v=20260821a&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
 
 RewriteCond %{HTTP_HOST} ^(?:www\.)?espgym\.com$ [NC]
-RewriteRule ^index\.html$ https://espgym.com/telepathybeginner.html?v=20260820f&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
+RewriteRule ^index\.html$ https://espgym.com/telepathybeginner.html?v=20260821a&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
 
 <IfModule mod_headers.c>
 Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0" env=ESPGYM_ROOT_REDIRECT

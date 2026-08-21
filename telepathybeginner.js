@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260820f";
+  const launcherBuildVersion = "20260821a";
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -27674,6 +27674,29 @@ ${calmPracticeMessage}`;
     return "";
   }
 
+  function canRunLocalAuthoritativeImagePairMaintenance() {
+    return isLocalInfrastructureHost();
+  }
+
+  function getImagePairMaintenanceRestrictionMessage() {
+    if (canRunLocalAuthoritativeImagePairMaintenance()) {
+      return "";
+    }
+    return "GUARANTEE SIZE and DELETE are available only from the localhost development copy so the local authoritative imagepairs folder remains authoritative.";
+  }
+
+  function syncImagePairMaintenanceButtonState() {
+    const restricted = !canRunLocalAuthoritativeImagePairMaintenance();
+    if (imagePairGuaranteeSizeButton) {
+      imagePairGuaranteeSizeButton.disabled = restricted;
+      imagePairGuaranteeSizeButton.title = restricted ? "Use the localhost development copy for GUARANTEE SIZE." : "";
+    }
+    if (imagePairDeleteButton) {
+      imagePairDeleteButton.disabled = restricted;
+      imagePairDeleteButton.title = restricted ? "Use the localhost development copy for DELETE." : "";
+    }
+  }
+
   function resetImagePairAdminView() {
     if (imagePairFileInputA) {
       imagePairFileInputA.value = "";
@@ -27698,11 +27721,12 @@ ${calmPracticeMessage}`;
       imagePairPreviewB.hidden = true;
     }
     if (imagePairStatus) {
-      imagePairStatus.textContent = "";
+      imagePairStatus.textContent = getImagePairMaintenanceRestrictionMessage();
     }
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = false;
     }
+    syncImagePairMaintenanceButtonState();
   }
 
   function updateImagePairPreview() {
@@ -27742,11 +27766,12 @@ ${calmPracticeMessage}`;
 
     const duplicateMessage = getImagePairDuplicateStatusMessage(fileA, fileB);
     if (imagePairStatus) {
-      imagePairStatus.textContent = duplicateMessage;
+      imagePairStatus.textContent = duplicateMessage || getImagePairMaintenanceRestrictionMessage();
     }
     if (imagePairSubmitButton) {
       imagePairSubmitButton.disabled = Boolean(duplicateMessage);
     }
+    syncImagePairMaintenanceButtonState();
   }
 
   function showImagePairAdminView() {
@@ -27965,6 +27990,13 @@ ${calmPracticeMessage}`;
   }
 
   async function guaranteeImagePairSizes() {
+    if (!canRunLocalAuthoritativeImagePairMaintenance()) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = getImagePairMaintenanceRestrictionMessage();
+      }
+      syncImagePairMaintenanceButtonState();
+      return;
+    }
     if (imagePairGuaranteeSizeButton) {
       imagePairGuaranteeSizeButton.disabled = true;
     }
@@ -28004,6 +28036,13 @@ ${calmPracticeMessage}`;
   }
 
   async function deleteImagePairAdmin() {
+    if (!canRunLocalAuthoritativeImagePairMaintenance()) {
+      if (imagePairStatus) {
+        imagePairStatus.textContent = getImagePairMaintenanceRestrictionMessage();
+      }
+      syncImagePairMaintenanceButtonState();
+      return;
+    }
     const fileA = imagePairFileInputA?.files?.[0] || null;
     if (!fileA) {
       if (imagePairStatus) {

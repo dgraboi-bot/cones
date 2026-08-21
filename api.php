@@ -13537,6 +13537,9 @@ if ($action === 'list_image_pair_filenames' && $hasAdminAccess) {
 }
 
 if ($action === 'guarantee_image_pair_sizes' && $hasAdminAccess) {
+    if (!is_localhost_request()) {
+        fail_request($handle, $nowMs, 'GUARANTEE SIZE is available only from the localhost development copy so the local authoritative imagepairs folder remains authoritative.', 403);
+    }
     try {
         require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id'], 'request');
         $manifest = load_image_pairs_manifest($imagePairsManifestFile);
@@ -13582,6 +13585,9 @@ if ($action === 'guarantee_image_pair_sizes' && $hasAdminAccess) {
 }
 
 if ($action === 'delete_image_pair' && $hasAdminAccess) {
+    if (!is_localhost_request()) {
+        fail_request($handle, $nowMs, 'DELETE is available only from the localhost development copy so the local authoritative imagepairs folder remains authoritative.', 403);
+    }
     try {
         require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'image_a_filename'], 'request');
         $selectedFilename = sanitize_image_pair_filename((string) ($input['image_a_filename'] ?? ''));
