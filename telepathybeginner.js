@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260822g";
+  const launcherBuildVersion = "20260822h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -40,8 +40,8 @@
   const launcherCopy = document.querySelector("[data-launcher-copy]");
   const optionsView = document.querySelector('[data-view="options"]');
   const temporaryHomePageView = document.querySelector('[data-view="temporary-home-page"]');
-  const telepathyDifficultyGuideView = document.querySelector('[data-view="telepathy-difficulty-guide"]');
-  const performanceVisualizationGuideView = document.querySelector('[data-view="performance-visualization-guide"]');
+  let telepathyDifficultyGuideView = document.querySelector('[data-view="telepathy-difficulty-guide"]');
+  let performanceVisualizationGuideView = document.querySelector('[data-view="performance-visualization-guide"]');
   const helpView = document.querySelector('[data-view="help"]');
   const beginnerUserManualView = document.querySelector('[data-view="beginner-user-manual"]');
   const proUserManualView = document.querySelector('[data-view="pro-user-manual"]');
@@ -51,13 +51,13 @@
   const espLessonDetailView = document.querySelector('[data-view="esp-lesson-detail"]');
   const clairvoyanceLearnMoreView = document.querySelector('[data-view="clairvoyance-learn-more"]');
   const aidsView = document.querySelector('[data-view="aids"]');
-  const rewireView = document.querySelector('[data-view="rewire"]');
-  const generalInformationView = document.querySelector('[data-view="general-information"]');
-  const readingsVideosView = document.querySelector('[data-view="readings-videos"]');
-  const websitesEventsListView = document.querySelector('[data-view="websites-events-list"]');
-  const caseStudiesListView = document.querySelector('[data-view="case-studies-list"]');
-  const peerReviewedListView = document.querySelector('[data-view="peer-reviewed-list"]');
-  const userCommentsListView = document.querySelector('[data-view="user-comments-list"]');
+  let rewireView = document.querySelector('[data-view="rewire"]');
+  let generalInformationView = document.querySelector('[data-view="general-information"]');
+  let readingsVideosView = document.querySelector('[data-view="readings-videos"]');
+  let websitesEventsListView = document.querySelector('[data-view="websites-events-list"]');
+  let caseStudiesListView = document.querySelector('[data-view="case-studies-list"]');
+  let peerReviewedListView = document.querySelector('[data-view="peer-reviewed-list"]');
+  let userCommentsListView = document.querySelector('[data-view="user-comments-list"]');
   const toolsView = document.querySelector('[data-view="tools"]');
   const goProView = document.querySelector('[data-view="go-pro"]');
   const goProIncludesView = document.querySelector('[data-view="go-pro-includes"]');
@@ -106,6 +106,10 @@
   const adminView = document.querySelector('[data-view="admin"]');
   const beginnerPanel = document.querySelector(".beginner-panel");
   const buildRecoveryNotice = document.querySelector("[data-build-recovery-notice]");
+  const learningInfoDeferredMount = document.querySelector("[data-learning-info-deferred-mount]");
+  const learningInfoDeferredFragmentUrl = `telepathybeginner-learning-info-fragments.html?v=${launcherBuildVersion}`;
+  let learningInfoDeferredLoadPromise = null;
+  let learningInfoDeferredHandlersBound = false;
   const reportDeferredMount = document.querySelector("[data-report-deferred-mount]");
   const reportDeferredFragmentUrl = `telepathybeginner-report-fragments.html?v=${launcherBuildVersion}`;
   let reportDeferredLoadPromise = null;
@@ -419,13 +423,13 @@
   const onlineCourseTabPanels = Array.from(document.querySelectorAll("[data-online-course-panel]"));
   const closeBaselineQuestionsButton = document.querySelector("[data-close-baseline-questions]");
   const closeAfterFirstSessionQuestionsButton = document.querySelector("[data-close-after-first-session-questions]");
-  const closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
-  const closeRewireButton = document.querySelector("[data-close-rewire]");
-  const closeReadingsVideosButton = document.querySelector("[data-close-readings-videos]");
-  const closeWebsitesEventsListButton = document.querySelector("[data-close-websites-events-list]");
-  const closeCaseStudiesListButton = document.querySelector("[data-close-case-studies-list]");
-  const closePeerReviewedListButton = document.querySelector("[data-close-peer-reviewed-list]");
-  const closeUserCommentsListButton = document.querySelector("[data-close-user-comments-list]");
+  let closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
+  let closeRewireButton = document.querySelector("[data-close-rewire]");
+  let closeReadingsVideosButton = document.querySelector("[data-close-readings-videos]");
+  let closeWebsitesEventsListButton = document.querySelector("[data-close-websites-events-list]");
+  let closeCaseStudiesListButton = document.querySelector("[data-close-case-studies-list]");
+  let closePeerReviewedListButton = document.querySelector("[data-close-peer-reviewed-list]");
+  let closeUserCommentsListButton = document.querySelector("[data-close-user-comments-list]");
   const closeSavedLinksAdminButton = document.querySelector("[data-close-saved-links-admin]");
   const closeToolsButton = document.querySelector("[data-close-tools]");
   const closeGoProButton = document.querySelector("[data-close-go-pro]");
@@ -621,8 +625,8 @@
   const closeResearchParticipationProButton = document.querySelector("[data-close-research-participation-pro]");
   const closeResearchProposalButton = document.querySelector("[data-close-research-proposal]");
   const closeResearchTeamInterestButton = document.querySelector("[data-close-research-team-interest]");
-  const closeTelepathyDifficultyGuideButton = document.querySelector("[data-close-telepathy-difficulty-guide]");
-  const closePerformanceVisualizationGuideButton = document.querySelector("[data-close-performance-visualization-guide]");
+  let closeTelepathyDifficultyGuideButton = document.querySelector("[data-close-telepathy-difficulty-guide]");
+  let closePerformanceVisualizationGuideButton = document.querySelector("[data-close-performance-visualization-guide]");
   const closeResearchInterestFormButton = document.querySelector("[data-close-research-interest-form]");
   const openReportButton = document.querySelector("[data-open-report]");
   let closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
@@ -13981,6 +13985,84 @@ ${calmPracticeMessage}`;
       });
   }
 
+  function cacheLearningInfoDeferredElements() {
+    telepathyDifficultyGuideView = document.querySelector('[data-view="telepathy-difficulty-guide"]');
+    performanceVisualizationGuideView = document.querySelector('[data-view="performance-visualization-guide"]');
+    rewireView = document.querySelector('[data-view="rewire"]');
+    generalInformationView = document.querySelector('[data-view="general-information"]');
+    readingsVideosView = document.querySelector('[data-view="readings-videos"]');
+    websitesEventsListView = document.querySelector('[data-view="websites-events-list"]');
+    caseStudiesListView = document.querySelector('[data-view="case-studies-list"]');
+    peerReviewedListView = document.querySelector('[data-view="peer-reviewed-list"]');
+    userCommentsListView = document.querySelector('[data-view="user-comments-list"]');
+    closeGeneralInformationButton = document.querySelector("[data-close-general-information]");
+    closeRewireButton = document.querySelector("[data-close-rewire]");
+    closeReadingsVideosButton = document.querySelector("[data-close-readings-videos]");
+    closeWebsitesEventsListButton = document.querySelector("[data-close-websites-events-list]");
+    closeCaseStudiesListButton = document.querySelector("[data-close-case-studies-list]");
+    closePeerReviewedListButton = document.querySelector("[data-close-peer-reviewed-list]");
+    closeUserCommentsListButton = document.querySelector("[data-close-user-comments-list]");
+    closeTelepathyDifficultyGuideButton = document.querySelector("[data-close-telepathy-difficulty-guide]");
+    closePerformanceVisualizationGuideButton = document.querySelector("[data-close-performance-visualization-guide]");
+  }
+
+  function bindLearningInfoDeferredHandlers() {
+    if (learningInfoDeferredHandlersBound) {
+      return;
+    }
+    closeGeneralInformationButton?.addEventListener("click", showAidsView);
+    closeRewireButton?.addEventListener("click", showAidsView);
+    closeReadingsVideosButton?.addEventListener("click", showAidsView);
+    closeWebsitesEventsListButton?.addEventListener("click", showAidsView);
+    closeUserCommentsListButton?.addEventListener("click", showAidsView);
+    closeCaseStudiesListButton?.addEventListener("click", showAidsView);
+    closePeerReviewedListButton?.addEventListener("click", showAidsView);
+    closeTelepathyDifficultyGuideButton?.addEventListener("click", closeTelepathyDifficultyGuideView);
+    closePerformanceVisualizationGuideButton?.addEventListener("click", closePerformanceVisualizationGuideView);
+    learningInfoDeferredHandlersBound = true;
+  }
+
+  async function ensureLearningInfoDeferredViewsLoaded() {
+    if (
+      generalInformationView &&
+      rewireView &&
+      readingsVideosView &&
+      websitesEventsListView &&
+      caseStudiesListView &&
+      peerReviewedListView &&
+      userCommentsListView &&
+      telepathyDifficultyGuideView &&
+      performanceVisualizationGuideView
+    ) {
+      bindLearningInfoDeferredHandlers();
+      return;
+    }
+    if (learningInfoDeferredLoadPromise) {
+      await learningInfoDeferredLoadPromise;
+      return;
+    }
+    if (!learningInfoDeferredMount) {
+      return;
+    }
+    learningInfoDeferredLoadPromise = (async () => {
+      const response = await fetch(learningInfoDeferredFragmentUrl, {
+        cache: "no-store",
+        credentials: "same-origin"
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to load deferred learning info views (${response.status}).`);
+      }
+      learningInfoDeferredMount.innerHTML = await response.text();
+      cacheLearningInfoDeferredElements();
+      bindLearningInfoDeferredHandlers();
+    })();
+    try {
+      await learningInfoDeferredLoadPromise;
+    } finally {
+      learningInfoDeferredLoadPromise = null;
+    }
+  }
+
   function cacheReportDeferredElements() {
     reportDefinitionView = document.querySelector('[data-view="report-definition"]');
     reportView = document.querySelector('[data-view="report"]');
@@ -21803,7 +21885,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: targetTop, left: 0, behavior: "smooth" });
   }
 
-  function showTelepathyDifficultyGuideView() {
+  async function showTelepathyDifficultyGuideView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     telepathyDifficultyGuideReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -21858,7 +21941,8 @@ ${calmPracticeMessage}`;
     });
   }
 
-  function showPerformanceVisualizationGuideView() {
+  async function showPerformanceVisualizationGuideView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     performanceVisualizationGuideReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -24306,7 +24390,8 @@ ${calmPracticeMessage}`;
     showLearningCenterView({ view: "options" });
   }
 
-  function showGeneralInformationView() {
+  async function showGeneralInformationView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     generalInformationView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -24353,7 +24438,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showRewireView() {
+  async function showRewireView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     rewireView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -24400,7 +24486,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showReadingsVideosView() {
+  async function showReadingsVideosView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     readingsVideosView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -24445,7 +24532,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showWebsitesEventsListView() {
+  async function showWebsitesEventsListView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     websitesEventsListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -24491,7 +24579,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showUserCommentsListView() {
+  async function showUserCommentsListView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     userCommentsListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -24537,7 +24626,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showCaseStudiesListView() {
+  async function showCaseStudiesListView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     caseStudiesListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -24583,7 +24673,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showPeerReviewedListView() {
+  async function showPeerReviewedListView() {
+    await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     peerReviewedListView?.classList.remove("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
@@ -31114,13 +31205,27 @@ ${calmPracticeMessage}`;
       }
     });
   });
-  openGeneralInformationButton?.addEventListener("click", showGeneralInformationView);
-  openRewireButton?.addEventListener("click", showRewireView);
-  openReadingsVideosButton?.addEventListener("click", showReadingsVideosView);
-  openWebsitesEventsListButton?.addEventListener("click", showWebsitesEventsListView);
-  openUserCommentsListButton?.addEventListener("click", showUserCommentsListView);
-  openCaseStudiesListButton?.addEventListener("click", showCaseStudiesListView);
-  openPeerReviewedListButton?.addEventListener("click", showPeerReviewedListView);
+  openGeneralInformationButton?.addEventListener("click", () => {
+    void showGeneralInformationView();
+  });
+  openRewireButton?.addEventListener("click", () => {
+    void showRewireView();
+  });
+  openReadingsVideosButton?.addEventListener("click", () => {
+    void showReadingsVideosView();
+  });
+  openWebsitesEventsListButton?.addEventListener("click", () => {
+    void showWebsitesEventsListView();
+  });
+  openUserCommentsListButton?.addEventListener("click", () => {
+    void showUserCommentsListView();
+  });
+  openCaseStudiesListButton?.addEventListener("click", () => {
+    void showCaseStudiesListView();
+  });
+  openPeerReviewedListButton?.addEventListener("click", () => {
+    void showPeerReviewedListView();
+  });
   closeOptionsButtons.forEach((button) => {
     button.addEventListener("click", showLauncherView);
   });
@@ -31501,13 +31606,6 @@ ${calmPracticeMessage}`;
   openOnlineCoursePracticeButton?.addEventListener("click", showLauncherView);
   closeBaselineQuestionsButton?.addEventListener("click", closeBaselineQuestionsView);
   closeAfterFirstSessionQuestionsButton?.addEventListener("click", closeAfterFirstSessionQuestionsView);
-  closeGeneralInformationButton?.addEventListener("click", showAidsView);
-  closeRewireButton?.addEventListener("click", showAidsView);
-  closeReadingsVideosButton?.addEventListener("click", showAidsView);
-  closeWebsitesEventsListButton?.addEventListener("click", showAidsView);
-  closeUserCommentsListButton?.addEventListener("click", showAidsView);
-  closeCaseStudiesListButton?.addEventListener("click", showAidsView);
-  closePeerReviewedListButton?.addEventListener("click", showAidsView);
   closeGoProButton?.addEventListener("click", closeGoProViewToOrigin);
   closeGoProIncludesButton?.addEventListener("click", closeGoProIncludesView);
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
@@ -31592,8 +31690,6 @@ ${calmPracticeMessage}`;
     void saveResearchInterestForm();
   });
   closeSubscriptionManagementButton?.addEventListener("click", showOtherSettingsView);
-  closeTelepathyDifficultyGuideButton?.addEventListener("click", closeTelepathyDifficultyGuideView);
-  closePerformanceVisualizationGuideButton?.addEventListener("click", closePerformanceVisualizationGuideView);
   closeGiftProSubscriptionButton?.addEventListener("click", showSubscriptionManagementView);
   cancelGiftProSubscriptionButton?.addEventListener("click", showSubscriptionManagementView);
   submitGiftProSubscriptionButton?.addEventListener("click", () => {
