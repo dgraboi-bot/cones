@@ -357,6 +357,8 @@ Practical meaning:
 - successful image-pair add/delete actions on `espgym.com` update the live authoritative `imagepairs/` state first
 - normal release prep must refresh the local imagepairs copies from that live state before deployment continues
 - do not assume the local `imagepairs/` folder has already been updated until the release sync step has run
+- ordinary code releases should not re-upload or re-audit the full `imagepairs/` payload once the local copies have been refreshed from live
+- the normal `prepare-release.ps1` manifest should therefore exclude `imagepairs/` files from `deploy_files` and `live_hash_audit_files` unless a dedicated image-pair maintenance workflow is being used
 
 ## Deploy Completeness Guard
 

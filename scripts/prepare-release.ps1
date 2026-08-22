@@ -89,7 +89,6 @@ if (Test-Path -LiteralPath $imagePairsRoot) {
       $_.FullName.Substring($repoRoot.Length + 1)
     }
 }
-$deployFiles += $imagePairFiles
 
 $verifyVersionFiles = @(
   "telepathybeginner.css",
@@ -149,7 +148,6 @@ $liveHashAuditFiles = @(
 )
 $liveHashAuditFiles += $newLearningCenterLessonFiles
 $liveHashAuditFiles += $lessonImageAssetFiles
-$liveHashAuditFiles += $imagePairFiles
 
 $privateContentSyncFiles = @(
   "content_repo\new-learning-center-outline.json"
@@ -891,6 +889,7 @@ if ($SyncImagePairsFromLive) {
     }
   }
 }
+Write-Host "Ordinary release manifests exclude the imagepairs payload after authoritative live sync, so unchanged imagepairs do not slow code releases." -ForegroundColor Green
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 Assert-CacheVersionCompleteness -RepoRootForCheck $repoRoot -ExpectedVersion $Version

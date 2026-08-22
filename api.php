@@ -5580,6 +5580,48 @@ function build_partner_message_inbox_summary(array $state, string $ownerIdentifi
     ];
 }
 
+function build_launcher_message_summary_entry(array $state, string $identifier, string $deviceId): array
+{
+    $requestedIdentifier = trim($identifier);
+    if ($requestedIdentifier === '') {
+        return [
+            'requested_identifier' => '',
+            'preferred_identifier' => '',
+            'eligible' => false,
+            'total_unread' => 0,
+            'inbox' => null,
+            'identifier_status' => null,
+            'push_status' => null
+        ];
+    }
+
+    $identifierStatus = get_identifier_status($state, $requestedIdentifier);
+    $preferredIdentifier = trim((string) ($identifierStatus['preferred_identifier'] ?? $requestedIdentifier));
+    $acceptedHandle = $preferredIdentifier !== '' && !empty($identifierStatus['uses_handle']);
+    if (!$acceptedHandle) {
+        return [
+            'requested_identifier' => $requestedIdentifier,
+            'preferred_identifier' => $preferredIdentifier,
+            'eligible' => false,
+            'total_unread' => 0,
+            'inbox' => null,
+            'identifier_status' => $identifierStatus,
+            'push_status' => $preferredIdentifier !== '' ? get_push_registration_status($state, $preferredIdentifier, $deviceId) : null
+        ];
+    }
+
+    $inbox = build_partner_message_inbox_summary($state, $preferredIdentifier);
+    return [
+        'requested_identifier' => $requestedIdentifier,
+        'preferred_identifier' => $preferredIdentifier,
+        'eligible' => true,
+        'total_unread' => max(0, (int) ($inbox['total_unread'] ?? 0)),
+        'inbox' => $inbox,
+        'identifier_status' => $identifierStatus,
+        'push_status' => get_push_registration_status($state, $preferredIdentifier, $deviceId)
+    ];
+}
+
 function build_absolute_launcher_url(array $params = []): string
 {
     global $isWindows;
@@ -12647,6 +12689,38 @@ if ($action === 'get_partner_message_inbox') {
         'inbox' => build_partner_message_inbox_summary($state, $preferredOwnIdentifier),
         'identifier_status' => $ownStatus,
         'push_status' => get_push_registration_status($state, $preferredOwnIdentifier, $deviceId),
+        'messaging_limits' => get_messaging_limits($state),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_launcher_message_summary') {
+    try {
+        require_allowed_keys($input, ['action', 'sender_identifier', 'receiver_identifier', 'device_id'], 'request');
+        $senderIdentifier = validate_participant_identifier_string($input['sender_identifier'] ?? '', 'sender_identifier', true);
+        $receiverIdentifier = validate_participant_identifier_string($input['receiver_identifier'] ?? '', 'receiver_identifier', true);
+        $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $senderSummary = build_launcher_message_summary_entry($state, $senderIdentifier, $deviceId);
+    $receiverSummary = build_launcher_message_summary_entry($state, $receiverIdentifier, $deviceId);
+    $response = [
+        'ok' => true,
+        'roles' => [
+            'sender' => $senderSummary,
+            'receiver' => $receiverSummary
+        ],
         'messaging_limits' => get_messaging_limits($state),
         'server_now_ms' => $nowMs
     ];

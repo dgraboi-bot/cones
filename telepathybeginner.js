@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260822b";
+  const launcherBuildVersion = "20260822c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -1127,7 +1127,9 @@
   let lastDirectLauncherOpenMeta = null;
   let pendingDirectLauncherOutsideClickIgnore = false;
   let selectedReportPair = null;
-  const partnerMessagePollIntervalMs = 6000;
+  const partnerMessagePollActiveIntervalMs = 6000;
+  const partnerMessagePollIdleIntervalMs = 20000;
+  const partnerMessagePollHiddenIntervalMs = 60000;
   let partnerMessagePollTimer = 0;
   let availableReportPairs = [];
   let pendingOpenReportPair = null;
@@ -1392,7 +1394,10 @@ ${calmPracticeMessage}`;
   let activeAdminSubscriptionsGiftFilter = "all";
   let activeAdminSubscriptionsMismatchFilter = "all";
   let activeAdminSubscriptionsSearch = "";
+  const launcherAdminLockRefreshActiveIntervalMs = 5000;
+  const launcherAdminLockRefreshIdleIntervalMs = 15000;
   let launcherAdminLockRefreshTimer = 0;
+  let launcherTrafficStateRefreshTimer = 0;
 
   function syncLauncherAdminStateFromDevicePrefs() {
     launcherAdminState.debug_enabled = !!launcherAdminDevicePrefs.debug_enabled;
@@ -1494,9 +1499,37 @@ ${calmPracticeMessage}`;
 
   function stopLauncherAdminLockRefresh() {
     if (launcherAdminLockRefreshTimer) {
-      window.clearInterval(launcherAdminLockRefreshTimer);
+      window.clearTimeout(launcherAdminLockRefreshTimer);
       launcherAdminLockRefreshTimer = 0;
     }
+  }
+
+  function isBeginnerViewVisible(view) {
+    return !!(view && !view.classList.contains("beginner-view-hidden"));
+  }
+
+  function isAnyAdminViewVisible() {
+    return [
+      adminView,
+      userTypeAdminView,
+      inviteeAdminView,
+      handleUpdateAdminView,
+      imagePairAdminView,
+      subscriptionEmailAdminView,
+      subscriptionsAdminView,
+      lessonIndexAdminView,
+      savedLinksAdminView,
+      messagingParmsAdminView
+    ].some((view) => isBeginnerViewVisible(view));
+  }
+
+  function getLauncherAdminRefreshIntervalMs() {
+    if (document.hidden) {
+      return launcherAdminLockRefreshIdleIntervalMs;
+    }
+    return isAnyAdminViewVisible()
+      ? launcherAdminLockRefreshActiveIntervalMs
+      : launcherAdminLockRefreshIdleIntervalMs;
   }
 
   function startLauncherAdminLockRefresh() {
@@ -1504,13 +1537,14 @@ ${calmPracticeMessage}`;
     if (!hasLauncherAdminLease()) {
       return;
     }
-    launcherAdminLockRefreshTimer = window.setInterval(() => {
+    launcherAdminLockRefreshTimer = window.setTimeout(async () => {
       if (!hasLauncherAdminLease()) {
         stopLauncherAdminLockRefresh();
         return;
       }
-      void refreshAdminLease({ silent: true });
-    }, 5000);
+      await refreshAdminLease({ silent: true });
+      startLauncherAdminLockRefresh();
+    }, getLauncherAdminRefreshIntervalMs());
   }
 
   async function claimAdminLease() {
@@ -6171,6 +6205,28 @@ ${calmPracticeMessage}`;
     return data;
   }
 
+  async function fetchLauncherMessageSummary(options = {}) {
+    const cleanDeviceId = assertValidDeviceId(options.deviceId);
+    const senderIdentifier = String(options.senderIdentifier || "").trim();
+    const receiverIdentifier = String(options.receiverIdentifier || "").trim();
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "get_launcher_message_summary",
+        sender_identifier: senderIdentifier,
+        receiver_identifier: receiverIdentifier,
+        device_id: cleanDeviceId
+      })
+    });
+
+    const data = await parseApiResponse(response, `Launcher message summary request failed with status ${response.status}`);
+    rememberMessagingLimitsFromResponse(data);
+    return data;
+  }
+
   async function markPartnerMessagesReadRequest(ownIdentifier, partnerIdentifier, messageId = "") {
     const cleanOwnIdentifier = assertValidParticipantIdentifier(ownIdentifier, "your identifier");
     const cleanPartnerIdentifier = assertValidParticipantIdentifier(partnerIdentifier, "partner identifier");
@@ -10369,6 +10425,7 @@ ${calmPracticeMessage}`;
     adminIdentityListView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
+    requestLauncherTrafficStateRefresh(0);
   }
 
   async function loadActiveMessagesConversation(options = {}) {
@@ -10705,19 +10762,111 @@ ${calmPracticeMessage}`;
         }, 0);
       }
     }
+    requestLauncherTrafficStateRefresh(0);
   }
 
-  function schedulePartnerMessagePolling(delayMs = partnerMessagePollIntervalMs) {
+  function isMessagesViewOpen() {
+    return isBeginnerViewVisible(messagesView) && !!activeMessagesOwnerIdentifier;
+  }
+
+  function getLauncherMessageSummaryRequest() {
+    if (!isRunningAsInstalledApp()) {
+      return null;
+    }
+    const summary = {
+      senderIdentifier: "",
+      receiverIdentifier: "",
+      deviceId: getOrCreateMessagingDeviceId()
+    };
+    let eligibleCount = 0;
+
+    for (const role of ["sender", "receiver"]) {
+      if (getRoleMessageAvailabilityReason(role)) {
+        setRoleMessageBadge(role, 0);
+        continue;
+      }
+      const ownIdentifier = String(getRoleIdentifiersForMessaging(role).ownIdentifier || "").trim();
+      if (!ownIdentifier) {
+        setRoleMessageBadge(role, 0);
+        continue;
+      }
+      if (role === "sender") {
+        summary.senderIdentifier = ownIdentifier;
+      } else {
+        summary.receiverIdentifier = ownIdentifier;
+      }
+      eligibleCount += 1;
+    }
+
+    return eligibleCount > 0 ? summary : null;
+  }
+
+  function getPartnerMessagePollIntervalMs() {
+    if (document.hidden) {
+      return partnerMessagePollHiddenIntervalMs;
+    }
+    if (isMessagesViewOpen()) {
+      return partnerMessagePollActiveIntervalMs;
+    }
+    return partnerMessagePollIdleIntervalMs;
+  }
+
+  async function refreshLauncherMessageSummary() {
+    const request = getLauncherMessageSummaryRequest();
+    if (!request) {
+      return false;
+    }
+    try {
+      const data = await fetchLauncherMessageSummary(request);
+      for (const role of ["sender", "receiver"]) {
+        const roleData = data?.roles?.[role] || null;
+        const identifierStatus = roleData?.identifier_status || null;
+        const inputIdentifier = role === "sender" ? request.senderIdentifier : request.receiverIdentifier;
+        if (inputIdentifier && identifierStatus) {
+          rememberIdentifierStatus(inputIdentifier, identifierStatus);
+          const preferredIdentifier = String(identifierStatus?.preferred_identifier || inputIdentifier).trim();
+          if (preferredIdentifier && preferredIdentifier !== inputIdentifier) {
+            rememberIdentifierStatus(preferredIdentifier, identifierStatus);
+          }
+        }
+        setRoleMessageBadge(role, Math.max(0, Number(roleData?.total_unread || 0)));
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function schedulePartnerMessagePolling(delayMs = null) {
     window.clearTimeout(partnerMessagePollTimer);
+    const shouldPoll = isMessagesViewOpen() || !!getLauncherMessageSummaryRequest();
+    if (!shouldPoll) {
+      partnerMessagePollTimer = 0;
+      return;
+    }
+    const resolvedDelayMs = Math.max(1000, Number(delayMs) || getPartnerMessagePollIntervalMs());
     partnerMessagePollTimer = window.setTimeout(() => {
-      if (messagesView && !messagesView.classList.contains("beginner-view-hidden") && activeMessagesOwnerIdentifier) {
+      if (isMessagesViewOpen()) {
         void loadActiveMessagesConversation({ markRead: false });
       } else {
-        void refreshRoleMessaging("sender");
-        void refreshRoleMessaging("receiver");
+        void refreshLauncherMessageSummary();
       }
-      schedulePartnerMessagePolling(partnerMessagePollIntervalMs);
-    }, Math.max(1000, Number(delayMs) || partnerMessagePollIntervalMs));
+      schedulePartnerMessagePolling();
+    }, resolvedDelayMs);
+  }
+
+  function requestLauncherTrafficStateRefresh(delayMs = 250) {
+    if (launcherTrafficStateRefreshTimer) {
+      window.clearTimeout(launcherTrafficStateRefreshTimer);
+      launcherTrafficStateRefreshTimer = 0;
+    }
+    launcherTrafficStateRefreshTimer = window.setTimeout(() => {
+      launcherTrafficStateRefreshTimer = 0;
+      if (hasLauncherAdminLease()) {
+        startLauncherAdminLockRefresh();
+      }
+      schedulePartnerMessagePolling();
+    }, Math.max(0, Number(delayMs) || 0));
   }
 
   async function maybeAutoOpenUnreadMessagesOnStartup() {
@@ -32971,6 +33120,27 @@ ${calmPracticeMessage}`;
       if (activeRole === "sender" || activeRole === "receiver" || activeRole === "remote-viewer") {
         void refreshRoleMessaging(activeRole);
       }
+    }
+    requestLauncherTrafficStateRefresh(0);
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    if (target.closest('[data-view="messages"]') || target.closest('[data-role-card]') || target.closest('[data-view="feature-setup"]')) {
+      requestLauncherTrafficStateRefresh(300);
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    if (target.closest('[data-view="messages"]') || target.closest('[data-role-card]') || target.closest('[data-view="feature-setup"]')) {
+      requestLauncherTrafficStateRefresh(150);
     }
   });
 
