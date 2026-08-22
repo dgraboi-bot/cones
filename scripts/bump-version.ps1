@@ -70,6 +70,7 @@ $replacements = @{
     @{ Pattern = 'learning-center-hero\.(png|jpg)\?v=[^)"''\s]+'; Replacement = "learning-center-hero.jpg?v=$Version" }
   )
   (Join-Path $root "telepathybeginner.html") = @(
+    @{ Pattern = '<meta name="espgym-build-version" content="[^"]+">'; Replacement = "<meta name=`"espgym-build-version`" content=`"$Version`">" },
     @{ Pattern = 'telepathybeginner\.webmanifest\?v=[^"]+'; Replacement = "telepathybeginner.webmanifest?v=$Version" },
     @{ Pattern = 'tb-icon-192\.png\?v=[^"]+'; Replacement = "tb-icon-192.png?v=$Version" },
     @{ Pattern = 'telepathybeginner\.css\?v=[^"]+'; Replacement = "telepathybeginner.css?v=$Version" },

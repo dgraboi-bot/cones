@@ -28,6 +28,52 @@ function Convert-ToPosixPath([string]$Path) {
   return ($Path -replace "\\", "/")
 }
 
+function Assert-LiveShellVersion([string]$ExpectedVersion) {
+  $targets = @(
+    @{
+      Url = "https://espgym.com/telepathybeginner.html?v=$ExpectedVersion&open=launcher"
+      Contains = @(
+        "<meta name=`"espgym-build-version`" content=`"$ExpectedVersion`">",
+        "telepathybeginner.js?v=$ExpectedVersion",
+        "telepathybeginner.css?v=$ExpectedVersion",
+        "telepathybeginner.webmanifest?v=$ExpectedVersion"
+      )
+    },
+    @{
+      Url = "https://espgym.com/telepathybeginner-sw.js?v=$ExpectedVersion"
+      Contains = @(
+        "const CACHE_NAME = `"telepathybeginner-v$ExpectedVersion`";",
+        "const APP_VERSION = `"$ExpectedVersion`";"
+      )
+    }
+  )
+
+  foreach ($target in $targets) {
+    $content = $null
+    $lastError = ""
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
+      try {
+        $response = Invoke-WebRequest -Uri ([string]$target.Url) -UseBasicParsing -TimeoutSec 20
+        $content = [string]$response.Content
+        break
+      } catch {
+        $lastError = $_.Exception.Message
+        if ($attempt -lt 4) {
+          Start-Sleep -Seconds 2
+        }
+      }
+    }
+    if ($null -eq $content) {
+      throw "Live shell verification could not fetch $($target.Url): $lastError"
+    }
+    foreach ($snippet in @($target.Contains)) {
+      if ($content -notlike "*$snippet*") {
+        throw "Live shell verification failed for $($target.Url). Missing expected snippet: $snippet"
+      }
+    }
+  }
+}
+
 function Assert-ToolExists([string]$Path, [string]$Label) {
   if (-not (Test-Path -LiteralPath $Path)) {
     throw "Missing $Label at $Path"
@@ -261,6 +307,7 @@ foreach ($relativePath in @($manifest.private_content_sync_files)) {
 }
 
 Assert-RemoteManagedLessonSetConsistent -RepoRootForCheck $manifestRepoRoot
+Assert-LiveShellVersion -ExpectedVersion $Version
 Invoke-Plink "rm -rf '$stageRoot'" | Out-Null
 
 Write-Host "Pushed prepared build $Version" -ForegroundColor Green

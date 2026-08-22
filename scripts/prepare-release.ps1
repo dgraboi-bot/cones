@@ -181,6 +181,47 @@ $mojibakeGuardPatterns = @(
   ([string][char]0x00E2 + [char]0x20AC + [char]0x00A6)
 )
 
+$cacheCriticalVersionChecks = @(
+  @{
+    Path = "telepathybeginner.html"
+    RequireExactVersionTokens = $true
+    Contains = @(
+      "<meta name=`"espgym-build-version`" content=`"{0}`">",
+      "telepathybeginner.webmanifest?v={0}",
+      "telepathybeginner.css?v={0}",
+      "vendor/leaflet/leaflet.css?v={0}",
+      "telepathybeginner.js?v={0}"
+    )
+  },
+  @{
+    Path = "telepathybeginner.js"
+    RequireExactVersionTokens = $true
+    Contains = @(
+      "const launcherBuildVersion = `"{0}`";",
+      "const htmlDeclaredBuildVersion = ",
+      "meta[name=`"espgym-build-version`"]"
+    )
+  },
+  @{
+    Path = "telepathybeginner-sw.js"
+    RequireExactVersionTokens = $true
+    Contains = @(
+      "const CACHE_NAME = `"telepathybeginner-v{0}`";",
+      "const APP_VERSION = `"{0}`";",
+      "self.addEventListener(`"message`""
+    )
+  },
+  @{
+    Path = "telepathybeginner.webmanifest"
+    RequireExactVersionTokens = $true
+    Contains = @(
+      "`"start_url`": `"./telepathybeginner.html?v={0}`"",
+      "`"src`": `"tb-icon-192.png?v={0}`"",
+      "`"src`": `"tb-icon-512.png?v={0}`""
+    )
+  }
+)
+
 function Invoke-Plink([string]$Command) {
   & $plinkPath -batch -load $puttySession $Command
 }
@@ -244,6 +285,49 @@ function Test-IsCoveredDeployPath([string]$RelativePath) {
     return $true
   }
   return $false
+}
+
+function Get-VersionTokensFromText([string]$Text) {
+  return @([regex]::Matches($Text, $versionPattern) | ForEach-Object { [string]$_.Value } | Sort-Object -Unique)
+}
+
+function Assert-CacheVersionCompleteness([string]$RepoRootForCheck, [string]$ExpectedVersion) {
+  $issues = New-Object System.Collections.Generic.List[string]
+
+  foreach ($check in $cacheCriticalVersionChecks) {
+    $relativePath = [string]$check.Path
+    $fullPath = Join-Path $RepoRootForCheck $relativePath
+    if (-not (Test-Path -LiteralPath $fullPath)) {
+      $issues.Add("Missing cache-critical file: $relativePath")
+      continue
+    }
+    $content = Get-Content -LiteralPath $fullPath -Raw -Encoding UTF8
+
+    foreach ($template in @($check.Contains)) {
+      $expectedSnippet = [string]::Format($template, $ExpectedVersion)
+      if (-not $content.Contains($expectedSnippet)) {
+        $issues.Add("Cache version check missing expected snippet in ${relativePath}: $expectedSnippet")
+      }
+    }
+
+    if ($check.RequireExactVersionTokens) {
+      $tokens = @(Get-VersionTokensFromText $content)
+      if ($tokens.Count -eq 0) {
+        $issues.Add("Cache version check found no version token in $relativePath")
+      } else {
+        $unexpected = @($tokens | Where-Object { $_ -ne $ExpectedVersion })
+        if ($unexpected.Count -gt 0) {
+          $issues.Add("Cache version check found stale version token(s) in ${relativePath}: $($unexpected -join ', ')")
+        }
+      }
+    }
+  }
+
+  if ($issues.Count -gt 0) {
+    throw ("Cache-busting completeness guard failed:`n" + ($issues -join "`n"))
+  }
+
+  Write-Host "Cache-busting completeness guard passed." -ForegroundColor Green
 }
 
 function Get-GitChangedFiles([string]$RepoRoot, [string]$BaseRef) {
@@ -809,6 +893,7 @@ if ($SyncImagePairsFromLive) {
 }
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
+Assert-CacheVersionCompleteness -RepoRootForCheck $repoRoot -ExpectedVersion $Version
 
 $robocopyArgs = @(
   $repoRoot,

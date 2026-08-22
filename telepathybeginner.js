@@ -9,7 +9,11 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260821c";
+  const launcherBuildVersion = "20260822a";
+  const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
+  const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
+  const buildRecoveryStatusParam = "build_recovery";
+  const maxBuildRecoveryAttempts = 2;
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
@@ -100,6 +104,7 @@
   const settingsView = document.querySelector('[data-view="settings"]');
   const adminView = document.querySelector('[data-view="admin"]');
   const beginnerPanel = document.querySelector(".beginner-panel");
+  const buildRecoveryNotice = document.querySelector("[data-build-recovery-notice]");
   const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
   const openOldLearningCenterButton = document.querySelector("[data-open-old-learning-center]");
@@ -12030,6 +12035,230 @@ ${calmPracticeMessage}`;
     } catch (error) {
       // Ignore URL normalization failures.
     }
+  }
+
+  function showBuildRecoveryNotice(message, options = {}) {
+    if (!buildRecoveryNotice) {
+      return;
+    }
+    const isError = !!options.isError;
+    buildRecoveryNotice.textContent = String(message || "").trim();
+    buildRecoveryNotice.hidden = !buildRecoveryNotice.textContent;
+    buildRecoveryNotice.classList.toggle("is-error", isError);
+    document.documentElement.classList.toggle("espgym-build-recovery-active", !buildRecoveryNotice.hidden);
+  }
+
+  function clearBuildRecoveryNotice() {
+    if (!buildRecoveryNotice) {
+      return;
+    }
+    buildRecoveryNotice.hidden = true;
+    buildRecoveryNotice.textContent = "";
+    buildRecoveryNotice.classList.remove("is-error");
+    document.documentElement.classList.remove("espgym-build-recovery-active");
+  }
+
+  function readBuildRecoveryAttemptCount() {
+    try {
+      const raw = sessionStorage.getItem(buildRecoveryAttemptKey);
+      const parsed = Number.parseInt(String(raw || "").trim(), 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function writeBuildRecoveryAttemptCount(value) {
+    try {
+      const nextValue = Math.max(0, Number(value) || 0);
+      if (nextValue > 0) {
+        sessionStorage.setItem(buildRecoveryAttemptKey, String(nextValue));
+      } else {
+        sessionStorage.removeItem(buildRecoveryAttemptKey);
+      }
+    } catch (error) {
+      // Ignore sessionStorage failures.
+    }
+  }
+
+  function clearBuildRecoveryAttemptCount() {
+    writeBuildRecoveryAttemptCount(0);
+  }
+
+  function buildCurrentVersionedUrl(extraParams = null) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set("v", launcherBuildVersion);
+    currentUrl.searchParams.delete(buildRecoveryStatusParam);
+    if (extraParams && typeof extraParams === "object") {
+      Object.entries(extraParams).forEach(([key, value]) => {
+        if (!key) {
+          return;
+        }
+        if (value === null || value === undefined || value === "") {
+          currentUrl.searchParams.delete(key);
+          return;
+        }
+        currentUrl.searchParams.set(key, String(value));
+      });
+    }
+    return `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+  }
+
+  function logBuildRecoveryDebug(label, details = {}) {
+    if (!launcherAdminState?.debug_enabled) {
+      return;
+    }
+    const payload = {
+      page_instance_id: launcherPageInstanceId,
+      href: String(window.location.href || "").trim(),
+      html_build_version: htmlDeclaredBuildVersion,
+      js_build_version: launcherBuildVersion,
+      ...(details && typeof details === "object" ? details : {})
+    };
+    if (hasLauncherAdminAccess()) {
+      void launcherAdminApi("log_debug", {
+        label: `build_recovery:${label}`,
+        details: [payload],
+        device_debug_enabled: !!launcherAdminState.debug_enabled
+      }).catch(() => {
+        // Ignore debug logging failures.
+      });
+      return;
+    }
+    traceLauncherClient(`build_recovery:${label}`, payload);
+  }
+
+  async function requestActiveServiceWorkerBuildVersion(timeoutMs = 1500) {
+    if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) {
+      return "";
+    }
+    return new Promise((resolve) => {
+      const messageChannel = new MessageChannel();
+      let settled = false;
+      const finish = (value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          messageChannel.port1.onmessage = null;
+          messageChannel.port1.close();
+        } catch (error) {
+          // Ignore channel cleanup failures.
+        }
+        resolve(String(value || "").trim());
+      };
+      const timer = window.setTimeout(() => finish(""), Math.max(250, Number(timeoutMs) || 1500));
+      messageChannel.port1.onmessage = (event) => {
+        window.clearTimeout(timer);
+        finish(event?.data?.type === "ESPGYM_BUILD_VERSION" ? event.data.version : "");
+      };
+      try {
+        navigator.serviceWorker.controller.postMessage({
+          type: "ESPGYM_GET_BUILD_VERSION"
+        }, [messageChannel.port2]);
+      } catch (error) {
+        window.clearTimeout(timer);
+        finish("");
+      }
+    });
+  }
+
+  async function clearStaleBuildCaches() {
+    if (!("caches" in window)) {
+      return [];
+    }
+    const cachePrefix = "telepathybeginner-v";
+    try {
+      const cacheKeys = await caches.keys();
+      const staleKeys = cacheKeys.filter((key) =>
+        String(key || "").startsWith(cachePrefix) && key !== `${cachePrefix}${launcherBuildVersion}`
+      );
+      await Promise.all(staleKeys.map((key) => caches.delete(key).catch(() => false)));
+      return staleKeys;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async function refreshServiceWorkerRegistrations() {
+    if (!("serviceWorker" in navigator) || !navigator.serviceWorker.getRegistrations) {
+      return [];
+    }
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.update().catch(() => {})));
+      return registrations;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async function recoverFromMixedBuild(reason, versionState = {}) {
+    const attempt = readBuildRecoveryAttemptCount() + 1;
+    writeBuildRecoveryAttemptCount(attempt);
+    const swVersion = String(versionState.swVersion || "").trim();
+    showBuildRecoveryNotice(
+      attempt <= maxBuildRecoveryAttempts
+        ? "Updating app files. Please wait."
+        : "The app files did not update cleanly. Please close this tab and reopen ESP GYM.",
+      { isError: attempt > maxBuildRecoveryAttempts }
+    );
+    logBuildRecoveryDebug("detected", {
+      reason,
+      sw_build_version: swVersion,
+      attempt
+    });
+
+    if (attempt > maxBuildRecoveryAttempts) {
+      logBuildRecoveryDebug("failed", {
+        reason,
+        sw_build_version: swVersion,
+        attempt
+      });
+      return false;
+    }
+
+    const registrations = await refreshServiceWorkerRegistrations();
+    const staleCaches = await clearStaleBuildCaches();
+    logBuildRecoveryDebug("reloading", {
+      reason,
+      sw_build_version: swVersion,
+      attempt,
+      registration_count: registrations.length,
+      cleared_cache_keys: staleCaches
+    });
+    window.location.replace(buildCurrentVersionedUrl({
+      [buildRecoveryStatusParam]: attempt
+    }));
+    return false;
+  }
+
+  async function ensureLauncherBuildConsistency() {
+    const htmlVersion = htmlDeclaredBuildVersion;
+    const jsVersion = launcherBuildVersion;
+    const swVersion = await requestActiveServiceWorkerBuildVersion();
+    const mismatchReason = !htmlVersion
+      ? "missing_html_build_version"
+      : (htmlVersion !== jsVersion
+          ? "html_js_version_mismatch"
+          : (swVersion && swVersion !== jsVersion ? "service_worker_version_mismatch" : ""));
+
+    if (mismatchReason) {
+      return recoverFromMixedBuild(mismatchReason, {
+        htmlVersion,
+        jsVersion,
+        swVersion
+      });
+    }
+
+    clearBuildRecoveryAttemptCount();
+    clearBuildRecoveryNotice();
+    logBuildRecoveryDebug("verified", {
+      sw_build_version: swVersion || "",
+      recovery_query: String(new URLSearchParams(window.location.search).get(buildRecoveryStatusParam) || "").trim()
+    });
+    return true;
   }
 
   async function refreshUserTypeAfterStripeReturn(identifier, maxAttempts = 6, delayMs = 1200) {
@@ -32475,88 +32704,154 @@ ${calmPracticeMessage}`;
   adminReminderActionConfirmButton?.addEventListener("click", () => {
     void runSubscriptionReminderScan(activeAdminReminderActionMode === "test");
   });
-  setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
-  if (launcherGuestEntryActive) {
-    resetLauncherWorkingHomeForFreshEntry();
-    applyFreshEntryRoleNotes();
-  }
-  renderMainTitle(getDisplayedLauncherUserType(), { persist: false });
-  if (!launcherGuestEntryActive) {
-    void refreshMainUserType();
-  }
-  void refreshEspLessonsSourceText();
-  normalizeLauncherVersionParamInUrl();
-  reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
-  reportResizeHandles.forEach((handle) => {
-    handle.addEventListener("pointerdown", beginReportResize);
-  });
-  difficultyBumpButtons.forEach((button) => {
-    button.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
-    button.addEventListener("mouseenter", () => {
-      const role = String(button.dataset.roleDifficultyBump || "");
-      if (role === "sender" || role === "receiver" || role === "remote-viewer") {
-        previewLevelExplanationFromCurrentLabel(role);
-      }
-    });
-    button.addEventListener("focusin", () => {
-      const role = String(button.dataset.roleDifficultyBump || "");
-      if (role === "sender" || role === "receiver" || role === "remote-viewer") {
-        previewLevelExplanationFromCurrentLabel(role);
-      }
-    });
-    button.addEventListener("click", async () => {
-      const role = String(button.dataset.roleDifficultyBump || "");
-      const direction = String(button.dataset.direction || "").trim().toLowerCase();
-      const delta = direction === "up" ? 1 : -1;
-      if (role === "sender" || role === "receiver" || role === "remote-viewer") {
-        await changeDifficultyForRole(role, delta);
-        previewLevelExplanationFromCurrentLabel(role);
-      }
-    });
-  });
-  applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
-  if (appVersionLabel) {
-    appVersionLabel.textContent = `ver. ${launcherBuildVersion}`;
-  }
-  if (temporaryHomePageInvitationCodeInput) {
-    temporaryHomePageInvitationCodeInput.value = getLoadedInviteeIdentity()?.identifier || "";
-  }
-  setTemporaryHomeInvitationStatus("");
-  hideLocationPicker();
-  refreshObservedInstallContext();
-  renderLocationStatus();
-  void syncBrowserLocationPermission().then((state) => {
-    renderLocationStatus();
-    maybePromptForLocationFineTune(state);
-  });
-  renderContactWordCount();
-  updateInstallButtonLabel();
-  void recordLauncherVisit();
-  applyRememberedDifficultyLabels();
-  void refreshDifficultyLabels();
-  updatePendingLearningCenterLessonReturnButtons();
-  applyLauncherOpenRequest();
-  window.setTimeout(() => {
-    void refreshDifficultyLabels();
-  }, 0);
-  if (shouldStartInFreshLauncherMode()) {
-    window.setTimeout(() => {
-      if (!isVisitorLauncherEntry(readLauncherState())) {
+  async function registerLauncherServiceWorker() {
+    const serviceWorkerVersion = launcherBuildVersion;
+    const controllerReloadKey = `espgym-sw-reload-${serviceWorkerVersion}`;
+    let controllerReloadHandled = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (controllerReloadHandled) {
         return;
       }
+      controllerReloadHandled = true;
+      const isDirectOpenReturn = (() => {
+        try {
+          return new URLSearchParams(window.location.search).get("direct_open") === "1";
+        } catch (error) {
+          return false;
+        }
+      })();
+      logLauncherDirectOpenDebug("service_worker_controllerchange", {
+        page_instance_id: launcherPageInstanceId,
+        href: String(window.location.href || "").trim(),
+        isDirectOpenReturn
+      });
+      if (isDirectOpenReturn) {
+        logLauncherDirectOpenDebug("service_worker_reload_suppressed", {
+          href: String(window.location.href || "").trim()
+        });
+        return;
+      }
+      try {
+        if (sessionStorage.getItem(controllerReloadKey) === "1") {
+          sessionStorage.removeItem(controllerReloadKey);
+          return;
+        }
+        sessionStorage.setItem(controllerReloadKey, "1");
+      } catch (error) {
+        // If sessionStorage is unavailable, still do a one-time reload for this event.
+      }
+      window.location.reload();
+    });
+
+    await navigator.serviceWorker.register(`./telepathybeginner-sw.js?v=${launcherBuildVersion}`)
+      .then((registration) => registration.update().catch(() => {}))
+      .catch(() => {
+        // Ignore service worker registration failures and fall back to browser guidance.
+      });
+  }
+
+  async function initializeLauncherStartup() {
+    const startupCanProceed = await ensureLauncherBuildConsistency();
+    if (!startupCanProceed) {
+      return;
+    }
+
+    setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
+    if (launcherGuestEntryActive) {
       resetLauncherWorkingHomeForFreshEntry();
       applyFreshEntryRoleNotes();
+    }
+    renderMainTitle(getDisplayedLauncherUserType(), { persist: false });
+    if (!launcherGuestEntryActive) {
+      void refreshMainUserType();
+    }
+    void refreshEspLessonsSourceText();
+    normalizeLauncherVersionParamInUrl();
+    reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
+    reportResizeHandles.forEach((handle) => {
+      handle.addEventListener("pointerdown", beginReportResize);
+    });
+    difficultyBumpButtons.forEach((button) => {
+      button.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      button.addEventListener("mouseenter", () => {
+        const role = String(button.dataset.roleDifficultyBump || "");
+        if (role === "sender" || role === "receiver" || role === "remote-viewer") {
+          previewLevelExplanationFromCurrentLabel(role);
+        }
+      });
+      button.addEventListener("focusin", () => {
+        const role = String(button.dataset.roleDifficultyBump || "");
+        if (role === "sender" || role === "receiver" || role === "remote-viewer") {
+          previewLevelExplanationFromCurrentLabel(role);
+        }
+      });
+      button.addEventListener("click", async () => {
+        const role = String(button.dataset.roleDifficultyBump || "");
+        const direction = String(button.dataset.direction || "").trim().toLowerCase();
+        const delta = direction === "up" ? 1 : -1;
+        if (role === "sender" || role === "receiver" || role === "remote-viewer") {
+          await changeDifficultyForRole(role, delta);
+          previewLevelExplanationFromCurrentLabel(role);
+        }
+      });
+    });
+    applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
+    if (appVersionLabel) {
+      appVersionLabel.textContent = `ver. ${launcherBuildVersion}`;
+    }
+    if (temporaryHomePageInvitationCodeInput) {
+      temporaryHomePageInvitationCodeInput.value = getLoadedInviteeIdentity()?.identifier || "";
+    }
+    setTemporaryHomeInvitationStatus("");
+    hideLocationPicker();
+    refreshObservedInstallContext();
+    renderLocationStatus();
+    void syncBrowserLocationPermission().then((state) => {
+      renderLocationStatus();
+      maybePromptForLocationFineTune(state);
+    });
+    renderContactWordCount();
+    updateInstallButtonLabel();
+    void recordLauncherVisit();
+    applyRememberedDifficultyLabels();
+    void refreshDifficultyLabels();
+    updatePendingLearningCenterLessonReturnButtons();
+    applyLauncherOpenRequest();
+    window.setTimeout(() => {
+      void refreshDifficultyLabels();
     }, 0);
+    if (shouldStartInFreshLauncherMode()) {
+      window.setTimeout(() => {
+        if (!isVisitorLauncherEntry(readLauncherState())) {
+          return;
+        }
+        resetLauncherWorkingHomeForFreshEntry();
+        applyFreshEntryRoleNotes();
+      }, 0);
+    }
+    schedulePartnerMessagePolling();
+    window.setTimeout(() => {
+      void maybeAutoOpenUnreadMessagesOnStartup();
+    }, 700);
+    window.setTimeout(() => {
+      void warmupLocationIndicatorOnLoad();
+    }, 250);
+
+    if ("serviceWorker" in navigator) {
+      if (document.readyState === "complete") {
+        void registerLauncherServiceWorker();
+      } else {
+        window.addEventListener("load", () => {
+          void registerLauncherServiceWorker();
+        }, { once: true });
+      }
+    }
   }
-  schedulePartnerMessagePolling();
-  window.setTimeout(() => {
-    void maybeAutoOpenUnreadMessagesOnStartup();
-  }, 700);
-  window.setTimeout(() => {
-    void warmupLocationIndicatorOnLoad();
-  }, 250);
+
+  void initializeLauncherStartup();
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -32694,54 +32989,6 @@ ${calmPracticeMessage}`;
     }
   });
 
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      const serviceWorkerVersion = launcherBuildVersion;
-      const controllerReloadKey = `espgym-sw-reload-${serviceWorkerVersion}`;
-      let controllerReloadHandled = false;
-
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (controllerReloadHandled) {
-          return;
-        }
-        controllerReloadHandled = true;
-        const isDirectOpenReturn = (() => {
-          try {
-            return new URLSearchParams(window.location.search).get("direct_open") === "1";
-          } catch (error) {
-            return false;
-          }
-        })();
-        logLauncherDirectOpenDebug("service_worker_controllerchange", {
-          page_instance_id: launcherPageInstanceId,
-          href: String(window.location.href || "").trim(),
-          isDirectOpenReturn
-        });
-        if (isDirectOpenReturn) {
-          logLauncherDirectOpenDebug("service_worker_reload_suppressed", {
-            href: String(window.location.href || "").trim()
-          });
-          return;
-        }
-        try {
-          if (sessionStorage.getItem(controllerReloadKey) === "1") {
-            sessionStorage.removeItem(controllerReloadKey);
-            return;
-          }
-          sessionStorage.setItem(controllerReloadKey, "1");
-        } catch (error) {
-          // If sessionStorage is unavailable, still do a one-time reload for this event.
-        }
-        window.location.reload();
-      });
-
-      navigator.serviceWorker.register(`./telepathybeginner-sw.js?v=${launcherBuildVersion}`)
-        .then((registration) => registration.update().catch(() => {}))
-        .catch(() => {
-          // Ignore service worker registration failures and fall back to browser guidance.
-        });
-    });
-  }
   } catch (error) {
     try {
       console.error("telepathybeginner.js startup error", error);

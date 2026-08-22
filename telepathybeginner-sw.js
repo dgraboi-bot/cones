@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260821c";
-const APP_VERSION = "20260821c";
+const CACHE_NAME = "telepathybeginner-v20260822a";
+const APP_VERSION = "20260822a";
 const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
   "./",
@@ -24,7 +24,7 @@ const APP_ASSETS = [
   "./tb-test-icon-3.png",
   "./tb-test-icon-4.png",
   "./BeginnerUserManual.html",
-  `./BeginnerUserManual.html?v=20260821c`,
+  `./BeginnerUserManual.html?v=20260822a`,
   "./minds-connected-uncropped.png",
   "./rewire.png",
   "./RV1.png",
@@ -50,6 +50,22 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener("message", (event) => {
+  const data = event.data && typeof event.data === "object" ? event.data : {};
+  if (String(data.type || "").trim() !== "ESPGYM_GET_BUILD_VERSION") {
+    return;
+  }
+  try {
+    event.ports?.[0]?.postMessage({
+      type: "ESPGYM_BUILD_VERSION",
+      version: APP_VERSION,
+      cacheName: CACHE_NAME
+    });
+  } catch (_) {
+    // Ignore message-channel failures.
+  }
 });
 
 self.addEventListener("fetch", (event) => {

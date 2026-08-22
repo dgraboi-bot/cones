@@ -34,7 +34,29 @@ There is a fourth practical cache trap to watch for:
 
 4. letting the root `https://espgym.com/` redirect hardcode a versioned launcher URL that a browser may keep reusing after deployment
 
+There is an eleventh runtime-cache problem to prevent:
+
+11. allowing a user to load a mixed old/new app shell after release, even when the deploy itself was complete
+
 The process below is the required deployment sequence unless the user explicitly asks for a different one.
+
+## Anti-Mixed-Cache Guarantee
+
+Users who simply visit `https://espgym.com/` after a release must not be left running a mixed build.
+
+Required rule going forward:
+
+1. release preparation must fail if the cache-busting shell markers are incomplete
+2. the runtime must compare the HTML build marker, JS build marker, and active service-worker build marker before normal startup proceeds
+3. if those markers disagree, the app must pause normal startup, clear stale app caches, and reload into the exact current version
+4. recovery must be bounded so a bad cache state does not create an infinite reload loop
+5. if recovery still fails, the app must stop and show a clear close-and-reopen instruction instead of continuing in a mixed state
+
+Practical meaning:
+
+- deploy-time validation prevents shipping a bad version map
+- runtime validation protects the user from one-load cache races and stale service-worker transitions
+- a release is not "clean" until both protections are in place and the live shell verifies correctly
 
 Authoritative runbook path:
 
