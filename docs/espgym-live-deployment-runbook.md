@@ -1378,3 +1378,19 @@ This section records release-process friction that did not fully break a deploym
    - version label
    - snapshot path
    - final audited file count
+
+### 2026-08-22 observed friction
+
+1. `push-live.ps1` could complete the important remote copy/deploy work while appearing to hang silently during its later verification tail.
+   That made it unclear whether the release was still progressing, already live, or truly stuck.
+   Hardening applied:
+   `push-live.ps1` now emits explicit phase-by-phase progress, writes a persistent release log artifact under `C:\xampp\telepathyexperiment_private\cones\release-logs\`, and labels the long-running upload/promote/hash-audit steps.
+
+2. External `plink`/`pscp` calls previously had no explicit timeout handling.
+   If one remote command stalled, the helper could sit indefinitely with no precise failing step.
+   Hardening applied:
+   `push-live.ps1` now runs those external commands through a checked wrapper with bounded timeouts, captured stdout/stderr, and step-specific failure messages.
+
+3. Successful version verification printed raw `grep` output in some cases and silent `Out-Null` behavior in others, which made the normal path noisy in one place and opaque in another.
+   Hardening applied:
+   the helper now logs concise success messages for normal release phases and keeps detailed command output in the release log artifact for later inspection.
