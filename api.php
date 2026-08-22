@@ -10846,6 +10846,13 @@ $adminClientId = normalize_admin_client_id($input['admin_client_id'] ?? '');
 $sharedLockActions = [
     'check_admin_secret',
     'get_admin_access_mode',
+    'get_public_trial_mode',
+    'get_launcher_profile',
+    'get_identifier_status',
+    'get_user_type',
+    'get_push_setup',
+    'get_partner_messaging',
+    'get_partner_message_inbox',
     'get_launcher_message_summary'
 ];
 $stateLockMode = in_array($action, $sharedLockActions, true) ? LOCK_SH : LOCK_EX;
@@ -11700,14 +11707,7 @@ if ($action === 'get_admin_access_mode') {
         'admin_lock_active' => is_array($adminLock),
         'server_now_ms' => $nowMs
     ];
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'claim_admin_lock') {
@@ -11765,14 +11765,7 @@ if ($action === 'get_public_trial_mode') {
         'ok' => true,
         'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled'])
     ];
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'get_learn_more_content') {
@@ -12116,14 +12109,7 @@ if ($action === 'get_launcher_profile') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'run_subscription_reminder_scan' && $hasAdminAccess) {
@@ -12175,14 +12161,7 @@ if ($action === 'get_identifier_status') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'get_unique_handle_change_status') {
@@ -12490,14 +12469,7 @@ if ($action === 'get_user_type') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'set_user_auth_email' && $hasAdminAccess) {
@@ -12630,14 +12602,7 @@ if ($action === 'get_push_setup') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'save_push_subscription') {
@@ -12761,14 +12726,7 @@ if ($action === 'get_partner_messaging') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'get_partner_message_inbox') {
@@ -12791,14 +12749,7 @@ if ($action === 'get_partner_message_inbox') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'get_launcher_message_summary') {
@@ -12811,8 +12762,12 @@ if ($action === 'get_launcher_message_summary') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
+    $senderLookup = normalize_identifier_for_lookup($senderIdentifier);
+    $receiverLookup = normalize_identifier_for_lookup($receiverIdentifier);
     $senderSummary = build_launcher_message_summary_entry($state, $senderIdentifier, $deviceId);
-    $receiverSummary = build_launcher_message_summary_entry($state, $receiverIdentifier, $deviceId);
+    $receiverSummary = $senderLookup !== '' && $senderLookup === $receiverLookup
+        ? $senderSummary
+        : build_launcher_message_summary_entry($state, $receiverIdentifier, $deviceId);
     $response = [
         'ok' => true,
         'roles' => [
