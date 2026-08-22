@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260822e";
+  const launcherBuildVersion = "20260822f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -95,18 +95,22 @@
   const researchProposalView = document.querySelector('[data-view="research-proposal"]');
   const researchInterestFormView = document.querySelector('[data-view="research-interest-form"]');
   const researchTeamInterestView = document.querySelector('[data-view="research-team-interest"]');
-  const reportDefinitionView = document.querySelector('[data-view="report-definition"]');
-  const reportView = document.querySelector('[data-view="report"]');
-  const reportPairBanner = document.querySelector("[data-report-pair-banner]");
-  const visualizationView = document.querySelector('[data-view="visualization"]');
-  const visualizationAdvancedDetailView = document.querySelector('[data-view="visualization-advanced-detail"]');
-  const analyzerView = document.querySelector('[data-view="analyzer"]');
+  let reportDefinitionView = document.querySelector('[data-view="report-definition"]');
+  let reportView = document.querySelector('[data-view="report"]');
+  let reportPairBanner = document.querySelector("[data-report-pair-banner]");
+  let visualizationView = document.querySelector('[data-view="visualization"]');
+  let visualizationAdvancedDetailView = document.querySelector('[data-view="visualization-advanced-detail"]');
+  let analyzerView = document.querySelector('[data-view="analyzer"]');
   const difficultyView = document.querySelector('[data-view="difficulty"]');
   const settingsView = document.querySelector('[data-view="settings"]');
   const adminView = document.querySelector('[data-view="admin"]');
   const beginnerPanel = document.querySelector(".beginner-panel");
   const buildRecoveryNotice = document.querySelector("[data-build-recovery-notice]");
-  const reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
+  const reportDeferredMount = document.querySelector("[data-report-deferred-mount]");
+  const reportDeferredFragmentUrl = `telepathybeginner-report-fragments.html?v=${launcherBuildVersion}`;
+  let reportDeferredLoadPromise = null;
+  let reportDeferredHandlersBound = false;
+  let reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
   const openOptionsButton = document.querySelector("[data-open-options]");
   const openOldLearningCenterButton = document.querySelector("[data-open-old-learning-center]");
   const openLessonEditorButton = document.querySelector("[data-open-old-learn-more]");
@@ -621,29 +625,29 @@
   const closePerformanceVisualizationGuideButton = document.querySelector("[data-close-performance-visualization-guide]");
   const closeResearchInterestFormButton = document.querySelector("[data-close-research-interest-form]");
   const openReportButton = document.querySelector("[data-open-report]");
-  const closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
-  const closeReportButton = document.querySelector("[data-close-report]");
-  const closeVisualizationButton = document.querySelector("[data-close-visualization]");
-  const closeVisualizationAdvancedDetailButton = document.querySelector("[data-close-visualization-advanced-detail]");
-  const closeAnalyzerButton = document.querySelector("[data-close-analyzer]");
-  const reportDefinitionStatus = document.querySelector("[data-report-definition-status]");
-  const reportPairPicker = document.querySelector("[data-report-pair-picker]");
-  const reportPairTrigger = document.querySelector("[data-report-pair-trigger]");
-  const reportPairTriggerText = document.querySelector("[data-report-pair-trigger-text]");
-  const reportPairMenu = document.querySelector("[data-report-pair-menu]");
-  const reportPairOptions = document.querySelector("[data-report-pair-options]");
-  const reportGoButton = document.querySelector("[data-report-go]");
-  const reportDeleteButton = document.querySelector("[data-report-delete]");
-  const reportGlobeButton = document.querySelector("[data-report-globe]");
-  const reportVisualizeButton = document.querySelector("[data-report-visualize]");
-  const reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
+  let closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
+  let closeReportButton = document.querySelector("[data-close-report]");
+  let closeVisualizationButton = document.querySelector("[data-close-visualization]");
+  let closeVisualizationAdvancedDetailButton = document.querySelector("[data-close-visualization-advanced-detail]");
+  let closeAnalyzerButton = document.querySelector("[data-close-analyzer]");
+  let reportDefinitionStatus = document.querySelector("[data-report-definition-status]");
+  let reportPairPicker = document.querySelector("[data-report-pair-picker]");
+  let reportPairTrigger = document.querySelector("[data-report-pair-trigger]");
+  let reportPairTriggerText = document.querySelector("[data-report-pair-trigger-text]");
+  let reportPairMenu = document.querySelector("[data-report-pair-menu]");
+  let reportPairOptions = document.querySelector("[data-report-pair-options]");
+  let reportGoButton = document.querySelector("[data-report-go]");
+  let reportDeleteButton = document.querySelector("[data-report-delete]");
+  let reportGlobeButton = document.querySelector("[data-report-globe]");
+  let reportVisualizeButton = document.querySelector("[data-report-visualize]");
+  let reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
   let lastLauncherPointerDownInsideActiveCard = false;
-  const openAdvancedButton = document.querySelector("[data-open-advanced]");
+  let openAdvancedButton = document.querySelector("[data-open-advanced]");
   const closeSettingsButton = document.querySelector("[data-close-settings]");
   const closeAdminButton = document.querySelector("[data-close-admin]");
   const installAppButton = document.querySelector("[data-install-app]");
-  const reportSummary = document.querySelector("[data-report-summary]");
-  const reportStatus = document.querySelector("[data-report-status]");
+  let reportSummary = document.querySelector("[data-report-summary]");
+  let reportStatus = document.querySelector("[data-report-status]");
   let reportImageLightbox = null;
   let reportImageLightboxImage = null;
   let levelFourImagePairsCachePromise = null;
@@ -671,52 +675,52 @@
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
   const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
-  const reportTableWrap = document.querySelector("[data-report-table-wrap]");
-  const reportTable = document.querySelector("[data-report-table]");
-  const visualizationSummary = document.querySelector("[data-visualization-summary]");
-  const visualizationStatus = document.querySelector("[data-visualization-status]");
-  const visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
-  const visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
-  const visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
-  const visualizationUpdateRangeButton = document.querySelector("[data-visualization-update-range]");
-  const visualizationRangeHelper = document.querySelector("[data-visualization-range-helper]");
-  const visualizationSaveAsButton = document.querySelector("[data-visualization-save-as]");
-  const visualizationAdvancedDetailButton = document.querySelector("[data-open-visualization-advanced-detail]");
-  const visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
-  const visualizationChart = document.querySelector("[data-visualization-chart]");
-  const visualizationLessonFiveLink = document.querySelector("[data-visualization-lesson-five-link]");
-  const visualizationAdvancedDetailSummary = document.querySelector("[data-visualization-advanced-detail-summary]");
-  const visualizationAdvancedDetailStatus = document.querySelector("[data-visualization-advanced-detail-status]");
-  const visualizationAdvancedSignificanceOutput = document.querySelector("[data-visualization-advanced-significance-output]");
-  const visualizationAdvancedTrendOutput = document.querySelector("[data-visualization-advanced-trend-output]");
-  const visualizationPracticeGraphBlock = document.querySelector("[data-visualization-practice-graph-block]");
-  const visualizationPracticeGraphTitle = document.querySelector("[data-visualization-practice-graph-title]");
-  const visualizationPracticeGraphLegend = document.querySelector("[data-visualization-practice-graph-legend]");
-  const visualizationPracticeGraph = document.querySelector("[data-visualization-practice-graph]");
-  const visualizationPracticeGraphNote = document.querySelector("[data-visualization-practice-graph-note]");
-  const namedReportModal = document.querySelector("[data-named-report-modal]");
-  const namedReportTitleInput = document.querySelector("[data-named-report-title-input]");
-  const namedReportSourceSummary = document.querySelector("[data-named-report-source-summary]");
-  const namedReportRangeSummary = document.querySelector("[data-named-report-range-summary]");
-  const namedReportCountSummary = document.querySelector("[data-named-report-count-summary]");
-  const namedReportSaveVisualizationCheckbox = document.querySelector("[data-named-report-save-visualization]");
-  const namedReportSavePdfCheckbox = document.querySelector("[data-named-report-save-pdf]");
-  const namedReportSavePdfWrap = document.querySelector("[data-named-report-save-pdf-wrap]");
-  const namedReportSavePdfLabel = document.querySelector("[data-named-report-save-pdf-label]");
-  const namedReportIncludeAdvancedCheckbox = document.querySelector("[data-named-report-include-advanced]");
-  const namedReportIncludeAdvancedWrap = document.querySelector("[data-named-report-include-advanced-wrap]");
-  const namedReportIncludeAdvancedLabel = document.querySelector("[data-named-report-include-advanced-label]");
-  const namedReportStatus = document.querySelector("[data-named-report-status]");
-  const namedReportSaveButton = document.querySelector("[data-named-report-save]");
-  const namedReportCancelButton = document.querySelector("[data-named-report-cancel]");
-  const analyzerSummary = document.querySelector("[data-analyzer-summary]");
-  const analyzerStatus = document.querySelector("[data-analyzer-status]");
-  const analyzerOutput = document.querySelector("[data-analyzer-output]");
-  const analyzerText = document.querySelector("[data-analyzer-text]");
-  const analyzerRefreshButton = document.querySelector("[data-analyzer-refresh]");
-  const analyzerCopyButton = document.querySelector("[data-analyzer-copy]");
-  const reportPanel = document.querySelector(".report-panel");
-  const reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
+  let reportTableWrap = document.querySelector("[data-report-table-wrap]");
+  let reportTable = document.querySelector("[data-report-table]");
+  let visualizationSummary = document.querySelector("[data-visualization-summary]");
+  let visualizationStatus = document.querySelector("[data-visualization-status]");
+  let visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
+  let visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
+  let visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
+  let visualizationUpdateRangeButton = document.querySelector("[data-visualization-update-range]");
+  let visualizationRangeHelper = document.querySelector("[data-visualization-range-helper]");
+  let visualizationSaveAsButton = document.querySelector("[data-visualization-save-as]");
+  let visualizationAdvancedDetailButton = document.querySelector("[data-open-visualization-advanced-detail]");
+  let visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
+  let visualizationChart = document.querySelector("[data-visualization-chart]");
+  let visualizationLessonFiveLink = document.querySelector("[data-visualization-lesson-five-link]");
+  let visualizationAdvancedDetailSummary = document.querySelector("[data-visualization-advanced-detail-summary]");
+  let visualizationAdvancedDetailStatus = document.querySelector("[data-visualization-advanced-detail-status]");
+  let visualizationAdvancedSignificanceOutput = document.querySelector("[data-visualization-advanced-significance-output]");
+  let visualizationAdvancedTrendOutput = document.querySelector("[data-visualization-advanced-trend-output]");
+  let visualizationPracticeGraphBlock = document.querySelector("[data-visualization-practice-graph-block]");
+  let visualizationPracticeGraphTitle = document.querySelector("[data-visualization-practice-graph-title]");
+  let visualizationPracticeGraphLegend = document.querySelector("[data-visualization-practice-graph-legend]");
+  let visualizationPracticeGraph = document.querySelector("[data-visualization-practice-graph]");
+  let visualizationPracticeGraphNote = document.querySelector("[data-visualization-practice-graph-note]");
+  let namedReportModal = document.querySelector("[data-named-report-modal]");
+  let namedReportTitleInput = document.querySelector("[data-named-report-title-input]");
+  let namedReportSourceSummary = document.querySelector("[data-named-report-source-summary]");
+  let namedReportRangeSummary = document.querySelector("[data-named-report-range-summary]");
+  let namedReportCountSummary = document.querySelector("[data-named-report-count-summary]");
+  let namedReportSaveVisualizationCheckbox = document.querySelector("[data-named-report-save-visualization]");
+  let namedReportSavePdfCheckbox = document.querySelector("[data-named-report-save-pdf]");
+  let namedReportSavePdfWrap = document.querySelector("[data-named-report-save-pdf-wrap]");
+  let namedReportSavePdfLabel = document.querySelector("[data-named-report-save-pdf-label]");
+  let namedReportIncludeAdvancedCheckbox = document.querySelector("[data-named-report-include-advanced]");
+  let namedReportIncludeAdvancedWrap = document.querySelector("[data-named-report-include-advanced-wrap]");
+  let namedReportIncludeAdvancedLabel = document.querySelector("[data-named-report-include-advanced-label]");
+  let namedReportStatus = document.querySelector("[data-named-report-status]");
+  let namedReportSaveButton = document.querySelector("[data-named-report-save]");
+  let namedReportCancelButton = document.querySelector("[data-named-report-cancel]");
+  let analyzerSummary = document.querySelector("[data-analyzer-summary]");
+  let analyzerStatus = document.querySelector("[data-analyzer-status]");
+  let analyzerOutput = document.querySelector("[data-analyzer-output]");
+  let analyzerText = document.querySelector("[data-analyzer-text]");
+  let analyzerRefreshButton = document.querySelector("[data-analyzer-refresh]");
+  let analyzerCopyButton = document.querySelector("[data-analyzer-copy]");
+  let reportPanel = document.querySelector(".report-panel");
+  let reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
   const handleOverlay = document.querySelector("[data-handle-overlay]");
   const handleDialog = handleOverlay?.querySelector(".handle-dialog") || null;
   const handleDialogTitle = document.getElementById("handleDialogTitle");
@@ -13977,6 +13981,293 @@ ${calmPracticeMessage}`;
       });
   }
 
+  function cacheReportDeferredElements() {
+    reportDefinitionView = document.querySelector('[data-view="report-definition"]');
+    reportView = document.querySelector('[data-view="report"]');
+    reportPairBanner = document.querySelector("[data-report-pair-banner]");
+    visualizationView = document.querySelector('[data-view="visualization"]');
+    visualizationAdvancedDetailView = document.querySelector('[data-view="visualization-advanced-detail"]');
+    analyzerView = document.querySelector('[data-view="analyzer"]');
+    reportViewPanHandle = document.querySelector("[data-report-view-pan-handle]");
+    closeReportDefinitionButton = document.querySelector("[data-close-report-definition]");
+    closeReportButton = document.querySelector("[data-close-report]");
+    closeVisualizationButton = document.querySelector("[data-close-visualization]");
+    closeVisualizationAdvancedDetailButton = document.querySelector("[data-close-visualization-advanced-detail]");
+    closeAnalyzerButton = document.querySelector("[data-close-analyzer]");
+    reportDefinitionStatus = document.querySelector("[data-report-definition-status]");
+    reportPairPicker = document.querySelector("[data-report-pair-picker]");
+    reportPairTrigger = document.querySelector("[data-report-pair-trigger]");
+    reportPairTriggerText = document.querySelector("[data-report-pair-trigger-text]");
+    reportPairMenu = document.querySelector("[data-report-pair-menu]");
+    reportPairOptions = document.querySelector("[data-report-pair-options]");
+    reportGoButton = document.querySelector("[data-report-go]");
+    reportDeleteButton = document.querySelector("[data-report-delete]");
+    reportGlobeButton = document.querySelector("[data-report-globe]");
+    reportVisualizeButton = document.querySelector("[data-report-visualize]");
+    reportDefinitionDebug = document.querySelector("[data-report-definition-debug]");
+    openAdvancedButton = document.querySelector("[data-open-advanced]");
+    reportSummary = document.querySelector("[data-report-summary]");
+    reportStatus = document.querySelector("[data-report-status]");
+    reportTableWrap = document.querySelector("[data-report-table-wrap]");
+    reportTable = document.querySelector("[data-report-table]");
+    visualizationSummary = document.querySelector("[data-visualization-summary]");
+    visualizationStatus = document.querySelector("[data-visualization-status]");
+    visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
+    visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
+    visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
+    visualizationUpdateRangeButton = document.querySelector("[data-visualization-update-range]");
+    visualizationRangeHelper = document.querySelector("[data-visualization-range-helper]");
+    visualizationSaveAsButton = document.querySelector("[data-visualization-save-as]");
+    visualizationAdvancedDetailButton = document.querySelector("[data-open-visualization-advanced-detail]");
+    visualizationChartWrap = document.querySelector("[data-visualization-chart-wrap]");
+    visualizationChart = document.querySelector("[data-visualization-chart]");
+    visualizationLessonFiveLink = document.querySelector("[data-visualization-lesson-five-link]");
+    visualizationAdvancedDetailSummary = document.querySelector("[data-visualization-advanced-detail-summary]");
+    visualizationAdvancedDetailStatus = document.querySelector("[data-visualization-advanced-detail-status]");
+    visualizationAdvancedSignificanceOutput = document.querySelector("[data-visualization-advanced-significance-output]");
+    visualizationAdvancedTrendOutput = document.querySelector("[data-visualization-advanced-trend-output]");
+    visualizationPracticeGraphBlock = document.querySelector("[data-visualization-practice-graph-block]");
+    visualizationPracticeGraphTitle = document.querySelector("[data-visualization-practice-graph-title]");
+    visualizationPracticeGraphLegend = document.querySelector("[data-visualization-practice-graph-legend]");
+    visualizationPracticeGraph = document.querySelector("[data-visualization-practice-graph]");
+    visualizationPracticeGraphNote = document.querySelector("[data-visualization-practice-graph-note]");
+    namedReportModal = document.querySelector("[data-named-report-modal]");
+    namedReportTitleInput = document.querySelector("[data-named-report-title-input]");
+    namedReportSourceSummary = document.querySelector("[data-named-report-source-summary]");
+    namedReportRangeSummary = document.querySelector("[data-named-report-range-summary]");
+    namedReportCountSummary = document.querySelector("[data-named-report-count-summary]");
+    namedReportSaveVisualizationCheckbox = document.querySelector("[data-named-report-save-visualization]");
+    namedReportSavePdfCheckbox = document.querySelector("[data-named-report-save-pdf]");
+    namedReportSavePdfWrap = document.querySelector("[data-named-report-save-pdf-wrap]");
+    namedReportSavePdfLabel = document.querySelector("[data-named-report-save-pdf-label]");
+    namedReportIncludeAdvancedCheckbox = document.querySelector("[data-named-report-include-advanced]");
+    namedReportIncludeAdvancedWrap = document.querySelector("[data-named-report-include-advanced-wrap]");
+    namedReportIncludeAdvancedLabel = document.querySelector("[data-named-report-include-advanced-label]");
+    namedReportStatus = document.querySelector("[data-named-report-status]");
+    namedReportSaveButton = document.querySelector("[data-named-report-save]");
+    namedReportCancelButton = document.querySelector("[data-named-report-cancel]");
+    analyzerSummary = document.querySelector("[data-analyzer-summary]");
+    analyzerStatus = document.querySelector("[data-analyzer-status]");
+    analyzerOutput = document.querySelector("[data-analyzer-output]");
+    analyzerText = document.querySelector("[data-analyzer-text]");
+    analyzerRefreshButton = document.querySelector("[data-analyzer-refresh]");
+    analyzerCopyButton = document.querySelector("[data-analyzer-copy]");
+    reportPanel = document.querySelector(".report-panel");
+    reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
+  }
+
+  function bindReportDeferredHandlers() {
+    if (reportDeferredHandlersBound) {
+      return;
+    }
+    closeReportDefinitionButton?.addEventListener("click", () => {
+      if (triggerPendingLearningCenterLessonReturn()) {
+        return;
+      }
+      showOptionsView();
+    });
+    closeReportButton?.addEventListener("click", () => {
+      void showReportDefinitionView();
+    });
+    closeVisualizationButton?.addEventListener("click", () => {
+      void showReportDefinitionView();
+    });
+    closeVisualizationAdvancedDetailButton?.addEventListener("click", () => {
+      void showVisualizationView(latestVisualizationContext?.pairInfo || selectedReportTarget || selectedReportPair);
+    });
+    closeAnalyzerButton?.addEventListener("click", () => {
+      void showReportDefinitionView();
+    });
+    visualizationRangeStartInput?.addEventListener("input", updateVisualizationRangeStateFromInputs);
+    visualizationRangeEndInput?.addEventListener("input", updateVisualizationRangeStateFromInputs);
+    visualizationRangeStartInput?.addEventListener("blur", scheduleVisualizationRangeAutoUpdate);
+    visualizationRangeEndInput?.addEventListener("blur", scheduleVisualizationRangeAutoUpdate);
+    visualizationRangeStartInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitVisualizationRangeFromInputs();
+      }
+    });
+    visualizationRangeEndInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitVisualizationRangeFromInputs();
+      }
+    });
+    visualizationUpdateRangeButton?.addEventListener("click", commitVisualizationRangeFromInputs);
+    visualizationAdvancedDetailButton?.addEventListener("click", () => {
+      applyPendingVisualizationRangeIfNeeded();
+      if (!latestVisualizationContext?.pairInfo?.receiverName || !Array.isArray(latestVisualizationContext.records) || !latestVisualizationContext.records.length) {
+        if (visualizationStatus) {
+          visualizationStatus.textContent = "Open a visualization with completed scored trials before requesting advanced detail.";
+        }
+        return;
+      }
+      void showVisualizationAdvancedDetailView();
+    });
+    reportPairTrigger?.addEventListener("click", () => {
+      if (!availableReportPairs.length) {
+        return;
+      }
+      if (reportPairMenu?.hidden) {
+        openReportPairMenu();
+      } else {
+        closeReportPairMenu();
+      }
+    });
+    reportGoButton?.addEventListener("click", () => {
+      if (selectedReportTarget) {
+        void showReportView(selectedReportTarget);
+      }
+    });
+    reportDeleteButton?.addEventListener("click", () => {
+      if (!isNamedReportTarget(selectedReportTarget)) {
+        return;
+      }
+      const title = String(selectedReportTarget?.reportTitle || "").trim() || "this named file";
+      const confirmed = window.confirm(`DELETE - Are you sure?\n\nDeleting "${title}" is permanent.`);
+      if (!confirmed) {
+        return;
+      }
+      void (async () => {
+        try {
+          await deleteNamedReport(selectedReportTarget.reportId);
+          selectedReportTarget = null;
+          selectedReportPair = null;
+          await renderReportDefinition();
+          if (reportDefinitionStatus) {
+            reportDefinitionStatus.textContent = `Deleted named file: ${title}.`;
+          }
+        } catch (error) {
+          if (reportDefinitionStatus) {
+            reportDefinitionStatus.textContent = error instanceof Error ? error.message : "Unable to delete the named file right now.";
+          }
+        }
+      })();
+    });
+    reportGlobeButton?.addEventListener("click", handleGlobeLaunchClick);
+    reportVisualizeButton?.addEventListener("click", () => {
+      if (selectedReportTarget) {
+        void showVisualizationView(selectedReportTarget);
+      }
+    });
+    analyzerRefreshButton?.addEventListener("click", () => {
+      if (selectedReportTarget) {
+        void renderResultsAnalysis(selectedReportTarget);
+      }
+    });
+    visualizationSaveAsButton?.addEventListener("click", openNamedReportModal);
+    namedReportSaveButton?.addEventListener("click", () => {
+      void handleNamedReportSave();
+    });
+    namedReportCancelButton?.addEventListener("click", closeNamedReportModal);
+    namedReportModal?.addEventListener("click", (event) => {
+      if (event.target === namedReportModal) {
+        closeNamedReportModal();
+      }
+    });
+    namedReportTitleInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void handleNamedReportSave();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        closeNamedReportModal();
+      }
+    });
+    namedReportSavePdfCheckbox?.addEventListener("change", syncNamedReportAdvancedOptionState);
+    namedReportTitleInput?.addEventListener("blur", () => {
+      if (!shouldAutoSubmitNamedReportOnBlur()) {
+        return;
+      }
+      if (!namedReportModal || namedReportModal.hidden) {
+        return;
+      }
+      if (namedReportSaveButton?.disabled) {
+        return;
+      }
+      if (!String(namedReportTitleInput?.value ?? "").trim()) {
+        return;
+      }
+      window.setTimeout(() => {
+        if (!namedReportModal || namedReportModal.hidden) {
+          return;
+        }
+        if (namedReportSaveButton?.disabled) {
+          return;
+        }
+        void handleNamedReportSave();
+      }, 0);
+    });
+    analyzerCopyButton?.addEventListener("click", async () => {
+      const text = analyzerText?.value || "";
+      if (!text) {
+        if (analyzerStatus) {
+          analyzerStatus.textContent = "No continuity text is available to copy yet.";
+        }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        if (analyzerStatus) {
+          analyzerStatus.textContent = "Continuity text copied to the clipboard.";
+        }
+      } catch (error) {
+        if (analyzerStatus) {
+          analyzerStatus.textContent = "Unable to copy automatically. Please select and copy the text manually.";
+        }
+      }
+    });
+    visualizationLessonFiveLink?.addEventListener("click", () => {
+      void showLearningCenterLessonDetail("lesson-5", {
+        lessonDomain: "new-course",
+        view: "visualization",
+        tab: "course",
+        scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+      });
+    });
+    openAdvancedButton?.addEventListener("click", showSettingsView);
+    closeSettingsButton?.addEventListener("click", () => {
+      void showReportDefinitionView();
+    });
+    reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
+    reportResizeHandles.forEach((handle) => {
+      handle.addEventListener("pointerdown", beginReportResize);
+    });
+    reportDeferredHandlersBound = true;
+  }
+
+  async function ensureReportDeferredViewsLoaded() {
+    if (reportDefinitionView && reportView && visualizationView && visualizationAdvancedDetailView && analyzerView) {
+      bindReportDeferredHandlers();
+      return;
+    }
+    if (reportDeferredLoadPromise) {
+      await reportDeferredLoadPromise;
+      return;
+    }
+    if (!reportDeferredMount) {
+      return;
+    }
+    reportDeferredLoadPromise = (async () => {
+      const response = await fetch(reportDeferredFragmentUrl, {
+        cache: "no-store",
+        credentials: "same-origin"
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to load deferred report views (${response.status}).`);
+      }
+      reportDeferredMount.innerHTML = await response.text();
+      cacheReportDeferredElements();
+      bindReportDeferredHandlers();
+    })();
+    try {
+      await reportDeferredLoadPromise;
+    } finally {
+      reportDeferredLoadPromise = null;
+    }
+  }
+
   function closeReportPairMenu() {
     if (reportPairMenu) {
       reportPairMenu.hidden = true;
@@ -21658,7 +21949,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showReportDefinitionView() {
+  async function showReportDefinitionView() {
+    await ensureReportDeferredViewsLoaded();
     clearReportPanelOffset();
     syncCurrentLauncherNamesToState();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -21699,7 +21991,8 @@ ${calmPracticeMessage}`;
     updatePendingLearningCenterLessonReturnButtons();
   }
 
-  function showReportView(pairInfo = selectedReportTarget || selectedReportPair) {
+  async function showReportView(pairInfo = selectedReportTarget || selectedReportPair) {
+    await ensureReportDeferredViewsLoaded();
     learningCenterView?.classList.add("beginner-view-hidden");
     beginnerPanel?.classList.add("report-pannable");
     reportView?.classList.remove("beginner-view-hidden");
@@ -21735,7 +22028,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showVisualizationView(pairInfo = selectedReportTarget || selectedReportPair) {
+  async function showVisualizationView(pairInfo = selectedReportTarget || selectedReportPair) {
+    await ensureReportDeferredViewsLoaded();
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     visualizationView?.classList.remove("beginner-view-hidden");
@@ -21770,7 +22064,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showVisualizationAdvancedDetailView() {
+  async function showVisualizationAdvancedDetailView() {
+    await ensureReportDeferredViewsLoaded();
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     visualizationAdvancedDetailView?.classList.remove("beginner-view-hidden");
@@ -21805,7 +22100,8 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showAnalyzerView(pairInfo = selectedReportTarget || selectedReportPair) {
+  async function showAnalyzerView(pairInfo = selectedReportTarget || selectedReportPair) {
+    await ensureReportDeferredViewsLoaded();
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
     analyzerView?.classList.remove("beginner-view-hidden");
@@ -30344,14 +30640,6 @@ ${calmPracticeMessage}`;
     }
     handleLearningCenterAction(action, actionButton);
   });
-  visualizationLessonFiveLink?.addEventListener("click", () => {
-    void showLearningCenterLessonDetail("lesson-5", {
-      lessonDomain: "new-course",
-      view: "visualization",
-      tab: "course",
-      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
-    });
-  });
   exactLocationButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -32067,164 +32355,12 @@ ${calmPracticeMessage}`;
     });
   });
   closeAboutButton?.addEventListener("click", closeAboutViewToOrigin);
-  openReportButton?.addEventListener("click", showReportDefinitionView);
-  closeReportDefinitionButton?.addEventListener("click", () => {
-    if (triggerPendingLearningCenterLessonReturn()) {
-      return;
-    }
-    showOptionsView();
-  });
-  closeReportButton?.addEventListener("click", showReportDefinitionView);
-  closeVisualizationButton?.addEventListener("click", showReportDefinitionView);
-  closeVisualizationAdvancedDetailButton?.addEventListener("click", () => {
-    showVisualizationView(latestVisualizationContext?.pairInfo || selectedReportTarget || selectedReportPair);
-  });
-  closeAnalyzerButton?.addEventListener("click", showReportDefinitionView);
-  visualizationRangeStartInput?.addEventListener("input", updateVisualizationRangeStateFromInputs);
-  visualizationRangeEndInput?.addEventListener("input", updateVisualizationRangeStateFromInputs);
-  visualizationRangeStartInput?.addEventListener("blur", scheduleVisualizationRangeAutoUpdate);
-  visualizationRangeEndInput?.addEventListener("blur", scheduleVisualizationRangeAutoUpdate);
-  visualizationRangeStartInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      commitVisualizationRangeFromInputs();
-    }
-  });
-  visualizationRangeEndInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      commitVisualizationRangeFromInputs();
-    }
-  });
-  visualizationUpdateRangeButton?.addEventListener("click", commitVisualizationRangeFromInputs);
-  visualizationAdvancedDetailButton?.addEventListener("click", () => {
-    applyPendingVisualizationRangeIfNeeded();
-    if (!latestVisualizationContext?.pairInfo?.receiverName || !Array.isArray(latestVisualizationContext.records) || !latestVisualizationContext.records.length) {
-      if (visualizationStatus) {
-        visualizationStatus.textContent = "Open a visualization with completed scored trials before requesting advanced detail.";
-      }
-      return;
-    }
-    showVisualizationAdvancedDetailView();
-  });
-  reportPairTrigger?.addEventListener("click", () => {
-    if (!availableReportPairs.length) {
-      return;
-    }
-    if (reportPairMenu?.hidden) {
-      openReportPairMenu();
-    } else {
-      closeReportPairMenu();
-    }
-  });
-  reportGoButton?.addEventListener("click", () => {
-    if (selectedReportTarget) {
-      showReportView(selectedReportTarget);
-    }
-  });
-  reportDeleteButton?.addEventListener("click", () => {
-    if (!isNamedReportTarget(selectedReportTarget)) {
-      return;
-    }
-    const title = String(selectedReportTarget?.reportTitle || "").trim() || "this named file";
-    const confirmed = window.confirm(`DELETE - Are you sure?\n\nDeleting "${title}" is permanent.`);
-    if (!confirmed) {
-      return;
-    }
-    void (async () => {
-      try {
-        await deleteNamedReport(selectedReportTarget.reportId);
-        selectedReportTarget = null;
-        selectedReportPair = null;
-        await renderReportDefinition();
-        if (reportDefinitionStatus) {
-          reportDefinitionStatus.textContent = `Deleted named file: ${title}.`;
-        }
-      } catch (error) {
-        if (reportDefinitionStatus) {
-          reportDefinitionStatus.textContent = error instanceof Error ? error.message : "Unable to delete the named file right now.";
-        }
-      }
-    })();
-  });
-  reportGlobeButton?.addEventListener("click", handleGlobeLaunchClick);
-  reportVisualizeButton?.addEventListener("click", () => {
-    if (selectedReportTarget) {
-      showVisualizationView(selectedReportTarget);
-    }
+  openReportButton?.addEventListener("click", () => {
+    void showReportDefinitionView();
   });
   adminOpenAnalyzerButton?.addEventListener("click", () => {
-    showAnalyzerView(selectedReportTarget || selectedReportPair);
+    void showAnalyzerView(selectedReportTarget || selectedReportPair);
   });
-  analyzerRefreshButton?.addEventListener("click", () => {
-    if (selectedReportTarget) {
-      void renderResultsAnalysis(selectedReportTarget);
-    }
-  });
-  visualizationSaveAsButton?.addEventListener("click", openNamedReportModal);
-  namedReportSaveButton?.addEventListener("click", () => {
-    void handleNamedReportSave();
-  });
-  namedReportCancelButton?.addEventListener("click", closeNamedReportModal);
-  namedReportModal?.addEventListener("click", (event) => {
-    if (event.target === namedReportModal) {
-      closeNamedReportModal();
-    }
-  });
-  namedReportTitleInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      void handleNamedReportSave();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      closeNamedReportModal();
-    }
-  });
-  namedReportSavePdfCheckbox?.addEventListener("change", syncNamedReportAdvancedOptionState);
-  namedReportTitleInput?.addEventListener("blur", () => {
-    if (!shouldAutoSubmitNamedReportOnBlur()) {
-      return;
-    }
-    if (!namedReportModal || namedReportModal.hidden) {
-      return;
-    }
-    if (namedReportSaveButton?.disabled) {
-      return;
-    }
-    if (!String(namedReportTitleInput?.value ?? "").trim()) {
-      return;
-    }
-    window.setTimeout(() => {
-      if (!namedReportModal || namedReportModal.hidden) {
-        return;
-      }
-      if (namedReportSaveButton?.disabled) {
-        return;
-      }
-      void handleNamedReportSave();
-    }, 0);
-  });
-  analyzerCopyButton?.addEventListener("click", async () => {
-    const text = analyzerText?.value || "";
-    if (!text) {
-      if (analyzerStatus) {
-        analyzerStatus.textContent = "No continuity text is available to copy yet.";
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      if (analyzerStatus) {
-        analyzerStatus.textContent = "Continuity text copied to the clipboard.";
-      }
-    } catch (error) {
-      if (analyzerStatus) {
-        analyzerStatus.textContent = "Unable to copy automatically. Please select and copy the text manually.";
-      }
-    }
-  });
-  openAdvancedButton?.addEventListener("click", showSettingsView);
-  closeSettingsButton?.addEventListener("click", showReportDefinitionView);
   closeAdminButton?.addEventListener("click", showSettingsView);
   settingsSecondChoiceCheckbox?.addEventListener("change", () => {
     if (settingsStatus) {
@@ -32981,10 +33117,6 @@ ${calmPracticeMessage}`;
     }
     void refreshEspLessonsSourceText();
     normalizeLauncherVersionParamInUrl();
-    reportViewPanHandle?.addEventListener("pointerdown", beginReportViewPan);
-    reportResizeHandles.forEach((handle) => {
-      handle.addEventListener("pointerdown", beginReportResize);
-    });
     difficultyBumpButtons.forEach((button) => {
       button.addEventListener("pointerdown", (event) => {
         event.stopPropagation();

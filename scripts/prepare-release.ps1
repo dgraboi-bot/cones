@@ -53,6 +53,7 @@ $deployFiles = @(
   "telepathy.js",
   "telepathybeginner-email-test.html",
   "telepathybeginner-email-test.js",
+  "telepathybeginner-report-fragments.html",
   "telepathybeginner-sw.js",
   "telepathybeginner.css",
   "telepathybeginner.html",
@@ -108,6 +109,7 @@ $verifyVersionFiles = @(
 $mirrorVerifyFiles = @(
   "telepathybeginner.html",
   "telepathybeginner.js",
+  "telepathybeginner-report-fragments.html",
   "telepathybeginner.css",
   "target-selection.js",
   "api.php",
@@ -121,6 +123,7 @@ $liveHashAuditFiles = @(
   "telepathybeginner.html",
   "telepathybeginner.js",
   "telepathybeginner.css",
+  "telepathybeginner-report-fragments.html",
   "telepathybeginner-sw.js",
   "telepathybeginner.webmanifest",
   "telepathy-difficulty-guide-panel-build.png",

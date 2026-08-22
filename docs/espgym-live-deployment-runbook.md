@@ -219,6 +219,38 @@ Local mirror rule:
 
 Recommended local re-sync command:
 
+## Launcher Path Profiling
+
+When launcher-load performance is in doubt, profile the live launcher path before making more scaling changes.
+
+Required rule going forward:
+
+1. compare the root URL and the direct versioned launcher URL separately
+2. collect server resource snapshots during the same test window
+3. treat launcher HTML delivery and launcher-summary API timing as separate measurements
+4. keep profiling artifacts separate from the ordinary debug log
+
+Operational command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\profile-launcher-path.ps1 -Version <liveVersion>
+```
+
+What this produces:
+
+- a root-URL timing summary
+- a direct-launcher timing summary
+- lightweight remote server snapshots taken before, during, and after the measurements
+- a local markdown summary under:
+  - `C:\xampp\telepathyexperiment_private\cones\profiling\launcher-path\`
+
+Use this profiling pass before deciding whether the next optimization should target:
+
+- redirect behavior
+- launcher shell delivery
+- launcher-summary API behavior
+- or broader server/worker contention
+
 ```powershell
 robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /XD .git /R:1 /W:1
 ```
