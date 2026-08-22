@@ -9,10 +9,11 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260822a";
+  const launcherBuildVersion = "20260822b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
+  const reportRequestRecoveryStatusParam = "report_recovery";
   const maxBuildRecoveryAttempts = 2;
   const robotSimulationIdentifier = "Robot";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
@@ -4107,6 +4108,15 @@ ${calmPracticeMessage}`;
   }
 
   async function fetchReportCsvData() {
+    try {
+      return await fetchReportCsvDataCore();
+    } catch (error) {
+      await maybeRecoverFromReportRequestFailure("report_csv_data", error);
+      throw error;
+    }
+  }
+
+  async function fetchReportCsvDataCore() {
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
@@ -4132,6 +4142,15 @@ ${calmPracticeMessage}`;
   }
 
   async function fetchSelectedPairReportCsvData(pairInfo) {
+    try {
+      return await fetchSelectedPairReportCsvDataCore(pairInfo);
+    } catch (error) {
+      await maybeRecoverFromReportRequestFailure("report_pair_csv_data", error);
+      throw error;
+    }
+  }
+
+  async function fetchSelectedPairReportCsvDataCore(pairInfo) {
     const selectedPair = sanitizePairInfoForServer(pairInfo);
     const response = await fetch("api.php", {
       method: "POST",
@@ -12089,6 +12108,7 @@ ${calmPracticeMessage}`;
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set("v", launcherBuildVersion);
     currentUrl.searchParams.delete(buildRecoveryStatusParam);
+    currentUrl.searchParams.delete(reportRequestRecoveryStatusParam);
     if (extraParams && typeof extraParams === "object") {
       Object.entries(extraParams).forEach(([key, value]) => {
         if (!key) {
@@ -12162,6 +12182,33 @@ ${calmPracticeMessage}`;
         finish("");
       }
     });
+  }
+
+  async function fetchLiveShellBuildVersion(timeoutMs = 2500) {
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    let timerId = 0;
+    try {
+      if (controller) {
+        timerId = window.setTimeout(() => controller.abort(), Math.max(500, Number(timeoutMs) || 2500));
+      }
+      const probeUrl = `./telepathybeginner.html?open=launcher&build_probe=${Date.now()}`;
+      const response = await fetch(probeUrl, {
+        cache: "no-store",
+        signal: controller?.signal
+      });
+      if (!response.ok) {
+        return "";
+      }
+      const html = await response.text();
+      const match = html.match(/<meta\s+name=["']espgym-build-version["']\s+content=["']([^"']+)["']/i);
+      return String(match?.[1] || "").trim();
+    } catch (error) {
+      return "";
+    } finally {
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+    }
   }
 
   async function clearStaleBuildCaches() {
@@ -12259,6 +12306,43 @@ ${calmPracticeMessage}`;
       recovery_query: String(new URLSearchParams(window.location.search).get(buildRecoveryStatusParam) || "").trim()
     });
     return true;
+  }
+
+  async function maybeRecoverFromReportRequestFailure(reportAction, error) {
+    const htmlVersion = htmlDeclaredBuildVersion;
+    const jsVersion = launcherBuildVersion;
+    const swVersion = await requestActiveServiceWorkerBuildVersion();
+    const liveShellVersion = await fetchLiveShellBuildVersion();
+    const mismatchReason = !htmlVersion
+      ? "missing_html_build_version"
+      : (htmlVersion !== jsVersion
+          ? "html_js_version_mismatch"
+          : (swVersion && swVersion !== jsVersion
+              ? "service_worker_version_mismatch"
+              : (liveShellVersion && liveShellVersion !== jsVersion
+                  ? "live_shell_version_mismatch"
+                  : "")));
+
+    logBuildRecoveryDebug("report_request_failed", {
+      report_action: String(reportAction || "").trim(),
+      error_message: error instanceof Error ? error.message : String(error || "").trim(),
+      html_build_version: htmlVersion,
+      js_build_version: jsVersion,
+      sw_build_version: swVersion,
+      live_shell_build_version: liveShellVersion
+    });
+
+    if (!mismatchReason) {
+      return false;
+    }
+
+    return recoverFromMixedBuild(mismatchReason, {
+      htmlVersion,
+      jsVersion,
+      swVersion,
+      liveShellVersion,
+      reportAction
+    });
   }
 
   async function refreshUserTypeAfterStripeReturn(identifier, maxAttempts = 6, delayMs = 1200) {
@@ -32705,15 +32789,7 @@ ${calmPracticeMessage}`;
     void runSubscriptionReminderScan(activeAdminReminderActionMode === "test");
   });
   async function registerLauncherServiceWorker() {
-    const serviceWorkerVersion = launcherBuildVersion;
-    const controllerReloadKey = `espgym-sw-reload-${serviceWorkerVersion}`;
-    let controllerReloadHandled = false;
-
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (controllerReloadHandled) {
-        return;
-      }
-      controllerReloadHandled = true;
       const isDirectOpenReturn = (() => {
         try {
           return new URLSearchParams(window.location.search).get("direct_open") === "1";
@@ -32726,22 +32802,10 @@ ${calmPracticeMessage}`;
         href: String(window.location.href || "").trim(),
         isDirectOpenReturn
       });
-      if (isDirectOpenReturn) {
-        logLauncherDirectOpenDebug("service_worker_reload_suppressed", {
-          href: String(window.location.href || "").trim()
-        });
-        return;
-      }
-      try {
-        if (sessionStorage.getItem(controllerReloadKey) === "1") {
-          sessionStorage.removeItem(controllerReloadKey);
-          return;
-        }
-        sessionStorage.setItem(controllerReloadKey, "1");
-      } catch (error) {
-        // If sessionStorage is unavailable, still do a one-time reload for this event.
-      }
-      window.location.reload();
+      logLauncherDirectOpenDebug("service_worker_reload_suppressed", {
+        href: String(window.location.href || "").trim(),
+        reason: "controllerchange_no_forced_reload"
+      });
     });
 
     await navigator.serviceWorker.register(`./telepathybeginner-sw.js?v=${launcherBuildVersion}`)
