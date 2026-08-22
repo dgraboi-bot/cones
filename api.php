@@ -5580,6 +5580,90 @@ function build_partner_message_inbox_summary(array $state, string $ownerIdentifi
     ];
 }
 
+function get_partner_message_total_unread_for_owner(array $state, string $ownerIdentifier): int
+{
+    $ownerLookup = normalize_identifier_for_lookup($ownerIdentifier);
+    if ($ownerLookup === '') {
+        return 0;
+    }
+
+    $totalUnread = 0;
+    $limits = get_messaging_limits($state);
+    $reads = is_array($state['partner_message_reads'] ?? null) ? $state['partner_message_reads'] : [];
+    foreach ((array) ($state['partner_message_threads'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $thread = apply_partner_message_thread_limits(normalize_partner_message_thread($entry), $limits);
+        $participants = is_array($thread['participants'] ?? null) ? $thread['participants'] : [];
+        $left = trim((string) ($participants[0] ?? ''));
+        $right = trim((string) ($participants[1] ?? ''));
+        if ($left === '' || $right === '') {
+            continue;
+        }
+
+        $partnerIdentifier = '';
+        if (normalize_identifier_for_lookup($left) === $ownerLookup) {
+            $partnerIdentifier = $right;
+        } elseif (normalize_identifier_for_lookup($right) === $ownerLookup) {
+            $partnerIdentifier = $left;
+        }
+        if ($partnerIdentifier === '') {
+            continue;
+        }
+
+        $readEntry = $reads[build_partner_message_read_key($ownerIdentifier, $partnerIdentifier)] ?? null;
+        $normalizedReadEntry = is_array($readEntry)
+            ? normalize_partner_message_read_entry($readEntry)
+            : [
+                'owner_identifier' => trim((string) $ownerIdentifier),
+                'partner_identifier' => trim((string) $partnerIdentifier),
+                'last_read_ms' => 0,
+                'updated_ms' => 0,
+                'read_message_ids' => [],
+                'hidden_message_ids' => []
+            ];
+        $lastReadMs = (int) ($normalizedReadEntry['last_read_ms'] ?? 0);
+        $readIds = [];
+        foreach ((array) ($normalizedReadEntry['read_message_ids'] ?? []) as $messageId) {
+            $candidate = trim((string) $messageId);
+            if ($candidate !== '') {
+                $readIds[$candidate] = true;
+            }
+        }
+        $hiddenIds = [];
+        foreach ((array) ($normalizedReadEntry['hidden_message_ids'] ?? []) as $messageId) {
+            $candidate = trim((string) $messageId);
+            if ($candidate !== '') {
+                $hiddenIds[$candidate] = true;
+            }
+        }
+
+        foreach ((array) ($thread['messages'] ?? []) as $message) {
+            if (!is_array($message)) {
+                continue;
+            }
+            if (normalize_identifier_for_lookup((string) ($message['recipient_identifier'] ?? '')) !== $ownerLookup) {
+                continue;
+            }
+            $messageId = trim((string) ($message['id'] ?? ''));
+            if ($messageId !== '' && isset($hiddenIds[$messageId])) {
+                continue;
+            }
+            $createdMs = isset($message['created_ms']) && is_numeric($message['created_ms']) ? (int) $message['created_ms'] : 0;
+            if ($messageId !== '' && isset($readIds[$messageId])) {
+                continue;
+            }
+            if ($createdMs > 0 && $createdMs <= $lastReadMs) {
+                continue;
+            }
+            $totalUnread += 1;
+        }
+    }
+
+    return $totalUnread;
+}
+
 function build_launcher_message_summary_entry(array $state, string $identifier, string $deviceId): array
 {
     $requestedIdentifier = trim($identifier);
@@ -5604,21 +5688,16 @@ function build_launcher_message_summary_entry(array $state, string $identifier, 
             'preferred_identifier' => $preferredIdentifier,
             'eligible' => false,
             'total_unread' => 0,
-            'inbox' => null,
-            'identifier_status' => $identifierStatus,
-            'push_status' => $preferredIdentifier !== '' ? get_push_registration_status($state, $preferredIdentifier, $deviceId) : null
+            'identifier_status' => $identifierStatus
         ];
     }
 
-    $inbox = build_partner_message_inbox_summary($state, $preferredIdentifier);
     return [
         'requested_identifier' => $requestedIdentifier,
         'preferred_identifier' => $preferredIdentifier,
         'eligible' => true,
-        'total_unread' => max(0, (int) ($inbox['total_unread'] ?? 0)),
-        'inbox' => $inbox,
-        'identifier_status' => $identifierStatus,
-        'push_status' => get_push_registration_status($state, $preferredIdentifier, $deviceId)
+        'total_unread' => get_partner_message_total_unread_for_owner($state, $preferredIdentifier),
+        'identifier_status' => $identifierStatus
     ];
 }
 
@@ -5998,6 +6077,19 @@ function fail_request($handle, int $nowMs, string $message, int $statusCode = 40
         @fclose($handle);
     }
 
+    echo json_encode($response);
+    exit;
+}
+
+function respond_json_and_close($handle, array $response, ?int $statusCode = null): void
+{
+    if ($statusCode !== null) {
+        http_response_code($statusCode);
+    }
+    if (is_resource($handle)) {
+        @flock($handle, LOCK_UN);
+        @fclose($handle);
+    }
     echo json_encode($response);
     exit;
 }
@@ -10751,6 +10843,12 @@ $currentLessonDomain = normalize_lesson_domain($input['lesson_domain'] ?? ($_GET
 $role = isset($input['role']) ? (string) $input['role'] : '';
 $clientId = isset($input['client_id']) ? (string) $input['client_id'] : '';
 $adminClientId = normalize_admin_client_id($input['admin_client_id'] ?? '');
+$sharedLockActions = [
+    'check_admin_secret',
+    'get_admin_access_mode',
+    'get_launcher_message_summary'
+];
+$stateLockMode = in_array($action, $sharedLockActions, true) ? LOCK_SH : LOCK_EX;
 $sessionCode = isset($input['session_code']) ? trim((string) $input['session_code']) : '';
 if ($sessionCode === '') {
     $sessionCode = 'default-session';
@@ -10771,7 +10869,7 @@ if ($handle === false) {
     exit;
 }
 
-flock($handle, LOCK_EX);
+flock($handle, $stateLockMode);
 $raw = stream_get_contents($handle);
 $state = json_decode($raw ?: '', true);
 
@@ -12725,14 +12823,7 @@ if ($action === 'get_launcher_message_summary') {
         'server_now_ms' => $nowMs
     ];
 
-    rewind($handle);
-    ftruncate($handle, 0);
-    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    echo json_encode($response);
-    exit;
+    respond_json_and_close($handle, $response);
 }
 
 if ($action === 'mark_partner_messages_read') {
