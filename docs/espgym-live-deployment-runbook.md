@@ -410,19 +410,24 @@ Practical meaning:
 Additional authoring rule:
 
 - if lesson editing was done from `https://espgym.com`, the live private content store may become newer first
-- however, a normal deployment must **not** automatically pull live managed new-course content down over local authoritative lesson files
-- local authoritative managed content for deployment is:
+- editable content that can be saved from inside the live app is treated specially during a normal release
+- managed editable content currently includes:
+  - `content_repo\esp-lessons.txt`
+  - `content_repo\learn-more-main.txt`
+  - `content_repo\learn-more-clairvoyance.txt`
   - `content_repo\new-learning-center-outline.json`
   - `content_repo\new-learning-center-lessons\...`
-  - `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-outline.json`
-  - `C:\xampp\telepathyexperiment_private\cones\content\new-learning-center-lessons\...`
-- if those local repo and local private copies agree, they are the deployment source of truth and are promoted upward to the live repo and live private content locations
+  - and the matching local private authoritative files under `C:\xampp\telepathyexperiment_private\cones\content\...`
 - if the local repo and local private managed content copies disagree, stop the release and resolve that local conflict first
-- if live managed content differs from local authoritative content during a normal deployment, report that drift but do not overwrite local content
-- live-to-local managed-content recovery is a separate deliberate action and should be run only when explicitly intended
+- if the live repo/private managed editable content copies disagree, stop the release and resolve that live inconsistency first
+- if live managed editable content differs from local authoritative content during a normal deployment, the normal prepare flow should:
+  - back up the local authoritative editable-content files that will be overwritten
+  - pull the live authoritative editable content down into both the local repo mirror and the local private authoritative tree
+  - re-verify local repo/private consistency and lesson-set consistency before continuing
+- after reconciliation, the refreshed local authoritative editable-content files become the source used for version bump, GitHub commit, and deployment
 - do not assume a successful in-browser save on `espgym.com` has already updated the local authoring tree
 
-The deploy helper is expected to enforce this automatically for normal live pushes by promoting local authoritative content upward and by refusing to auto-pull live content down unless an explicit recovery mode is requested.
+The deploy helper is expected to enforce this automatically for normal releases so that live lesson and Learn More edits are preserved into the next GitHub checkpoint and deployment.
 
 Additional authoring rule for Level 4 image pairs:
 
@@ -750,7 +755,7 @@ The deployment flow is now intentionally split into two concrete stages:
 
 1. perform the release-boundary audit
 2. verify deploy coverage
-3. sync server-managed lesson content back into the authoritative local tree
+3. detect whether live editable content differs from the local authoritative tree and, when needed, reconcile it down into the local repo/private authoring copies before the version bump
 4. run `scripts\bump-version.ps1`
 5. sync the local mirror into `C:\xampp\htdocs\cones`
 6. verify key mirror hashes

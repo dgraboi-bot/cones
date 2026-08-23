@@ -225,6 +225,15 @@ function Get-RemoteSha256([string]$RemotePath) {
 
 function Convert-ToPrivateContentPath([string]$RelativePath) {
   $normalized = Convert-ToPosixPath $RelativePath
+  if ($normalized -eq "content_repo/esp-lessons.txt") {
+    return "$privateContentRoot/esp-lessons.txt"
+  }
+  if ($normalized -eq "content_repo/learn-more-clairvoyance.txt") {
+    return "$privateContentRoot/learn-more-clairvoyance.txt"
+  }
+  if ($normalized -eq "content_repo/learn-more-main.txt") {
+    return "$privateContentRoot/learn-more-main.txt"
+  }
   if ($normalized -eq "content_repo/new-learning-center-outline.json") {
     return "$privateContentRoot/new-learning-center-outline.json"
   }

@@ -30,4 +30,5 @@ Operational note:
 - the live private content tree is the canonical authority
 - the tracked repo mirror exists so approved content can be committed to GitHub and recovered later
 - if a local private mirror copy is missing, the app can seed it back from the tracked repo mirror
+- during a normal release, live editable content should be reconciled back into the local repo/private authoring copies before version bump and GitHub commit
 - when content is intentionally updated and accepted, commit the tracked mirror so GitHub contains the latest approved content

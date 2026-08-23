@@ -63,6 +63,13 @@ $deployFiles = @(
   "telepathybeginner.webmanifest"
 )
 
+$managedEditableDirectFiles = @(
+  "content_repo\esp-lessons.txt",
+  "content_repo\learn-more-clairvoyance.txt",
+  "content_repo\learn-more-main.txt",
+  "content_repo\new-learning-center-outline.json"
+)
+
 $newLearningCenterLessonFiles = @()
 $newLearningCenterLessonsRoot = Join-Path $repoRoot "content_repo\new-learning-center-lessons"
 if (Test-Path -LiteralPath $newLearningCenterLessonsRoot) {
@@ -72,6 +79,8 @@ if (Test-Path -LiteralPath $newLearningCenterLessonsRoot) {
     }
 }
 $deployFiles += $newLearningCenterLessonFiles
+
+$managedEditableContentFiles = @($managedEditableDirectFiles + $newLearningCenterLessonFiles | Sort-Object -Unique)
 
 $lessonImageAssetFiles = @()
 $lessonImageAssetsRoot = Join-Path $repoRoot "assets\lesson-images"
@@ -155,10 +164,7 @@ $liveHashAuditFiles = @(
 $liveHashAuditFiles += $newLearningCenterLessonFiles
 $liveHashAuditFiles += $lessonImageAssetFiles
 
-$privateContentSyncFiles = @(
-  "content_repo\new-learning-center-outline.json"
-)
-$privateContentSyncFiles += $newLearningCenterLessonFiles
+$privateContentSyncFiles = @($managedEditableContentFiles)
 
 $nonDeployPrefixAllowList = @(
   ".git\",
@@ -228,6 +234,18 @@ $cacheCriticalVersionChecks = @(
 
 function Invoke-Plink([string]$Command) {
   & $plinkPath -batch -load $puttySession $Command
+}
+
+function Get-RemoteSha256([string]$RemotePath) {
+  $output = Invoke-Plink "sha256sum '$RemotePath'"
+  if (-not $output) {
+    throw "Unable to read remote hash for $RemotePath"
+  }
+  $firstLine = @($output)[0].ToString().Trim()
+  if (-not $firstLine) {
+    throw "Empty remote hash output for $RemotePath"
+  }
+  return ($firstLine -split '\s+')[0].ToUpperInvariant()
 }
 
 function Assert-ToolExists([string]$Path, [string]$Label) {
@@ -395,6 +413,15 @@ function Assert-DeployCoverage([string[]]$ChangedFiles) {
 
 function Convert-ToPrivateContentPath([string]$RelativePath) {
   $normalized = ($RelativePath -replace "\\", "/")
+  if ($normalized -eq "content_repo/esp-lessons.txt") {
+    return "$privateContentRoot/esp-lessons.txt"
+  }
+  if ($normalized -eq "content_repo/learn-more-clairvoyance.txt") {
+    return "$privateContentRoot/learn-more-clairvoyance.txt"
+  }
+  if ($normalized -eq "content_repo/learn-more-main.txt") {
+    return "$privateContentRoot/learn-more-main.txt"
+  }
   if ($normalized -eq "content_repo/new-learning-center-outline.json") {
     return "$privateContentRoot/new-learning-center-outline.json"
   }
@@ -407,6 +434,15 @@ function Convert-ToPrivateContentPath([string]$RelativePath) {
 
 function Convert-ToLocalPrivateContentPath([string]$RelativePath) {
   $normalized = ($RelativePath -replace "/", "\")
+  if ($normalized -eq "content_repo\esp-lessons.txt") {
+    return Join-Path $localPrivateContentRoot "esp-lessons.txt"
+  }
+  if ($normalized -eq "content_repo\learn-more-clairvoyance.txt") {
+    return Join-Path $localPrivateContentRoot "learn-more-clairvoyance.txt"
+  }
+  if ($normalized -eq "content_repo\learn-more-main.txt") {
+    return Join-Path $localPrivateContentRoot "learn-more-main.txt"
+  }
   if ($normalized -eq "content_repo\new-learning-center-outline.json") {
     return Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
   }
@@ -534,66 +570,66 @@ function Assert-LocalManagedLessonSetConsistent() {
 
 function Get-LocalManagedContentState() {
   $state = @{}
-  $outlinePath = Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
-  if (Test-Path -LiteralPath $outlinePath) {
-    $state["new-learning-center-outline.json"] = (Get-FileHash -Algorithm SHA256 $outlinePath).Hash.ToUpperInvariant()
-  }
-  $lessonsRoot = Join-Path $localPrivateContentRoot "new-learning-center-lessons"
-  if (Test-Path -LiteralPath $lessonsRoot) {
-    Get-ChildItem -LiteralPath $lessonsRoot -File -Filter *.txt | ForEach-Object {
-      $relativeKey = "new-learning-center-lessons/{0}" -f $_.Name
-      $state[$relativeKey] = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToUpperInvariant()
+  foreach ($relativePath in $managedEditableContentFiles) {
+    $localPrivatePath = Convert-ToLocalPrivateContentPath $relativePath
+    if (-not $localPrivatePath -or -not (Test-Path -LiteralPath $localPrivatePath)) {
+      continue
     }
+    $state[$relativePath] = (Get-FileHash -Algorithm SHA256 $localPrivatePath).Hash.ToUpperInvariant()
+  }
+  return $state
+}
+
+function Get-RemoteManagedContentStateForRoot([string]$RootPrefix) {
+  $state = @{}
+  foreach ($relativePath in $managedEditableContentFiles) {
+    $remotePath = Convert-ToPrivateContentPath $relativePath
+    if (-not $remotePath) {
+      continue
+    }
+    if ($RootPrefix -ne $privateContentRoot) {
+      $remotePath = $remotePath -replace [regex]::Escape($privateContentRoot), $RootPrefix
+    }
+    $existsOutput = Invoke-Plink ("if [ -f '{0}' ]; then echo EXISTS; fi" -f $remotePath)
+    $exists = @($existsOutput) | Where-Object { ([string]$_).Trim() -eq "EXISTS" }
+    if (-not $exists) {
+      continue
+    }
+    $state[$relativePath] = (Get-RemoteSha256 $remotePath).ToUpperInvariant()
   }
   return $state
 }
 
 function Get-RemoteManagedContentState() {
-  $state = @{}
-  $remoteCommand = @"
-python3 - <<'PY'
-import hashlib
-import os
-paths = [r'''$privateContentRoot/new-learning-center-outline.json''']
-lessons_root = r'''$privateContentRoot/new-learning-center-lessons'''
-for path in paths:
-    if os.path.isfile(path):
-        with open(path, 'rb') as fh:
-            print(hashlib.sha256(fh.read()).hexdigest(), path)
-if os.path.isdir(lessons_root):
-    for name in sorted(os.listdir(lessons_root)):
-        if not name.endswith('.txt'):
-            continue
-        lesson_path = os.path.join(lessons_root, name)
-        if not os.path.isfile(lesson_path):
-            continue
-        with open(lesson_path, 'rb') as fh:
-            print(hashlib.sha256(fh.read()).hexdigest(), lesson_path)
-PY
-"@
-  $output = Invoke-Plink $remoteCommand
-  foreach ($line in @($output)) {
-    $trimmed = ([string]$line).Trim()
-    if (-not $trimmed) {
+  return Get-RemoteManagedContentStateForRoot $privateContentRoot
+}
+
+function Report-RemoteManagedEditableMirrorDrift() {
+  $privateState = Get-RemoteManagedContentStateForRoot $privateContentRoot
+  $repoState = Get-RemoteManagedContentStateForRoot "/var/www/telepathyexperiment/cones/content_repo"
+  $issues = New-Object System.Collections.Generic.List[string]
+
+  foreach ($relativePath in $managedEditableContentFiles) {
+    $hasPrivate = $privateState.ContainsKey($relativePath)
+    $hasRepo = $repoState.ContainsKey($relativePath)
+    if ($hasPrivate -ne $hasRepo) {
+      $issues.Add("Live editable content presence mismatch for $relativePath between private and repo copies.")
       continue
     }
-    $parts = $trimmed -split '\s+', 2
-    if ($parts.Count -ne 2) {
+    if (-not $hasPrivate) {
       continue
     }
-    $hash = $parts[0].ToUpperInvariant()
-    $path = $parts[1].Trim()
-    if ($path -eq "$privateContentRoot/new-learning-center-outline.json") {
-      $state["new-learning-center-outline.json"] = $hash
-      continue
-    }
-    $lessonPrefix = "$privateContentRoot/new-learning-center-lessons/"
-    if ($path.StartsWith($lessonPrefix, [System.StringComparison]::Ordinal)) {
-      $suffix = $path.Substring($lessonPrefix.Length)
-      $state["new-learning-center-lessons/$suffix"] = $hash
+    if ($privateState[$relativePath] -ne $repoState[$relativePath]) {
+      $issues.Add("Live editable content hash mismatch for $relativePath between private and repo copies.")
     }
   }
-  return $state
+
+  if ($issues.Count -eq 0) {
+    return
+  }
+
+  Write-Host "Live editable content mirror drift detected. Using live private content as the reconciliation source of truth." -ForegroundColor Yellow
+  $issues | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor Yellow }
 }
 
 function Get-ManagedContentDriftSummary([hashtable]$LocalState, [hashtable]$RemoteState) {
@@ -623,14 +659,12 @@ function Report-RemoteManagedContentDrift() {
   $remoteState = Get-RemoteManagedContentState
   $drift = @(Get-ManagedContentDriftSummary -LocalState $localState -RemoteState $remoteState)
   if (@($drift).Count -eq 0) {
-    Write-Host "Managed lesson content matches live authoritative content." -ForegroundColor Green
+    Write-Host "Editable content is already in sync between live and local." -ForegroundColor Green
     return
   }
 
-  Write-Host "Managed lesson content drift detected between local authoritative content and live authoritative content." -ForegroundColor Yellow
-  Write-Host "Normal deploy will promote local authoritative content upward; it will not pull live content down automatically." -ForegroundColor Yellow
+  Write-Host "Live editable content differs from local authoritative content." -ForegroundColor Yellow
   $drift | ForEach-Object { Write-Host ("  " + $_) -ForegroundColor Yellow }
-  Write-Host "If you intend to recover live content back into local authoritative files, re-run prepare-release with -SyncManagedContentFromLive." -ForegroundColor Yellow
 }
 
 function Get-LocalImagePairsState([string]$Root) {
@@ -700,12 +734,13 @@ function Report-RemoteImagePairsDrift() {
 }
 
 function Sync-RemoteManagedContentToLocalAuthoritative() {
+  Report-RemoteManagedEditableMirrorDrift
   $localState = Get-LocalManagedContentState
   $remoteState = Get-RemoteManagedContentState
   $drift = @(Get-ManagedContentDriftSummary -LocalState $localState -RemoteState $remoteState)
 
   if (@($drift).Count -eq 0) {
-    Write-Host "Managed lesson content already matches live server state." -ForegroundColor Green
+    Write-Host "Editable content is already in sync between live and local." -ForegroundColor Green
     return
   }
 
@@ -713,38 +748,15 @@ function Sync-RemoteManagedContentToLocalAuthoritative() {
   $backupRoot = Join-Path $localDeploySyncBackupRoot $timestamp
   New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 
-  $remoteOutlineText = Get-RemoteTextFile "$privateContentRoot/new-learning-center-outline.json"
-  $remoteLessonIds = Get-OutlineLessonPageIdsFromJsonText $remoteOutlineText
-  $repoOutlinePath = Join-Path $repoRoot "content_repo\new-learning-center-outline.json"
-  $privateOutlinePath = Join-Path $localPrivateContentRoot "new-learning-center-outline.json"
-
-  foreach ($path in @($repoOutlinePath, $privateOutlinePath)) {
-    if (Test-Path -LiteralPath $path) {
-      $backupPath = Join-Path $backupRoot ($path.Substring(3) -replace "[:]", "")
-      $backupDirectory = Split-Path -Parent $backupPath
-      if ($backupDirectory -and -not (Test-Path -LiteralPath $backupDirectory)) {
-        New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
-      }
-      Copy-Item -LiteralPath $path -Destination $backupPath -Force
+  foreach ($relativePath in $managedEditableContentFiles) {
+    $remotePath = Convert-ToPrivateContentPath $relativePath
+    $repoPath = Join-Path $repoRoot $relativePath
+    $localPrivatePath = Convert-ToLocalPrivateContentPath $relativePath
+    if (-not $remotePath -or -not $localPrivatePath) {
+      continue
     }
-  }
-
-  Write-Utf8NoBomFile $repoOutlinePath $remoteOutlineText
-  Write-Utf8NoBomFile $privateOutlinePath $remoteOutlineText
-
-  $repoLessonsRoot = Join-Path $repoRoot "content_repo\new-learning-center-lessons"
-  $privateLessonsRoot = Join-Path $localPrivateContentRoot "new-learning-center-lessons"
-  foreach ($root in @($repoLessonsRoot, $privateLessonsRoot)) {
-    if (-not (Test-Path -LiteralPath $root)) {
-      New-Item -ItemType Directory -Path $root -Force | Out-Null
-    }
-  }
-
-  foreach ($lessonId in $remoteLessonIds) {
-    $remoteLessonText = Get-RemoteTextFile "$privateContentRoot/new-learning-center-lessons/$lessonId.txt"
-    $repoLessonPath = Join-Path $repoLessonsRoot "$lessonId.txt"
-    $privateLessonPath = Join-Path $privateLessonsRoot "$lessonId.txt"
-    foreach ($path in @($repoLessonPath, $privateLessonPath)) {
+    $remoteText = Get-RemoteTextFile $remotePath
+    foreach ($path in @($repoPath, $localPrivatePath)) {
       if (Test-Path -LiteralPath $path) {
         $backupPath = Join-Path $backupRoot ($path.Substring(3) -replace "[:]", "")
         $backupDirectory = Split-Path -Parent $backupPath
@@ -753,27 +765,11 @@ function Sync-RemoteManagedContentToLocalAuthoritative() {
         }
         Copy-Item -LiteralPath $path -Destination $backupPath -Force
       }
-    }
-    Write-Utf8NoBomFile $repoLessonPath $remoteLessonText
-    Write-Utf8NoBomFile $privateLessonPath $remoteLessonText
-  }
-
-  $expectedFileNames = @($remoteLessonIds | ForEach-Object { "$_.txt" })
-  foreach ($root in @($repoLessonsRoot, $privateLessonsRoot)) {
-    Get-ChildItem -LiteralPath $root -File -Filter *.txt | ForEach-Object {
-      if ($expectedFileNames -notcontains $_.Name) {
-        $backupPath = Join-Path $backupRoot ($_.FullName.Substring(3) -replace "[:]", "")
-        $backupDirectory = Split-Path -Parent $backupPath
-        if ($backupDirectory -and -not (Test-Path -LiteralPath $backupDirectory)) {
-          New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
-        }
-        Copy-Item -LiteralPath $_.FullName -Destination $backupPath -Force
-        Remove-Item -LiteralPath $_.FullName -Force
-      }
+      Write-Utf8NoBomFile $path $remoteText
     }
   }
 
-  Write-Host ("Managed lesson content pulled from live server into local authoritative files. Backup: {0}" -f $backupRoot) -ForegroundColor Yellow
+  Write-Host ("Live editable content differed from local. Pulled authoritative content down before release. Backup: {0}" -f $backupRoot) -ForegroundColor Yellow
 }
 
 function Test-IsTextDeployFile([string]$RelativePath) {
@@ -874,7 +870,17 @@ if ($SyncManagedContentFromLive) {
   Assert-LocalPrivateContentInSync $privateContentSyncFiles
   Assert-LocalManagedLessonSetConsistent
 } else {
-  Report-RemoteManagedContentDrift
+  $localManagedContentState = Get-LocalManagedContentState
+  $remoteManagedContentState = Get-RemoteManagedContentState
+  $managedContentDrift = @(Get-ManagedContentDriftSummary -LocalState $localManagedContentState -RemoteState $remoteManagedContentState)
+  if ($managedContentDrift.Count -gt 0) {
+    Report-RemoteManagedContentDrift
+    Sync-RemoteManagedContentToLocalAuthoritative
+    Assert-LocalPrivateContentInSync $privateContentSyncFiles
+    Assert-LocalManagedLessonSetConsistent
+  } else {
+    Report-RemoteManagedContentDrift
+  }
 }
 if ($SyncImagePairsFromLive) {
   & powershell -ExecutionPolicy Bypass -File $imagePairsSyncScript

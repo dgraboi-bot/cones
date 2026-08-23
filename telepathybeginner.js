@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823i";
+  const launcherBuildVersion = "20260823j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -905,6 +905,7 @@
   const clairvoyanceLearnMoreInlineStatus = document.querySelector("[data-clairvoyance-learn-more-inline-status]");
   const clairvoyanceLearnMorePreview = document.querySelector("[data-clairvoyance-learn-more-preview]");
   const clairvoyanceLearnMoreEditorField = document.querySelector("[data-clairvoyance-learn-more-editor-field]");
+  const clairvoyanceLearnMorePreviewWrap = document.querySelector("[data-clairvoyance-learn-more-preview-wrap]");
   const clairvoyanceLearnMorePreviewLabel = document.querySelector("[data-clairvoyance-learn-more-preview-label]");
   const colorSchemeInput = document.querySelector("[data-color-scheme-input]");
   const colorSchemeHexInput = document.querySelector("[data-color-scheme-hex]");
@@ -22101,10 +22102,15 @@ ${calmPracticeMessage}`;
       clairvoyanceLearnMoreTextInput.setAttribute("aria-hidden", isEditMode ? "false" : "true");
       clairvoyanceLearnMoreTextInput.tabIndex = isEditMode ? 0 : -1;
     }
+    if (clairvoyanceLearnMorePreviewWrap) {
+      clairvoyanceLearnMorePreviewWrap.classList.toggle("learn-more-preview-wrap-reader", !isEditMode);
+    }
     if (clairvoyanceLearnMorePreviewLabel) {
-      clairvoyanceLearnMorePreviewLabel.textContent = isEditMode ? "Rendered preview" : "Text";
+      clairvoyanceLearnMorePreviewLabel.hidden = !isEditMode;
+      clairvoyanceLearnMorePreviewLabel.textContent = "Rendered preview";
     }
     if (clairvoyanceLearnMoreStatus) {
+      clairvoyanceLearnMoreStatus.hidden = !isEditMode;
       clairvoyanceLearnMoreStatus.textContent = "";
     }
     if (clairvoyanceLearnMoreInlineStatus) {
@@ -26087,6 +26093,7 @@ ${calmPracticeMessage}`;
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
