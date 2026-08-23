@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260822j";
+  const launcherBuildVersion = "20260823f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -34,7 +34,7 @@
   const proOnlyRoleCards = Array.from(document.querySelectorAll("[data-pro-only-card]"));
   const rolePanels = document.querySelector(".role-panels");
   const launcherView = document.querySelector('[data-view="launcher"]');
-  const beginnerKickers = Array.from(document.querySelectorAll(".beginner-kicker"));
+  let beginnerKickers = Array.from(document.querySelectorAll(".beginner-kicker"));
   const beginnerMainTitle = document.querySelector("[data-beginner-main-title]");
   const launcherSubtitle = document.querySelector("[data-launcher-subtitle]");
   const launcherCopy = document.querySelector("[data-launcher-copy]");
@@ -1403,7 +1403,7 @@ ${calmPracticeMessage}`;
   let activeAdminSubscriptionsMismatchFilter = "all";
   let activeAdminSubscriptionsSearch = "";
   const launcherAdminLockRefreshActiveIntervalMs = 5000;
-  const launcherAdminLockRefreshIdleIntervalMs = 15000;
+  const launcherAdminLockRefreshIdleIntervalMs = 8000;
   let launcherAdminLockRefreshTimer = 0;
   let launcherTrafficStateRefreshTimer = 0;
 
@@ -1527,7 +1527,12 @@ ${calmPracticeMessage}`;
       subscriptionsAdminView,
       lessonIndexAdminView,
       savedLinksAdminView,
-      messagingParmsAdminView
+      messagingParmsAdminView,
+      reportDefinitionView,
+      reportView,
+      visualizationView,
+      visualizationAdvancedDetailView,
+      analyzerView
     ].some((view) => isBeginnerViewVisible(view));
   }
 
@@ -4128,14 +4133,16 @@ ${calmPracticeMessage}`;
     }
   }
 
-  function buildReportRequestPayload() {
-    const payload = {
-      action: "report_csv_data"
-    };
+  function buildReportRequestPayload(includeAdminContext = false) {
+    const payload = includeAdminContext
+      ? applyLauncherAdminContext({
+          action: "report_csv_data"
+        })
+      : {
+          action: "report_csv_data"
+        };
 
-    const adminSecretCandidate = getLauncherAdminSecretCandidate();
-    if (adminSecretCandidate) {
-      payload.secret_candidate = adminSecretCandidate;
+    if (includeAdminContext) {
       payload.include_all = true;
       return payload;
     }
@@ -4153,18 +4160,28 @@ ${calmPracticeMessage}`;
     try {
       return await fetchReportCsvDataCore();
     } catch (error) {
-      await maybeRecoverFromReportRequestFailure("report_csv_data", error);
-      throw error;
+      const recovered = await maybeRecoverFromReportRequestFailure("report_csv_data", error);
+      if (recovered) {
+        throw error;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+      try {
+        return await fetchReportCsvDataCore();
+      } catch (retryError) {
+        await maybeRecoverFromReportRequestFailure("report_csv_data", retryError);
+        throw retryError;
+      }
     }
   }
 
   async function fetchReportCsvDataCore() {
+    const includeAdminContext = await ensureLauncherAdminLeaseForReportContext();
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(buildReportRequestPayload())
+      body: JSON.stringify(buildReportRequestPayload(includeAdminContext))
     });
 
     if (!response.ok) {
@@ -4187,23 +4204,37 @@ ${calmPracticeMessage}`;
     try {
       return await fetchSelectedPairReportCsvDataCore(pairInfo);
     } catch (error) {
-      await maybeRecoverFromReportRequestFailure("report_pair_csv_data", error);
-      throw error;
+      const recovered = await maybeRecoverFromReportRequestFailure("report_pair_csv_data", error);
+      if (recovered) {
+        throw error;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+      try {
+        return await fetchSelectedPairReportCsvDataCore(pairInfo);
+      } catch (retryError) {
+        await maybeRecoverFromReportRequestFailure("report_pair_csv_data", retryError);
+        throw retryError;
+      }
     }
   }
 
   async function fetchSelectedPairReportCsvDataCore(pairInfo) {
     const selectedPair = sanitizePairInfoForServer(pairInfo);
+    const includeAdminContext = await ensureLauncherAdminLeaseForReportContext();
     const response = await fetch("api.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        action: "report_pair_csv_data",
-        selected_pair: selectedPair,
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+      body: JSON.stringify(includeAdminContext
+        ? applyLauncherAdminContext({
+            action: "report_pair_csv_data",
+            selected_pair: selectedPair
+          })
+        : {
+            action: "report_pair_csv_data",
+            selected_pair: selectedPair
+          })
     });
 
     const data = await parseApiResponse(response, `Pair report CSV request failed with status ${response.status}`);
@@ -4217,12 +4248,15 @@ ${calmPracticeMessage}`;
   }
 
   async function fetchNamedReports() {
-    const payload = {
-      action: "list_named_reports"
-    };
-    const adminSecretCandidate = getLauncherAdminSecretCandidate();
-    if (adminSecretCandidate) {
-      payload.secret_candidate = adminSecretCandidate;
+    const includeAdminContext = await ensureLauncherAdminLeaseForReportContext();
+    const payload = includeAdminContext
+      ? applyLauncherAdminContext({
+          action: "list_named_reports"
+        })
+      : {
+          action: "list_named_reports"
+        };
+    if (includeAdminContext) {
       payload.include_all = true;
     } else {
       payload.candidate_pairs = collectReportCandidatePairs().map((pair) => ({
@@ -4260,15 +4294,14 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action: "save_named_report",
         selected_pair: selectedPair,
         title: String(options.title || "").trim(),
         start_trial: Number(options.startTrial || 0),
         end_trial: Number(options.endTrial || 0),
-        completed_trial_count: Number(options.completedTrialCount || 0),
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+        completed_trial_count: Number(options.completedTrialCount || 0)
+      }))
     });
     const data = await parseApiResponse(response, `Save named report request failed with status ${response.status}`);
     let target = buildNamedReportTarget(data?.named_report || {});
@@ -4313,11 +4346,10 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action: "delete_named_report",
-        report_id: cleanId,
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+        report_id: cleanId
+      }))
     });
     const data = await parseApiResponse(response, `Delete named report request failed with status ${response.status}`);
     removeNamedReportFromCache(cleanId);
@@ -7894,8 +7926,13 @@ ${calmPracticeMessage}`;
         kicker.appendChild(document.createTextNode(" "));
         kicker.appendChild(badge);
       }
-      badge.hidden = !hasLauncherAdminLease();
+      badge.hidden = !hasLauncherAdminAccess();
     });
+  }
+
+  function refreshBeginnerKickers() {
+    beginnerKickers = Array.from(document.querySelectorAll(".beginner-kicker"));
+    renderAdminPrivilegeIndicator();
   }
 
   function getLauncherAdminSecretCandidate() {
@@ -7916,6 +7953,33 @@ ${calmPracticeMessage}`;
     return launcherAdminSessionActive && !!getLauncherAdminSecretCandidate();
   }
 
+  function applyLauncherAdminContext(payload = {}) {
+    const nextPayload = payload && typeof payload === "object" ? { ...payload } : {};
+    const secretCandidate = getLauncherAdminSecretCandidate();
+    if (secretCandidate) {
+      nextPayload.secret_candidate = secretCandidate;
+      nextPayload.admin_client_id = launcherPageInstanceId;
+    }
+    return nextPayload;
+  }
+
+  async function ensureLauncherAdminLeaseForReportContext() {
+    if (!hasLauncherAdminAccess()) {
+      return false;
+    }
+    if (hasLauncherAdminLease()) {
+      return true;
+    }
+    try {
+      await claimAdminLease();
+      return hasLauncherAdminLease();
+    } catch (_error) {
+      launcherAdminState.admin_lock_active = false;
+      renderAdminPrivilegeIndicator();
+      return false;
+    }
+  }
+
   function hasExplicitLauncherAdminSecret() {
     return !!String(launcherAdminSecret || "").trim();
   }
@@ -7926,12 +7990,10 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action,
-        secret_candidate: getLauncherAdminSecretCandidate(),
-        admin_client_id: launcherPageInstanceId,
         ...payload
-      })
+      }))
     });
     return parseApiResponse(response, `Admin request failed with status ${response.status}`);
   }
@@ -14159,6 +14221,7 @@ ${calmPracticeMessage}`;
     analyzerCopyButton = document.querySelector("[data-analyzer-copy]");
     reportPanel = document.querySelector(".report-panel");
     reportResizeHandles = Array.from(document.querySelectorAll("[data-report-resize]"));
+    refreshBeginnerKickers();
   }
 
   function bindReportDeferredHandlers() {
@@ -17826,6 +17889,9 @@ ${calmPracticeMessage}`;
     const plotHeight = height - margin.top - margin.bottom;
     const minTrialNumber = Number(series[0]?.trialNumber || 1);
     const maxTrialNumber = Number(series[series.length - 1]?.trialNumber || minTrialNumber);
+    const isSinglePointSeries = series.length === 1;
+    const xDomainMin = isSinglePointSeries ? (minTrialNumber - 0.5) : minTrialNumber;
+    const xDomainMax = isSinglePointSeries ? (maxTrialNumber + 0.5) : maxTrialNumber;
     const allYValues = [0];
     series.forEach((point) => {
       allYValues.push(point.cumulativeExcess, point.upperBand, point.lowerBand);
@@ -17835,7 +17901,7 @@ ${calmPracticeMessage}`;
     const yPadding = Math.max(1, (yMaxRaw - yMinRaw) * 0.08);
     const yMin = yMinRaw - yPadding;
     const yMax = yMaxRaw + yPadding;
-    const xToPx = (value) => margin.left + ((value - minTrialNumber) / Math.max(maxTrialNumber - minTrialNumber, 1)) * plotWidth;
+    const xToPx = (value) => margin.left + ((value - xDomainMin) / Math.max(xDomainMax - xDomainMin, 1)) * plotWidth;
     const yToPx = (value) => margin.top + ((yMax - value) / Math.max(yMax - yMin, 0.0001)) * plotHeight;
 
     const bandPathParts = [];
@@ -18166,53 +18232,66 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    if (!pairInfo?.receiverName || !pairInfo?.senderName) {
-      setReportPairBanner(null, false);
+    try {
+      if (!pairInfo?.receiverName || !pairInfo?.senderName) {
+        setReportPairBanner(null, false);
+        reportSummary.replaceChildren();
+        reportStatus.textContent = "Choose a receiver-sender pair in Report Definition first, then open this report again.";
+        if (reportTableWrap) {
+          reportTableWrap.hidden = true;
+        }
+        if (reportTable) {
+          reportTable.replaceChildren();
+        }
+        return;
+      }
+
+      const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+      setReportPairBanner(pairInfo, true);
+
+      if (!records.length) {
+        reportSummary.replaceChildren();
+        const line = document.createElement("p");
+        line.className = "report-summary-line";
+        line.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"} First trial: Local unknown`;
+        reportSummary.append(line);
+        reportStatus.textContent = csvResult.available
+          ? "No trial records found for the current receiver-sender selection."
+          : (csvResult.message || "No server-side trial history is available right now.");
+        if (reportTableWrap) {
+          reportTableWrap.hidden = true;
+        }
+        if (reportTable) {
+          reportTable.replaceChildren();
+        }
+        return;
+      }
+
+      const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
+      renderReportSummary(pairInfo, filteredRecords);
+      const hasLevelFourTrials = filteredRecords.some((record) => String(record?.["difficulty level"] ?? "").trim() === "4");
+      const levelFourImagePairsIndex = hasLevelFourTrials
+        ? await fetchLevelFourImagePairsIndex()
+        : new Map();
+      renderReportTable(filteredRecords, {
+        hasLevelFourTrials,
+        levelFourImagePairsIndex,
+        startTrialNumber: isNamedReportTarget(pairInfo)
+          ? Math.max(1, Number(pairInfo?.startTrial || 1) || 1)
+          : 1
+      });
+    } catch (error) {
       reportSummary.replaceChildren();
-      reportStatus.textContent = "Choose a receiver-sender pair in Report Definition first, then open this report again.";
       if (reportTableWrap) {
         reportTableWrap.hidden = true;
       }
       if (reportTable) {
         reportTable.replaceChildren();
       }
-      return;
+      reportStatus.textContent = error instanceof Error
+        ? `Unable to render this report right now. ${error.message}`
+        : "Unable to render this report right now.";
     }
-
-    const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
-    setReportPairBanner(pairInfo, true);
-
-    if (!records.length) {
-      reportSummary.replaceChildren();
-      const line = document.createElement("p");
-      line.className = "report-summary-line";
-      line.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"} First trial: Local unknown`;
-      reportSummary.append(line);
-      reportStatus.textContent = csvResult.available
-        ? "No trial records found for the current receiver-sender selection."
-        : (csvResult.message || "No server-side trial history is available right now.");
-      if (reportTableWrap) {
-        reportTableWrap.hidden = true;
-      }
-      if (reportTable) {
-        reportTable.replaceChildren();
-      }
-      return;
-    }
-
-    const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
-    renderReportSummary(pairInfo, filteredRecords);
-    const hasLevelFourTrials = filteredRecords.some((record) => String(record?.["difficulty level"] ?? "").trim() === "4");
-    const levelFourImagePairsIndex = hasLevelFourTrials
-      ? await fetchLevelFourImagePairsIndex()
-      : new Map();
-    renderReportTable(filteredRecords, {
-      hasLevelFourTrials,
-      levelFourImagePairsIndex,
-      startTrialNumber: isNamedReportTarget(pairInfo)
-        ? Math.max(1, Number(pairInfo?.startTrial || 1) || 1)
-        : 1
-    });
   }
 
   async function renderPerformanceVisualization(pairInfo = selectedReportTarget || selectedReportPair) {
@@ -18237,82 +18316,121 @@ ${calmPracticeMessage}`;
 
     latestVisualizationContext = null;
 
-    if (!pairInfo?.receiverName || !pairInfo?.senderName) {
-      syncVisualizationRangeEditability(null);
-      visualizationSummary.replaceChildren();
-      visualizationStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open the visualization again.";
-      visualizationChart.replaceChildren();
-      visualizationChartWrap.hidden = true;
-      return;
-    }
+    traceLauncherClient("report_visualization:begin", {
+      pairInfo: cloneJsonValue(pairInfo, null),
+      hasVisualizationSummary: !!visualizationSummary,
+      hasVisualizationStatus: !!visualizationStatus,
+      hasVisualizationChartWrap: !!visualizationChartWrap,
+      hasVisualizationChart: !!visualizationChart
+    });
 
-    const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
-    syncVisualizationRangeEditability(pairInfo);
-
-    if (!records.length) {
-      visualizationSummary.replaceChildren();
-      visualizationStatus.textContent = csvResult.available
-        ? "No trial records found for the current receiver-sender selection."
-        : (csvResult.message || "No server-side trial history is available right now.");
-      visualizationChart.replaceChildren();
-      visualizationChartWrap.hidden = true;
-      return;
-    }
-
-    const namedRange = getNamedReportRange(pairInfo);
-    const scoredRecords = getScoredRecords(records);
-    ensureVisualizationRangeState(pairInfo, scoredRecords.length);
-    if (namedRange && visualizationRangeState.pairKey === buildVisualizationPairKey(pairInfo)) {
-      const nextStart = String(namedRange.start);
-      const nextEnd = String(namedRange.end);
-      if (visualizationRangeState.startValue !== nextStart || visualizationRangeState.endValue !== nextEnd) {
-        visualizationRangeState.startValue = nextStart;
-        visualizationRangeState.endValue = nextEnd;
-        syncVisualizationRangeInputs();
+    try {
+      if (!pairInfo?.receiverName || !pairInfo?.senderName) {
+        syncVisualizationRangeEditability(null);
+        visualizationSummary.replaceChildren();
+        visualizationStatus.textContent = "Choose a receiver-sender pair in Performance Report first, then open the visualization again.";
+        visualizationChart.replaceChildren();
+        visualizationChartWrap.hidden = true;
+        return;
       }
-    }
 
-    if (!scoredRecords.length) {
+      const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+      traceLauncherClient("report_visualization:records", {
+        pairInfo: cloneJsonValue(pairInfo, null),
+        csvAvailable: !!csvResult.available,
+        csvMessage: String(csvResult.message || ""),
+        csvRecordCount: Array.isArray(csvResult.records) ? csvResult.records.length : 0,
+        filteredRecordCount: Array.isArray(records) ? records.length : 0
+      });
+      syncVisualizationRangeEditability(pairInfo);
+
+      if (!records.length) {
+        visualizationSummary.replaceChildren();
+        visualizationStatus.textContent = csvResult.available
+          ? "No trial records found for the current receiver-sender selection."
+          : (csvResult.message || "No server-side trial history is available right now.");
+        visualizationChart.replaceChildren();
+        visualizationChartWrap.hidden = true;
+        return;
+      }
+
+      const namedRange = getNamedReportRange(pairInfo);
+      const scoredRecords = getScoredRecords(records);
+      traceLauncherClient("report_visualization:scored_records", {
+        pairInfo: cloneJsonValue(pairInfo, null),
+        scoredRecordCount: Array.isArray(scoredRecords) ? scoredRecords.length : 0
+      });
+      ensureVisualizationRangeState(pairInfo, scoredRecords.length);
+      if (namedRange && visualizationRangeState.pairKey === buildVisualizationPairKey(pairInfo)) {
+        const nextStart = String(namedRange.start);
+        const nextEnd = String(namedRange.end);
+        if (visualizationRangeState.startValue !== nextStart || visualizationRangeState.endValue !== nextEnd) {
+          visualizationRangeState.startValue = nextStart;
+          visualizationRangeState.endValue = nextEnd;
+          syncVisualizationRangeInputs();
+        }
+      }
+
+      if (!scoredRecords.length) {
+        visualizationSummary.replaceChildren();
+        const firstLine = document.createElement("p");
+        firstLine.className = "report-summary-line";
+        firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+        visualizationSummary.append(firstLine);
+        visualizationStatus.textContent = "No completed scored trials are available for visualization.";
+        visualizationChart.replaceChildren();
+        visualizationChartWrap.hidden = true;
+        return;
+      }
+
+      const range = getVisualizationEffectiveRange(scoredRecords.length);
+      if (!range.valid) {
+        visualizationSummary.replaceChildren();
+        const firstLine = document.createElement("p");
+        firstLine.className = "report-summary-line";
+        firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+        visualizationSummary.append(firstLine);
+        visualizationStatus.textContent = range.message || "Unable to apply the selected trial range.";
+        visualizationChart.replaceChildren();
+        visualizationChartWrap.hidden = true;
+        return;
+      }
+
+      const filteredRecords = scoredRecords.slice(range.start - 1, range.end);
+      const series = buildVisualizationSeries(filteredRecords, range.start);
+      traceLauncherClient("report_visualization:series", {
+        pairInfo: cloneJsonValue(pairInfo, null),
+        range: cloneJsonValue(range, null),
+        filteredRecordCount: Array.isArray(filteredRecords) ? filteredRecords.length : 0,
+        seriesLength: Array.isArray(series) ? series.length : 0
+      });
+      latestVisualizationContext = {
+        pairInfo,
+        records: filteredRecords,
+        summaryStats: getReportSummaryStats(filteredRecords),
+        levelBreakdown: buildLevelBreakdown(filteredRecords),
+        totalAvailableTrials: scoredRecords.length,
+        range,
+        completedTrialCount: filteredRecords.length
+      };
+      visualizationRangeState.appliedStartValue = visualizationRangeState.startValue;
+      visualizationRangeState.appliedEndValue = visualizationRangeState.endValue;
+      syncVisualizationRangeDirtyState();
+      renderVisualizationSummary(pairInfo, filteredRecords, series, scoredRecords.length, range);
+      renderVisualizationChart(series);
+    } catch (error) {
+      traceLauncherClient("report_visualization:error", {
+        pairInfo: cloneJsonValue(pairInfo, null),
+        errorMessage: error instanceof Error ? error.message : String(error || "")
+      });
+      latestVisualizationContext = null;
       visualizationSummary.replaceChildren();
-      const firstLine = document.createElement("p");
-      firstLine.className = "report-summary-line";
-      firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
-      visualizationSummary.append(firstLine);
-      visualizationStatus.textContent = "No completed scored trials are available for visualization.";
       visualizationChart.replaceChildren();
       visualizationChartWrap.hidden = true;
-      return;
+      visualizationStatus.textContent = error instanceof Error
+        ? `Unable to render this analysis right now. ${error.message}`
+        : "Unable to render this analysis right now.";
     }
-
-    const range = getVisualizationEffectiveRange(scoredRecords.length);
-    if (!range.valid) {
-      visualizationSummary.replaceChildren();
-      const firstLine = document.createElement("p");
-      firstLine.className = "report-summary-line";
-      firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
-      visualizationSummary.append(firstLine);
-      visualizationStatus.textContent = range.message || "Unable to apply the selected trial range.";
-      visualizationChart.replaceChildren();
-      visualizationChartWrap.hidden = true;
-      return;
-    }
-
-    const filteredRecords = scoredRecords.slice(range.start - 1, range.end);
-    const series = buildVisualizationSeries(filteredRecords, range.start);
-    latestVisualizationContext = {
-      pairInfo,
-      records: filteredRecords,
-      summaryStats: getReportSummaryStats(filteredRecords),
-      levelBreakdown: buildLevelBreakdown(filteredRecords),
-      totalAvailableTrials: scoredRecords.length,
-      range,
-      completedTrialCount: filteredRecords.length
-    };
-    visualizationRangeState.appliedStartValue = visualizationRangeState.startValue;
-    visualizationRangeState.appliedEndValue = visualizationRangeState.endValue;
-    syncVisualizationRangeDirtyState();
-    renderVisualizationSummary(pairInfo, filteredRecords, series, scoredRecords.length, range);
-    renderVisualizationChart(series);
   }
 
   async function renderResultsAnalysis(pairInfo = selectedReportTarget || selectedReportPair) {
@@ -18344,49 +18462,58 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
-    if (!records.length) {
-      analyzerStatus.textContent = csvResult.available
-        ? "No trial records found for the current receiver-sender selection."
-        : (csvResult.message || "No server-side trial history is available right now.");
-      return;
-    }
-
-    const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
-    const analysis = buildResultsAnalysis(pairInfo, filteredRecords, csvResult.path || reportCsvPathCache || "");
-    saveAnalysisLocally(pairInfo, analysis);
-
-    const titleLine = document.createElement("p");
-    titleLine.className = "report-summary-line";
-    titleLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
-    analyzerSummary.append(titleLine);
-
-    const headlineLine = document.createElement("p");
-    headlineLine.className = "report-summary-line";
-    headlineLine.textContent = analysis.messages.headline;
-    analyzerSummary.append(headlineLine);
-    const makeupLine = document.createElement("p");
-    makeupLine.className = "report-summary-line";
-    makeupLine.textContent = analysis.interpretation?.dataset_makeup || "";
-    analyzerSummary.append(makeupLine);
-    const projectionLine = document.createElement("p");
-    projectionLine.className = "report-summary-line";
-    projectionLine.textContent = analysis.interpretation?.persuasiveness_projection || "";
-    analyzerSummary.append(projectionLine);
-
-    analyzerStatus.textContent = `${analysis.metrics.completed_trial_count} completed trial record${analysis.metrics.completed_trial_count === 1 ? "" : "s"} analyzed.`;
-    analyzerOutput.textContent = formatAnalysisDisplay(analysis);
-    analyzerText.value = analysis.continuity_text;
-
     try {
-      const saveResult = await saveAnalysisToServer(pairInfo, analysis);
-      if (saveResult?.saved) {
-        analyzerStatus.textContent += ` Analysis JSON saved locally and on the server.`;
-      } else if (saveResult?.message) {
-        analyzerStatus.textContent += ` ${saveResult.message}`;
+      const records = getRecordsForReportPair(csvResult.records || [], pairInfo);
+      if (!records.length) {
+        analyzerStatus.textContent = csvResult.available
+          ? "No trial records found for the current receiver-sender selection."
+          : (csvResult.message || "No server-side trial history is available right now.");
+        return;
+      }
+
+      const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
+      const analysis = buildResultsAnalysis(pairInfo, filteredRecords, csvResult.path || reportCsvPathCache || "");
+      saveAnalysisLocally(pairInfo, analysis);
+
+      const titleLine = document.createElement("p");
+      titleLine.className = "report-summary-line";
+      titleLine.textContent = `Receiver-sender pair: ${getPairInfoReceiverLabel(pairInfo) || "unknown"} - ${getPairInfoSenderLabel(pairInfo) || "unknown"}.`;
+      analyzerSummary.append(titleLine);
+
+      const headlineLine = document.createElement("p");
+      headlineLine.className = "report-summary-line";
+      headlineLine.textContent = analysis.messages.headline;
+      analyzerSummary.append(headlineLine);
+      const makeupLine = document.createElement("p");
+      makeupLine.className = "report-summary-line";
+      makeupLine.textContent = analysis.interpretation?.dataset_makeup || "";
+      analyzerSummary.append(makeupLine);
+      const projectionLine = document.createElement("p");
+      projectionLine.className = "report-summary-line";
+      projectionLine.textContent = analysis.interpretation?.persuasiveness_projection || "";
+      analyzerSummary.append(projectionLine);
+
+      analyzerStatus.textContent = `${analysis.metrics.completed_trial_count} completed trial record${analysis.metrics.completed_trial_count === 1 ? "" : "s"} analyzed.`;
+      analyzerOutput.textContent = formatAnalysisDisplay(analysis);
+      analyzerText.value = analysis.continuity_text;
+
+      try {
+        const saveResult = await saveAnalysisToServer(pairInfo, analysis);
+        if (saveResult?.saved) {
+          analyzerStatus.textContent += ` Analysis JSON saved locally and on the server.`;
+        } else if (saveResult?.message) {
+          analyzerStatus.textContent += ` ${saveResult.message}`;
+        }
+      } catch (error) {
+        analyzerStatus.textContent += " Analysis JSON saved locally, but the server copy could not be updated right now.";
       }
     } catch (error) {
-      analyzerStatus.textContent += " Analysis JSON saved locally, but the server copy could not be updated right now.";
+      analyzerSummary.replaceChildren();
+      analyzerOutput.textContent = "";
+      analyzerText.value = "";
+      analyzerStatus.textContent = error instanceof Error
+        ? `Unable to render this analysis right now. ${error.message}`
+        : "Unable to render this analysis right now.";
     }
   }
 
@@ -21742,6 +21869,7 @@ ${calmPracticeMessage}`;
       remoteViewerCard.hidden = false;
       remoteViewerCard.classList.remove("role-card-hidden");
       remoteViewerCard.classList.remove("active");
+      syncRoleCardTitle(remoteViewerCard, true);
       const toggle = remoteViewerCard.querySelector(".role-card-toggle");
       if (toggle) {
         toggle.setAttribute("aria-expanded", "false");
@@ -22058,6 +22186,7 @@ ${calmPracticeMessage}`;
 
   async function showReportDefinitionView() {
     await ensureReportDeferredViewsLoaded();
+    activateLauncherAdminSession();
     clearReportPanelOffset();
     syncCurrentLauncherNamesToState();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -22093,6 +22222,7 @@ ${calmPracticeMessage}`;
     imagePairAdminView?.classList.add("beginner-view-hidden");
     adminUserListView?.classList.add("beginner-view-hidden");
     adminIdentityListView?.classList.add("beginner-view-hidden");
+    renderAdminPrivilegeIndicator();
     void renderReportDefinition();
     window.scrollTo({ top: 0, behavior: "smooth" });
     updatePendingLearningCenterLessonReturnButtons();
@@ -25028,6 +25158,7 @@ ${calmPracticeMessage}`;
   }
 
   function showSettingsView() {
+    activateLauncherAdminSession();
     learningCenterView?.classList.add("beginner-view-hidden");
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");
@@ -25054,6 +25185,7 @@ ${calmPracticeMessage}`;
     adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     renderSettingsView();
+    renderAdminPrivilegeIndicator();
     void syncConfidencePreferenceForReceiverContext({ render: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }

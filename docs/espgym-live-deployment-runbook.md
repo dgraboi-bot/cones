@@ -251,6 +251,60 @@ Use this profiling pass before deciding whether the next optimization should tar
 - launcher-summary API behavior
 - or broader server/worker contention
 
+## Capacity Certification Safeguard
+
+The live build `20260822j` is the current certified baseline for `200` simultaneous mixed users under the tested ESP GYM usage pattern.
+
+Required rule going forward:
+
+1. do not describe a later build as still certified for `200` mixed simultaneous users unless performance-affecting changes have been checked against that baseline
+2. treat any change to polling, launcher startup, service worker behavior, session timing, API request volume, report loading, runtime storage coordination, or other server I/O paths as potentially capacity-affecting
+3. purely textual edits, lesson-content edits, static image swaps, and strictly visual CSS refinements may be treated as non-capacity-affecting unless they alter runtime loading behavior
+4. capacity-affecting changes require at least a targeted regression check before a release is called clean
+5. broad changes to request patterns, launcher shell behavior, session coordination, or server-side execution paths require rerunning the mixed-load certification flow before claiming the `200`-user certification still stands
+
+Practical meaning:
+
+- safe without re-certification:
+  - wording changes
+  - lesson text changes
+  - replacing static image assets
+  - visual-only CSS adjustments that do not change loading or polling behavior
+- requires targeted performance regression check:
+  - launcher shell changes
+  - service worker changes
+  - API call pattern changes
+  - telepathy or remote-viewing session flow changes
+  - report loading or report-generation path changes
+  - admin features that touch live runtime paths
+- requires full mixed-load recheck:
+  - storage-model changes
+  - session-coordination changes
+  - caching-layer changes that alter request behavior materially
+  - anything expected to increase concurrent request volume or server work per user
+
+Minimum preservation rule:
+
+- if a change is judged capacity-affecting, do not call the resulting release "clean" until the relevant regression check has passed
+- if there is uncertainty whether a change is capacity-affecting, treat it as capacity-affecting
+
+Current certified evidence:
+
+- live mixed-load certification run completed successfully on August 22, 2026
+- certified live build at time of test: `20260822j`
+- mixed simulated users: `200`
+- tested workload included idle navigation, telepathy sessions, remote-viewing sessions, report use, and course use
+
+Operational command family:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run-mixed-load-test.ps1 -Version <liveVersion> -ConfigPath <configPath>
+```
+
+Artifacts are written under:
+
+- `C:\xampp\telepathyexperiment_private\cones\profiling\mixed-load\`
+
 ```powershell
 robocopy C:\xampp\htdocs\telepathyexperiment\cones C:\xampp\htdocs\cones /MIR /XD .git /R:1 /W:1
 ```
@@ -458,6 +512,12 @@ Required rule going forward:
 Practical meaning:
 
 - local debugging should not begin after asset changes until the local debug helper succeeds
+- any edit to local browser-loaded HTML, CSS, JS, manifest, or service-worker files automatically requires a fresh local debug version before localhost testing
+- if a tiny localhost UI change appears not to take effect, do not immediately add workaround code or assume the source edit failed
+- first ask whether the changed files are still being served under the same local build version and service-worker cache name
+- Chrome DevTools `Disable cache` is not a reliable cure for a same-version service-worker shell on `localhost`
+- for local micro-changes that affect browser-loaded files, the right fix is usually a fresh local-only build/version label so the HTML, JS, manifest, and service worker move together to a new local version
+- if the code now looks correct on disk but the browser still shows the old UI, prefer a local version bump before any more debugging patches
 - the preferred test URL should come from the helper output, not from memory
 - after any JavaScript edit, run a syntax check before handing over a local test URL:
   - `node --check C:\xampp\htdocs\telepathyexperiment\cones\telepathybeginner.js`

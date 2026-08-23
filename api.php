@@ -14470,7 +14470,7 @@ if ($action === 'report_csv_data') {
 
 if ($action === 'report_pair_csv_data') {
     try {
-        require_allowed_keys($input, ['action', 'selected_pair', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'selected_pair', 'secret_candidate', 'admin_client_id'], 'request');
         $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -14514,7 +14514,7 @@ if ($action === 'report_pair_csv_data') {
 
 if ($action === 'list_named_reports') {
     try {
-        require_allowed_keys($input, ['action', 'candidate_pairs', 'associated_names', 'include_all', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'candidate_pairs', 'associated_names', 'include_all', 'secret_candidate', 'admin_client_id'], 'request');
         $candidatePairs = isset($input['candidate_pairs']) && is_array($input['candidate_pairs'])
             ? array_map(static fn($value): array => validate_selected_pair_payload($value, 'candidate_pairs[]'), $input['candidate_pairs'])
             : [];
@@ -14531,7 +14531,7 @@ if ($action === 'list_named_reports') {
 
 if ($action === 'save_named_report') {
     try {
-        require_allowed_keys($input, ['action', 'selected_pair', 'title', 'start_trial', 'end_trial', 'completed_trial_count', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'selected_pair', 'title', 'start_trial', 'end_trial', 'completed_trial_count', 'secret_candidate', 'admin_client_id'], 'request');
         $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
         $title = validate_named_report_title($input['title'] ?? '', 'title');
         $startTrial = validate_positive_trial_bound($input['start_trial'] ?? 0, 'start_trial');
@@ -14552,7 +14552,7 @@ if ($action === 'save_named_report') {
 
 if ($action === 'delete_named_report') {
     try {
-        require_allowed_keys($input, ['action', 'report_id', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'report_id', 'secret_candidate', 'admin_client_id'], 'request');
         $reportId = trim((string) ($input['report_id'] ?? ''));
         if ($reportId === '') {
             throw new RuntimeException('report_id is required.');
@@ -14570,7 +14570,7 @@ if ($action === 'get_location_visualization') {
     try {
         require_allowed_keys(
             $input,
-            ['action', 'selected_pair', 'secret_candidate', 'level', 'date_from', 'date_to', 'min_trials', 'include_incomplete', 'group_by', 'rounding_decimals'],
+            ['action', 'selected_pair', 'secret_candidate', 'admin_client_id', 'level', 'date_from', 'date_to', 'min_trials', 'include_incomplete', 'group_by', 'rounding_decimals'],
             'request'
         );
         $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
