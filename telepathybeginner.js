@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823g";
+  const launcherBuildVersion = "20260823h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -5847,12 +5847,11 @@ ${calmPracticeMessage}`;
     if (!/^main$|^clairvoyance$|^esp-lessons$|^learning-center-outline$|^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
       throw new Error("Learn More content key is invalid.");
     }
-    const response = await postInfrastructureContentRequest("save_learn_more_content", {
+    const response = await postInfrastructureContentRequest("save_learn_more_content", applyLauncherAdminContext({
       content_key: normalizedKey,
       lesson_domain: lessonDomain,
-      content: typeof content === "string" ? content : "",
-      secret_candidate: getLauncherAdminSecretCandidate()
-    }, {
+      content: typeof content === "string" ? content : ""
+    }), {
       mirrorToLocalWhenAvailable: true
     });
     const saved = response?.learn_more_content || null;
@@ -5872,11 +5871,10 @@ ${calmPracticeMessage}`;
     if (!/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/i.test(normalizedKey)) {
       throw new Error("Lesson content key is invalid.");
     }
-    const response = await postInfrastructureContentRequest("delete_learn_more_content", {
+    const response = await postInfrastructureContentRequest("delete_learn_more_content", applyLauncherAdminContext({
       content_key: normalizedKey,
-      lesson_domain: lessonDomain,
-      secret_candidate: getLauncherAdminSecretCandidate()
-    }, {
+      lesson_domain: lessonDomain
+    }), {
       mirrorToLocalWhenAvailable: true
     });
     logLessonContentDebug("delete_editable_content:response", {

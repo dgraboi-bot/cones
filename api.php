@@ -11957,7 +11957,7 @@ if ($action === 'save_learn_more_content') {
         fail_request($handle, $nowMs, 'Learn More saving is currently disabled.', 403);
     }
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'content_key', 'content', 'lesson_domain'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'content_key', 'content', 'lesson_domain'], 'request');
         $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
         $path = get_learn_more_content_path($contentKey);
         $mirrorPath = get_learn_more_repo_content_path($contentKey);
@@ -12028,6 +12028,43 @@ if ($action === 'sync_local_lesson_content') {
             'last_modified_utc' => (string) ($contentRecord['last_modified_utc'] ?? ''),
             'content_sha256' => (string) ($contentRecord['content_sha256'] ?? '')
         ],
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'delete_learn_more_content') {
+    if (!$hasAdminAccess && empty($state['learn_more_save_enabled'])) {
+        fail_request($handle, $nowMs, 'Learn More saving is currently disabled.', 403);
+    }
+    try {
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'content_key', 'lesson_domain'], 'request');
+        $contentKey = normalize_learn_more_content_key($input['content_key'] ?? '');
+        $path = get_learn_more_content_path($contentKey);
+        $mirrorPath = get_learn_more_repo_content_path($contentKey);
+        if (!preg_match('/^lesson-\d{1,4}$|^lesson-id:[a-z0-9-]{1,80}$/', $contentKey)) {
+            throw new RuntimeException('Only lesson-page content can be deleted through this endpoint.');
+        }
+        if ($contentKey === '' || $path === '' || $mirrorPath === '') {
+            throw new RuntimeException('Lesson content key is invalid.');
+        }
+        delete_learn_more_content_file($path, $mirrorPath, $contentKey);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'deleted' => true,
+        'content_key' => $contentKey,
         'server_now_ms' => $nowMs
     ];
 
