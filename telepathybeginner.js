@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823j";
+  const launcherBuildVersion = "20260823k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -25998,6 +25998,7 @@ ${calmPracticeMessage}`;
     adminView?.classList.remove("beginner-view-hidden");
     adminReminderActionView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
+    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
     espLessonDetailView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
