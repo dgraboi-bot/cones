@@ -5,11 +5,10 @@
   const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
   const launcherStateWriteLockKey = "cones-launcher-state-write-lock-v1";
   const localFreshStartEpochKey = "cones-local-fresh-start-epoch-v1";
-  const namedReportsCacheKey = "cones-named-reports-cache-v1";
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823f";
+  const launcherBuildVersion = "20260823g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -683,6 +682,7 @@
   let reportTable = document.querySelector("[data-report-table]");
   let visualizationSummary = document.querySelector("[data-visualization-summary]");
   let visualizationStatus = document.querySelector("[data-visualization-status]");
+  let visualizationViewTitle = document.querySelector("[data-visualization-view-title]");
   let visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
   let visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
   let visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
@@ -1474,11 +1474,7 @@ ${calmPracticeMessage}`;
       if (explicitSecret) {
         launcherAdminSecret = explicitSecret;
       }
-      const canRestore = !!(
-        explicitSecret
-        || (launcherAdminDevicePrefs.easy_admin_enabled && String(launcherAdminDevicePrefs.cached_secret || "").trim())
-      );
-      if (!canRestore) {
+      if (!explicitSecret) {
         return false;
       }
       return activateLauncherAdminSession();
@@ -4247,7 +4243,7 @@ ${calmPracticeMessage}`;
     };
   }
 
-  async function fetchNamedReports() {
+  async function fetchNamedReports(records = reportCsvRecordsCache) {
     const includeAdminContext = await ensureLauncherAdminLeaseForReportContext();
     const payload = includeAdminContext
       ? applyLauncherAdminContext({
@@ -4275,15 +4271,8 @@ ${calmPracticeMessage}`;
     });
     const data = await parseApiResponse(response, `List named reports request failed with status ${response.status}`);
     const rows = Array.isArray(data?.named_reports) ? data.named_reports : [];
-    const mergedRows = [...rows];
-    const seenIds = new Set(rows.map((row) => String(row?.id || "").trim()).filter(Boolean));
-    readNamedReportsCache().forEach((row) => {
-      const id = String(row?.id || "").trim();
-      if (id && !seenIds.has(id)) {
-        mergedRows.push(row);
-      }
-    });
-    availableNamedReports = mergedRows.map((row) => buildNamedReportTarget(row)).filter((row) => row.reportId && row.receiverName && row.senderName);
+    clearLegacyNamedReportsCache();
+    availableNamedReports = rows.map((row) => buildNamedReportTarget(row)).filter((row) => row.reportId && row.receiverName && row.senderName);
     return availableNamedReports;
   }
 
@@ -4304,35 +4293,10 @@ ${calmPracticeMessage}`;
       }))
     });
     const data = await parseApiResponse(response, `Save named report request failed with status ${response.status}`);
-    let target = buildNamedReportTarget(data?.named_report || {});
-    if (!target?.receiverName || !target?.senderName) {
-      const reportId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const source = String(pairInfo?.source || "").trim().toLowerCase() === "simulation" ? "simulation" : "real";
-      target = {
-        key: `named-report::${reportId}`,
-        baseKey: buildPairMatchKey(pairInfo?.receiverName, pairInfo?.senderName),
-        receiverName: String(pairInfo?.receiverName || "").trim(),
-        senderName: String(pairInfo?.senderName || "").trim(),
-        displayReceiverName: source === "simulation"
-          ? getSimulationReportDisplayName(String(pairInfo?.receiverName || "").trim(), "receiver")
-          : String(pairInfo?.displayReceiverName || pairInfo?.receiverName || "").trim(),
-        displaySenderName: source === "simulation"
-          ? getSimulationReportDisplayName(String(pairInfo?.senderName || "").trim(), "sender")
-          : String(pairInfo?.displaySenderName || pairInfo?.senderName || "").trim(),
-        sessionCode: String(pairInfo?.sessionCode || "").trim(),
-        source,
-        aliasReceiverNames: Array.isArray(pairInfo?.aliasReceiverNames) ? pairInfo.aliasReceiverNames.slice(0) : [],
-        aliasSenderNames: Array.isArray(pairInfo?.aliasSenderNames) ? pairInfo.aliasSenderNames.slice(0) : [],
-        reportTargetType: "named-report",
-        reportId,
-        reportTitle: String(options.title || "").trim(),
-        startTrial: Math.max(1, Number(options.startTrial || 1) || 1),
-        endTrial: Math.max(1, Number(options.endTrial || 1) || 1),
-        savedCompletedTrialCount: Math.max(0, Number(options.completedTrialCount || 0) || 0),
-        createdAtMs: Date.now()
-      };
+    const target = buildNamedReportTarget(data?.named_report || {});
+    if (!target?.reportId || !target?.receiverName || !target?.senderName) {
+      throw new Error("The named report was not saved correctly on the server.");
     }
-    cacheNamedReportTarget(target);
     return target;
   }
 
@@ -4352,7 +4316,6 @@ ${calmPracticeMessage}`;
       }))
     });
     const data = await parseApiResponse(response, `Delete named report request failed with status ${response.status}`);
-    removeNamedReportFromCache(cleanId);
     return !!data?.deleted;
   }
 
@@ -4836,6 +4799,7 @@ ${calmPracticeMessage}`;
         await renderReportDefinition();
         const selectedTarget = availableReportPairs.find((pairInfo) => pairInfo.key === savedTarget.key) || savedTarget;
         setSelectedReportPair(selectedTarget);
+        await renderPerformanceVisualization(selectedTarget);
         } catch (error) {
           visualizationFailureMessage = error instanceof Error ? error.message : "Unable to save the named file right now.";
         }
@@ -4860,15 +4824,15 @@ ${calmPracticeMessage}`;
       closeNamedReportModal();
       if (visualizationStatus) {
         if (visualizationSaved && pdfSaved) {
-          visualizationStatus.textContent = `Named file saved and PDF export started: ${savedTarget?.reportTitle || title}.`;
+          visualizationStatus.textContent = `Named file saved and PDF file saved: ${savedTarget?.reportTitle || title}.`;
         } else if (visualizationSaved) {
           visualizationStatus.textContent = pdfFailureMessage
             ? `Named file saved: ${savedTarget?.reportTitle || title}. ${pdfFailureMessage}`
             : `Named file saved: ${savedTarget?.reportTitle || title}.`;
         } else if (pdfSaved && visualizationFailureMessage) {
-          visualizationStatus.textContent = `PDF export started: ${title}. ${visualizationFailureMessage}`;
+          visualizationStatus.textContent = `PDF file saved: ${title}. ${visualizationFailureMessage}`;
         } else if (pdfSaved) {
-          visualizationStatus.textContent = `PDF export started: ${title}.`;
+          visualizationStatus.textContent = `PDF file saved: ${title}.`;
         } else {
           visualizationStatus.textContent = visualizationFailureMessage || pdfFailureMessage || "Nothing was saved.";
         }
@@ -6584,46 +6548,12 @@ ${calmPracticeMessage}`;
     ].join("|||");
   }
 
-  function readNamedReportsCache() {
+  function clearLegacyNamedReportsCache() {
     try {
-      const raw = localStorage.getItem(namedReportsCacheKey);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      localStorage.removeItem("cones-named-reports-cache-v1");
     } catch (error) {
-      return [];
+      // Ignore storage cleanup failures.
     }
-  }
-
-  function writeNamedReportsCache(rows) {
-    const next = Array.isArray(rows) ? rows : [];
-    localStorage.setItem(namedReportsCacheKey, JSON.stringify(next));
-  }
-
-  function cacheNamedReportTarget(target) {
-    if (!target?.receiverName || !target?.senderName) {
-      return;
-    }
-    const cacheId = String(target.reportId || "").trim() || `local-named-report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const rows = readNamedReportsCache().filter((row) => String(row?.id || "") !== cacheId);
-    rows.unshift({
-      id: cacheId,
-      title: String(target.reportTitle || "").trim(),
-      selected_pair: sanitizePairInfoForServer(target),
-      start_trial: Number(target.startTrial || 1) || 1,
-      end_trial: Number(target.endTrial || 1) || 1,
-      completed_trial_count: Number(target.savedCompletedTrialCount || 0) || 0,
-      created_ms: Number(target.createdAtMs || Date.now()) || Date.now()
-    });
-    writeNamedReportsCache(rows.slice(0, 100));
-  }
-
-  function removeNamedReportFromCache(reportId) {
-    const cleanId = String(reportId || "").trim();
-    if (!cleanId) {
-      return;
-    }
-    const rows = readNamedReportsCache().filter((row) => String(row?.id || "") !== cleanId);
-    writeNamedReportsCache(rows);
   }
 
   function sanitizeLauncherProfileForServer(role, ownEmail, profileState) {
@@ -14179,6 +14109,7 @@ ${calmPracticeMessage}`;
     reportTable = document.querySelector("[data-report-table]");
     visualizationSummary = document.querySelector("[data-visualization-summary]");
     visualizationStatus = document.querySelector("[data-visualization-status]");
+    visualizationViewTitle = document.querySelector("[data-visualization-view-title]");
     visualizationRangeControls = document.querySelector("[data-visualization-range-controls]");
     visualizationRangeStartInput = document.querySelector("[data-visualization-range-start]");
     visualizationRangeEndInput = document.querySelector("[data-visualization-range-end]");
@@ -17752,17 +17683,19 @@ ${calmPracticeMessage}`;
     const levelBreakdown = context.levelBreakdown || buildLevelBreakdown(context.records);
     const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, context.records);
 
-    if (isNamedReportTarget(pairInfo)) {
-      const titleLine = document.createElement("p");
-      titleLine.className = "report-summary-line";
-      titleLine.textContent = `Named file: ${String(pairInfo.reportTitle || "").trim() || "Unnamed named file"}`;
-      visualizationAdvancedDetailSummary.append(titleLine);
-    }
+    const titleLine = document.createElement("p");
+    titleLine.className = "report-summary-line";
+    titleLine.textContent = isNamedReportTarget(pairInfo)
+      ? (String(pairInfo.reportTitle || "").trim() || "Unnamed named file")
+      : getVisualizationPairSummaryLine(pairInfo);
+    visualizationAdvancedDetailSummary.append(titleLine);
 
-    const pairLine = document.createElement("p");
-    pairLine.className = "report-summary-line";
-    pairLine.textContent = getVisualizationPairSummaryLine(pairInfo);
-    visualizationAdvancedDetailSummary.append(pairLine);
+    if (isNamedReportTarget(pairInfo)) {
+      const pairLine = document.createElement("p");
+      pairLine.className = "report-summary-line";
+      pairLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+      visualizationAdvancedDetailSummary.append(pairLine);
+    }
 
     const utcRangeText = getVisualizationUtcRangeText(context.records);
     if (utcRangeText) {
@@ -17799,18 +17732,25 @@ ${calmPracticeMessage}`;
 
     visualizationSummary.replaceChildren();
     visualizationStatus.textContent = "";
-
-    if (isNamedReportTarget(pairInfo)) {
-      const titleLine = document.createElement("p");
-      titleLine.className = "report-summary-line";
-      titleLine.textContent = `Named file: ${String(pairInfo.reportTitle || "").trim() || "Unnamed named file"}`;
-      visualizationSummary.append(titleLine);
+    if (visualizationViewTitle) {
+      visualizationViewTitle.textContent = isNamedReportTarget(pairInfo)
+        ? (String(pairInfo.reportTitle || "").trim() || "Unnamed named file")
+        : getVisualizationPairSummaryLine(pairInfo);
     }
 
-    const firstLine = document.createElement("p");
-    firstLine.className = "report-summary-line";
-    firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
-    visualizationSummary.append(firstLine);
+    const titleLine = document.createElement("p");
+    titleLine.className = "report-summary-line";
+    titleLine.textContent = isNamedReportTarget(pairInfo)
+      ? (String(pairInfo.reportTitle || "").trim() || "Unnamed named file")
+      : getVisualizationPairSummaryLine(pairInfo);
+    visualizationSummary.append(titleLine);
+
+    if (isNamedReportTarget(pairInfo)) {
+      const firstLine = document.createElement("p");
+      firstLine.className = "report-summary-line";
+      firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+      visualizationSummary.append(firstLine);
+    }
 
     const utcRangeText = getVisualizationUtcRangeText(records);
     if (utcRangeText) {
@@ -22186,7 +22126,6 @@ ${calmPracticeMessage}`;
 
   async function showReportDefinitionView() {
     await ensureReportDeferredViewsLoaded();
-    activateLauncherAdminSession();
     clearReportPanelOffset();
     syncCurrentLauncherNamesToState();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -25158,7 +25097,6 @@ ${calmPracticeMessage}`;
   }
 
   function showSettingsView() {
-    activateLauncherAdminSession();
     learningCenterView?.classList.add("beginner-view-hidden");
     settingsView?.classList.remove("beginner-view-hidden");
     optionsView?.classList.add("beginner-view-hidden");

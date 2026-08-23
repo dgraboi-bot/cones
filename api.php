@@ -2147,6 +2147,19 @@ function write_learning_center_outline_file(string $path, array $outline, string
     }
 }
 
+function write_state_snapshot_file(string $path, array $state): void
+{
+    $payload = json_encode($state, JSON_PRETTY_PRINT);
+    if (!is_string($payload) || $payload === '') {
+        throw new RuntimeException('Unable to encode the server state.');
+    }
+    ensure_parent_directory($path);
+    $result = @file_put_contents($path, $payload, LOCK_EX);
+    if ($result === false) {
+        throw new RuntimeException('Unable to write the server state.');
+    }
+}
+
 function load_learning_center_outline(string $lessonDomain = 'legacy'): array
 {
     $contentKey = 'learning-center-outline';
@@ -14543,6 +14556,7 @@ if ($action === 'save_named_report') {
             ? max(0, (int) $input['completed_trial_count'])
             : max(0, $endTrial - $startTrial + 1);
         $saved = save_named_report_record($state, $selectedPair, $title, $startTrial, $endTrial, $completedTrialCount, $nowMs);
+        write_state_snapshot_file($stateFile, $state);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -14558,6 +14572,9 @@ if ($action === 'delete_named_report') {
             throw new RuntimeException('report_id is required.');
         }
         $deleted = delete_named_report_record($state, $reportId);
+        if ($deleted) {
+            write_state_snapshot_file($stateFile, $state);
+        }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
