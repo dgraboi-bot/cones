@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823k";
+  const launcherBuildVersion = "20260823l";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -905,6 +905,7 @@
   const clairvoyanceLearnMoreInlineStatus = document.querySelector("[data-clairvoyance-learn-more-inline-status]");
   const clairvoyanceLearnMorePreview = document.querySelector("[data-clairvoyance-learn-more-preview]");
   const clairvoyanceLearnMoreEditorField = document.querySelector("[data-clairvoyance-learn-more-editor-field]");
+  const clairvoyanceLearnMorePanel = document.querySelector("[data-clairvoyance-learn-more-panel]");
   const clairvoyanceLearnMorePreviewWrap = document.querySelector("[data-clairvoyance-learn-more-preview-wrap]");
   const clairvoyanceLearnMorePreviewLabel = document.querySelector("[data-clairvoyance-learn-more-preview-label]");
   const colorSchemeInput = document.querySelector("[data-color-scheme-input]");
@@ -11414,9 +11415,10 @@ ${calmPracticeMessage}`;
     const note = getRoleNoteElement(role);
     const panel = getRoleNotePanel(role);
     const setupWrap = getRoleSetupWrap(role);
+    const normalizedLevel = normalizeDifficultyLevel(level);
     const explanation = role === "remote-viewer"
-      ? remoteViewExplanationCopy
-      : getDifficultyExplanation(level);
+      ? (Number(normalizedLevel) <= 3 ? getDifficultyExplanation(normalizedLevel) : remoteViewExplanationCopy)
+      : getDifficultyExplanation(normalizedLevel);
     if (!note || !panel || !explanation) {
       return;
     }
@@ -11481,10 +11483,6 @@ ${calmPracticeMessage}`;
   }
 
   function previewLevelExplanationFromCurrentLabel(role) {
-    if (role === "remote-viewer") {
-      showRoleLevelExplanation(role, "1");
-      return;
-    }
     const label = getDifficultyLabelElement(role);
     const match = String(label?.textContent || "").match(/Level\s+([12345])/i);
     if (!match) {
@@ -11643,9 +11641,6 @@ ${calmPracticeMessage}`;
     }
 
     if (normalizedRole === "sender") {
-      if (receiverType === "pro" && senderType === "pro") {
-        return Math.min(pairMax, 5);
-      }
       if (receiverType === "pro") {
         return Math.min(pairMax, 4);
       }
@@ -11664,6 +11659,14 @@ ${calmPracticeMessage}`;
 
     if (normalizedRole === "remote-viewer" && levelNumber >= 5) {
       return "Remote viewing currently supports Levels 1 through 4.";
+    }
+
+    if (normalizedRole === "sender" && levelNumber >= 5) {
+      return "Sender currently supports Levels 1 through 4.";
+    }
+
+    if (normalizedRole === "receiver" && levelNumber >= 5) {
+      return "";
     }
 
     if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "sender" && senderType === "pro" && receiverType !== "pro") {
@@ -22105,6 +22108,9 @@ ${calmPracticeMessage}`;
     if (clairvoyanceLearnMorePreviewWrap) {
       clairvoyanceLearnMorePreviewWrap.classList.toggle("learn-more-preview-wrap-reader", !isEditMode);
     }
+    if (clairvoyanceLearnMorePanel) {
+      clairvoyanceLearnMorePanel.classList.toggle("learn-more-panel-reader", !isEditMode);
+    }
     if (clairvoyanceLearnMorePreviewLabel) {
       clairvoyanceLearnMorePreviewLabel.hidden = !isEditMode;
       clairvoyanceLearnMorePreviewLabel.textContent = "Rendered preview";
@@ -24987,7 +24993,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
-        setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true });
+        if (role !== "remote-viewer") {
+          setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true, prominent: false });
+        }
         focusMissingDifficultyIdentifier(role, identifiers);
       }
       finishAdjustment();
@@ -25007,7 +25015,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
-        setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true });
+        if (role !== "remote-viewer") {
+          setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true, prominent: false });
+        }
       }
       finishAdjustment();
       setDifficultyExplanationLocked(role, false);
@@ -25024,7 +25034,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
-        setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true });
+        if (role !== "remote-viewer") {
+          setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true, prominent: false });
+        }
         focusMissingDifficultyIdentifier(role, identifiers);
       }
       finishAdjustment();
@@ -25054,9 +25066,15 @@ ${calmPracticeMessage}`;
 
       if (nextLevel === currentLevel) {
         if (delta > 0 && currentLevel >= maxAllowedLevel) {
-          setRoleDifficultyStatus(role, buildDifficultyCeilingMessage(role, pairContext, currentData, currentLevel + 1), { isError: true });
+          if (role !== "remote-viewer") {
+            setRoleDifficultyStatus(
+              role,
+              buildDifficultyCeilingMessage(role, pairContext, currentData, currentLevel + 1),
+              { isError: true, prominent: false }
+            );
+          }
         } else {
-          setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`);
+          setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`, { prominent: false });
         }
         rememberDifficultyLevel(String(currentLevel));
         persistRoleDifficultyPreference(role, String(currentLevel));
@@ -25086,7 +25104,11 @@ ${calmPracticeMessage}`;
       void refreshDifficultyLabels();
       if (role !== "remote-viewer") {
         const pairLabel = describeDifficultyChange(role, pairContext);
-        setRoleDifficultyStatus(role, `${pairLabel} set to Level ${confirmedLevel}.`);
+        setRoleDifficultyStatus(
+          role,
+          `${pairLabel} set to Level ${confirmedLevel}.`,
+          { prominent: false }
+        );
       }
       scheduleGuidedLevelExplanation(role, visibleConfirmedLevel);
     } catch (error) {
