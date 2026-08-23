@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823h";
+  const launcherBuildVersion = "20260823i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -117,6 +117,7 @@
   const openOptionsButton = document.querySelector("[data-open-options]");
   const openOldLearningCenterButton = document.querySelector("[data-open-old-learning-center]");
   const openLessonEditorButton = document.querySelector("[data-open-old-learn-more]");
+  const openClairvoyanceLearnMoreAdminButton = document.querySelector("[data-open-clairvoyance-learn-more-admin]");
   const appVersionLabel = document.querySelector("[data-app-version-label]");
   const closeOptionsButtons = Array.from(document.querySelectorAll("[data-close-options]"));
   const closeLessonEditorButton = document.querySelector("[data-close-learn-more]");
@@ -903,6 +904,8 @@
   const clairvoyanceLearnMoreStatus = document.querySelector("[data-clairvoyance-learn-more-status]");
   const clairvoyanceLearnMoreInlineStatus = document.querySelector("[data-clairvoyance-learn-more-inline-status]");
   const clairvoyanceLearnMorePreview = document.querySelector("[data-clairvoyance-learn-more-preview]");
+  const clairvoyanceLearnMoreEditorField = document.querySelector("[data-clairvoyance-learn-more-editor-field]");
+  const clairvoyanceLearnMorePreviewLabel = document.querySelector("[data-clairvoyance-learn-more-preview-label]");
   const colorSchemeInput = document.querySelector("[data-color-scheme-input]");
   const colorSchemeHexInput = document.querySelector("[data-color-scheme-hex]");
   const colorSchemeStatus = document.querySelector("[data-color-scheme-status]");
@@ -1217,6 +1220,8 @@
 
   let launcherAdminDevicePrefs = readLauncherAdminDevicePrefs();
   let launcherAdminSecret = "";
+  let clairvoyanceLearnMoreMode = "reader";
+  let clairvoyanceLearnMoreReturnView = "clairvoyance-viewing";
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
@@ -22082,10 +22087,39 @@ ${calmPracticeMessage}`;
     });
   }
 
-  function showClairvoyanceLearnMoreView() {
-    clearReportPanelOffset();
-    void populateLessonEditorFromServer("clairvoyance");
+  function configureClairvoyanceLearnMoreMode(mode = "reader") {
+    clairvoyanceLearnMoreMode = String(mode || "reader").trim().toLowerCase() === "edit" ? "edit" : "reader";
+    const isEditMode = clairvoyanceLearnMoreMode === "edit";
+    if (saveClairvoyanceLearnMoreButton) {
+      saveClairvoyanceLearnMoreButton.hidden = !isEditMode;
+    }
+    if (clairvoyanceLearnMoreEditorField) {
+      clairvoyanceLearnMoreEditorField.hidden = !isEditMode;
+    }
+    if (clairvoyanceLearnMoreTextInput) {
+      clairvoyanceLearnMoreTextInput.readOnly = !isEditMode;
+      clairvoyanceLearnMoreTextInput.setAttribute("aria-hidden", isEditMode ? "false" : "true");
+      clairvoyanceLearnMoreTextInput.tabIndex = isEditMode ? 0 : -1;
+    }
+    if (clairvoyanceLearnMorePreviewLabel) {
+      clairvoyanceLearnMorePreviewLabel.textContent = isEditMode ? "Rendered preview" : "Text";
+    }
     if (clairvoyanceLearnMoreStatus) {
+      clairvoyanceLearnMoreStatus.textContent = "";
+    }
+    if (clairvoyanceLearnMoreInlineStatus) {
+      clairvoyanceLearnMoreInlineStatus.hidden = true;
+      clairvoyanceLearnMoreInlineStatus.textContent = "";
+    }
+  }
+
+  function showClairvoyanceLearnMoreView(options = {}) {
+    const isEditMode = !!options?.edit;
+    clairvoyanceLearnMoreReturnView = String(options?.returnView || (isEditMode ? "admin" : "clairvoyance-viewing")).trim() || "clairvoyance-viewing";
+    clearReportPanelOffset();
+    configureClairvoyanceLearnMoreMode(isEditMode ? "edit" : "reader");
+    void populateLessonEditorFromServer("clairvoyance");
+    if (clairvoyanceLearnMoreStatus && !clairvoyanceLearnMoreStatus.hidden) {
       clairvoyanceLearnMoreStatus.textContent = "";
     }
     clairvoyanceLearnMoreView?.classList.remove("beginner-view-hidden");
@@ -29644,6 +29678,14 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function closeClairvoyanceLearnMoreView() {
+    if (clairvoyanceLearnMoreReturnView === "admin") {
+      showAdminView();
+      return;
+    }
+    showClairvoyanceViewingView();
+  }
+
   function closeResearchParticipationViewToOrigin() {
     if (researchParticipationReturnView === "temporary-home-page") {
       forceReturnToTemporaryHomePage(researchParticipationReturnScrollY);
@@ -31104,7 +31146,12 @@ ${calmPracticeMessage}`;
     }
     showLessonEditorView("new-course");
   });
-  openClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceLearnMoreView);
+  openClairvoyanceLearnMoreButton?.addEventListener("click", () => {
+    showClairvoyanceLearnMoreView({ returnView: "clairvoyance-viewing" });
+  });
+  openClairvoyanceLearnMoreAdminButton?.addEventListener("click", () => {
+    showClairvoyanceLearnMoreView({ edit: true, returnView: "admin" });
+  });
   openOnlineCourseButton?.addEventListener("click", () => {
     showLearningCenterView({ view: "aids" });
   });
@@ -31338,7 +31385,7 @@ ${calmPracticeMessage}`;
     event.preventDefault();
     void saveLessonEditorContent();
   });
-  closeClairvoyanceLearnMoreButton?.addEventListener("click", showClairvoyanceViewingView);
+  closeClairvoyanceLearnMoreButton?.addEventListener("click", closeClairvoyanceLearnMoreView);
   saveClairvoyanceLearnMoreButton?.addEventListener("click", saveClairvoyanceLearnMoreContent);
   clairvoyanceLearnMoreTextInput?.addEventListener("input", () => {
     setLearnMoreDraftText("clairvoyance", typeof clairvoyanceLearnMoreTextInput.value === "string" ? clairvoyanceLearnMoreTextInput.value : "");

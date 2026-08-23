@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
-  <meta name="espgym-build-version" content="20260823h">
+  <meta name="espgym-build-version" content="20260823i">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -56,19 +56,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260823h">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260823i">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260823h">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260823h">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260823h">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260823i">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260823i">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260823i">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260823h">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260823h">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260823h">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260823i">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260823i">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260823i">
   <script>
     (function () {
-      var buildVersion = "20260823h";
+      var buildVersion = "20260823i";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -559,7 +559,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260823h</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260823i</span>
           </div>
         </div>
 
@@ -1616,7 +1616,7 @@
               ></textarea>
             </label>
             <div class="learn-more-preview-wrap">
-              <span class="settings-view-label">Rendered preview</span>
+              <span class="settings-view-label" data-clairvoyance-learn-more-preview-label>Rendered preview</span>
               <div class="learn-more-preview" data-clairvoyance-learn-more-preview></div>
             </div>
             <div class="settings-view-status" data-clairvoyance-learn-more-status></div>
@@ -2366,7 +2366,7 @@
               <input type="checkbox" data-admin-learn-more-save-enabled>
               <span title="Lets this device edit and save the Learn More text pages from inside the app. This is mainly for content-authoring and maintenance.">Enable SAVE for Learn More text</span>
             </label>
-            <label class="settings-view-field">
+            <label class="settings-view-field" data-clairvoyance-learn-more-editor-field>
               <span class="settings-view-label" title="Overrides the normal 14-day Explore PRO trial period with a short temporary duration, in seconds, for checkout and subscription-flow testing. Use 0 for the normal live duration.">Explore PRO test duration (seconds)</span>
               <input
                 class="settings-view-input"
@@ -2429,6 +2429,7 @@
               <button class="options-button settings-view-save" type="button" data-open-old-lesson-index-admin>OLD LESSON INDEX</button>
               <button class="options-button settings-view-save" type="button" data-open-new-learn-more>NEW EDIT LESSONS</button>
               <button class="options-button settings-view-save" type="button" data-open-new-lesson-index-admin>NEW LESSON INDEX</button>
+              <button class="options-button settings-view-save" type="button" data-open-clairvoyance-learn-more-admin>EDIT RV LEARN MORE</button>
               <button class="options-button settings-view-save" type="button" data-admin-clear-debug-log>Clear debug log</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-users>All Pairs</button>
               <button class="options-button settings-view-save" type="button" data-admin-list-identities>All Identities</button>
@@ -2451,8 +2452,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260823h'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260823h'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260823i'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260823i'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3172,10 +3173,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260823h"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260823i"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260823h"></script>
-<script src="telepathybeginner.js?v=20260823h"></script>
+<script src="target-selection.js?v=20260823i"></script>
+<script src="telepathybeginner.js?v=20260823i"></script>
 </body>
 </html>
 
