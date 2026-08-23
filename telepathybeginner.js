@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260822h";
+  const launcherBuildVersion = "20260822j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -12341,6 +12341,22 @@ ${calmPracticeMessage}`;
     });
   }
 
+  async function waitForExpectedServiceWorkerBuildVersion(expectedVersion, timeoutMs = 1800) {
+    const normalizedExpected = String(expectedVersion || "").trim();
+    if (!normalizedExpected || !("serviceWorker" in navigator)) {
+      return "";
+    }
+    const startedAt = Date.now();
+    while ((Date.now() - startedAt) < Math.max(250, Number(timeoutMs) || 1800)) {
+      const currentVersion = await requestActiveServiceWorkerBuildVersion(400);
+      if (currentVersion === normalizedExpected) {
+        return currentVersion;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+    }
+    return "";
+  }
+
   async function fetchLiveShellBuildVersion(timeoutMs = 2500) {
     const controller = typeof AbortController === "function" ? new AbortController() : null;
     let timerId = 0;
@@ -12441,7 +12457,14 @@ ${calmPracticeMessage}`;
   async function ensureLauncherBuildConsistency() {
     const htmlVersion = htmlDeclaredBuildVersion;
     const jsVersion = launcherBuildVersion;
-    const swVersion = await requestActiveServiceWorkerBuildVersion();
+    let swVersion = await requestActiveServiceWorkerBuildVersion();
+    if (swVersion && swVersion !== jsVersion) {
+      await refreshServiceWorkerRegistrations();
+      const settledSwVersion = await waitForExpectedServiceWorkerBuildVersion(jsVersion, 1800);
+      if (settledSwVersion) {
+        swVersion = settledSwVersion;
+      }
+    }
     const mismatchReason = !htmlVersion
       ? "missing_html_build_version"
       : (htmlVersion !== jsVersion
@@ -33197,6 +33220,9 @@ ${calmPracticeMessage}`;
   }
 
   async function initializeLauncherStartup() {
+    if ("serviceWorker" in navigator) {
+      await registerLauncherServiceWorker();
+    }
     const startupCanProceed = await ensureLauncherBuildConsistency();
     if (!startupCanProceed) {
       return;
@@ -33281,15 +33307,6 @@ ${calmPracticeMessage}`;
       void warmupLocationIndicatorOnLoad();
     }, 250);
 
-    if ("serviceWorker" in navigator) {
-      if (document.readyState === "complete") {
-        void registerLauncherServiceWorker();
-      } else {
-        window.addEventListener("load", () => {
-          void registerLauncherServiceWorker();
-        }, { once: true });
-      }
-    }
   }
 
   void initializeLauncherStartup();

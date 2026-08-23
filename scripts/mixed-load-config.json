@@ -1,0 +1,60 @@
+{
+  "label": "espgym-mixed-100",
+  "target": {
+    "baseUrl": "https://espgym.com",
+    "appPath": "/telepathybeginner.html",
+    "apiPath": "/api.php"
+  },
+  "version": "",
+  "phases": [
+    { "users": 20, "durationSec": 120 },
+    { "users": 30, "durationSec": 180 },
+    { "users": 30, "durationSec": 240 },
+    { "users": 20, "durationSec": 180 }
+  ],
+  "holdDurationSec": 900,
+  "abortThresholds": {
+    "maxOverallFlowFailureRate": 0.05,
+    "maxSessionCriticalFailureRate": 0.02,
+    "maxConsecutiveSessionCriticalFailures": 8
+  },
+  "userMix": {
+    "light_navigation": 70,
+    "telepathy_session_users": 12,
+    "remote_viewing_users": 5,
+    "report_users": 5,
+    "course_users": 8
+  },
+  "actorSettings": {
+    "lightNavigation": {
+      "minThinkMs": 15000,
+      "maxThinkMs": 45000,
+      "actionsPerCycleMin": 1,
+      "actionsPerCycleMax": 2
+    },
+    "telepathy": {
+      "minTrialsPerSession": 4,
+      "maxTrialsPerSession": 8,
+      "minReceiveWaitMs": 8500,
+      "maxReceiveWaitMs": 11000,
+      "minPostTrialPauseMs": 1200,
+      "maxPostTrialPauseMs": 3200
+    },
+    "remoteViewing": {
+      "minTrialsPerSession": 3,
+      "maxTrialsPerSession": 6,
+      "minReceiveWaitMs": 8500,
+      "maxReceiveWaitMs": 11000,
+      "minPostTrialPauseMs": 1200,
+      "maxPostTrialPauseMs": 3200
+    },
+    "reports": {
+      "minThinkMs": 30000,
+      "maxThinkMs": 75000
+    },
+    "course": {
+      "minThinkMs": 15000,
+      "maxThinkMs": 40000
+    }
+  }
+}
