@@ -8,8 +8,26 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260824e";
+  const launcherBuildVersion = "20260824g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
+  function formatPublicDisplayVersion(buildVersion) {
+    const text = String(buildVersion || "").trim();
+    const match = text.match(/^(\d{4})(\d{2})(\d{2})([a-z])$/i);
+    if (!match) {
+      return text.toLowerCase();
+    }
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = match[3];
+    const suffix = match[4].toLowerCase();
+    const yearCodeIndex = year - 2021;
+    const monthCodeIndex = month - 1;
+    const alphabet = "abcdefghijklmnopqrstuvwxyz";
+    const yearCode = alphabet[yearCodeIndex] || "z";
+    const monthCode = alphabet[monthCodeIndex] || "z";
+    return `${yearCode}${monthCode}${day}${suffix}`;
+  }
+  const launcherDisplayVersion = formatPublicDisplayVersion(launcherBuildVersion);
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
   const reportRequestRecoveryStatusParam = "report_recovery";
@@ -4482,6 +4500,33 @@ ${calmPracticeMessage}`;
     });
   }
 
+  function applyPrintThemeToExportedSvg(svgClone) {
+    if (!(svgClone instanceof SVGElement)) {
+      return;
+    }
+    const colorMap = new Map([
+      ["rgba(255,255,255,0.12)", "rgba(222,222,222,0.9)"],
+      ["rgba(255,255,255,0.08)", "rgba(230,230,230,0.95)"],
+      ["rgba(255,255,255,0.72)", "rgba(45,45,45,0.92)"],
+      ["rgba(255,255,255,0.82)", "rgba(20,20,20,0.96)"],
+      ["rgba(255,255,255,0.42)", "rgba(110,110,110,0.95)"],
+      ["rgba(255,255,255,0.18)", "rgba(155,155,155,0.95)"],
+      ["rgba(5,5,5,0.85)", "rgba(70,70,70,0.92)"]
+    ]);
+    svgClone.querySelectorAll("*").forEach((node) => {
+      if (!(node instanceof Element)) {
+        return;
+      }
+      ["fill", "stroke"].forEach((attributeName) => {
+        const currentValue = String(node.getAttribute(attributeName) || "").trim();
+        if (!currentValue || !colorMap.has(currentValue)) {
+          return;
+        }
+        node.setAttribute(attributeName, colorMap.get(currentValue));
+      });
+    });
+  }
+
   async function captureSvgElementForPdf(svgElement, options = {}) {
     if (!(svgElement instanceof SVGElement)) {
       throw new Error("The requested SVG is not available for PDF export.");
@@ -4506,6 +4551,9 @@ ${calmPracticeMessage}`;
     background.setAttribute("height", String(height));
     background.setAttribute("fill", String(options.background || "#0b1221"));
     svgClone.insertBefore(background, svgClone.firstChild);
+    if (options.printTheme) {
+      applyPrintThemeToExportedSvg(svgClone);
+    }
     const svgText = serializer.serializeToString(svgClone);
     return loadSvgImageDataUrl(svgText);
   }
@@ -4518,7 +4566,8 @@ ${calmPracticeMessage}`;
       viewBox: "0 0 900 520",
       width: 900,
       height: 520,
-      background: "#0b1221"
+      background: "#ffffff",
+      printTheme: true
     });
   }
 
@@ -4534,7 +4583,8 @@ ${calmPracticeMessage}`;
       viewBox: "0 0 900 420",
       width: 900,
       height: 420,
-      background: "#0b1221"
+      background: "#ffffff",
+      printTheme: true
     });
   }
 
@@ -4551,6 +4601,74 @@ ${calmPracticeMessage}`;
       }
       doc.text(String(part), x, cursorY);
       cursorY += lineHeight;
+    });
+    return cursorY;
+  }
+
+  function fillPdfPageBackground(doc, color = [255, 255, 255], textColor = [22, 22, 22]) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+  }
+
+  function ensurePdfCursorRoom(doc, cursorY, neededHeight, pageBottomY, resetY = 36) {
+    if (cursorY + neededHeight <= pageBottomY) {
+      return cursorY;
+    }
+    doc.addPage();
+    fillPdfPageBackground(doc);
+    return resetY;
+  }
+
+  function getVisualizationSubtitleLines() {
+    return Array.from(document.querySelectorAll("[data-view='visualization'] .visualization-view-subtitle"))
+      .map((element) => String(element?.textContent || "").trim())
+      .filter(Boolean);
+  }
+
+  function getVisualizationLegendLines() {
+    return Array.from(document.querySelectorAll("[data-view='visualization'] .visualization-legend-item"))
+      .map((element) => String(element?.textContent || "").replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+  }
+
+  function getVisualizationSummaryLinesFromDom() {
+    return Array.from(visualizationSummary?.querySelectorAll(".report-summary-line") || [])
+      .map((element) => String(element?.textContent || "").trim())
+      .filter(Boolean);
+  }
+
+  function getVisualizationAdvancedSummaryLinesFromDom() {
+    return Array.from(visualizationAdvancedDetailSummary?.querySelectorAll(".report-summary-line") || [])
+      .map((element) => String(element?.textContent || "").trim())
+      .filter(Boolean);
+  }
+
+  function appendPdfParagraphLines(doc, lines, x, y, maxWidth, lineHeight, pageBottomY, options = {}) {
+    const paragraphGap = Number.isFinite(Number(options.paragraphGap)) ? Number(options.paragraphGap) : 8;
+    let cursorY = y;
+    lines.forEach((line) => {
+      cursorY = ensurePdfCursorRoom(doc, cursorY, lineHeight + paragraphGap, pageBottomY, 36);
+      cursorY = appendPdfWrappedText(doc, String(line || ""), x, cursorY, maxWidth, lineHeight, pageBottomY);
+      cursorY += paragraphGap;
+    });
+    return cursorY;
+  }
+
+  function appendPdfPreformattedBlock(doc, text, x, y, maxWidth, lineHeight, pageBottomY, options = {}) {
+    const blankLineGap = Number.isFinite(Number(options.blankLineGap)) ? Number(options.blankLineGap) : lineHeight * 0.65;
+    let cursorY = y;
+    String(text || "").split(/\r?\n/).forEach((rawLine) => {
+      const line = String(rawLine || "");
+      if (!line.trim()) {
+        cursorY += blankLineGap;
+        return;
+      }
+      cursorY = ensurePdfCursorRoom(doc, cursorY, lineHeight + 2, pageBottomY, 36);
+      cursorY = appendPdfWrappedText(doc, line, x, cursorY, maxWidth, lineHeight, pageBottomY);
+      cursorY += 2;
     });
     return cursorY;
   }
@@ -4585,6 +4703,9 @@ ${calmPracticeMessage}`;
     const practiceGraphImage = includeAdvancedDetails
       ? await captureVisualizationPracticeGraphForPdf(interpretation.practice_trend_detail)
       : null;
+    const subtitleLines = getVisualizationSubtitleLines();
+    const legendLines = getVisualizationLegendLines();
+    const summaryLines = getVisualizationSummaryLinesFromDom();
     const doc = new JsPdfCtor({
       orientation: "portrait",
       unit: "pt",
@@ -4596,105 +4717,139 @@ ${calmPracticeMessage}`;
     const pageBottomY = pageHeight - 36;
     const maxWidth = pageWidth - (marginX * 2);
     let cursorY = 34;
-
-    doc.setFillColor(11, 18, 33);
-    doc.rect(0, 0, pageWidth, pageHeight, "F");
-    doc.setTextColor(246, 243, 239);
+    fillPdfPageBackground(doc);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    cursorY = appendPdfWrappedText(doc, title, marginX, cursorY, maxWidth, 22, pageBottomY);
-    cursorY += 18;
+    doc.setFontSize(16);
+    cursorY = appendPdfWrappedText(doc, title, marginX, cursorY, maxWidth, 20, pageBottomY);
+    cursorY += 8;
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11.5);
     cursorY = appendPdfWrappedText(doc, `ESP GYM Report  ${formatLocalPdfHeaderTimestamp(new Date())}`, marginX, cursorY, maxWidth, 15, pageBottomY);
-    cursorY += 2;
-    const exportLines = getNamedReportVisualizationExportText(context);
-    exportLines.forEach((line) => {
-      cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 15, pageBottomY);
-      cursorY += 2;
-    });
     cursorY += 8;
+
+    subtitleLines.forEach((line, index) => {
+      doc.setFont(index === 0 ? "helvetica" : "helvetica", index === 0 ? "bold" : "normal");
+      doc.setFontSize(index === 0 ? 11.5 : 10.75);
+      cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 14, pageBottomY);
+      cursorY += index === subtitleLines.length - 1 ? 12 : 4;
+    });
 
     const chartMaxWidth = maxWidth;
     const chartWidth = chartMaxWidth;
     const chartHeight = Math.max(120, chartWidth * (chartImage.height / chartImage.width));
-    if (cursorY + chartHeight > pageBottomY) {
-      doc.addPage();
-      doc.setFillColor(11, 18, 33);
-      doc.rect(0, 0, pageWidth, pageHeight, "F");
-      doc.setTextColor(246, 243, 239);
-      cursorY = 28;
-    }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Chart", marginX, cursorY);
-    cursorY += 10;
+    cursorY = ensurePdfCursorRoom(doc, cursorY, chartHeight + 48, pageBottomY, 36);
     doc.addImage(chartImage.dataUrl, "PNG", marginX, cursorY, chartWidth, chartHeight, undefined, "FAST");
-    cursorY += chartHeight + 14;
+    cursorY += chartHeight + 10;
+
+    if (legendLines.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.25);
+      cursorY = appendPdfWrappedText(doc, legendLines.join("   |   "), marginX, cursorY, maxWidth, 13, pageBottomY);
+      cursorY += 10;
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11.25);
+    const exportLines = summaryLines.length ? summaryLines : getNamedReportVisualizationExportText(context);
+    cursorY = appendPdfParagraphLines(doc, exportLines, marginX, cursorY, maxWidth, 14, pageBottomY, { paragraphGap: 8 });
+
+    cursorY = ensurePdfCursorRoom(doc, cursorY, 28, pageBottomY, 36);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10.5);
+    cursorY = appendPdfWrappedText(
+      doc,
+      "See Lesson 5 in the ESP Gym Course for more information about performance analysis.",
+      marginX,
+      cursorY,
+      maxWidth,
+      13,
+      pageBottomY
+    );
+    cursorY += 10;
 
     if (includeAdvancedDetails) {
+      const advancedSummaryLines = getVisualizationAdvancedSummaryLinesFromDom().length
+        ? getVisualizationAdvancedSummaryLinesFromDom()
+        : (() => {
+            const lines = [];
+            if (isNamedReportTarget(context.pairInfo)) {
+              lines.push(String(context.pairInfo.reportTitle || "").trim() || "Unnamed named file");
+              lines.push(getVisualizationPairSummaryLine(context.pairInfo));
+            } else {
+              lines.push(getVisualizationPairSummaryLine(context.pairInfo));
+            }
+            const utcRangeText = getVisualizationUtcRangeText(context.records || []);
+            if (utcRangeText) {
+              lines.push(`${utcRangeText} (UTC time)`);
+            }
+            lines.push(context.range?.valid ? `Displayed range: trials ${context.range.start}-${context.range.end}.` : "Displayed range: unknown.");
+            return lines;
+          })();
+      const advancedStatusLine = `${Number(context.completedTrialCount || context.records?.length || 0)} completed scored trial record${Number(context.completedTrialCount || context.records?.length || 0) === 1 ? "" : "s"} included in this detail view.`;
       const startSection = (heading) => {
-        if (cursorY + 42 > pageBottomY) {
-          doc.addPage();
-          doc.setFillColor(11, 18, 33);
-          doc.rect(0, 0, pageWidth, pageHeight, "F");
-          doc.setTextColor(246, 243, 239);
-          cursorY = 28;
-        }
+        cursorY = ensurePdfCursorRoom(doc, cursorY, 42, pageBottomY, 36);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
         cursorY = appendPdfWrappedText(doc, heading, marginX, cursorY, maxWidth, 18, pageBottomY);
         cursorY += 6;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
       };
 
-      startSection("Advanced Detail");
-      const detailSummaryLines = [];
-      if (isNamedReportTarget(context.pairInfo)) {
-        detailSummaryLines.push(`Named file: ${String(context.pairInfo.reportTitle || "").trim() || "Unnamed named file"}`);
-      }
-      const utcRangeText = getVisualizationUtcRangeText(context.records || []);
-      detailSummaryLines.push(getVisualizationPairSummaryLine(context.pairInfo));
-      if (utcRangeText) {
-        detailSummaryLines.push(`${utcRangeText} (UTC time)`);
-      }
-      detailSummaryLines.push(context.range?.valid ? `Displayed range: trials ${context.range.start}-${context.range.end}.` : "Displayed range: unknown.");
-      detailSummaryLines.push(`${Number(context.completedTrialCount || context.records?.length || 0)} completed scored trial record${Number(context.completedTrialCount || context.records?.length || 0) === 1 ? "" : "s"} included in this detail view.`);
-      detailSummaryLines.forEach((line) => {
-        cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 15, pageBottomY);
-        cursorY += 2;
-      });
-      cursorY += 8;
+      cursorY = ensurePdfCursorRoom(doc, cursorY, 40, pageBottomY, 36);
+      doc.addPage();
+      fillPdfPageBackground(doc);
+      cursorY = 36;
 
-      startSection("Telepathic Significance Calculation");
-      advancedSignificanceText.split(/\n+/).forEach((line) => {
-        cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 14, pageBottomY);
-      });
-      cursorY += 8;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      cursorY = appendPdfWrappedText(doc, "Advanced Detail", marginX, cursorY, maxWidth, 20, pageBottomY);
+      cursorY += 10;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11.25);
+      cursorY = appendPdfParagraphLines(doc, advancedSummaryLines, marginX, cursorY, maxWidth, 14, pageBottomY, { paragraphGap: 8 });
+      cursorY = appendPdfParagraphLines(doc, [advancedStatusLine], marginX, cursorY, maxWidth, 14, pageBottomY, { paragraphGap: 12 });
+
+      startSection("Significance Calculation");
+      doc.setFont("courier", "bold");
+      doc.setFontSize(10.25);
+      doc.setTextColor(0, 0, 0);
+      cursorY = appendPdfPreformattedBlock(doc, advancedSignificanceText, marginX, cursorY, maxWidth, 13, pageBottomY, { blankLineGap: 8 });
+      cursorY += 10;
 
       startSection("Practice Trend Calculation");
-      advancedTrendText.split(/\n+/).forEach((line) => {
-        cursorY = appendPdfWrappedText(doc, line, marginX, cursorY, maxWidth, 14, pageBottomY);
-      });
+      doc.setFont("courier", "bold");
+      doc.setFontSize(10.25);
+      doc.setTextColor(0, 0, 0);
+      cursorY = appendPdfPreformattedBlock(doc, advancedTrendText, marginX, cursorY, maxWidth, 13, pageBottomY, { blankLineGap: 8 });
       cursorY += 10;
 
       if (practiceGraphImage) {
         const graphWidth = maxWidth;
         const graphHeight = Math.max(120, graphWidth * (practiceGraphImage.height / practiceGraphImage.width));
-        if (cursorY + graphHeight + 24 > pageBottomY) {
-          doc.addPage();
-          doc.setFillColor(11, 18, 33);
-          doc.rect(0, 0, pageWidth, pageHeight, "F");
-          doc.setTextColor(246, 243, 239);
-          cursorY = 28;
-        }
+        cursorY = ensurePdfCursorRoom(doc, cursorY, graphHeight + 56, pageBottomY, 36);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13);
         doc.text(String(interpretation?.practice_trend_detail?.title || "Practice Trend"), marginX, cursorY);
         cursorY += 10;
         doc.addImage(practiceGraphImage.dataUrl, "PNG", marginX, cursorY, graphWidth, graphHeight, undefined, "FAST");
         cursorY += graphHeight + 12;
+        const practiceLegendLines = Array.from(visualizationPracticeGraphLegend?.children || [])
+          .map((item) => String(item?.textContent || "").replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        if (practiceLegendLines.length) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10.25);
+          cursorY = appendPdfWrappedText(doc, practiceLegendLines.join("   |   "), marginX, cursorY, maxWidth, 13, pageBottomY);
+          cursorY += 8;
+        }
+        const practiceGraphNoteText = String(visualizationPracticeGraphNote?.textContent || "").trim();
+        if (practiceGraphNoteText) {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(10.25);
+          cursorY = appendPdfWrappedText(doc, practiceGraphNoteText, marginX, cursorY, maxWidth, 13, pageBottomY);
+          cursorY += 8;
+        }
       }
     }
 
@@ -11456,6 +11611,7 @@ ${calmPracticeMessage}`;
       return;
     }
     const defaultText = restoreRoleDefaultNote(role);
+    setRoleDifficultyStatus(role, "");
     panel.classList.remove("is-level-preview");
     if (contactWrap) {
       contactWrap.hidden = true;
@@ -16067,7 +16223,7 @@ ${calmPracticeMessage}`;
       methodText = `This P value uses an exact binomial test for ${getLevelDisplayName(significance.dominantLevel)}.`;
     }
     return [
-      `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Telepathic significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
+      `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
       `The probability that you would get this score or higher by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
     ];
   }
@@ -16708,8 +16864,8 @@ ${calmPracticeMessage}`;
       `Chance score: ${formatScoreValue(summaryStats.chanceScore)}`,
       `Your score: ${formatScoreValue(summaryStats.yourScore)}`,
       `Excess over chance: ${formatScoreValue(summaryStats.yourScore - summaryStats.chanceScore)}`,
-      `Telepathic significance P: ${formatProbabilityValue(pValue)}`,
-      `Telepathic significance method: ${significance.method}`,
+      `Significance P: ${formatProbabilityValue(pValue)}`,
+      `Significance method: ${significance.method}`,
       interpretation.effect_size,
       "",
       "INTERPRETATION",
@@ -16784,8 +16940,8 @@ ${calmPracticeMessage}`;
       `Chance score: ${formatScoreValue(metrics.chance_score)}`,
       `Your score: ${formatScoreValue(metrics.score_total)}`,
       `Excess over chance: ${formatScoreValue(metrics.excess_over_chance)}`,
-      `Telepathic significance, P: ${formatProbabilityValue(metrics.telepathic_significance_p)}`,
-      `Telepathic significance method: ${metrics.telepathic_significance_method || "unknown"}`,
+      `Significance, P: ${formatProbabilityValue(metrics.telepathic_significance_p)}`,
+      `Significance method: ${metrics.telepathic_significance_method || "unknown"}`,
       "",
       `Average confidence: ${metrics.average_confidence ?? "unknown"}`,
       `Confidence relationship: ${messages.confidence_relationship || "unknown"}`,
@@ -33421,7 +33577,7 @@ ${calmPracticeMessage}`;
     });
     applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
     if (appVersionLabel) {
-      appVersionLabel.textContent = `ver. ${launcherBuildVersion}`;
+      appVersionLabel.textContent = `ver. ${launcherDisplayVersion}`;
     }
     if (temporaryHomePageInvitationCodeInput) {
       temporaryHomePageInvitationCodeInput.value = getLoadedInviteeIdentity()?.identifier || "";
