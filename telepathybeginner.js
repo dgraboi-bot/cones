@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260824g";
+  const launcherBuildVersion = "20260824h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -4438,6 +4438,43 @@ ${calmPracticeMessage}`;
     return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${meridiem}`;
   }
 
+  function formatLocalReportCreatedTimestamp(value) {
+    const millis = Number(value);
+    if (!Number.isFinite(millis)) {
+      return "";
+    }
+    const localDate = new Date(millis);
+    if (Number.isNaN(localDate.getTime())) {
+      return "";
+    }
+    const month = localDate.getMonth() + 1;
+    const day = localDate.getDate();
+    const year = String(localDate.getFullYear()).slice(-2);
+    let hours = localDate.getHours();
+    const minutes = String(localDate.getMinutes()).padStart(2, "0");
+    const seconds = String(localDate.getSeconds()).padStart(2, "0");
+    const meridiem = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    if (hours === 0) {
+      hours = 12;
+    }
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${meridiem}`;
+  }
+
+  function isLocalhostRuntime() {
+    const hostname = String(window.location.hostname || "").trim().toLowerCase();
+    return localInfrastructureHosts.has(hostname);
+  }
+
+  function getVisualizationReportCreatedText(pairInfo) {
+    const createdMs = Math.max(0, Number(pairInfo?.createdAtMs || 0) || 0);
+    if (createdMs <= 0) {
+      return "";
+    }
+    const text = formatLocalReportCreatedTimestamp(createdMs);
+    return text ? `Report created ${text} (local time)` : "";
+  }
+
   function getNamedReportVisualizationExportText(context) {
     const pairInfo = context?.pairInfo || {};
     const records = Array.isArray(context?.records) ? context.records : [];
@@ -4449,7 +4486,8 @@ ${calmPracticeMessage}`;
     lines.push(getVisualizationPairSummaryLine(pairInfo));
     const utcRangeText = getVisualizationUtcRangeText(records);
     if (utcRangeText) {
-      lines.push(`${utcRangeText} (UTC time)`);
+      const createdText = getVisualizationReportCreatedText(pairInfo);
+      lines.push(createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`);
     }
     lines.push(summaryText);
     lines.push(probabilityText);
@@ -4781,7 +4819,8 @@ ${calmPracticeMessage}`;
             }
             const utcRangeText = getVisualizationUtcRangeText(context.records || []);
             if (utcRangeText) {
-              lines.push(`${utcRangeText} (UTC time)`);
+              const createdText = getVisualizationReportCreatedText(context.pairInfo);
+              lines.push(createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`);
             }
             lines.push(context.range?.valid ? `Displayed range: trials ${context.range.start}-${context.range.end}.` : "Displayed range: unknown.");
             return lines;
@@ -4857,6 +4896,10 @@ ${calmPracticeMessage}`;
   }
 
   function openNamedReportModal() {
+    if (isLocalhostRuntime()) {
+      window.alert("Cannot SAVE a report using a local URL");
+      return;
+    }
     applyPendingVisualizationRangeIfNeeded();
     const context = latestVisualizationContext;
     if (!context?.pairInfo?.receiverName || !context?.pairInfo?.senderName) {
@@ -17860,7 +17903,8 @@ ${calmPracticeMessage}`;
     if (utcRangeText) {
       const utcLine = document.createElement("p");
       utcLine.className = "report-summary-line";
-      utcLine.textContent = `${utcRangeText} (UTC time)`;
+      const createdText = getVisualizationReportCreatedText(pairInfo);
+      utcLine.textContent = createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`;
       visualizationAdvancedDetailSummary.append(utcLine);
     }
 
@@ -17915,7 +17959,8 @@ ${calmPracticeMessage}`;
     if (utcRangeText) {
       const utcLine = document.createElement("p");
       utcLine.className = "report-summary-line";
-      utcLine.textContent = `${utcRangeText} (UTC time)`;
+      const createdText = getVisualizationReportCreatedText(pairInfo);
+      utcLine.textContent = createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`;
       visualizationSummary.append(utcLine);
     }
 
