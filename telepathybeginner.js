@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260824c";
+  const launcherBuildVersion = "20260824d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -20465,6 +20465,16 @@ ${calmPracticeMessage}`;
 
       const canonicalOwnName = getPreferredIdentifier(ownName, latest);
       const canonicalPartnerName = getPreferredIdentifier(exactPartnerName, latest);
+      if (
+        (role === "sender" || role === "receiver")
+        && !robotSimulationPartner
+        && normalizeIdentifierForStorage(canonicalOwnName) === normalizeIdentifierForStorage(canonicalPartnerName)
+      ) {
+        window.alert(role === "sender"
+          ? "You and the Receiver cannot be the same name"
+          : "You and the Sender cannot be the same name");
+        return;
+      }
       const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
       const storedRoleDifficultyLevel = normalizeDifficultyLevel(
         readRoleSettings(role).difficultyLevel ||

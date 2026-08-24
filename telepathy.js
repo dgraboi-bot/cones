@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260824c";
+  const runtimeBuildVersion = "20260824d";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260824c";
+  const launcherBuildVersion = "20260824d";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1944,6 +1944,20 @@
     }
 
     return [ownName, partnerName].sort().join("__");
+  }
+
+  function isInvalidSameTelepathyNamePair() {
+    if (isRemoteViewerLikeMode || isRemoteDisplayMode) {
+      return false;
+    }
+
+    const settings = readSettings();
+    const ownSource = settingsOwnEmailInput ? settingsOwnEmailInput.value : settings.own_email;
+    const partnerSource = settingsPartnerEmailInput ? settingsPartnerEmailInput.value : settings.partner_email;
+    const ownName = normalizeIdentifierForSession(ownSource || "");
+    const partnerName = normalizeIdentifierForSession(partnerSource || "");
+
+    return !!ownName && !!partnerName && ownName === partnerName;
   }
 
   function getCurrentSessionCode() {
@@ -7525,11 +7539,19 @@
     }
 
     if (role === "sender" && currentUiMode === "sender-ready") {
+      if (isInvalidSameTelepathyNamePair()) {
+        window.alert("You and the Receiver cannot be the same name");
+        return;
+      }
       void startSenderRound();
       return;
     }
 
     if (role === "receiver" && currentUiMode === "receiver-ready") {
+      if (isInvalidSameTelepathyNamePair()) {
+        window.alert("You and the Sender cannot be the same name");
+        return;
+      }
       dismissGuidedReceiverTourLiveStep("ready");
       receiverReady = true;
       showLocalRuntimeDebugAlert(10, `covered=${isRemoteViewerCoveredMode ? 1 : 0} robotSenderLike=${isRobotSenderLikeMode ? 1 : 0} mode=${runtimeMode}`);

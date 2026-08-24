@@ -1301,6 +1301,14 @@ Practical rule:
 - when reporting verification status, state plainly which browser path was actually used
 - before attempting any reinstall, first check whether the preferred helper package above still exists and is callable
 - for ordinary localhost UI verification on this machine, do not claim Playwright is unavailable until you have checked the preferred helper package above directly
+- use `scripts\run-playwright-check.ps1` as the stable first-choice wrapper instead of re-discovering module paths manually
+- if the bug involves a launcher card, modal, expanded panel, button flow, or navigation path, verify the real user path in `telepathybeginner.html` before handing a test URL to the user
+- do not assume a fix in `telepathy.js`, `receiver.html`, or `sender.html` is sufficient until the launcher path has also been exercised when the issue begins from the launcher
+
+Stable wrapper command:
+
+- `powershell -ExecutionPolicy Bypass -File scripts\run-playwright-check.ps1 -CheckOnly`
+- `powershell -ExecutionPolicy Bypass -File scripts\run-playwright-check.ps1 -ScriptPath <node-script.js>`
 
 ### Preferred Local UI Micro-Change Workflow
 
@@ -1309,7 +1317,7 @@ When the user wants to inspect a small browser UI revision locally without a ful
 1. make the source edit
 2. run `scripts\prepare-local-debug.ps1 -Version <new-local-version>`
 3. use the helper's `http://localhost/telepathyexperiment/cones/...` URL as the primary test URL when identity, PRO status, admin state, or existing local browser state matters
-4. verify the real rendered result with the known Playwright runtime before handing the URL to the user
+4. verify the real rendered result with `scripts\run-playwright-check.ps1` before handing the URL to the user
 5. only use `127.0.0.1` if the goal is explicit cache-isolation and the user has been warned that it is a separate origin
 
 Practical meaning:
