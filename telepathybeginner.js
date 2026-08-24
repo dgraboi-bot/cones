@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260824d";
+  const launcherBuildVersion = "20260824e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -7307,6 +7307,16 @@ ${calmPracticeMessage}`;
     return ["1", "2", "3", "4", "5"].includes(String(level || "")) ? String(level) : "1";
   }
 
+  function clampLauncherDifficultyForRole(role, level, options = {}) {
+    const normalizedRole = String(role || "").trim();
+    const normalizedLevel = Number(normalizeDifficultyLevel(level));
+    const isPro = options.pro === true || (options.pro !== false && getEffectiveLauncherUserType() === "pro");
+    const maxLevel = normalizedRole === "remote-viewer"
+      ? 4
+      : (isPro ? 4 : 3);
+    return String(Math.max(1, Math.min(maxLevel, normalizedLevel)));
+  }
+
   function normalizeIdentifierForStorage(name) {
     return String(name || "")
       .replace(/\s+/g, " ")
@@ -7685,7 +7695,7 @@ ${calmPracticeMessage}`;
       currentPartner: String(scoped?.currentPartner || state.currentPartners?.[role] || "").trim(),
       // Prefer the role-wide difficulty memory over older per-profile snapshots so
       // a freshly changed Sender/Receiver level survives reloads cleanly.
-      difficultyLevel: normalizeDifficultyLevel(state.roleDifficultyLevels?.[role] || scoped?.difficultyLevel || state.difficultyLevel || "1"),
+      difficultyLevel: clampLauncherDifficultyForRole(role, state.roleDifficultyLevels?.[role] || scoped?.difficultyLevel || state.difficultyLevel || "1"),
       partnerHistory: uniqueNames([
         ...(Array.isArray(scoped?.partnerHistory) ? scoped.partnerHistory : []),
         ...(Array.isArray(state.partnerHistory?.[legacyPartnerKey]) ? state.partnerHistory[legacyPartnerKey] : [])
@@ -7705,7 +7715,7 @@ ${calmPracticeMessage}`;
     latest.deletedPartners = latest.deletedPartners || {};
     latest.launcherProfiles[buildLauncherProfileKey(role, ownIdentifier)] = {
       currentPartner: String(profileState?.currentPartner || "").trim(),
-      difficultyLevel: normalizeDifficultyLevel(profileState?.difficultyLevel || latest.roleDifficultyLevels?.[role] || latest.difficultyLevel || "1"),
+      difficultyLevel: clampLauncherDifficultyForRole(role, profileState?.difficultyLevel || latest.roleDifficultyLevels?.[role] || latest.difficultyLevel || "1"),
       partnerHistory: uniqueNames(Array.isArray(profileState?.partnerHistory) ? profileState.partnerHistory : []),
       deletedPartners: uniqueNames(Array.isArray(profileState?.deletedPartners) ? profileState.deletedPartners : [])
     };
@@ -7727,7 +7737,7 @@ ${calmPracticeMessage}`;
       return {
         ownName: String(parsed?.own_email || "").trim(),
         partnerName: String(parsed?.partner_email || "").trim(),
-        difficultyLevel: normalizeDifficultyLevel(parsed?.difficulty_level || "1")
+        difficultyLevel: clampLauncherDifficultyForRole(role, parsed?.difficulty_level || "1")
       };
     } catch (error) {
       return {
@@ -10985,7 +10995,7 @@ ${calmPracticeMessage}`;
         label.classList.add("role-card-level-hidden");
         return;
       }
-      const nextText = `Level ${normalizeDifficultyLevel(level)}`;
+      const nextText = `Level ${clampLauncherDifficultyForRole(role, level)}`;
       label.dataset.placeholder = nextText;
       label.textContent = nextText;
       label.classList.remove("role-card-level-hidden");
@@ -11607,7 +11617,7 @@ ${calmPracticeMessage}`;
   }
 
   function getMaxDifficultyLevel() {
-    return getEffectiveLauncherUserType() === "pro" ? 5 : 3;
+    return getEffectiveLauncherUserType() === "pro" ? 4 : 3;
   }
 
   function getPairMaxDifficultyLevel(difficultyData) {
@@ -11629,9 +11639,6 @@ ${calmPracticeMessage}`;
     }
 
     if (normalizedRole === "receiver") {
-      if (receiverType === "pro" && senderType === "pro") {
-        return Math.min(pairMax, 5);
-      }
       if (receiverType === "pro") {
         return Math.min(pairMax, 4);
       }
@@ -11664,7 +11671,7 @@ ${calmPracticeMessage}`;
     }
 
     if (normalizedRole === "receiver" && levelNumber >= 5) {
-      return "";
+      return "Receiver currently supports Levels 1 through 4.";
     }
 
     if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "sender" && senderType === "pro" && receiverType !== "pro") {
@@ -11673,18 +11680,6 @@ ${calmPracticeMessage}`;
 
     if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "receiver" && receiverType !== "pro") {
       return "You must be PRO in the receiver role for this pair to use Level 4.";
-    }
-
-    if (levelNumber >= 5 && maxLevel < 5) {
-      if (receiverType !== "pro" && senderType !== "pro") {
-        return "Both participants must be PRO for this pair to use Level 5.";
-      }
-      if (receiverType !== "pro") {
-        return "The receiver must be PRO for this pair to use Level 5.";
-      }
-      if (senderType !== "pro") {
-        return "The sender must be PRO for this pair to use Level 5.";
-      }
     }
 
     return `This pair cannot go above Level ${maxLevel}.`;
@@ -11871,14 +11866,15 @@ ${calmPracticeMessage}`;
     const label = getDifficultyLabelElement(role);
     const match = String(label?.textContent || "").match(/Level\s+([1-5])/i);
     if (match) {
-      return Number(normalizeDifficultyLevel(match[1]));
+      return Number(clampLauncherDifficultyForRole(role, match[1]));
     }
     const launcherState = readLauncherState();
-    return Number(normalizeDifficultyLevel(
+    return Number(clampLauncherDifficultyForRole(
+      role,
       launcherState.roleDifficultyLevels?.[role] ||
-      readRoleSettings(role).difficultyLevel ||
-      launcherState.difficultyLevel ||
-      "1"
+        readRoleSettings(role).difficultyLevel ||
+        launcherState.difficultyLevel ||
+        "1"
     ));
   }
 
@@ -12724,13 +12720,16 @@ ${calmPracticeMessage}`;
     ["sender", "receiver", "remote-viewer"].forEach((role) => {
       const roleSettings = readRoleSettings(role);
       const launcherRoleLevel = normalizeDifficultyLevel(launcherState.roleDifficultyLevels?.[role] || "");
-      setRoleDifficultyLabel(role, normalizeDifficultyLevel(launcherRoleLevel || roleSettings.difficultyLevel || rememberedLevel));
+      setRoleDifficultyLabel(
+        role,
+        clampLauncherDifficultyForRole(role, launcherRoleLevel || roleSettings.difficultyLevel || rememberedLevel)
+      );
     });
   }
 
   function persistResolvedPairDifficultyForRole(role, context, level) {
     const normalizedRole = String(role || "").trim();
-    const normalizedLevel = normalizeDifficultyLevel(level);
+    const normalizedLevel = clampLauncherDifficultyForRole(normalizedRole, level);
     if (!normalizedRole) {
       return;
     }
@@ -12808,7 +12807,7 @@ ${calmPracticeMessage}`;
 
   function persistRoleDifficultyPreference(role, level) {
     const normalizedRole = String(role || "").trim();
-    const normalizedLevel = normalizeDifficultyLevel(level);
+    const normalizedLevel = clampLauncherDifficultyForRole(normalizedRole, level);
     const latest = readLauncherState();
     latest.roleDifficultyLevels = latest.roleDifficultyLevels || {};
     if (normalizedRole === "sender" || normalizedRole === "receiver") {
@@ -18631,11 +18630,11 @@ ${calmPracticeMessage}`;
       };
     }
 
-    if (difficultyLevel === "5" && (receiverType !== "pro" || senderType !== "pro")) {
+    if (difficultyLevel === "5") {
       return {
         allowed: false,
         difficultyLevel,
-        message: "Level 5 requires both participants to be PRO users.",
+        message: "Telepathy currently supports Levels 1 through 4.",
         ownType,
         partnerType
       };
