@@ -3980,52 +3980,6 @@ function get_demo_pair_seed_definitions(): array
                 ['lvl1tele0023', '7/7/2026', '2:14:00 PM', '2026-07-07T21:14:00Z', '1', '1', '1', '81', '7400'],
                 ['lvl1tele0024', '7/7/2026', '2:16:00 PM', '2026-07-07T21:16:00Z', '9', '1', '3', '85', '7550']
             ])
-        ],
-        [
-            'receiver_name' => 'demo.mixed.level123.receiver',
-            'sender_name' => 'demo.mixed.level123.sender',
-            'records' => $buildRecords('demo.mixed.level123.receiver', 'demo.mixed.level123.sender', [
-                ['lvl123mix0001', '7/7/2026', '3:00:00 PM', '2026-07-07T22:00:00Z', '1', '1', '1', '80', '4200'],
-                ['lvl123mix0002', '7/7/2026', '3:02:00 PM', '2026-07-07T22:02:00Z', '6', '1', '3', '82', '4350'],
-                ['lvl123mix0003', '7/7/2026', '3:04:00 PM', '2026-07-07T22:04:00Z', '7', '1', '3', '79', '4500'],
-                ['lvl123mix0004', '7/7/2026', '3:06:00 PM', '2026-07-07T22:06:00Z', '8', '1', '1', '40', '4650'],
-                ['lvl123mix0005', '7/7/2026', '3:08:00 PM', '2026-07-07T22:08:00Z', '1', '1', '1', '81', '4800'],
-                ['lvl123mix0006', '7/7/2026', '3:10:00 PM', '2026-07-07T22:10:00Z', '9', '1', '3', '83', '4950'],
-                ['lvl123mix0007', '7/7/2026', '3:12:00 PM', '2026-07-07T22:12:00Z', '6', '1', '3', '78', '5100'],
-                ['lvl123mix0008', '7/7/2026', '3:14:00 PM', '2026-07-07T22:14:00Z', '1', '1', '1', '80', '5250'],
-                ['lvl123mix0009', '7/7/2026', '3:16:00 PM', '2026-07-07T22:16:00Z', '7', '1', '1', '44', '5400'],
-                ['lvl123mix0010', '7/7/2026', '3:18:00 PM', '2026-07-07T22:18:00Z', '8', '1', '3', '79', '5550'],
-                ['lvl123mix0011', '7/7/2026', '3:20:00 PM', '2026-07-07T22:20:00Z', '1', '1', '1', '82', '5700'],
-                ['lvl123mix0012', '7/7/2026', '3:22:00 PM', '2026-07-07T22:22:00Z', '9', '1', '3', '81', '5850'],
-                ['lvl123mix0013', '7/7/2026', '3:24:00 PM', '2026-07-07T22:24:00Z', '6', '1', '3', '77', '6000'],
-                ['lvl123mix0014', '7/7/2026', '3:26:00 PM', '2026-07-07T22:26:00Z', '1', '1', '1', '80', '6150'],
-                ['lvl123mix0015', '7/7/2026', '3:28:00 PM', '2026-07-07T22:28:00Z', '7', '1', '3', '78', '6300'],
-                ['lvl123mix0016', '7/7/2026', '3:30:00 PM', '2026-07-07T22:30:00Z', '8', '1', '3', '76', '6450'],
-                ['lvl123mix0017', '7/7/2026', '3:32:00 PM', '2026-07-07T22:32:00Z', '1', '1', '1', '83', '6600'],
-                ['lvl123mix0018', '7/7/2026', '3:34:00 PM', '2026-07-07T22:34:00Z', '9', '1', '1', '42', '6750'],
-                ['lvl123mix0019', '7/7/2026', '3:36:00 PM', '2026-07-07T22:36:00Z', '6', '1', '1', '46', '6900'],
-                ['lvl123mix0020', '7/7/2026', '3:38:00 PM', '2026-07-07T22:38:00Z', '1', '1', '1', '43', '7050'],
-                ['lvl123mix0021', '7/7/2026', '3:40:00 PM', '2026-07-07T22:40:00Z', '7', '1', '3', '79', '7200'],
-                ['lvl123mix0022', '7/7/2026', '3:42:00 PM', '2026-07-07T22:42:00Z', '8', '1', '1', '41', '7350'],
-                ['lvl123mix0023', '7/7/2026', '3:44:00 PM', '2026-07-07T22:44:00Z', '1', '1', '1', '82', '7500'],
-                ['lvl123mix0024', '7/7/2026', '3:46:00 PM', '2026-07-07T22:46:00Z', '9', '1', '3', '80', '7650'],
-                ['lvl123mix0025', '7/7/2026', '3:48:00 PM', '2026-07-07T22:48:00Z', '1', '2', '1', '72', '6200'],
-                ['lvl123mix0026', '7/7/2026', '3:50:00 PM', '2026-07-07T22:50:00Z', '6', '2', '1', '36', '6420'],
-                ['lvl123mix0027', '7/7/2026', '3:52:00 PM', '2026-07-07T22:52:00Z', '7', '2', '1', '39', '6640'],
-                ['lvl123mix0028', '7/7/2026', '3:54:00 PM', '2026-07-07T22:54:00Z', '8', '2', '1', '34', '6860'],
-                ['lvl123mix0029', '7/7/2026', '3:56:00 PM', '2026-07-07T22:56:00Z', '9', '2', '1', '37', '7080'],
-                ['lvl123mix0030', '7/7/2026', '3:58:00 PM', '2026-07-07T22:58:00Z', '1', '2', '6', '70', '7300'],
-                ['lvl123mix0031', '7/7/2026', '4:00:00 PM', '2026-07-07T23:00:00Z', '6', '2', '1', '35', '7520'],
-                ['lvl123mix0032', '7/7/2026', '4:02:00 PM', '2026-07-07T23:02:00Z', '7', '2', '1', '38', '7740'],
-                ['lvl123mix0033', '7/7/2026', '4:04:00 PM', '2026-07-07T23:04:00Z', '1', '3', '9', '31', '7600'],
-                ['lvl123mix0034', '7/7/2026', '4:06:00 PM', '2026-07-07T23:06:00Z', '2', '3', '9', '29', '7860'],
-                ['lvl123mix0035', '7/7/2026', '4:08:00 PM', '2026-07-07T23:08:00Z', '3', '3', '9', '34', '8120'],
-                ['lvl123mix0036', '7/7/2026', '4:10:00 PM', '2026-07-07T23:10:00Z', '4', '3', '4', '68', '8380'],
-                ['lvl123mix0037', '7/7/2026', '4:12:00 PM', '2026-07-07T23:12:00Z', '5', '3', '9', '30', '8640'],
-                ['lvl123mix0038', '7/7/2026', '4:14:00 PM', '2026-07-07T23:14:00Z', '6', '3', '9', '33', '8900'],
-                ['lvl123mix0039', '7/7/2026', '4:16:00 PM', '2026-07-07T23:16:00Z', '7', '3', '9', '28', '9160'],
-                ['lvl123mix0040', '7/7/2026', '4:18:00 PM', '2026-07-07T23:18:00Z', '8', '3', '9', '32', '9420']
-            ])
         ]
     ];
 }
@@ -4042,8 +3996,7 @@ function ensure_demo_pair_records(string $pairsDir, bool $force = false): void
         ['receiver_name' => 'demo.level1.promising16.receiver@espgym.com', 'sender_name' => 'demo.level1.promising16.sender@espgym.com'],
         ['receiver_name' => 'demo.level1.promising16.receiver', 'sender_name' => 'demo.level1.promising16.sender'],
         ['receiver_name' => 'demo.level1.not-telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.not-telepathic.sender@espgym.com'],
-        ['receiver_name' => 'demo.level1.telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.telepathic.sender@espgym.com'],
-        ['receiver_name' => 'demo.mixed.level123.receiver@espgym.com', 'sender_name' => 'demo.mixed.level123.sender@espgym.com']
+        ['receiver_name' => 'demo.level1.telepathic.receiver@espgym.com', 'sender_name' => 'demo.level1.telepathic.sender@espgym.com']
     ];
     foreach ($legacyDefinitions as $legacyDefinition) {
         $legacyReceiver = trim((string) ($legacyDefinition['receiver_name'] ?? ''));
@@ -4746,8 +4699,7 @@ function is_demo_report_pair(string $receiverName, string $senderName): bool
         'demo.level1.too-little.receiver|||demo.level1.too-little.sender' => true,
         'demo.level1.promising.receiver|||demo.level1.promising.sender' => true,
         'demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender' => true,
-        'demo.level1.telepathic.receiver|||demo.level1.telepathic.sender' => true,
-        'demo.mixed.level123.receiver|||demo.mixed.level123.sender' => true
+        'demo.level1.telepathic.receiver|||demo.level1.telepathic.sender' => true
     ];
 
     return isset($demoPairs[build_pair_match_key($receiverName, $senderName)]);

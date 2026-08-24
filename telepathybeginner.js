@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260824b";
+  const launcherBuildVersion = "20260824c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -1164,15 +1164,13 @@
     "demo.level1.too-little.receiver|||demo.level1.too-little.sender",
     "demo.level1.promising.receiver|||demo.level1.promising.sender",
     "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender",
-    "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender",
-    "demo.mixed.level123.receiver|||demo.mixed.level123.sender"
+    "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender"
   ]);
   const demoReportPairOrder = new Map([
     ["demo.level1.too-little.receiver|||demo.level1.too-little.sender", 10],
     ["demo.level1.promising.receiver|||demo.level1.promising.sender", 16],
     ["demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender", 24],
-    ["demo.level1.telepathic.receiver|||demo.level1.telepathic.sender", 30],
-    ["demo.mixed.level123.receiver|||demo.mixed.level123.sender", 40]
+    ["demo.level1.telepathic.receiver|||demo.level1.telepathic.sender", 30]
   ]);
   let activeReportResize = null;
   let activeReportViewPan = null;
@@ -13767,8 +13765,7 @@ ${calmPracticeMessage}`;
       "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "demo: too-little",
       "demo.level1.promising.receiver|||demo.level1.promising.sender": "demo: promising",
       "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "demo: not-telepathic",
-      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "demo: telepathic",
-      "demo.mixed.level123.receiver|||demo.mixed.level123.sender": "demo: mixed-level123"
+      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "demo: telepathic"
     };
     return labelByPairKey[pairKey] || "demo";
   }
