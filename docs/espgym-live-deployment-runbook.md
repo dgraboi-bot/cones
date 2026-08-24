@@ -531,6 +531,13 @@ Practical meaning:
 - after syntax checks pass, mirror-sync `C:\xampp\htdocs\telepathyexperiment\cones` to `C:\xampp\htdocs\cones` before claiming the local build is ready
 - if `http://localhost/...` behaves strangely on this machine because of stale cache or service-worker state, prefer the equivalent `http://127.0.0.1/...` URL for local browser testing because it uses a separate origin and bypasses that stale local browser state
 
+Important warning:
+
+- `127.0.0.1` is not just a cache workaround; it is a different browser origin from `localhost`
+- that means `127.0.0.1` has a separate local-storage, service-worker, and identity/pro-status state
+- do not send the user to `127.0.0.1` for ordinary app testing unless you explicitly warn that their recognized identity, PRO state, easy-admin state, and other local browser state will not carry over there
+- use `127.0.0.1` only as a cache-isolation debugging origin
+
 ## Lesson Autobackup Retention
 
 Lesson autobackups are intended as overwrite protection, not as an unbounded archive.
@@ -1278,10 +1285,38 @@ If local browser verification is needed and the Codex in-app browser cannot atta
 - use the installed local Playwright browser runtime for verification instead
 - treat that Playwright runtime as the default fallback path for localhost checks on this machine
 
+Known Playwright locations on this machine:
+
+- preferred reusable helper package:
+  - `C:\Users\dgrab\Documents\Codex\2026-05-01\to-start-with-i-want-to\playwright-ui-check\node_modules\playwright`
+- previously installed package copies also exist at:
+  - `C:\Users\dgrab\Documents\Codex\2026-04-28\this-chat-should-be-called-continuation\node_modules\playwright`
+  - `C:\Users\dgrab\Documents\Codex\2026-04-28\this-chat-should-be-called-recovery\node_modules\playwright`
+- installed browser runtime directory:
+  - `C:\Users\dgrab\AppData\Local\ms-playwright`
+
 Practical rule:
 
 - if in-app browser attach fails, immediately switch to the installed Playwright runtime rather than leaving verification unfinished
 - when reporting verification status, state plainly which browser path was actually used
+- before attempting any reinstall, first check whether the preferred helper package above still exists and is callable
+- for ordinary localhost UI verification on this machine, do not claim Playwright is unavailable until you have checked the preferred helper package above directly
+
+### Preferred Local UI Micro-Change Workflow
+
+When the user wants to inspect a small browser UI revision locally without a full live release:
+
+1. make the source edit
+2. run `scripts\prepare-local-debug.ps1 -Version <new-local-version>`
+3. use the helper's `http://localhost/telepathyexperiment/cones/...` URL as the primary test URL when identity, PRO status, admin state, or existing local browser state matters
+4. verify the real rendered result with the known Playwright runtime before handing the URL to the user
+5. only use `127.0.0.1` if the goal is explicit cache-isolation and the user has been warned that it is a separate origin
+
+Practical meaning:
+
+- a local cache-busted `localhost` URL is the normal first choice for app-path inspection on this machine
+- do not switch the user to a separate-origin workaround if the issue is really just that the local build version was not advanced
+- for UI work, prefer verifying the actual app path with Playwright rather than relying only on isolated mock pages
 
 ### Forced Isolated View Screenshot Fallback
 

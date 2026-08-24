@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9]*'
+$versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9._-]*'
 
 $files = @(
   (Join-Path $root ".htaccess"),
@@ -75,8 +75,8 @@ $replacements = @{
     @{ Pattern = 'tb-icon-192\.png\?v=[^"]+'; Replacement = "tb-icon-192.png?v=$Version" },
     @{ Pattern = 'telepathybeginner\.css\?v=[^"]+'; Replacement = "telepathybeginner.css?v=$Version" },
     @{ Pattern = 'vendor/leaflet/leaflet\.css\?v=[^"]+'; Replacement = "vendor/leaflet/leaflet.css?v=$Version" },
-    @{ Pattern = '(<span class="beginner-top-version" data-app-version-label>)ver\. [A-Za-z0-9]+(</span>)'; Replacement = "`$1ver. $Version`$2" },
-    @{ Pattern = 'var buildVersion = "[A-Za-z0-9]+";'; Replacement = "var buildVersion = `"$Version`";" },
+    @{ Pattern = '(<span class="beginner-top-version" data-app-version-label>)ver\. [A-Za-z0-9._-]+(</span>)'; Replacement = "`$1ver. $Version`$2" },
+    @{ Pattern = 'var buildVersion = "[A-Za-z0-9._-]+";'; Replacement = "var buildVersion = `"$Version`";" },
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"'';]+(&amp;|&)open=baseline-questions'; Replacement = "telepathybeginner.html?v=$Version`$1open=baseline-questions" },
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"'';]+(&amp;|&)open=after-first-session-questions'; Replacement = "telepathybeginner.html?v=$Version`$1open=after-first-session-questions" },
     @{ Pattern = '(BeginnerUserManual_preserved_[^?''" ]+\.html)\?v=[^''"]+'; Replacement = "`$1?v=$Version" },
@@ -121,11 +121,11 @@ $replacements = @{
   (Join-Path $root "telepathy.js") = @(
     @{ Pattern = 'const runtimeBuildVersion = "[^"]+";'; Replacement = "const runtimeBuildVersion = `"$Version`";" },
     @{ Pattern = 'const launcherBuildVersion = "[^"]+";'; Replacement = "const launcherBuildVersion = `"$Version`";" },
-    @{ Pattern = 'params\.set\("v", "[A-Za-z0-9]+"\);'; Replacement = "params.set(`"v`", `"$Version`");" }
+    @{ Pattern = 'params\.set\("v", "[A-Za-z0-9._-]+"\);'; Replacement = "params.set(`"v`", `"$Version`");" }
   )
   (Join-Path $root "globe\index.html") = @(
     @{ Pattern = 'globe\.css\?v=[^"]+'; Replacement = "globe.css?v=$Version" },
-    @{ Pattern = '(<span class="globe-version">)ver\. [A-Za-z0-9]+(</span>)'; Replacement = "`$1ver. $Version`$2" },
+    @{ Pattern = '(<span class="globe-version">)ver\. [A-Za-z0-9._-]+(</span>)'; Replacement = "`$1ver. $Version`$2" },
     @{ Pattern = 'globe-config\.js\?v=[^"]+'; Replacement = "globe-config.js?v=$Version" },
     @{ Pattern = 'globe-data\.js\?v=[^"]+'; Replacement = "globe-data.js?v=$Version" },
     @{ Pattern = 'globe-ui\.js\?v=[^"]+'; Replacement = "globe-ui.js?v=$Version" },
@@ -162,10 +162,13 @@ $staleHits = @()
 foreach ($file in $files) {
   $content = Get-Content -Raw -LiteralPath $file
   foreach ($oldVersion in $previousVersions) {
-    if ($content -match [regex]::Escape($oldVersion)) {
-      $staleHits += [pscustomobject]@{
-        File = $file
-        Version = $oldVersion
+    $stalePattern = "(?<![A-Za-z0-9._-])" + [regex]::Escape($oldVersion) + "(?![A-Za-z0-9._-])"
+    foreach ($match in [regex]::Matches($content, $stalePattern)) {
+      if ($match.Success) {
+        $staleHits += [pscustomobject]@{
+          File = $file
+          Version = $oldVersion
+        }
       }
     }
   }

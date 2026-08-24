@@ -13998,6 +13998,7 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
         'created_server_ms' => $nowMs,
         'last_activity_ms' => $nowMs,
         'sender_client_id' => $clientId,
+        'difficulty_level' => $difficultyLevel,
         'stimulus_kind' => 'cones',
         'layout_number' => null,
         'arrangement_code' => null,

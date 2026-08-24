@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260823l";
+  const runtimeBuildVersion = "20260824b";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260823l";
+  const launcherBuildVersion = "20260824b";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1817,6 +1817,26 @@
     writeJsonStorageValue(activeReportSessionStorageKey, meta);
   }
 
+  function getStableRoundDifficultyLevel(round, fallbackLevel = "") {
+    const active = readActiveReportSessionMeta();
+    const explicitLevel =
+      round?.difficulty_level ||
+      round?.level ||
+      fallbackLevel ||
+      active?.session_level ||
+      "";
+
+    if (String(explicitLevel || "").trim() !== "") {
+      return normalizeDifficultyLevel(explicitLevel);
+    }
+
+    if (isRemoteViewerCoveredMode) {
+      return normalizeDifficultyLevel(requestedRuntimeDifficultyLevel || "1");
+    }
+
+    return normalizeDifficultyLevel(currentPairDifficultyLevel || requestedRuntimeDifficultyLevel || "1");
+  }
+
   function getOrCreateReportSessionMeta(round, remoteState) {
     const senderProfile = remoteState?.sender_profile || {};
     const receiverProfile = remoteState?.receiver_profile || {};
@@ -1824,12 +1844,7 @@
     const senderName = String(senderProfile.name || "").trim();
     const sessionMode = getCurrentSessionMode();
     const remoteViewingSubmode = getCurrentRemoteViewingSubmode();
-    const sessionLevel = normalizeDifficultyLevel(
-      round?.difficulty_level ||
-      round?.level ||
-      currentPairDifficultyLevel ||
-      "1"
-    );
+    const sessionLevel = getStableRoundDifficultyLevel(round);
     const source = isRobotSimulationMode ? "simulation" : "real";
     const signature = buildReportSessionSignature(
       receiverName,
@@ -1844,7 +1859,8 @@
       return {
         signature,
         sessionId: String(active.session_id),
-        sessionNumber: Number(active.session_number)
+        sessionNumber: Number(active.session_number),
+        sessionLevel: getStableRoundDifficultyLevel(round, active?.session_level || sessionLevel)
       };
     }
 
@@ -1866,13 +1882,15 @@
     writeActiveReportSessionMeta({
       signature,
       session_id: sessionId,
-      session_number: nextSessionNumber
+      session_number: nextSessionNumber,
+      session_level: sessionLevel
     });
 
     return {
       signature,
       sessionId,
-      sessionNumber: nextSessionNumber
+      sessionNumber: nextSessionNumber,
+      sessionLevel
     };
   }
 
@@ -2236,6 +2254,7 @@
       guess_confidence: "",
       done_reaction_ms: "",
       stimulus_kind: "layout",
+      difficulty_level: difficultyLevel,
       image_pair_id: "",
       image_choice_a: "",
       image_choice_b: "",
@@ -5795,12 +5814,7 @@
         : "";
     const sessionMode = getCurrentSessionMode();
     const remoteViewingSubmode = getCurrentRemoteViewingSubmode();
-    const sessionLevel = normalizeDifficultyLevel(
-      round?.difficulty_level ||
-      round?.level ||
-      currentPairDifficultyLevel ||
-      "1"
-    );
+    const sessionLevel = getStableRoundDifficultyLevel(round, sessionMeta.sessionLevel || "");
     const trialUtcMs = Math.round(beepEndServerMs);
     const trialId = `${sessionMeta.sessionId}-${String(round?.id || "trial").trim() || "trial"}`;
 
@@ -5819,7 +5833,7 @@
       localDate,
       localTime,
       isImagePairRound ? "" : (round?.layout_number ?? ""),
-      normalizeDifficultyLevel(currentPairDifficultyLevel),
+      sessionLevel,
       aborted ? "yes" : "no",
       timedOut ? "yes" : "no",
       round?.guess_layout_number ?? "",

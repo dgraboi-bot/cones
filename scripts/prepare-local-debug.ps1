@@ -23,67 +23,67 @@ $mirrorVerifyFiles = @(
 $versionConsistencyChecks = @(
   @{
     Path = "telepathybeginner.html"
-    Pattern = 'target-selection\.js\?v=([A-Za-z0-9]+)'
+    Pattern = 'target-selection\.js\?v=([A-Za-z0-9._-]+)'
     Label = 'launcher -> target-selection.js'
   },
   @{
     Path = "telepathybeginner.html"
-    Pattern = 'telepathybeginner\.js\?v=([A-Za-z0-9]+)'
+    Pattern = 'telepathybeginner\.js\?v=([A-Za-z0-9._-]+)'
     Label = 'launcher -> telepathybeginner.js'
   },
   @{
     Path = "telepathybeginner.html"
-    Pattern = 'telepathybeginner\.css\?v=([A-Za-z0-9]+)'
+    Pattern = 'telepathybeginner\.css\?v=([A-Za-z0-9._-]+)'
     Label = 'launcher -> telepathybeginner.css'
   },
   @{
     Path = "receiver.html"
-    Pattern = 'target-selection\.js\?v=([A-Za-z0-9]+)'
+    Pattern = 'target-selection\.js\?v=([A-Za-z0-9._-]+)'
     Label = 'receiver -> target-selection.js'
   },
   @{
     Path = "receiver.html"
-    Pattern = 'telepathy\.js\?v=([A-Za-z0-9]+)'
+    Pattern = 'telepathy\.js\?v=([A-Za-z0-9._-]+)'
     Label = 'receiver -> telepathy.js'
   },
   @{
     Path = "sender.html"
-    Pattern = 'target-selection\.js\?v=([A-Za-z0-9]+)'
+    Pattern = 'target-selection\.js\?v=([A-Za-z0-9._-]+)'
     Label = 'sender -> target-selection.js'
   },
   @{
     Path = "sender.html"
-    Pattern = 'telepathy\.js\?v=([A-Za-z0-9]+)'
+    Pattern = 'telepathy\.js\?v=([A-Za-z0-9._-]+)'
     Label = 'sender -> telepathy.js'
   },
   @{
     Path = "receiver.html"
-    Pattern = 'telepathy\.css\?v=([A-Za-z0-9]+)'
+    Pattern = 'telepathy\.css\?v=([A-Za-z0-9._-]+)'
     Label = 'receiver -> telepathy.css'
   },
   @{
     Path = "sender.html"
-    Pattern = 'telepathy\.css\?v=([A-Za-z0-9]+)'
+    Pattern = 'telepathy\.css\?v=([A-Za-z0-9._-]+)'
     Label = 'sender -> telepathy.css'
   },
   @{
     Path = "target-selection.js"
-    Pattern = 'buildVersion: "([A-Za-z0-9]+)"'
+    Pattern = 'buildVersion: "([A-Za-z0-9._-]+)"'
     Label = 'target-selection.js buildVersion'
   },
   @{
     Path = "telepathybeginner.js"
-    Pattern = 'const launcherBuildVersion = "([A-Za-z0-9]+)"'
+    Pattern = 'const launcherBuildVersion = "([A-Za-z0-9._-]+)"'
     Label = 'telepathybeginner.js launcherBuildVersion'
   },
   @{
     Path = "telepathy.js"
-    Pattern = 'const runtimeBuildVersion = "([A-Za-z0-9]+)"'
+    Pattern = 'const runtimeBuildVersion = "([A-Za-z0-9._-]+)"'
     Label = 'telepathy.js runtimeBuildVersion'
   },
   @{
     Path = "telepathy.js"
-    Pattern = 'const launcherBuildVersion = "([A-Za-z0-9]+)"'
+    Pattern = 'const launcherBuildVersion = "([A-Za-z0-9._-]+)"'
     Label = 'telepathy.js launcherBuildVersion'
   }
 )

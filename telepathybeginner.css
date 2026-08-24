@@ -1268,9 +1268,44 @@ html.espgym-build-recovery-active body {
   width: min(100%, 760px);
 }
 
+.learn-more-panel.learn-more-panel-reader,
+[data-clairvoyance-learn-more-editor-field][hidden] ~ .learn-more-preview-wrap {
+  overflow: visible;
+}
+
 .learn-more-panel.learn-more-panel-reader {
-  max-height: min(72vh, 760px);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: min(100%, 420px);
+  width: min(100%, 760px);
+  min-height: 420px;
+  height: min(72vh, 760px);
+  resize: both;
+  overflow: hidden;
+}
+
+.beginner-view[data-view="clairvoyance-learn-more"].clairvoyance-learn-more-reader-view {
+  padding-bottom: 240px;
+}
+
+.beginner-view[data-view="clairvoyance-learn-more"].clairvoyance-learn-more-reader-view::after {
+  content: "";
+  display: block;
+  height: 240px;
+}
+
+.learn-more-panel.learn-more-panel-reader .learn-more-preview,
+[data-clairvoyance-learn-more-editor-field][hidden] + .learn-more-preview-wrap .learn-more-preview {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  resize: none;
+  overflow: auto;
 }
 
 .learn-more-textarea {
@@ -1286,7 +1321,11 @@ html.espgym-build-recovery-active body {
 }
 
 .learn-more-preview-wrap-reader {
+  flex: 1 1 auto;
   gap: 0;
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .learn-more-preview {
@@ -4968,7 +5007,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260823l") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260824b") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

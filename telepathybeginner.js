@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260823l";
+  const launcherBuildVersion = "20260824b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
   const buildRecoveryStatusParam = "build_recovery";
@@ -22110,6 +22110,9 @@ ${calmPracticeMessage}`;
     }
     if (clairvoyanceLearnMorePanel) {
       clairvoyanceLearnMorePanel.classList.toggle("learn-more-panel-reader", !isEditMode);
+    }
+    if (clairvoyanceLearnMoreView) {
+      clairvoyanceLearnMoreView.classList.toggle("clairvoyance-learn-more-reader-view", !isEditMode);
     }
     if (clairvoyanceLearnMorePreviewLabel) {
       clairvoyanceLearnMorePreviewLabel.hidden = !isEditMode;
