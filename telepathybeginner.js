@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260824h";
+  const launcherBuildVersion = "20260825a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -4487,7 +4487,10 @@ ${calmPracticeMessage}`;
     const utcRangeText = getVisualizationUtcRangeText(records);
     if (utcRangeText) {
       const createdText = getVisualizationReportCreatedText(pairInfo);
-      lines.push(createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`);
+      lines.push(`${utcRangeText} (UTC time)`);
+      if (createdText) {
+        lines.push(createdText);
+      }
     }
     lines.push(summaryText);
     lines.push(probabilityText);
@@ -4820,7 +4823,10 @@ ${calmPracticeMessage}`;
             const utcRangeText = getVisualizationUtcRangeText(context.records || []);
             if (utcRangeText) {
               const createdText = getVisualizationReportCreatedText(context.pairInfo);
-              lines.push(createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`);
+              lines.push(`${utcRangeText} (UTC time)`);
+              if (createdText) {
+                lines.push(createdText);
+              }
             }
             lines.push(context.range?.valid ? `Displayed range: trials ${context.range.start}-${context.range.end}.` : "Displayed range: unknown.");
             return lines;
@@ -14768,7 +14774,7 @@ ${calmPracticeMessage}`;
     if (!startText || !endText) {
       return "";
     }
-    return `Start: ${startText}  End: ${endText}`;
+    return `First trial: ${startText}  Last trial: ${endText}`;
   }
 
   function getVisualizationPairSummaryLine(pairInfo) {
@@ -17903,9 +17909,15 @@ ${calmPracticeMessage}`;
     if (utcRangeText) {
       const utcLine = document.createElement("p");
       utcLine.className = "report-summary-line";
-      const createdText = getVisualizationReportCreatedText(pairInfo);
-      utcLine.textContent = createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`;
+      utcLine.textContent = `${utcRangeText} (UTC time)`;
       visualizationAdvancedDetailSummary.append(utcLine);
+      const createdText = getVisualizationReportCreatedText(pairInfo);
+      if (createdText) {
+        const createdLine = document.createElement("p");
+        createdLine.className = "report-summary-line";
+        createdLine.textContent = createdText;
+        visualizationAdvancedDetailSummary.append(createdLine);
+      }
     }
 
     const rangeLine = document.createElement("p");
@@ -17959,9 +17971,15 @@ ${calmPracticeMessage}`;
     if (utcRangeText) {
       const utcLine = document.createElement("p");
       utcLine.className = "report-summary-line";
-      const createdText = getVisualizationReportCreatedText(pairInfo);
-      utcLine.textContent = createdText ? `${utcRangeText} (UTC time)  ${createdText}` : `${utcRangeText} (UTC time)`;
+      utcLine.textContent = `${utcRangeText} (UTC time)`;
       visualizationSummary.append(utcLine);
+      const createdText = getVisualizationReportCreatedText(pairInfo);
+      if (createdText) {
+        const createdLine = document.createElement("p");
+        createdLine.className = "report-summary-line";
+        createdLine.textContent = createdText;
+        visualizationSummary.append(createdLine);
+      }
     }
 
     if (!series.length) {
