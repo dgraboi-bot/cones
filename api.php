@@ -11623,7 +11623,7 @@ if ($action === 'set_trial_mode_public_enabled' && $hasAdminAccess) {
 
 if ($action === 'set_messaging_limits' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'messaging_limits'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'messaging_limits'], 'request');
         $state['messaging_limits'] = validate_messaging_limits_payload($input['messaging_limits'] ?? null);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -11636,7 +11636,7 @@ if ($action === 'record_launcher_visit') {
 
 if ($action === 'save_subscription_email_template' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'template_key', 'subject', 'body'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'template_key', 'subject', 'body'], 'request');
         $templateKey = normalize_subscription_email_template_key($input['template_key'] ?? '');
         $subject = trim((string) ($input['subject'] ?? ''));
         $body = trim((string) ($input['body'] ?? ''));
@@ -12116,7 +12116,7 @@ if ($action === 'get_launcher_profile') {
 
 if ($action === 'run_subscription_reminder_scan' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'secret_candidate', 'test_mode'], 'request');
+        require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'test_mode'], 'request');
         $scanResult = scan_subscription_annual_reminders(
             $state,
             $subscriptionEmailLogFile,
@@ -12476,7 +12476,7 @@ if ($action === 'get_user_type') {
 
 if ($action === 'set_user_auth_email' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'user_identifier', 'email', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'user_identifier', 'email', 'secret_candidate', 'admin_client_id'], 'request');
         $userIdentifier = trim((string) ($input['user_identifier'] ?? ''));
         $validatedIdentifier = validate_participant_identifier_string($userIdentifier, 'user_identifier', true);
         if (!participant_identifier_exists($state, $pairsDir, $validatedIdentifier)) {
@@ -13222,7 +13222,7 @@ if ($action === 'cron_subscription_reminders') {
 
 if ($action === 'set_user_type' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'user_handle', 'user_identifier', 'user_type', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'user_handle', 'user_identifier', 'user_type', 'secret_candidate', 'admin_client_id'], 'request');
         $userIdentifier = trim((string) ($input['user_identifier'] ?? ($input['user_handle'] ?? '')));
         $userType = normalize_user_type($input['user_type'] ?? 'standard');
         $validatedIdentifier = validate_participant_identifier_string($userIdentifier, 'user_identifier', true);
@@ -13323,7 +13323,7 @@ if ($action === 'list_email_list' && $hasAdminAccess) {
 if ($action === 'save_invitee' && $hasAdminAccess) {
     $inviteeCountBefore = count((array) ($state['invitees'] ?? []));
     try {
-        require_allowed_keys($input, ['action', 'identifier', 'full_name', 'email', 'private_note', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'identifier', 'full_name', 'email', 'private_note', 'secret_candidate', 'admin_client_id'], 'request');
         $identifier = trim((string) ($input['identifier'] ?? ''));
         $fullName = trim((string) ($input['full_name'] ?? ''));
         $email = trim((string) ($input['email'] ?? ''));
@@ -13370,7 +13370,7 @@ if ($action === 'save_invitee' && $hasAdminAccess) {
 
 if ($action === 'delete_invitee' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'identifier', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'identifier', 'secret_candidate', 'admin_client_id'], 'request');
         $identifier = trim((string) ($input['identifier'] ?? ''));
         $deletedInvitee = delete_invitee_record($state, $pairsDir, $identifier);
     } catch (Throwable $exception) {
@@ -13397,7 +13397,7 @@ if ($action === 'delete_invitee' && $hasAdminAccess) {
 
 if ($action === 'get_handle_admin_summary' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'handle', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'handle', 'secret_candidate', 'admin_client_id'], 'request');
         $handleValue = trim((string) ($input['handle'] ?? ''));
         $summary = get_handle_admin_summary($state, $handleValue);
     } catch (Throwable $exception) {
@@ -13422,7 +13422,7 @@ if ($action === 'get_handle_admin_summary' && $hasAdminAccess) {
 
 if ($action === 'admin_update_handle' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'previous_handle', 'new_handle', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'previous_handle', 'new_handle', 'secret_candidate', 'admin_client_id'], 'request');
         $previousHandle = trim((string) ($input['previous_handle'] ?? ''));
         $newHandle = trim((string) ($input['new_handle'] ?? ''));
         $updateResult = admin_update_unique_handle($state, $pairsDir, $previousHandle, $newHandle, $nowMs);
@@ -14408,7 +14408,7 @@ if ($action === 'list_admin_subscriptions' && $hasAdminAccess) {
 
 if ($action === 'refresh_admin_subscription' && $hasAdminAccess) {
     try {
-        require_allowed_keys($input, ['action', 'subscription_id', 'secret_candidate'], 'request');
+        require_allowed_keys($input, ['action', 'subscription_id', 'secret_candidate', 'admin_client_id'], 'request');
         $subscriptionId = trim((string) ($input['subscription_id'] ?? ''));
         refresh_admin_subscription_from_stripe($state, $configDir, $subscriptionId, $nowMs);
         $response['subscription_summary'] = build_admin_subscription_rows($state, $pairsDir);

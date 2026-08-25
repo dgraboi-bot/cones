@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260825a";
+  const launcherBuildVersion = "20260825b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5413,12 +5413,11 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action: "set_user_type",
         user_identifier: cleanHandle,
-        user_type: normalizedType,
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+        user_type: normalizedType
+      }))
     });
 
     const data = await parseApiResponse(response, `User-type update failed with status ${response.status}`);
@@ -5442,12 +5441,11 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action: "set_user_auth_email",
         user_identifier: cleanHandle,
-        email: cleanEmail,
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+        email: cleanEmail
+      }))
     });
 
     const data = await parseApiResponse(response, `User email update failed with status ${response.status}`);
@@ -5475,12 +5473,11 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action: "admin_update_handle",
         previous_handle: cleanPreviousHandle,
-        new_handle: cleanNewHandle,
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+        new_handle: cleanNewHandle
+      }))
     });
 
     const data = await parseApiResponse(response, `Handle update failed with status ${response.status}`);
@@ -5501,11 +5498,10 @@ ${calmPracticeMessage}`;
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+      body: JSON.stringify(applyLauncherAdminContext({
         action: "get_handle_admin_summary",
-        handle: cleanHandle,
-        secret_candidate: getLauncherAdminSecretCandidate()
-      })
+        handle: cleanHandle
+      }))
     });
 
     const data = await parseApiResponse(response, `Handle summary request failed with status ${response.status}`);
