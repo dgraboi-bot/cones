@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260905f";
+  const launcherBuildVersion = "20260905g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -20621,6 +20621,13 @@ ${calmPracticeMessage}`;
             partnerInput.focus();
           });
         }
+        return;
+      }
+
+      if (normalizeIdentifierForStorage(submittedOwnDisplayName) === normalizeIdentifierForStorage(submittedPartnerDisplayName)) {
+        window.alert(role === "sender"
+          ? "You and the Receiver cannot be the same name"
+          : "You and the Sender cannot be the same name");
         return;
       }
 
