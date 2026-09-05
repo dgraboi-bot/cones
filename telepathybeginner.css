@@ -1848,7 +1848,7 @@ body.lesson-image-overlay-open {
 
 .role-own-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px 132px;
+  grid-template-columns: minmax(0, 1fr) 132px;
   gap: 10px;
   align-items: start;
 }
@@ -1858,20 +1858,25 @@ body.lesson-image-overlay-open {
 }
 
 .role-messaging-launch {
+  grid-area: messages;
+  grid-column: auto;
+  justify-self: start;
+  display: none;
+  margin: 0;
+}
+
+.role-card.active .role-card-header .role-messaging-launch {
+  display: flex;
+}
+
+.role-course-launch {
   grid-column: 2;
   display: flex;
   justify-content: flex-end;
   margin: 0;
 }
 
-.role-course-launch {
-  grid-column: 3;
-  display: flex;
-  justify-content: flex-end;
-  margin: 0;
-}
-
-.role-own-row .role-message-open {
+.role-card-header .role-message-open {
   min-width: 132px;
   width: 132px;
   padding-inline: 12px;
@@ -2273,7 +2278,9 @@ body.lesson-image-overlay-open {
   width: 100%;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: "title tagline back level";
+  grid-template-areas:
+    "title tagline back level"
+    "messages messages messages messages";
   align-items: center;
   gap: 14px;
   color: inherit;
@@ -3000,6 +3007,7 @@ body.lesson-image-overlay-open {
     grid-template-columns: minmax(0, 1fr) auto auto;
     grid-template-areas:
       "title back level"
+      "messages messages messages"
       "tagline tagline tagline";
     align-items: start;
     gap: 10px 12px;
@@ -3059,7 +3067,6 @@ body.lesson-image-overlay-open {
   }
 
   .role-own-row > .role-input,
-  .role-messaging-launch,
   .role-course-launch {
     grid-column: 1;
   }
@@ -5043,7 +5050,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260905b") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260905c") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
-  <meta name="espgym-build-version" content="20260905b">
+  <meta name="espgym-build-version" content="20260905c">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260905b">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260905c">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260905b">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260905b">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260905b">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260905c">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260905c">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260905c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260905b">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260905b">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260905b">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260905c">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260905c">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260905c">
   <script>
     (function () {
-      var buildVersion = "20260905b";
+      var buildVersion = "20260905c";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -138,6 +138,12 @@
                 <span class="role-card-level" data-pair-difficulty-label="receiver">Level 3</span>
                             <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="receiver" data-direction="down" aria-label="Decrease receiver pair difficulty">&#9660;</button>
               </div>
+              <div class="role-messaging-launch" data-role-messaging-launch="receiver">
+                <button class="role-message-open" type="button" data-open-role-messages="receiver">
+                  <span>Messages</span>
+                  <span class="role-message-badge" data-role-message-badge="receiver" hidden>0</span>
+                </button>
+              </div>
               <span class="role-card-tagline" data-role-skill-tagline="receiver">Skill: Mind's eye perception and memory</span>
               <button class="role-card-inline-back" type="button" data-collapse-role-card="receiver">BACK</button>
             </div>
@@ -174,12 +180,6 @@
                       placeholder="Enter unique name of sender"
                       spellcheck="false"
                     >
-                    <div class="role-messaging-launch" data-role-messaging-launch="receiver">
-                      <button class="role-message-open" type="button" data-open-role-messages="receiver">
-                        <span>Messages</span>
-                        <span class="role-message-badge" data-role-message-badge="receiver" hidden>0</span>
-                      </button>
-                    </div>
                     <div class="role-course-launch">
                       <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="receiver">Learning Center</button>
                     </div>
@@ -209,12 +209,6 @@
                   </div>
                 </label>
                 <div class="role-identifier-status" data-role-identifier-status="receiver" hidden></div>
-                <div class="role-location-status" data-location-status="receiver">
-                  <span class="role-location-text">Reinforcement: On    Confidence: Off</span>
-                  <div class="role-location-actions">
-                    <button class="role-location-exact" type="button" data-open-exact-location="receiver">Review Location</button>
-                  </div>
-                </div>
                 <button class="role-go" type="submit">GO</button>
               </form>
             </div>
@@ -229,6 +223,12 @@
                             <button class="role-level-bump role-level-bump-up" type="button" data-role-difficulty-bump="sender" data-direction="up" aria-label="Increase sender pair difficulty">&#9650;</button>
                 <span class="role-card-level" data-pair-difficulty-label="sender">Level 3</span>
                             <button class="role-level-bump role-level-bump-down" type="button" data-role-difficulty-bump="sender" data-direction="down" aria-label="Decrease sender pair difficulty">&#9660;</button>
+              </div>
+              <div class="role-messaging-launch" data-role-messaging-launch="sender">
+                <button class="role-message-open" type="button" data-open-role-messages="sender">
+                  <span>Messages</span>
+                  <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
+                </button>
               </div>
               <span class="role-card-tagline" data-role-skill-tagline="sender">Skill: Attention focus and sustained intention</span>
               <button class="role-card-inline-back" type="button" data-collapse-role-card="sender">BACK</button>
@@ -266,12 +266,6 @@
                       placeholder="Enter unique name of sender"
                       spellcheck="false"
                     >
-                    <div class="role-messaging-launch" data-role-messaging-launch="sender">
-                      <button class="role-message-open" type="button" data-open-role-messages="sender">
-                        <span>Messages</span>
-                        <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
-                      </button>
-                    </div>
                     <div class="role-course-launch">
                       <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="sender">Learning Center</button>
                     </div>
@@ -301,12 +295,6 @@
                   </div>
                 </label>
                 <div class="role-identifier-status" data-role-identifier-status="sender" hidden></div>
-                <div class="role-location-status" data-location-status="sender">
-                  <span class="role-location-text">Reinforcement: On    Confidence: Off</span>
-                  <div class="role-location-actions">
-                    <button class="role-location-exact" type="button" data-open-exact-location="sender">Review Location</button>
-                  </div>
-                </div>
                 <button class="role-go" type="submit">GO</button>
               </form>
             </div>
@@ -558,7 +546,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260905b</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260905c</span>
           </div>
         </div>
 
@@ -2452,8 +2440,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage>Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260905b'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260905b'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260905c'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260905c'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3173,10 +3161,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260905b"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260905c"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260905b"></script>
-<script src="telepathybeginner.js?v=20260905b"></script>
+<script src="target-selection.js?v=20260905c"></script>
+<script src="telepathybeginner.js?v=20260905c"></script>
 </body>
 </html>
 
