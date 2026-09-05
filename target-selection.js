@@ -203,7 +203,7 @@
   }
 
   return {
-    buildVersion: "20260905e",
+    buildVersion: "20260905f",
     layouts,
     normalizeLevel,
     getPolicy,

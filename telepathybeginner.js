@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260905e";
+  const launcherBuildVersion = "20260905f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -19839,23 +19839,28 @@ ${calmPracticeMessage}`;
     const select = form.querySelector('select[name="partnerHistory"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
+    const selectorWrap = select?.closest(".role-partner-selector");
     const emptyOptionLabel = role === "sender" ? "Select receiver" : "Select sender";
     const visitorMode = isVisitorLauncherEntry(state) && (role === "sender" || role === "receiver");
     const history = getPartnerHistory(role, state, ownIdentifier);
+    const partnerOptions = uniqueNames(["Robot", ...history]);
 
     if (!select || !partnerInput) {
       return history;
     }
 
     select.innerHTML = `<option value="">${emptyOptionLabel}</option>`;
-    history.forEach((name) => {
+    partnerOptions.forEach((name) => {
       const option = document.createElement("option");
       option.value = name;
       option.textContent = name;
       select.appendChild(option);
     });
 
-    select.hidden = visitorMode || history.length === 0;
+    select.hidden = visitorMode;
+    if (selectorWrap) {
+      selectorWrap.hidden = visitorMode;
+    }
     if (manageButton) {
       manageButton.hidden = visitorMode || history.length === 0;
     }
@@ -20273,14 +20278,17 @@ ${calmPracticeMessage}`;
     closeNameManager();
     activeNameManagerReturnRole = role;
 
-    const partnerTypeLabel = role === "sender" ? "saved receiver list" : "saved sender list";
+    const partnerTypeLabel = role === "sender" ? "saved receivers" : "saved senders";
     const ownIdentifier = String(form.querySelector('input[name="ownName"]')?.value || "").trim();
     const history = getPartnerHistory(role, readLauncherState(), ownIdentifier);
     const overlay = document.createElement("div");
     overlay.className = "name-manager-overlay";
     overlay.innerHTML = `
       <div class="name-manager-panel" role="dialog" aria-modal="true" aria-labelledby="nameManagerTitle">
-        <h2 class="name-manager-title" id="nameManagerTitle">Manage ${partnerTypeLabel}</h2>
+        <div class="name-manager-header">
+          <h2 class="name-manager-title" id="nameManagerTitle">Manage ${partnerTypeLabel}</h2>
+          <button class="name-manager-back" type="button" data-close-name-manager>BACK</button>
+        </div>
         <p class="name-manager-copy">Click on a list item to edit it.</p>
         <ul class="name-manager-list">
           ${history.map((name, index) => `
@@ -20308,6 +20316,8 @@ ${calmPracticeMessage}`;
     overlay.querySelector(".name-manager-panel")?.addEventListener("click", (event) => {
       event.stopPropagation();
     });
+
+    overlay.querySelector("[data-close-name-manager]")?.addEventListener("click", closeNameManager);
 
     overlay.querySelectorAll("[data-name-index]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -21788,9 +21798,13 @@ ${calmPracticeMessage}`;
   function hidePartnerHistoryControls(role, form) {
     const select = form.querySelector('select[name="partnerHistory"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
+    const selectorWrap = select?.closest(".role-partner-selector");
     if (select) {
       select.value = "";
       select.hidden = true;
+    }
+    if (selectorWrap) {
+      selectorWrap.hidden = true;
     }
     if (manageButton) {
       manageButton.hidden = true;

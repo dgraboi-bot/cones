@@ -2342,6 +2342,11 @@ body.lesson-image-overlay-open {
   cursor: inherit;
 }
 
+.role-card.active[data-role-card="receiver"] .role-card-title,
+.role-card.active[data-role-card="sender"] .role-card-title {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+
 .role-card-level-stack {
   grid-area: level;
   justify-self: end;
@@ -2627,6 +2632,10 @@ body.lesson-image-overlay-open {
   min-width: 0;
 }
 
+.role-field-partner.role-field-inline {
+  align-items: start;
+}
+
 .role-field-label {
   font-size: clamp(1rem, 1.8vw, 1.16rem);
   font-style: italic;
@@ -2660,6 +2669,22 @@ body.lesson-image-overlay-open {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 132px auto;
   gap: 10px;
+}
+
+.role-partner-selector {
+  display: grid;
+  gap: 4px;
+}
+
+.role-partner-selector[hidden] {
+  display: none;
+}
+
+.role-partner-selector-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .role-select {
@@ -2936,6 +2961,34 @@ body.lesson-image-overlay-open {
 .name-manager-title {
   margin: 0;
   font-size: 1.45rem;
+}
+
+.name-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.name-manager-back {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.name-manager-back:hover,
+.name-manager-back:focus-visible {
+  outline: none;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .name-manager-copy {
@@ -5077,7 +5130,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260905e") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260905f") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
