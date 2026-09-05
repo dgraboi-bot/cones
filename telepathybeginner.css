@@ -1848,24 +1848,26 @@ body.lesson-image-overlay-open {
 
 .role-own-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: start;
 }
 
-.role-own-row > .role-input {
-  grid-column: 1;
-}
-
-.role-messaging-launch {
+.role-card-header-actions {
   grid-area: messages;
-  grid-column: auto;
   justify-self: start;
   display: none;
+  align-items: center;
+  gap: 12px;
   margin: 0;
 }
 
-.role-card.active .role-card-header .role-messaging-launch {
+.role-messaging-launch {
+  display: flex;
+  margin: 0;
+}
+
+.role-card.active .role-card-header .role-card-header-actions {
   display: flex;
 }
 
@@ -1876,16 +1878,21 @@ body.lesson-image-overlay-open {
   margin: 0;
 }
 
+.role-card-header .role-course-launch {
+  grid-column: auto;
+  justify-content: flex-start;
+}
+
 .role-card-header .role-message-open {
   min-width: 132px;
   width: 132px;
   padding-inline: 12px;
 }
 
-.role-course-open {
-  min-width: 132px;
-  width: 132px;
-  padding-inline: 10px;
+.role-card-header .role-course-open {
+  min-width: 104px;
+  width: 104px;
+  padding-inline: 8px;
 }
 
 .role-message-open {
@@ -2605,6 +2612,21 @@ body.lesson-image-overlay-open {
   gap: 3px;
 }
 
+.role-field-inline {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.role-field-inline .role-field-label {
+  white-space: nowrap;
+}
+
+.role-field-inline .role-own-row,
+.role-field-inline .role-partner-row {
+  min-width: 0;
+}
+
 .role-field-label {
   font-size: clamp(1rem, 1.8vw, 1.16rem);
   font-style: italic;
@@ -3013,7 +3035,7 @@ body.lesson-image-overlay-open {
     gap: 10px 12px;
   }
 
-  .role-card-header .role-messaging-launch {
+  .role-card-header .role-card-header-actions {
     /* Use the unused lower-level-control space without leaving a blank grid row. */
     transform: translateY(-38px);
     margin-bottom: -38px;
@@ -3072,8 +3094,7 @@ body.lesson-image-overlay-open {
     grid-template-columns: 1fr;
   }
 
-  .role-own-row > .role-input,
-  .role-course-launch {
+  .role-own-row > .role-input {
     grid-column: 1;
   }
 
@@ -5056,7 +5077,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260905d") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260905e") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

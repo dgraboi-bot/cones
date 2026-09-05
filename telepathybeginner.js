@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260905d";
+  const launcherBuildVersion = "20260905e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8372,10 +8372,10 @@ ${calmPracticeMessage}`;
 
   function getPartnerIdentifierDisplayLabel(role) {
     if (role === "sender") {
-      return `Enter "Robot" as the receiver to experience a simulated non-human receiver.`;
+      return "Receiver:";
     }
     if (role === "receiver") {
-      return `Enter "Robot" as the sender to experience a simulated non-human sender.`;
+      return "Sender:";
     }
     return "Partner";
   }
@@ -8476,7 +8476,7 @@ ${calmPracticeMessage}`;
       && normalizeIdentifierForStorage(ownIdentifier) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
     const setupPromptVisible = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
     if (ownLabel) {
-      ownLabel.textContent = "You";
+      ownLabel.textContent = "You:";
     }
     if (partnerLabel) {
       partnerLabel.textContent = getPartnerIdentifierDisplayLabel(role);
@@ -20397,8 +20397,8 @@ ${calmPracticeMessage}`;
     applyVisitorOwnInputLock(ownInput, lockedVisitorName, visitorMode);
     partnerInput.value = savedPartner;
     partnerInput.placeholder = role === "sender"
-      ? "Enter unique name of receiver"
-      : "Enter unique name of sender";
+      ? "Receiver unique name or Robot"
+      : "Sender unique name or Robot";
     applyVisitorPartnerInputLock(partnerInput, visitorMode);
     const robotSimulationDifficulty = isRobotSimulationIdentifier(savedPartner)
       ? getRobotSimulationDifficulty(role, savedOwn, state)
@@ -27859,8 +27859,8 @@ ${calmPracticeMessage}`;
       applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName(state) : "", visitorMode);
       partnerInput.value = savedPartner;
       partnerInput.placeholder = role === "sender"
-        ? "Enter unique name of receiver"
-        : "Enter unique name of sender";
+        ? "Receiver unique name or Robot"
+        : "Sender unique name or Robot";
       applyVisitorPartnerInputLock(partnerInput, visitorMode);
       applyPartnerHistory(role, form, state, savedOwn);
       applyRoleIdentifierPresentation(role, {
