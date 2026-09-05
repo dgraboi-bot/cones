@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260825d";
+  const launcherBuildVersion = "20260905b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -20908,9 +20908,11 @@ ${calmPracticeMessage}`;
 
       rolePanels?.classList.add("role-panels-single");
       window.setTimeout(() => {
+        const compactViewport = window.matchMedia?.("(max-width: 760px)")?.matches;
         card.scrollIntoView({
           behavior: "smooth",
-          block: "center",
+          // On phones, keep the role header and its controls in view after expanding.
+          block: compactViewport ? "start" : "center",
           inline: "nearest"
         });
       }, 40);
@@ -20978,9 +20980,10 @@ ${calmPracticeMessage}`;
     captureReceiverOwnLabelMeasurement(card);
     if (shouldScrollIntoView) {
       window.setTimeout(() => {
+        const compactViewport = window.matchMedia?.("(max-width: 760px)")?.matches;
         card.scrollIntoView({
           behavior: "smooth",
-          block: "center",
+          block: compactViewport ? "start" : "center",
           inline: "nearest"
         });
       }, 40);
@@ -21034,7 +21037,7 @@ ${calmPracticeMessage}`;
 
   function isLauncherInteractiveTarget(target) {
     return target instanceof Element &&
-      !!target.closest("button, input, select, textarea, a, label, [data-open-handle-control], [name='managePartnerNames']");
+      !!target.closest("button, input, select, textarea, a, label, [data-open-handle-control], [name='managePartnerNames'], [data-role-difficulty-stack]");
   }
 
   const guidedReceiverTourMode = "receiver-experience";
@@ -30878,6 +30881,10 @@ ${calmPracticeMessage}`;
     if (!role) {
       return;
     }
+    // A near-miss around a level arrow must not collapse an expanded card.
+    stack.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
     stack.addEventListener("mouseenter", () => {
       clearRoleLevelPreviewClearTimer(role);
       previewLevelExplanationFromCurrentLabel(role);
