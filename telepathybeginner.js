@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260905c";
+  const launcherBuildVersion = "20260905d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8372,10 +8372,10 @@ ${calmPracticeMessage}`;
 
   function getPartnerIdentifierDisplayLabel(role) {
     if (role === "sender") {
-      return `Receiver - Enter "Robot" to experience a simulation of telepathy practice at this level.`;
+      return `Enter "Robot" as the receiver to experience a simulated non-human receiver.`;
     }
     if (role === "receiver") {
-      return `Sender - Enter "Robot" to experience a simulation of telepathy practice at this level.`;
+      return `Enter "Robot" as the sender to experience a simulated non-human sender.`;
     }
     return "Partner";
   }
