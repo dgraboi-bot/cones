@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260906b";
+  const launcherBuildVersion = "20260906c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -11888,6 +11888,23 @@ ${calmPracticeMessage}`;
     }
 
     return `This pair cannot go above Level ${maxLevel}.`;
+  }
+
+  function shouldOfferProForLevelFour(role, currentLevel, delta, maxAllowedLevel) {
+    return role !== "remote-viewer"
+      && !isEffectiveLauncherUserPro()
+      && Number(currentLevel) === 3
+      && Number(delta) > 0
+      && Number(maxAllowedLevel) < 4;
+  }
+
+  function showLevelFourProFeature(role) {
+    activeLauncherRole = role;
+    showGoProView({
+      view: "card",
+      role,
+      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    });
   }
 
   function getDisplayedLauncherUserType() {
@@ -25245,7 +25262,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
-        if (role !== "remote-viewer") {
+        if (shouldOfferProForLevelFour(role, currentLevel, delta, localMaxLevel)) {
+          showLevelFourProFeature(role);
+        } else if (role !== "remote-viewer") {
           setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true, prominent: false });
         }
         focusMissingDifficultyIdentifier(role, identifiers);
@@ -25267,7 +25286,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
-        if (role !== "remote-viewer") {
+        if (shouldOfferProForLevelFour(role, currentLevel, delta, localMaxLevel)) {
+          showLevelFourProFeature(role);
+        } else if (role !== "remote-viewer") {
           setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true, prominent: false });
         }
       }
@@ -25286,7 +25307,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel(role, String(nextLevel));
         scheduleGuidedLevelExplanation(role, String(nextLevel));
       } else if (delta > 0) {
-        if (role !== "remote-viewer") {
+        if (shouldOfferProForLevelFour(role, currentLevel, delta, localMaxLevel)) {
+          showLevelFourProFeature(role);
+        } else if (role !== "remote-viewer") {
           setRoleDifficultyStatus(role, getDifficultyRequirementMessage(role), { isError: true, prominent: false });
         }
         focusMissingDifficultyIdentifier(role, identifiers);
@@ -25318,7 +25341,9 @@ ${calmPracticeMessage}`;
 
       if (nextLevel === currentLevel) {
         if (delta > 0 && currentLevel >= maxAllowedLevel) {
-          if (role !== "remote-viewer") {
+          if (shouldOfferProForLevelFour(role, currentLevel, delta, maxAllowedLevel)) {
+            showLevelFourProFeature(role);
+          } else if (role !== "remote-viewer") {
             setRoleDifficultyStatus(
               role,
               buildDifficultyCeilingMessage(role, pairContext, currentData, currentLevel + 1),
