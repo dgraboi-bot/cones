@@ -226,28 +226,17 @@ function Get-RemoteSha256([string]$RemotePath) {
 function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
   $paths = @($RelativePaths | ForEach-Object { Convert-ToPosixPath $_ } | Sort-Object -Unique)
   $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($paths | ConvertTo-Json -Compress)))
-  $remoteCommand = @"
-python3 - <<'PY'
-import base64, hashlib, json, os
-root = r'''$liveRoot'''
-paths = json.loads(base64.b64decode('$payload').decode('utf-8'))
-for relative_path in paths:
-    full_path = os.path.join(root, relative_path)
-    if os.path.isfile(full_path):
-        with open(full_path, 'rb') as handle:
-            print(hashlib.sha256(handle.read()).hexdigest().upper() + '|' + relative_path)
-    else:
-        print('MISSING|' + relative_path)
-PY
-"@
+  $pythonCode = "import base64, hashlib, json, os; root=r`"$liveRoot`"; paths=json.loads(base64.b64decode(`"$payload`").decode(`"utf-8`")); [print(hashlib.sha256(open(os.path.join(root, relative_path), `"rb`").read()).hexdigest().upper() if os.path.isfile(os.path.join(root, relative_path)) else `"MISSING`") for relative_path in paths]"
+  $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("python3 -c '$pythonCode'"))
+  $remoteCommand = "echo $encodedCommand | base64 -d | bash"
   $output = Invoke-PlinkStep $remoteCommand "read batched live deploy hashes" -TimeoutSeconds 180
+  $hashRows = @($output | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
+  if ($hashRows.Count -ne $paths.Count) {
+    throw "Batched live deploy hash inventory returned $($hashRows.Count) rows for $($paths.Count) expected files."
+  }
   $hashes = @{}
-  foreach ($line in @($output)) {
-    $parts = ([string]$line).Trim() -split '\|', 2
-    if ($parts.Count -ne 2 -or -not $parts[1].Trim()) {
-      continue
-    }
-    $hashes[(Convert-ToPosixPath $parts[1].Trim())] = $parts[0].Trim().ToUpperInvariant()
+  for ($index = 0; $index -lt $paths.Count; $index++) {
+    $hashes[$paths[$index]] = $hashRows[$index].ToUpperInvariant()
   }
   return $hashes
 }

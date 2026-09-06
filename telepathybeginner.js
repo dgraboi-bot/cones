@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260906c";
+  const launcherBuildVersion = "20260906d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -11899,12 +11899,14 @@ ${calmPracticeMessage}`;
   }
 
   function showLevelFourProFeature(role) {
-    activeLauncherRole = role;
-    showGoProView({
-      view: "card",
-      role,
-      scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
-    });
+    const increaseButton = document.querySelector(`[data-role-difficulty-bump="${role}"][data-direction="up"]`);
+    if (!(increaseButton instanceof HTMLElement)) {
+      return;
+    }
+    applyProLockPresentation(increaseButton, true, "PRO Feature");
+    window.setTimeout(() => {
+      applyProLockPresentation(increaseButton, false, "");
+    }, 3500);
   }
 
   function getDisplayedLauncherUserType() {
