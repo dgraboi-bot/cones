@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260906a";
+  const launcherBuildVersion = "20260906b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -2185,10 +2185,14 @@ ${calmPracticeMessage}`;
 
   function normalizeLauncherIdentityState(state) {
     const next = state && typeof state === "object" ? { ...state } : {};
-    const visitorMode = isVisitorLauncherEntry(next);
     const loadedInvitee = getLoadedInviteeIdentity(next);
     const temporaryIdentity = getTemporaryIdentityState(next);
     const storedRecognizedIdentity = String(next.recognizedIdentity || "").trim();
+    // A completed claim must never remain trapped by an older visitor marker.
+    const visitorMode = isVisitorLauncherEntry(next) && !storedRecognizedIdentity;
+    if (!visitorMode && getLauncherEntryMode(next) === "visitor" && storedRecognizedIdentity) {
+      next.entryMode = "";
+    }
     const inferredRecognizedIdentity = (!visitorMode && !loadedInvitee && !temporaryIdentity && !storedRecognizedIdentity)
       ? inferRecognizedIdentityFromLegacyState(next)
       : "";
@@ -27714,20 +27718,12 @@ ${calmPracticeMessage}`;
           propagateClaimedHandle(currentIdentifier, acceptedHandle);
         }
         const migratedState = readLauncherState();
-        const nextIdentityState = {
-          ...migratedState,
+        const normalizedUserType = String(data?.identifier_status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+        const nextIdentityState = buildLauncherIdentityState(migratedState, acceptedHandle, normalizedUserType, {
           recognizedIdentity: acceptedHandle,
-          ownNames: acceptedHandle ? {
-            sender: acceptedHandle,
-            receiver: acceptedHandle,
-            "remote-viewer": acceptedHandle
-          } : {},
-          visitorDisplayNames: {},
-          visitorLockedName: "",
-          entryMode: "",
-          resolvedMainUserType: "standard",
-          temporaryIdentity: null
-        };
+          entryMode: ""
+        });
+        nextIdentityState.visitorAlias = "";
         if (data?.identifier_status && acceptedHandle) {
           nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
           nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = data.identifier_status;
