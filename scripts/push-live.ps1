@@ -223,6 +223,35 @@ function Get-RemoteSha256([string]$RemotePath) {
   throw "Unable to read remote hash for $RemotePath"
 }
 
+function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
+  $paths = @($RelativePaths | ForEach-Object { Convert-ToPosixPath $_ } | Sort-Object -Unique)
+  $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($paths | ConvertTo-Json -Compress)))
+  $remoteCommand = @"
+python3 - <<'PY'
+import base64, hashlib, json, os
+root = r'''$liveRoot'''
+paths = json.loads(base64.b64decode('$payload').decode('utf-8'))
+for relative_path in paths:
+    full_path = os.path.join(root, relative_path)
+    if os.path.isfile(full_path):
+        with open(full_path, 'rb') as handle:
+            print(hashlib.sha256(handle.read()).hexdigest().upper() + '|' + relative_path)
+    else:
+        print('MISSING|' + relative_path)
+PY
+"@
+  $output = Invoke-PlinkStep $remoteCommand "read batched live deploy hashes" -TimeoutSeconds 180
+  $hashes = @{}
+  foreach ($line in @($output)) {
+    $parts = ([string]$line).Trim() -split '\|', 2
+    if ($parts.Count -ne 2 -or -not $parts[1].Trim()) {
+      continue
+    }
+    $hashes[(Convert-ToPosixPath $parts[1].Trim())] = $parts[0].Trim().ToUpperInvariant()
+  }
+  return $hashes
+}
+
 function Convert-ToPrivateContentPath([string]$RelativePath) {
   $normalized = Convert-ToPosixPath $RelativePath
   if ($normalized -eq "content_repo/esp-lessons.txt") {
@@ -345,6 +374,10 @@ $localHashes = @{}
 foreach ($row in @($manifest.local_hashes)) {
   $localHashes[[string]$row.path] = [string]$row.sha256
 }
+$preparedRemoteHashes = @{}
+foreach ($row in @($manifest.remote_hashes)) {
+  $preparedRemoteHashes[(Convert-ToPosixPath ([string]$row.path))] = [string]$row.sha256
+}
 
 foreach ($relativePath in @($manifest.deploy_files)) {
   $fullPath = Join-Path $manifestRepoRoot ([string]$relativePath)
@@ -361,8 +394,22 @@ foreach ($relativePath in @($manifest.deploy_files)) {
   }
 }
 
+if ($null -eq $manifest.changed_deploy_files) {
+  throw "Prepared release manifest is missing changed_deploy_files. Re-run prepare-release with the current helper."
+}
+$deployFilesList = @($manifest.changed_deploy_files)
+$currentRemoteHashes = Get-RemoteDeployFileHashes @($manifest.deploy_files)
+foreach ($relativePath in @($manifest.deploy_files)) {
+  $remoteRelative = Convert-ToPosixPath ([string]$relativePath)
+  $expectedRemoteHash = [string]$preparedRemoteHashes[$remoteRelative]
+  $currentRemoteHash = [string]$currentRemoteHashes[$remoteRelative]
+  if ($currentRemoteHash -ne $expectedRemoteHash) {
+    throw "Live file drift detected for $relativePath after release preparation. Re-run prepare-release before pushing live."
+  }
+}
+
 $remoteDirs = @($snapshotRoot, $snapshotPath, $stageRoot)
-$relativeDirs = @($manifest.deploy_files) |
+$relativeDirs = @($deployFilesList) |
   ForEach-Object { Split-Path -Parent ([string]$_) } |
   Where-Object { $_ -and $_ -ne "." } |
   Sort-Object -Unique
@@ -378,7 +425,6 @@ Write-ReleaseLog "Phase 1/6: preparing remote staging directories" "Yellow"
 Invoke-PlinkStep "rm -rf '$stageRoot'" "clear remote stage root" -AllowEmptyOutput
 Invoke-PlinkStep "mkdir -p $mkdirTargets" "create remote stage/snapshot directories" -AllowEmptyOutput
 
-$deployFilesList = @($manifest.deploy_files)
 $deployFileCount = $deployFilesList.Count
 Write-ReleaseLog ("Phase 2/6: uploading {0} deploy files to remote stage" -f $deployFileCount) "Yellow"
 for ($index = 0; $index -lt $deployFileCount; $index++) {
@@ -405,7 +451,7 @@ for ($index = 0; $index -lt $deployFileCount; $index++) {
 $privateDirs = @($privateContentRoot, "$privateContentRoot/new-learning-center-lessons")
 Write-ReleaseLog "Phase 4/6: syncing managed lesson content into private content root" "Yellow"
 Invoke-PlinkStep ("mkdir -p " + (($privateDirs | Sort-Object -Unique) -join " ")) "ensure private content directories" -AllowEmptyOutput
-$privateSyncFiles = @($manifest.private_content_sync_files)
+$privateSyncFiles = @($manifest.changed_private_content_sync_files)
 $privateSyncCount = $privateSyncFiles.Count
 for ($index = 0; $index -lt $privateSyncCount; $index++) {
   $relativePath = [string]$privateSyncFiles[$index]

@@ -779,6 +779,27 @@ The deployment flow is now intentionally split into two concrete stages:
 7. verify a post-deploy live SHA-256 file audit
 8. verify the mirrored private managed-content set live
 
+## Changed-File Deployment Acceleration
+
+Ordinary releases must retain rollback and hash verification while avoiding needless transfer of unchanged assets.
+
+Required rule going forward:
+
+1. `prepare-release.ps1` computes SHA-256 hashes for the full authoritative deploy set and obtains one batched hash inventory of the current live set.
+2. The prepared manifest records the complete local and live hash boundary plus the exact `changed_deploy_files` list.
+3. `push-live.ps1` takes one new batched live hash inventory before changing anything. If any live file changed after preparation, it fails closed and requires a new preparation pass.
+4. Only paths in `changed_deploy_files` are backed up, uploaded, promoted, and SHA-256 audited.
+5. Version-critical shell files must always appear in the changed list after a version bump; preparation fails if they do not.
+6. Managed private content is synchronized and audited only when its public source file is in the changed list.
+7. The release log must report both the changed-file count and the number of audited changed files.
+
+Practical meaning:
+
+- a typical code-only release transfers the versioned shell/runtime files, not static lesson images or other unchanged assets
+- a changed image is still transferred, backed up, promoted, and verified exactly like code
+- an unchanged file is safe to skip because its live SHA-256 was compared with the authoritative local hash during preparation and rechecked before promotion
+- imagepairs remain governed by their separate live-authority sync rule and remain excluded from ordinary release payloads
+
 Preferred usage:
 
 ```powershell

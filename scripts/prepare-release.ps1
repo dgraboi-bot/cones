@@ -814,6 +814,35 @@ function Get-PreparedFileHashes([string[]]$RelativePaths) {
   return $hashRows
 }
 
+function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
+  $paths = @($RelativePaths | ForEach-Object { ($_ -replace "\\", "/") } | Sort-Object -Unique)
+  $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($paths | ConvertTo-Json -Compress)))
+  $remoteCommand = @"
+python3 - <<'PY'
+import base64, hashlib, json, os
+root = r'''/var/www/telepathyexperiment/cones'''
+paths = json.loads(base64.b64decode('$payload').decode('utf-8'))
+for relative_path in paths:
+    full_path = os.path.join(root, relative_path)
+    if os.path.isfile(full_path):
+        with open(full_path, 'rb') as handle:
+            print(hashlib.sha256(handle.read()).hexdigest().upper() + '|' + relative_path)
+    else:
+        print('MISSING|' + relative_path)
+PY
+"@
+  $output = Invoke-Plink $remoteCommand
+  $hashes = @{}
+  foreach ($line in @($output)) {
+    $parts = ([string]$line).Trim() -split '\|', 2
+    if ($parts.Count -ne 2 -or -not $parts[1].Trim()) {
+      continue
+    }
+    $hashes[(Get-NormalizedRelativePath $parts[1])] = $parts[0].Trim().ToUpperInvariant()
+  }
+  return $hashes
+}
+
 if (-not (Test-Path -LiteralPath $bumpScript)) {
   throw "Missing bump script: $bumpScript"
 }
@@ -929,8 +958,39 @@ foreach ($relativePath in $mirrorVerifyFiles) {
 
 New-Item -ItemType Directory -Path $preparedReleaseRoot -Force | Out-Null
 
+$preparedHashRows = @(Get-PreparedFileHashes $deployFiles)
+$preparedHashMap = @{}
+foreach ($row in $preparedHashRows) {
+  $preparedHashMap[[string]$row.path] = [string]$row.sha256
+}
+$remoteDeployHashes = Get-RemoteDeployFileHashes $deployFiles
+$changedDeployFiles = @(
+  $preparedHashMap.Keys |
+    Where-Object { $remoteDeployHashes[[string]$_] -ne $preparedHashMap[[string]$_] } |
+    Sort-Object
+)
+$missingVersionDeployFiles = @(
+  $verifyVersionFiles |
+    Where-Object { $changedDeployFiles -notcontains $_ } |
+    Sort-Object -Unique
+)
+if ($missingVersionDeployFiles.Count -gt 0) {
+  throw ("Release version bump did not produce changed live shell files: " + ($missingVersionDeployFiles -join ", "))
+}
+$changedPrivateContentSyncFiles = @($privateContentSyncFiles | Where-Object { $changedDeployFiles -contains $_ } | Sort-Object -Unique)
+$remoteHashRows = @(
+  $preparedHashMap.Keys |
+    Sort-Object |
+    ForEach-Object {
+      [ordered]@{
+        path = $_
+        sha256 = [string]$remoteDeployHashes[[string]$_]
+      }
+    }
+)
+
 $manifest = [ordered]@{
-  schema = 1
+  schema = 2
   prepared_at = (Get-Date).ToString("o")
   version = $Version
   baseline_ref = $BaselineRef
@@ -944,10 +1004,13 @@ $manifest = [ordered]@{
   live_launcher_url = "https://espgym.com/telepathybeginner.html?v=$Version&open=launcher"
   changed_files = @($changedFiles)
   deploy_files = @($deployFiles | Sort-Object -Unique)
+  changed_deploy_files = @($changedDeployFiles)
   verify_version_files = @($verifyVersionFiles | Sort-Object -Unique)
-  live_hash_audit_files = @($liveHashAuditFiles | Sort-Object -Unique)
+  live_hash_audit_files = @($changedDeployFiles)
   private_content_sync_files = @($privateContentSyncFiles | Sort-Object -Unique)
-  local_hashes = @(Get-PreparedFileHashes $deployFiles)
+  changed_private_content_sync_files = @($changedPrivateContentSyncFiles)
+  remote_hashes = @($remoteHashRows)
+  local_hashes = @($preparedHashRows)
 }
 
 $manifestJson = $manifest | ConvertTo-Json -Depth 6
@@ -958,7 +1021,8 @@ Write-Host ""
 Write-Host "Prepared release $Version" -ForegroundColor Green
 Write-Host "Prepared manifest: $preparedReleasePath" -ForegroundColor Green
 Write-Host "Mirror synced: $mirrorRoot" -ForegroundColor Green
-Write-Host ("Deploy file count: {0}" -f $manifest.deploy_files.Count) -ForegroundColor Green
+Write-Host ("Changed live deploy file count: {0} of {1}" -f $manifest.changed_deploy_files.Count, $manifest.deploy_files.Count) -ForegroundColor Green
+Write-Host ("Changed private managed-content file count: {0}" -f $manifest.changed_private_content_sync_files.Count) -ForegroundColor Green
 Write-Host ("Cache-busted local launcher: {0}" -f $manifest.local_test_url) -ForegroundColor Green
 Write-Host ""
 Write-Host "Next step:" -ForegroundColor Cyan
