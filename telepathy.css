@@ -1133,6 +1133,42 @@ body[data-guided-tour-active="1"] .settings-gear {
   display: grid;
 }
 
+/* Keep the two Level 1 choices side by side inside narrow portrait phone screens. */
+@media (max-width: 600px) {
+  .level-one-choice-grid {
+    width: min(94vw, 560px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .level-one-choice-grid .level-one-choice-card {
+    width: 100%;
+    min-width: 0;
+    min-height: 124px;
+    padding: 14px 10px;
+  }
+
+  /* Use a compact 2-1-2 pattern for Level 2 instead of a widely spaced three-column grid. */
+  .level-two-choice-grid {
+    width: min(94vw, 560px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "top-left top-right"
+      "center center"
+      "bottom-left bottom-right";
+    gap: 12px;
+  }
+
+  .level-two-choice-grid .choice-card {
+    min-height: 0;
+  }
+
+  .level-two-choice-grid .choice-card[data-level-two-slot="center"] {
+    width: calc((100% - 12px) / 2);
+    justify-self: center;
+  }
+}
+
 .level-one-choice-card {
   position: relative;
   appearance: none;
