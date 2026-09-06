@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260906d";
+  const launcherBuildVersion = "20260906e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -11899,13 +11899,13 @@ ${calmPracticeMessage}`;
   }
 
   function showLevelFourProFeature(role) {
-    const increaseButton = document.querySelector(`[data-role-difficulty-bump="${role}"][data-direction="up"]`);
-    if (!(increaseButton instanceof HTMLElement)) {
+    const levelStack = document.querySelector(`[data-role-difficulty-stack="${role}"]`);
+    if (!(levelStack instanceof HTMLElement)) {
       return;
     }
-    applyProLockPresentation(increaseButton, true, "PRO Feature");
+    applyProLockPresentation(levelStack, true, "PRO Feature");
     window.setTimeout(() => {
-      applyProLockPresentation(increaseButton, false, "");
+      applyProLockPresentation(levelStack, false, "");
     }, 3500);
   }
 

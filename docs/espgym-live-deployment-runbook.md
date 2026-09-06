@@ -741,6 +741,10 @@ Every live deployment must do all of the following:
 
 ## Authoritative Deployment Helper
 
+### Batched Hash Transport Rule
+
+When a release helper invokes a quote-heavy or multiline remote batch command through Plink, encode the remote command as Base64 and execute the decoded command remotely. Keep its standard output bounded: return ordered hash-only lines and map them back to the sorted local path list locally. Do not pass heredocs or verbose path-and-hash output through the redirected Windows process pipe, because that can make a preflight appear to hang. If a preflight stalls, stop only that preflight process, correct the helper, and rerun the preflight rather than bypassing the normal deployment audit.
+
 The authoritative deployment helper is:
 
 - `C:\xampp\htdocs\telepathyexperiment\cones\scripts\prepare-release.ps1`
