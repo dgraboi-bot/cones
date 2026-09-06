@@ -2678,6 +2678,18 @@ body.lesson-image-overlay-open {
   gap: 10px;
 }
 
+/* Desktop selectors need room for their complete Sender/Receiver label. */
+@media (min-width: 761px) {
+  .role-partner-row {
+    grid-template-columns: minmax(0, 1fr) 180px auto;
+  }
+}
+
+/* Do not stretch the name field to the selector's two-line note. */
+.role-partner-row > .role-input {
+  align-self: start;
+}
+
 .role-partner-selector {
   display: grid;
   gap: 4px;
@@ -5137,7 +5149,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260905g") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260906a") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
