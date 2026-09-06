@@ -3111,6 +3111,32 @@ body.lesson-image-overlay-open {
     /* Use the unused lower-level-control space without leaving a blank grid row. */
     transform: translateY(-38px);
     margin-bottom: -38px;
+    width: calc(100% - 52px);
+    max-width: calc(100% - 52px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  /* Keep the compact action row clear of the Level down button on narrow phones. */
+  .role-card-header .role-messaging-launch,
+  .role-card-header .role-course-launch {
+    min-width: 0;
+  }
+
+  .role-card-header .role-message-open {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .role-card-header .role-course-open {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .role-card-level-stack {
+    position: relative;
+    z-index: 2;
   }
 
   .role-card.active {
@@ -5149,7 +5175,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260906e") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260906f") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
