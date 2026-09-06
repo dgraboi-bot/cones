@@ -3142,10 +3142,12 @@ body.lesson-image-overlay-open {
   .role-card-level-stack.is-pro-locked::after {
     right: 0;
     left: auto;
+    top: 100%;
     width: 132px;
     min-width: 0;
     max-width: calc(100vw - 48px);
     box-sizing: border-box;
+    padding: 7px 10px;
     transform: none;
     white-space: nowrap;
   }
@@ -3161,6 +3163,13 @@ body.lesson-image-overlay-open {
   .role-card-title {
     white-space: normal;
     line-height: 1.18;
+  }
+
+  .role-card:not(.active)[data-role-card="receiver"] .role-card-title,
+  .role-card:not(.active)[data-role-card="sender"] .role-card-title {
+    white-space: nowrap;
+    font-size: clamp(0.98rem, 4.2vw, 1.18rem);
+    letter-spacing: -0.015em;
   }
 
   .role-card-tagline {
@@ -5186,7 +5195,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260906g") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260906h") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
