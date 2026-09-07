@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260907b";
+  const runtimeBuildVersion = "20260907c";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260907b";
+  const launcherBuildVersion = "20260907c";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -5582,9 +5582,7 @@
       "receiver-choice-grid",
       "sender-choice-grid",
       "receiver-level-two-choice-grid",
-      "sender-level-two-choice-grid",
-      "receiver-level-four-choice-grid",
-      "sender-level-four-choice-grid"
+      "sender-level-two-choice-grid"
     ];
 
     for (const key of grids) {
@@ -5599,6 +5597,12 @@
       grid.style.setProperty("--choice-padding", `${padding}px`);
       grid.style.setProperty("--choice-cone-size", `${coneSize}px`);
     }
+
+    // Level 4 image pairs use their responsive CSS width, not the cone-grid square size.
+    ["receiver-level-four-choice-grid", "sender-level-four-choice-grid"].forEach((key) => {
+      const grid = arrangementNodes.get(key);
+      grid?.style.removeProperty("width");
+    });
   }
 
   function resetChoiceNodes(nodesMap) {
