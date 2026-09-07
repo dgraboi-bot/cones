@@ -1049,6 +1049,30 @@ body[data-guided-tour-active="1"] .settings-gear {
   }
 }
 
+/* A rotated handset has enough width for side-by-side Level 4 choices again. */
+@media (max-width: 900px) and (max-height: 600px) and (orientation: landscape) {
+  .image-pair-grid.visible {
+    width: min(96vw, 980px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+    row-gap: 0;
+  }
+
+  .image-pair-grid.visible .image-choice-thumb {
+    max-height: calc(100dvh - 72px);
+  }
+
+  /* Preserve space for the sender's status panel below the two images. */
+  #senderLevelFourChoiceGrid.visible .image-choice-thumb {
+    max-height: calc(100dvh - 148px);
+  }
+
+  #senderLevelFourChoiceGrid.visible ~ .message-panel.compact.visible {
+    margin-top: 8px;
+    padding: 6px 12px;
+  }
+}
+
 .image-display-panel {
   width: min(88vw, 820px);
   margin: 0 auto;
