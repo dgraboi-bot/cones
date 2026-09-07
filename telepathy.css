@@ -963,11 +963,13 @@ body[data-guided-tour-active="1"] .settings-gear {
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
-.image-choice-card:hover,
-.image-choice-card:focus-visible {
-  border-color: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
-  outline: none;
+@media (hover: hover) and (pointer: fine) {
+  .image-choice-card:hover,
+  .image-choice-card:focus-visible {
+    border-color: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+    outline: none;
+  }
 }
 
 .image-choice-card.selected,

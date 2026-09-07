@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260907c";
+  const runtimeBuildVersion = "20260907e";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260907c";
+  const launcherBuildVersion = "20260907e";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4961,6 +4961,97 @@
     });
   }
 
+  function toggleLevelFourTouchFullscreen() {
+    const fullScreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fullScreenElement) {
+      const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+      if (typeof exitFullscreen !== "function") {
+        return false;
+      }
+      try {
+        const result = exitFullscreen.call(document);
+        result?.catch?.(() => {});
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    const requestFullscreen = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+    if (typeof requestFullscreen !== "function") {
+      return false;
+    }
+    try {
+      const result = requestFullscreen.call(document.documentElement, { navigationUI: "hide" });
+      result?.catch?.(() => {});
+      return true;
+    } catch (error) {
+      try {
+        const result = requestFullscreen.call(document.documentElement);
+        result?.catch?.(() => {});
+        return true;
+      } catch (fallbackError) {
+        return false;
+      }
+    }
+  }
+
+  function addLevelFourTouchHoldFullscreen(grid) {
+    const holdMs = 450;
+    const maximumMovePx = 16;
+    let touchStart = null;
+    let suppressClickUntil = 0;
+
+    const startsOnChoice = (target) => target instanceof Element && !!target.closest(".image-choice-card");
+
+    grid.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "touch" || !startsOnChoice(event.target)) {
+        return;
+      }
+      touchStart = {
+        pointerId: event.pointerId,
+        startedAt: performance.now(),
+        x: event.clientX,
+        y: event.clientY,
+        moved: false
+      };
+    });
+
+    grid.addEventListener("pointermove", (event) => {
+      if (!touchStart || event.pointerId !== touchStart.pointerId) {
+        return;
+      }
+      if (Math.hypot(event.clientX - touchStart.x, event.clientY - touchStart.y) > maximumMovePx) {
+        touchStart.moved = true;
+      }
+    });
+
+    grid.addEventListener("pointercancel", () => {
+      touchStart = null;
+    });
+
+    grid.addEventListener("pointerup", (event) => {
+      if (!touchStart || event.pointerId !== touchStart.pointerId) {
+        return;
+      }
+      const wasHold = !touchStart.moved && performance.now() - touchStart.startedAt >= holdMs;
+      touchStart = null;
+      if (wasHold && toggleLevelFourTouchFullscreen()) {
+        suppressClickUntil = performance.now() + 800;
+        event.preventDefault();
+      }
+    });
+
+    // Capture the click before the receiver-choice handler sees a completed hold.
+    grid.addEventListener("click", (event) => {
+      if (performance.now() >= suppressClickUntil) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, true);
+  }
+
   function buildReceiverLevelFourChoiceGrid() {
     if (role !== "receiver") {
       return;
@@ -4979,6 +5070,7 @@
       grid.appendChild(card);
     });
 
+    addLevelFourTouchHoldFullscreen(grid);
     arrangementNodes.set("receiver-level-four-choice-grid", grid);
     stage.appendChild(grid);
   }
@@ -4998,6 +5090,7 @@
       grid.appendChild(card);
     });
 
+    addLevelFourTouchHoldFullscreen(grid);
     arrangementNodes.set("sender-level-four-choice-grid", grid);
     stage.appendChild(grid);
   }
