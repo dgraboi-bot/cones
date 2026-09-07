@@ -1012,8 +1012,8 @@ body[data-guided-tour-active="1"] .settings-gear {
 
 .image-choice-card.incorrect-selected {
   border-width: 4px;
-  border-color: #e45b5b;
-  box-shadow: 0 0 0 4px rgba(228, 91, 91, 0.58);
+  border-color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.68);
 }
 
 .image-choice-thumb {

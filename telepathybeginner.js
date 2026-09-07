@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907h";
+  const launcherBuildVersion = "20260907i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1076,6 +1076,7 @@
   const remoteViewSimulationModeDefault = "remote-device";
   const coveredScreenInstructionDismissKey = "cones-covered-screen-instruction-dismiss-v1";
   let deferredInstallPrompt = null;
+  let installPromptPending = false;
   let activeNameManagerOverlay = null;
   let activeNameManagerReturnRole = "";
   let activeToolsRole = "";
@@ -9392,9 +9393,12 @@ ${calmPracticeMessage}`;
     }
 
     const installConfirmationState = getInstallConfirmationState();
+    const installPromptOpen = installConfirmationState === "install-prompt-open";
     const installed = installConfirmationState === "confirmed-installed";
     if (featureSetupInstallStatus) {
-      featureSetupInstallStatus.textContent = installed
+      featureSetupInstallStatus.textContent = installPromptOpen
+        ? "The system install prompt is open. Choose Add to finish installing ESP GYM."
+        : installed
         ? "Installed as an app on this device."
         : visitorMode && !recognizedUser
           ? "You must first claim a unique name before installing the app for full Telepathy Beginner use."
@@ -9403,8 +9407,12 @@ ${calmPracticeMessage}`;
             : "Not installed as an app on this device yet.";
     }
     if (featureSetupInstallActionButton) {
-      featureSetupInstallActionButton.textContent = installed ? "UNINSTALL HELP" : "INSTALL APP";
-      featureSetupInstallActionButton.disabled = false;
+      featureSetupInstallActionButton.textContent = installed
+        ? "UNINSTALL HELP"
+        : installPromptOpen
+          ? "INSTALLING..."
+          : "INSTALL APP";
+      featureSetupInstallActionButton.disabled = installPromptOpen;
     }
     if (featureSetupBeepStatus) {
       featureSetupBeepStatus.textContent = "Use this test to confirm the countdown beep is audible on this device.";
@@ -9746,12 +9754,15 @@ ${calmPracticeMessage}`;
   function buildInstallGuideModel(mode = "install") {
     const environment = detectInstallEnvironment();
     const confirmationState = getInstallConfirmationState();
+    const installPromptOpen = confirmationState === "install-prompt-open";
     const installed = confirmationState === "confirmed-installed";
     const temporaryShell = confirmationState === "temporary-shell";
     const canPrompt = !!deferredInstallPrompt;
     const uninstallMode = mode === "uninstall" && installed;
     const environmentText = `Detected platform: ${environment.osLabel} using ${environment.browserLabel}.`;
-    const statusText = uninstallMode
+    const statusText = installPromptOpen
+      ? "The system install prompt is open. Choose Add to finish installing ESP GYM."
+      : uninstallMode
       ? "ESP GYM appears to be installed on this device."
       : installed
       ? "ESP GYM appears to be installed on this device."
@@ -9763,7 +9774,9 @@ ${calmPracticeMessage}`;
     let subtitle = "Install guidance is tailored to the browser and device you are using right now.";
     let stepsTitle = "What To Do";
     let afterTitle = "After Installation";
-    let summary = "Use the steps below to install ESP GYM as an app on this device.";
+    let summary = installPromptOpen
+      ? "The browser is preparing the ESP GYM app. Complete the system prompt when it appears."
+      : "Use the steps below to install ESP GYM as an app on this device.";
     let steps = [];
     let afterInstall = "";
 
@@ -9822,6 +9835,23 @@ ${calmPracticeMessage}`;
         installed,
         canPrompt: false,
         mode: "uninstall"
+      };
+    }
+
+    if (installPromptOpen) {
+      return {
+        title,
+        subtitle,
+        stepsTitle,
+        afterTitle,
+        environmentText,
+        statusText,
+        summary,
+        steps: ["Wait for the system prompt, then choose Add to finish installing ESP GYM."],
+        afterInstall,
+        installed: false,
+        canPrompt: false,
+        mode: "install"
       };
     }
 
@@ -30576,6 +30606,9 @@ ${calmPracticeMessage}`;
   }
 
   function getInstallConfirmationState(state = readLauncherState()) {
+    if (installPromptPending) {
+      return "install-prompt-open";
+    }
     const installState = getInstallState(state);
     if (installState.confirmed) {
       return "confirmed-installed";
@@ -30662,16 +30695,6 @@ ${calmPracticeMessage}`;
       installState.confirmed = true;
       installState.confirmedAt = now;
       installState.confirmationSource = "ios-standalone-return";
-      changed = true;
-    }
-    if (
-      !installState.confirmed &&
-      shellMode === "standalone-shell" &&
-      hasKnownLauncherIdentity(latest)
-    ) {
-      installState.confirmed = true;
-      installState.confirmedAt = now;
-      installState.confirmationSource = "standalone-recovery";
       changed = true;
     }
     latest.installState = installState;
@@ -30873,13 +30896,21 @@ ${calmPracticeMessage}`;
     }
 
     recordInstallGuidanceShown("beforeinstallprompt");
+    installPromptPending = true;
+    renderInstallGuideView();
+    void refreshFeatureSetupView();
     deferredInstallPrompt.prompt();
     try {
-      await deferredInstallPrompt.userChoice;
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice?.outcome !== "accepted") {
+        installPromptPending = false;
+      }
     } catch (error) {
-      // Ignore prompt rejection and leave fallback to the browser UI.
+      installPromptPending = false;
     }
     deferredInstallPrompt = null;
+    renderInstallGuideView();
+    void refreshFeatureSetupView();
   }
 
   roleCards.forEach((card) => {
@@ -33744,6 +33775,7 @@ ${calmPracticeMessage}`;
 
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
+    installPromptPending = false;
     recordInstalledConfirmation("appinstalled-event");
     updateInstallButtonLabel();
     void refreshFeatureSetupView();
