@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260907f";
+  const runtimeBuildVersion = "20260907g";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260907f";
+  const launcherBuildVersion = "20260907g";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -238,6 +238,7 @@
   let pendingInteractionMark = false;
   let choiceInstructionShown = false;
   let receiverTransitioningScreen = false;
+  let receiverLevelFourFeedbackPending = false;
   let adminAuthorized = false;
   let debugEnabled = false;
   let currentPairDifficultyLevel = requestedRuntimeDifficultyLevel;
@@ -4294,6 +4295,7 @@
     receiverChoiceOpen = false;
     choiceInstructionShown = false;
     receiverTransitioningScreen = false;
+    receiverLevelFourFeedbackPending = false;
     localRoundRunning = false;
     roundScheduled = false;
     currentUiMode = "";
@@ -6742,7 +6744,8 @@
     return false;
   }
 
-  function markReceiverResult(actualArrangementCode, selectedArrangementCodes) {
+  function markReceiverResult(actualArrangementCode, selectedArrangementCodes, options = {}) {
+    const showDecision = options.showDecision !== false;
     showLocalRuntimeDebugAlert(14, `actualChoice=${getResolvedLevelFourActualChoiceIndex(activeRound) || 0} imagepair=${isImagePairRound(activeRound) ? 1 : 0}`);
     maybePlayPositiveReinforcement(actualArrangementCode, pendingGuessLayoutNumbers);
     currentUiMode = "receiver-results";
@@ -6769,7 +6772,7 @@
       const actualLayoutNumber = getResolvedLevelFourActualChoiceIndex(activeRound);
       setLevelFourChoiceImages(levelFourChoiceNodes, getLevelFourChoiceUrls(activeRound));
       renderChoiceSelection(levelFourChoiceNodes, pendingGuessLayoutNumbers, actualLayoutNumber, { resultMode: true });
-      if (!postRoundChoiceSubmitted) {
+      if (showDecision && !postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
       logCoveredScreenTrace("mark_receiver_result_level4_ready", {
@@ -6784,7 +6787,7 @@
       const actualLayoutNumber = getLayoutNumberFromArrangementCode(actualArrangementCode);
       renderLevelOneFeedbackSummary(actualLayoutNumber, pendingGuessLayoutNumbers, false);
       showLevelOneFeedbackGrid(false);
-      if (!postRoundChoiceSubmitted) {
+      if (showDecision && !postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
       notifyGuidedReceiverTourPhase("result");
@@ -6797,7 +6800,7 @@
         responseMode: "card"
       });
       showLevelOneFeedbackGrid(false);
-      if (!postRoundChoiceSubmitted) {
+      if (showDecision && !postRoundChoiceSubmitted) {
         showDecisionPanel();
       }
       notifyGuidedReceiverTourPhase("result");
@@ -6809,7 +6812,7 @@
       responseMode: "card"
     });
     showLevelOneFeedbackGrid(false);
-    if (!postRoundChoiceSubmitted) {
+    if (showDecision && !postRoundChoiceSubmitted) {
       showDecisionPanel();
     }
     notifyGuidedReceiverTourPhase("result");
@@ -7264,9 +7267,7 @@
       node.disabled = true;
     });
     choiceInstructionShown = false;
-    if (!isLevelFourLikeRound()) {
-      maybePlayPositiveReinforcementAtSelection(pendingGuessLayoutNumbers);
-    }
+    maybePlayPositiveReinforcementAtSelection(pendingGuessLayoutNumbers);
     receiverTransitioningScreen = true;
     const transitionDelayMs = receiverSelectionLimit <= 1
       ? (isLevelOneDifficulty() ? 2000 : (isLevelFourLikeRound() ? 0 : 3500))
@@ -7276,7 +7277,18 @@
       selected_layout_numbers: pendingGuessLayoutNumbers
     });
     window.setTimeout(() => {
-      hideChoiceGrid();
+      const canRenderLevelFourResultImmediately = isLevelFourLikeRound()
+        && getResolvedLevelFourActualChoiceIndex(activeRound) > 0;
+      if (canRenderLevelFourResultImmediately) {
+        receiverLevelFourFeedbackPending = true;
+        markReceiverResult(
+          getResolvedActualArrangementCode(activeRound),
+          pendingGuessArrangementCodes,
+          { showDecision: false }
+        );
+      } else {
+        hideChoiceGrid();
+      }
       hideMessagePanel();
       if (getIncludeConfidenceEnabled()) {
         showConfidencePanel();
@@ -7344,7 +7356,14 @@
           actual_arrangement_code: actualArrangementCode,
           actual_choice_index: getResolvedLevelFourActualChoiceIndex(activeRound)
         });
-        markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        if (receiverLevelFourFeedbackPending && isLevelFourLikeRound()) {
+          receiverLevelFourFeedbackPending = false;
+          if (!postRoundChoiceSubmitted) {
+            showDecisionPanel();
+          }
+        } else {
+          markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        }
         receiverTransitioningScreen = false;
         logCoveredScreenTrace("submit_guess_local_after_result");
         void appendTrialServerRecord(buildRobotSimulationPayload().state);
@@ -7395,7 +7414,14 @@
         hideInstructionPanel();
         receiverMirrorPhase = "results";
         postRoundChoiceSubmitted = false;
-        markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        if (receiverLevelFourFeedbackPending && isImagePairRound) {
+          receiverLevelFourFeedbackPending = false;
+          if (!postRoundChoiceSubmitted) {
+            showDecisionPanel();
+          }
+        } else {
+          markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        }
         receiverTransitioningScreen = false;
         void pushReceiverViewState();
         void triggerImmediateSync();

@@ -933,9 +933,9 @@ body[data-guided-tour-active="1"] .settings-gear {
   cursor: default;
 }
 
-.image-pair-grid.results-locked .image-choice-card:hover,
-.image-pair-grid.results-locked .image-choice-card:focus,
-.image-pair-grid.results-locked .image-choice-card:focus-visible,
+.image-pair-grid.results-locked .image-choice-card:not(.actual):not(.incorrect-selected):hover,
+.image-pair-grid.results-locked .image-choice-card:not(.actual):not(.incorrect-selected):focus,
+.image-pair-grid.results-locked .image-choice-card:not(.actual):not(.incorrect-selected):focus-visible,
 .image-pair-grid.read-only .image-choice-card:hover,
 .image-pair-grid.read-only .image-choice-card:focus,
 .image-pair-grid.read-only .image-choice-card:focus-visible {
