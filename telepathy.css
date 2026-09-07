@@ -810,6 +810,20 @@ body[data-guided-tour-active="1"] .settings-gear {
   justify-content: center;
 }
 
+/* Keep a sender's target image away from phone browser chrome in portrait view. */
+@media (max-width: 600px) and (orientation: portrait) {
+  body[data-role="sender"] .stage:has(.image-display-panel.visible) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7dvh 4vw;
+  }
+
+  body[data-role="sender"] .stage:has(.image-display-panel.visible) .image-display-panel.visible {
+    margin: 0;
+  }
+}
+
 .stage.covered-screen-reveal.visible .arrangement.visible {
   width: min(50vw, 50vh);
   height: min(50vw, 50vh);

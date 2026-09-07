@@ -225,7 +225,8 @@ $cacheCriticalVersionChecks = @(
     Path = "telepathybeginner.webmanifest"
     RequireExactVersionTokens = $true
     Contains = @(
-      "`"start_url`": `"./telepathybeginner.html?v={0}`"",
+      "`"id`": `"/telepathybeginner.html`"",
+      "`"start_url`": `"./telepathybeginner.html?open=launcher`"",
       "`"src`": `"tb-icon-192.png?v={0}`"",
       "`"src`": `"tb-icon-512.png?v={0}`""
     )

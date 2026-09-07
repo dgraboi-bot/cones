@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907g";
+  const launcherBuildVersion = "20260907h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -30560,7 +30560,7 @@ ${calmPracticeMessage}`;
 
   function showInstallFallback() {
     window.alert(
-      "If your device supports app installation, use the browser's install or Add to Home Screen option to install Telepathy Beginner."
+      "If your device supports app installation, use the browser's install or Add to Home Screen option to install ESP GYM."
     );
   }
 
@@ -30692,18 +30692,18 @@ ${calmPracticeMessage}`;
 
     const confirmationState = getInstallConfirmationState();
     if (confirmationState === "confirmed-installed") {
-      installAppButton.textContent = "Uninstall Telepathy Beginner as an app on this device";
-      installAppButton.title = "Telepathy Beginner appears to be installed on this device.";
+      installAppButton.textContent = "Uninstall ESP GYM as an app on this device";
+      installAppButton.title = "ESP GYM appears to be installed on this device.";
       return;
     }
 
     if (confirmationState === "temporary-shell") {
-      installAppButton.textContent = "Install Telepathy Beginner permanently on this device";
+      installAppButton.textContent = "Install ESP GYM permanently on this device";
       installAppButton.title = "ESP GYM is open in app mode temporarily, but it has not yet been confirmed as permanently installed on this device.";
       return;
     }
 
-    installAppButton.textContent = "Install Telepathy Beginner as an app on this device";
+    installAppButton.textContent = "Install ESP GYM as an app on this device";
     installAppButton.title = "As an app, it does not work inside a browser tab, but acts just like a regular app with its own icon.";
   }
 
@@ -30853,7 +30853,7 @@ ${calmPracticeMessage}`;
     if (browser.isSafariIOS) {
       recordInstallGuidanceShown("ios-safari");
       window.alert(
-        "On iPhone Safari, use Share and then Add to Home Screen to install Telepathy Beginner."
+        "On iPhone Safari, use Share and then Add to Home Screen to install ESP GYM."
       );
       return;
     }

@@ -1089,8 +1089,15 @@ Runtime cache-busting rule:
 
 #### `telepathybeginner.webmanifest`
 
-- `start_url`
+- stable app identity: `"id": "/telepathybeginner.html"`
+- stable launch URL: `"start_url": "./telepathybeginner.html?open=launcher"`
 - icon `src` values with `?v=...`
+
+PWA identity rule:
+
+- do not put a release version in the manifest `id` or `start_url`
+- a changing manifest `start_url` can cause Chrome or Android to treat a new release as a different installed app
+- cache-bust the manifest URL, icons, service worker, and browser assets, but keep the installed app identity and launch URL stable
 
 #### `telepathybeginner-sw.js`
 

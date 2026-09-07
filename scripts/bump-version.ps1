@@ -98,7 +98,6 @@ $replacements = @{
     @{ Pattern = 'BeginnerUserManual\.html\?v=[^"''`\s]+'; Replacement = "BeginnerUserManual.html?v=$Version" }
   )
   (Join-Path $root "telepathybeginner.webmanifest") = @(
-    @{ Pattern = '"start_url": "\./telepathybeginner\.html\?v=[^"]+"'; Replacement = "`"start_url`": `"./telepathybeginner.html?v=$Version`"" },
     @{ Pattern = '"tb-icon-192\.png\?v=[^"]+"'; Replacement = "`"tb-icon-192.png?v=$Version`"" },
     @{ Pattern = '"tb-icon-512\.png\?v=[^"]+"'; Replacement = "`"tb-icon-512.png?v=$Version`"" }
   )
