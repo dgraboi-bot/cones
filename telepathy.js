@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260907e";
+  const runtimeBuildVersion = "20260907f";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260907e";
+  const launcherBuildVersion = "20260907f";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4936,7 +4936,8 @@
     card.setAttribute("data-arrangement-code", `image-choice-${choiceIndex}`);
     card.setAttribute("aria-label", `Choose image ${choiceIndex}`);
     if (readOnly) {
-      card.disabled = true;
+      card.setAttribute("aria-disabled", "true");
+      card.tabIndex = -1;
     }
 
     const image = document.createElement("img");
@@ -4971,6 +4972,7 @@
       try {
         const result = exitFullscreen.call(document);
         result?.catch?.(() => {});
+        document.body.classList.remove("level-four-touch-fullscreen");
         return true;
       } catch (error) {
         return false;
@@ -4978,8 +4980,13 @@
     }
 
     const requestFullscreen = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+    if (document.body.classList.contains("level-four-touch-fullscreen")) {
+      document.body.classList.remove("level-four-touch-fullscreen");
+      return true;
+    }
+    document.body.classList.add("level-four-touch-fullscreen");
     if (typeof requestFullscreen !== "function") {
-      return false;
+      return true;
     }
     try {
       const result = requestFullscreen.call(document.documentElement, { navigationUI: "hide" });
@@ -5002,10 +5009,21 @@
     let touchStart = null;
     let suppressClickUntil = 0;
 
-    const startsOnChoice = (target) => target instanceof Element && !!target.closest(".image-choice-card");
+    const startsOnChoice = (event) => {
+      if (event.target instanceof Element && event.target.closest(".image-choice-card")) {
+        return true;
+      }
+      return [...grid.querySelectorAll(".image-choice-card")].some((card) => {
+        const rect = card.getBoundingClientRect();
+        return event.clientX >= rect.left
+          && event.clientX <= rect.right
+          && event.clientY >= rect.top
+          && event.clientY <= rect.bottom;
+      });
+    };
 
     grid.addEventListener("pointerdown", (event) => {
-      if (event.pointerType !== "touch" || !startsOnChoice(event.target)) {
+      if (event.pointerType !== "touch" || !startsOnChoice(event)) {
         return;
       }
       touchStart = {
@@ -5028,6 +5046,18 @@
 
     grid.addEventListener("pointercancel", () => {
       touchStart = null;
+    });
+
+    grid.addEventListener("contextmenu", (event) => {
+      if (startsOnChoice(event)) {
+        event.preventDefault();
+      }
+    });
+
+    grid.addEventListener("dragstart", (event) => {
+      if (startsOnChoice(event)) {
+        event.preventDefault();
+      }
     });
 
     grid.addEventListener("pointerup", (event) => {
@@ -5723,7 +5753,7 @@
 
       const isSelected = choiceOrders.length > 0;
       const isActual = actualLayoutNumber === layoutNumber;
-      const isIncorrectSelected = false;
+      const isIncorrectSelected = resultMode && isSelected && !isActual;
       node.classList.toggle("pending", !resultMode && isSelected);
       node.classList.toggle("selected", !resultMode && isSelected);
       node.classList.toggle("actual", isActual);
@@ -7234,10 +7264,12 @@
       node.disabled = true;
     });
     choiceInstructionShown = false;
-    maybePlayPositiveReinforcementAtSelection(pendingGuessLayoutNumbers);
+    if (!isLevelFourLikeRound()) {
+      maybePlayPositiveReinforcementAtSelection(pendingGuessLayoutNumbers);
+    }
     receiverTransitioningScreen = true;
     const transitionDelayMs = receiverSelectionLimit <= 1
-      ? (isLevelOneDifficulty() ? 2000 : (isLevelFourLikeRound() ? 1200 : 3500))
+      ? (isLevelOneDifficulty() ? 2000 : (isLevelFourLikeRound() ? 0 : 3500))
       : 1000;
     logCoveredScreenTrace("receiver_selection_finalizing", {
       transition_delay_ms: transitionDelayMs,
@@ -7248,6 +7280,7 @@
       hideMessagePanel();
       if (getIncludeConfidenceEnabled()) {
         showConfidencePanel();
+        receiverTransitioningScreen = false;
       } else {
         pendingConfidenceValue = null;
         receiverConfidenceLockedAtMs = 0;
@@ -7255,7 +7288,6 @@
         hideInstructionPanel();
         void submitReceiverGuessAndReveal();
       }
-      receiverTransitioningScreen = false;
       logCoveredScreenTrace("receiver_selection_transition_complete");
       void triggerImmediateSync();
     }, transitionDelayMs);
@@ -7268,6 +7300,7 @@
       pendingGuessLayoutNumbers.length < 1 ||
       pendingGuessArrangementCodes.length < 1
     ) {
+      receiverTransitioningScreen = false;
       return;
     }
 
@@ -7312,6 +7345,7 @@
           actual_choice_index: getResolvedLevelFourActualChoiceIndex(activeRound)
         });
         markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        receiverTransitioningScreen = false;
         logCoveredScreenTrace("submit_guess_local_after_result");
         void appendTrialServerRecord(buildRobotSimulationPayload().state);
         void pushReceiverViewState();
@@ -7362,14 +7396,17 @@
         receiverMirrorPhase = "results";
         postRoundChoiceSubmitted = false;
         markReceiverResult(actualArrangementCode, selectedArrangementCodes);
+        receiverTransitioningScreen = false;
         void pushReceiverViewState();
         void triggerImmediateSync();
       } else {
+        receiverTransitioningScreen = false;
         if (confidenceButton) {
           confidenceButton.disabled = false;
         }
       }
     } catch (error) {
+      receiverTransitioningScreen = false;
       void logDebugEvent("receiver_submit_guess_error", {
         role,
         runtime_mode: runtimeMode,

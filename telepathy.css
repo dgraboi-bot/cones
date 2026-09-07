@@ -960,6 +960,10 @@ body[data-guided-tour-active="1"] .settings-gear {
   justify-self: center;
   overflow: hidden;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
@@ -1007,6 +1011,10 @@ body[data-guided-tour-active="1"] .settings-gear {
   border-radius: 14px;
   object-fit: contain;
   background: rgba(0, 0, 0, 0.24);
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 @media (max-width: 700px) {
@@ -1034,7 +1042,7 @@ body[data-guided-tour-active="1"] .settings-gear {
 /* Give both roles large, vertically stacked Level 4 images on portrait phones. */
 @media (max-width: 600px) {
   .image-pair-grid.visible {
-    width: min(92vw, 560px);
+    width: min(98vw, 560px);
     grid-template-columns: 1fr;
     row-gap: 10px;
     column-gap: 0;
@@ -1048,6 +1056,23 @@ body[data-guided-tour-active="1"] .settings-gear {
   #senderLevelFourChoiceGrid.visible ~ .message-panel.compact.visible {
     margin-top: 10px;
     padding: 8px 12px;
+  }
+}
+
+/* Fallback immersive view for touch browsers that decline native fullscreen. */
+body.level-four-touch-fullscreen .home-link,
+body.level-four-touch-fullscreen .waiting-back-button,
+body.level-four-touch-fullscreen .settings-gear {
+  display: none !important;
+}
+
+@media (pointer: coarse) {
+  body.level-four-touch-fullscreen .stage {
+    padding: 0.75dvh 0.5vw;
+  }
+
+  body.level-four-touch-fullscreen .image-pair-grid.visible {
+    width: min(99vw, 980px);
   }
 }
 
