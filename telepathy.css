@@ -1310,6 +1310,25 @@ body[data-guided-tour-active="1"] .settings-gear {
   aspect-ratio: 1;
 }
 
+/* Levels 1-3 share this result panel; let both result columns fit the phone canvas. */
+@media (max-width: 600px) {
+  .level-one-result-panel {
+    width: min(94vw, 560px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .level-one-result-label {
+    font-size: clamp(0.9rem, 4vw, 1.1rem);
+  }
+
+  .level-one-result-actual-wrap,
+  .level-one-result-response.visual-response {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 .choice-card {
   position: relative;
   appearance: none;
