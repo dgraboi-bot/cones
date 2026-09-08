@@ -1278,6 +1278,7 @@ function send_explore_pro_verification_code(array &$state, string $email, int $n
 
     ensure_explore_pro_state($state);
     $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    assert_email_domain_accepts_mail($cleanEmail);
     $emailKey = get_explore_pro_email_key($cleanEmail);
     $existingTrial = is_array($state['explore_pro_trials'][$emailKey] ?? null)
         ? normalize_explore_pro_trial_record($state['explore_pro_trials'][$emailKey])
@@ -1393,6 +1394,7 @@ function send_identifier_recovery_verification_code(array &$state, string $ident
     if (normalize_explore_pro_email($cleanEmail) !== $recoveryEmail) {
         throw new RuntimeException('That email does not match the authentication email on file for this unique name.');
     }
+    assert_email_domain_accepts_mail($cleanEmail);
 
     if (!is_array($state['identifier_recovery_verifications'] ?? null)) {
         $state['identifier_recovery_verifications'] = [];
@@ -1510,6 +1512,7 @@ function send_unique_name_claim_verification_code(array &$state, string $current
     $cleanCurrentIdentifier = validate_participant_identifier_string($currentIdentifier, 'current_identifier', false);
     $cleanProposedHandle = trim((string) $proposedHandle);
     $cleanEmail = validate_email_identifier_string($email, 'email', true);
+    assert_email_domain_accepts_mail($cleanEmail);
     append_debug_log(
         (string) ($GLOBALS['debugLogFile'] ?? ''),
         (bool) ($state['debug_enabled'] ?? false),
@@ -6329,6 +6332,27 @@ function validate_email_identifier_string($value, string $field, bool $required 
     }
 
     return $text;
+}
+
+function assert_email_domain_accepts_mail(string $email): void
+{
+    $at = strrpos($email, '@');
+    if ($at === false || $at === strlen($email) - 1 || !function_exists('getmxrr')) {
+        return;
+    }
+
+    $mxHosts = [];
+    $mxWeights = [];
+    $domain = substr($email, $at + 1);
+    if (!@getmxrr($domain, $mxHosts, $mxWeights)) {
+        // A temporary DNS failure or a domain using A/AAAA fallback must not block email.
+        return;
+    }
+
+    $hosts = array_values(array_map(static fn($host): string => trim((string) $host), $mxHosts));
+    if (count($hosts) === 1 && $hosts[0] === '.') {
+        throw new RuntimeException('That email domain is configured not to accept email. Please check the address or use a different email address.');
+    }
 }
 
 function normalize_handle_lookup(string $value): string

@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908a";
+  const launcherBuildVersion = "20260908b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1333,6 +1333,7 @@ ${calmPracticeMessage}`;
   let pendingRecoveryIdentifier = "";
   let pendingUniqueNameClaim = null;
   let pendingApplePasskeySetup = null;
+  let pendingApplePasskeyRestore = null;
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
@@ -5840,25 +5841,58 @@ ${calmPracticeMessage}`;
     return true;
   }
 
-  async function restoreApplePasskeyIdentity() {
-    const browser = detectMobileBrowser();
-    if (!browser.isIOS || !isStandaloneShell() || getCanonicalRecognizedIdentity(readLauncherState()) || !window.PublicKeyCredential) return false;
+  async function prepareApplePasskeyIdentityRestore() {
+    if (!shouldOfferApplePasskeyRestore()) return null;
     try {
       const begin = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "begin_passkey_authentication" }) });
-      const ceremony = await parseApiResponse(begin, `Secure device check failed with status ${begin.status}`);
-      const credential = await navigator.credentials.get({ publicKey: passkeyOptionsToBrowserOptions(ceremony.public_key) });
+      return await parseApiResponse(begin, `Secure device check failed with status ${begin.status}`);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function completeApplePasskeyIdentityRestore(ceremony) {
+    // This must be the first asynchronous browser operation after the user taps
+    // FINISH APP INSTALLATION, otherwise Safari may suppress the prompt.
+    const credential = await navigator.credentials.get({ publicKey: passkeyOptionsToBrowserOptions(ceremony.public_key) });
+    try {
       const finish = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "finish_passkey_authentication", ceremony_id: ceremony.ceremony_id, credential: serializePasskeyCredential(credential) }) });
       const data = await parseApiResponse(finish, `Secure device check failed with status ${finish.status}`);
       const identifier = String(data?.identifier || "").trim();
-      if (!identifier) return false;
+      if (!identifier) throw new Error("This device did not return a recognized ESP GYM identity.");
       const userType = String(data?.user_type || "").toLowerCase() === "pro" ? "pro" : "standard";
       const nextState = buildLauncherIdentityState(readLauncherState(), identifier, userType, { recognizedIdentity: identifier, entryMode: "" });
       if (data?.identifier_status) nextState.identifierStatusMap[normalizeIdentifierForStorage(identifier)] = data.identifier_status;
       writeLauncherState(nextState);
+      // A newly installed iPad app starts with empty browser storage. Apply the
+      // authenticated identity immediately so each role and Setup Features agree.
+      applyIdentityStateToLauncherInputs();
       return true;
-    } catch (_) {
+    } catch (error) {
+      throw error instanceof Error ? error : new Error("Unable to restore this device identity.");
+    }
+  }
+
+  function shouldOfferApplePasskeyRestore() {
+    const browser = detectMobileBrowser();
+    return browser.isIOS &&
+      isStandaloneShell() &&
+      !getCanonicalRecognizedIdentity(readLauncherState()) &&
+      !!window.PublicKeyCredential;
+  }
+
+  function offerInstallAfterUniqueNameClaim() {
+    if (isStandaloneShell() || getInstallConfirmationState() === "confirmed-installed") {
       return false;
     }
+    const installNow = window.confirm(
+      "For the best experience, install ESP GYM as an app. It will appear as an icon on your Home Screen or desktop. Would you like to install now?"
+    );
+    if (installNow) {
+      showInstallGuideView({ returnView: "feature-setup" });
+      return true;
+    }
+    return false;
   }
 
   async function fetchLandingInvitationIdentity(identifier) {
@@ -8870,6 +8904,9 @@ ${calmPracticeMessage}`;
           showInstallGuideView({ returnView: "feature-setup" });
           return;
         }
+        if (offerInstallAfterUniqueNameClaim()) {
+          return;
+        }
         showFeatureSetupView({
           role: completedRole,
           returnView: featureSetupReturnView || (completedRole === "remote-viewer" ? "remote-viewer" : "card"),
@@ -10044,7 +10081,7 @@ ${calmPracticeMessage}`;
             "Scroll the menu down.",
             "Tap Add to Home Screen.",
             "Tap Add.",
-            "Then close Safari and launch ESP GYM from the installed app icon."
+            "Then close this tab in Safari and launch ESP GYM from the installed app icon."
           ];
       afterInstall = "After installation, use the ESP GYM home-screen icon instead of a Safari tab.";
     } else if (environment.isIOS && environment.isChrome) {
@@ -27608,9 +27645,16 @@ ${calmPracticeMessage}`;
       normalizeIdentifierForStorage(String(exploreTrial.identifier || "")) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
 
     if (temporaryHomePageContinueButton) {
-      temporaryHomePageContinueButton.textContent = hasMatchingActiveExploreTrial
+      temporaryHomePageContinueButton.textContent = pendingApplePasskeyRestore
+        ? "FINISH APP INSTALLATION"
+        : hasMatchingActiveExploreTrial
         ? "CONTINUE into your active ESP PRO exploration"
         : "CONTINUE into the ESP GYM";
+    }
+
+    if (pendingApplePasskeyRestore) {
+      setTemporaryHomeInvitationStatus("Tap FINISH APP INSTALLATION to confirm with Face ID, Touch ID, or your device passcode. No email code is needed.");
+      return;
     }
 
     if (hasMatchingActiveExploreTrial) {
@@ -27915,6 +27959,9 @@ ${calmPracticeMessage}`;
       });
       return;
     }
+    if (offerInstallAfterUniqueNameClaim()) {
+      return;
+    }
     showFeatureSetupView({
       role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
       returnView: featureSetupReturnView || "card",
@@ -28214,6 +28261,20 @@ ${calmPracticeMessage}`;
   async function continueFromLandingPage() {
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
     if (!invitationCode) {
+      if (pendingApplePasskeyRestore) {
+        setTemporaryHomeInvitationStatus("Confirming this device...");
+        try {
+          const restored = await completeApplePasskeyIdentityRestore(pendingApplePasskeyRestore);
+          pendingApplePasskeyRestore = null;
+          if (restored) {
+            window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+            return;
+          }
+        } catch (error) {
+          setTemporaryHomeInvitationStatus(error instanceof Error ? error.message : "This device could not be recognized. Please try again.", { isError: true });
+          return;
+        }
+      }
       const launcherState = readLauncherState();
       if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
@@ -33924,7 +33985,7 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    await restoreApplePasskeyIdentity();
+    pendingApplePasskeyRestore = await prepareApplePasskeyIdentityRestore();
     setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
     if (launcherGuestEntryActive) {
       resetLauncherWorkingHomeForFreshEntry();
@@ -33984,6 +34045,9 @@ ${calmPracticeMessage}`;
     void refreshDifficultyLabels();
     updatePendingLearningCenterLessonReturnButtons();
     applyLauncherOpenRequest();
+    if (pendingApplePasskeyRestore && !readRequestedLauncherView()) {
+      showTemporaryHomePageView();
+    }
     window.setTimeout(() => {
       void refreshDifficultyLabels();
     }, 0);
