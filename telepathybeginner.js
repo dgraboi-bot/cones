@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907k";
+  const launcherBuildVersion = "20260907l";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9821,7 +9821,10 @@ ${calmPracticeMessage}`;
       : [];
     const isWindows = platform.includes("win") || /windows/i.test(ua);
     const isAndroid = /android/i.test(ua);
-    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    // iPadOS may present a desktop-style Macintosh user agent. Touch-capable
+    // MacIntel is therefore treated as iPadOS, while ordinary Macs remain Mac.
+    const isIPadOSDesktopMode = platform.includes("mac") && Number(navigator.maxTouchPoints || 0) > 1;
+    const isIOS = /iphone|ipad|ipod/i.test(ua) || isIPadOSDesktopMode;
     const isMac = !isIOS && (platform.includes("mac") || /macintosh|mac os x/i.test(ua));
     const isEdge = /edg\//i.test(ua) || brands.some((brand) => brand.includes("edge"));
     const isChrome = (/chrome|crios/i.test(ua) || brands.some((brand) => brand.includes("chrome"))) && !isEdge;
@@ -10020,11 +10023,13 @@ ${calmPracticeMessage}`;
             "If you want, move the icon to a more convenient screen position."
           ]
         : [
-            "Tap the Share button in Safari.",
-            "Scroll down and tap Add to Home Screen.",
-            "Confirm the name ESP GYM and tap Add."
+            "Tap the Share button, the square with an upward arrow, near the address bar.",
+            "Scroll the menu down.",
+            "Tap Add to Home Screen.",
+            "Tap Add.",
+            "Then close Safari and launch ESP GYM from the installed app icon."
           ];
-      afterInstall = "After installation, open ESP GYM from its home-screen icon instead of from a browser tab.";
+      afterInstall = "After installation, use the ESP GYM home-screen icon instead of a Safari tab.";
     } else if (environment.isIOS && environment.isChrome) {
       summary = "Chrome on iPhone may not offer reliable app installation. Safari is the preferred path.";
       steps = [
@@ -27899,7 +27904,7 @@ ${calmPracticeMessage}`;
     pendingApplePasskeySetup = { data, ceremony, completion };
     if (exploreProTitle) exploreProTitle.textContent = "Set Up This iPad";
     if (exploreProIntro) exploreProIntro.textContent = "Your unique name is verified. Set up this iPad so ESP GYM can recognize you after installation.";
-    if (exploreProAuthCopy) exploreProAuthCopy.textContent = "Tap the button below, then approve Appleâ€™s Face ID, Touch ID, or device-passcode prompt. ESP GYM never receives your passcode.";
+    if (exploreProAuthCopy) exploreProAuthCopy.textContent = "Tap the button below, then approve Apple's Face ID, Touch ID, or device-passcode prompt. ESP GYM never receives your passcode.";
     if (exploreProEmailInput) exploreProEmailInput.disabled = true;
     if (exploreProCodeInput) exploreProCodeInput.disabled = true;
     if (exploreProSendCodeButton) exploreProSendCodeButton.hidden = true;
@@ -30875,7 +30880,9 @@ ${calmPracticeMessage}`;
   function detectMobileBrowser() {
     const ua = navigator.userAgent || "";
     const vendor = navigator.vendor || "";
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const platform = String(navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
+    const isIPadOSDesktopMode = platform.includes("mac") && Number(navigator.maxTouchPoints || 0) > 1;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua) || isIPadOSDesktopMode;
     const isChromeIOS = /CriOS/i.test(ua);
     const isSafariIOS = isIOS && /Safari/i.test(ua) && /Apple/i.test(vendor) && !isChromeIOS;
 
