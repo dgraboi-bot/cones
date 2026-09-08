@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908j";
+  const launcherBuildVersion = "20260908k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -10252,6 +10252,40 @@ ${calmPracticeMessage}`;
       role: featureSetupReturnRole || activeLauncherRole || "sender",
       returnView: featureSetupReturnView || "card",
       scrollY: featureSetupReturnScrollY
+    });
+  }
+
+  // Keep the small landing diagnostics alive while a button immediately navigates away.
+  // These records are only emitted by the three landing controls under investigation.
+  function traceLandingAction(label, details = {}) {
+    const payload = JSON.stringify({
+      action: "trace_client",
+      label: `landing_action:${label}`,
+      details: [{
+        href: String(window.location.href || ""),
+        standalone: isStandaloneShell(),
+        startupReady: !!launcherStartupReady,
+        continueDisabled: !!temporaryHomePageContinueButton?.disabled,
+        ...details
+      }]
+    });
+    try {
+      if (navigator.sendBeacon) {
+        const body = new Blob([payload], { type: "application/json" });
+        if (navigator.sendBeacon("api.php", body)) {
+          return;
+        }
+      }
+    } catch (_error) {
+      // Fall through to the keepalive request below.
+    }
+    void fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      keepalive: true
+    }).catch(() => {
+      // Diagnostics must never affect normal entry.
     });
   }
 
@@ -28170,21 +28204,29 @@ ${calmPracticeMessage}`;
   function startVisitorLandingEntry(options = {}) {
     const baseState = readLauncherState();
     if (shouldResumeRecognizedLandingIdentity(baseState)) {
+      traceLandingAction("open_route_recognized", {
+        knownIdentity: true,
+        direct: options.direct === true
+      });
       window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
       return;
     }
     const nextState = buildVisitorLauncherState(baseState);
     writeLauncherState(nextState);
     if (options.direct === true) {
+      traceLandingAction("visitor_route_direct", { knownIdentity: false });
       void enterWorkingHomeFromLanding("visitor");
       return;
     }
+    traceLandingAction("open_route_visitor", { knownIdentity: false });
     window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
   }
 
   async function handleLandingExploreClick() {
+    traceLandingAction("explore_route_start");
     goProIncludesReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
     showGoProIncludesView("temporary-home-page");
+    traceLandingAction("explore_route_complete");
   }
 
   async function resolveLandingExploreEntry() {
@@ -28332,6 +28374,11 @@ ${calmPracticeMessage}`;
 
   async function continueFromLandingPage() {
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
+    traceLandingAction("continue_route_start", {
+      hasInvitationCode: !!invitationCode,
+      hasKnownIdentity: hasKnownLauncherIdentity(readLauncherState()),
+      pendingPasskeyRestore: !!pendingApplePasskeyRestore
+    });
     if (!invitationCode) {
       if (pendingApplePasskeyRestore) {
         if (applePasskeyRestoreInFlight) {
@@ -28369,9 +28416,11 @@ ${calmPracticeMessage}`;
       setTemporaryHomeInvitationStatus("Preparing ESP GYM...");
       const launcherState = await sanitizeRecognizedIdentityForLauncherEntry(readLauncherState());
       if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
+        traceLandingAction("continue_route_recognized", { knownIdentity: true });
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
       }
+      traceLandingAction("continue_route_visitor", { knownIdentity: false });
       startVisitorLandingEntry({ direct: true });
       return;
     }
@@ -32715,6 +32764,7 @@ ${calmPracticeMessage}`;
   temporaryHomePageContinueButton?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    traceLandingAction("continue_button_click");
     void continueFromLandingPage();
   });
   temporaryHomePageInvitationCodeInput?.addEventListener("keydown", (event) => {
@@ -32723,7 +32773,10 @@ ${calmPracticeMessage}`;
       void continueFromLandingPage();
     }
   });
-  temporaryHomePageFreshOpenButton?.addEventListener("click", startVisitorLandingEntry);
+  temporaryHomePageFreshOpenButton?.addEventListener("click", () => {
+    traceLandingAction("open_button_click");
+    startVisitorLandingEntry();
+  });
   temporaryHomePageExploreButton?.addEventListener("click", () => {
     void handleLandingExploreClick();
   });
@@ -32745,10 +32798,12 @@ ${calmPracticeMessage}`;
     showContactView("temporary-home-page", captureTemporaryHomeReturnScrollY());
   });
   temporaryHomePageResearchButton?.addEventListener("click", () => {
+    traceLandingAction("research_button_click");
     showResearchParticipationView({
       returnView: "temporary-home-page",
       scrollY: captureTemporaryHomeReturnScrollY()
     });
+    traceLandingAction("research_route_complete");
   });
   temporaryHomePageHelpButton?.addEventListener("click", () => {
     openUpdatesOverlay();
