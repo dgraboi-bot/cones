@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907j";
+  const launcherBuildVersion = "20260907k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1331,6 +1331,7 @@ ${calmPracticeMessage}`;
   let exploreProOverlayMode = "trial";
   let pendingRecoveryIdentifier = "";
   let pendingUniqueNameClaim = null;
+  let pendingApplePasskeySetup = null;
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
@@ -5797,14 +5798,24 @@ ${calmPracticeMessage}`;
     return String(state?.applePasskeyEnrollmentIdentity || "") === normalizeIdentifierForStorage(String(identifier || "").trim());
   }
 
-  async function enrollApplePasskeyAfterVerification(data) {
+  async function prepareApplePasskeyEnrollment(data) {
     const browser = detectMobileBrowser();
     const grant = String(data?.passkey_enrollment_grant || "").trim();
-    if (!browser.isIOS) return true;
-    if (!grant || !window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) return false;
-    if (!(await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())) return false;
+    if (!browser.isIOS) return null;
+    if (!grant) throw new Error("Secure device setup is not available for this verified request. Please request a new verification code and try again.");
+    if (!window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+      throw new Error("This iPhone or iPad does not support secure device setup in this browser.");
+    }
+    if (!(await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())) {
+      throw new Error("A device passkey is not available. Enable Face ID, Touch ID, or a device passcode and try again.");
+    }
     const begin = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "begin_passkey_registration", enrollment_grant: grant }) });
-    const ceremony = await parseApiResponse(begin, `Secure device setup failed with status ${begin.status}`);
+    return parseApiResponse(begin, `Secure device setup failed with status ${begin.status}`);
+  }
+
+  async function completeApplePasskeyEnrollment(data, ceremony) {
+    // This must be the first asynchronous browser operation after the user taps
+    // SET UP THIS IPAD, otherwise Safari may suppress the native passkey prompt.
     const credential = await navigator.credentials.create({ publicKey: passkeyOptionsToBrowserOptions(ceremony.public_key) });
     const finish = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "finish_passkey_registration", ceremony_id: ceremony.ceremony_id, credential: serializePasskeyCredential(credential) }) });
     const result = await parseApiResponse(finish, `Secure device setup failed with status ${finish.status}`);
@@ -8733,7 +8744,9 @@ ${calmPracticeMessage}`;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const postClaimFlow = featureSetupPendingHandleFlow;
-      if (visitorMode) {
+      // iPhone and iPad claims must complete email verification first so the
+      // verified claim response can enroll the device passkey.
+      if (visitorMode || detectMobileBrowser().isIOS) {
         let proposedStatus = null;
         try {
           proposedStatus = await fetchIdentifierStatus(proposedHandle);
@@ -27664,6 +27677,7 @@ ${calmPracticeMessage}`;
     exploreProOverlayMode = "trial";
     pendingRecoveryIdentifier = "";
     pendingUniqueNameClaim = null;
+    pendingApplePasskeySetup = null;
     if (exploreProTitle) {
       exploreProTitle.textContent = "Explore ESP PRO";
     }
@@ -27675,10 +27689,12 @@ ${calmPracticeMessage}`;
     }
     if (exploreProEmailInput) {
       exploreProEmailInput.value = "";
+      exploreProEmailInput.disabled = false;
     }
     if (exploreProCodeInput) {
       exploreProCodeInput.value = "";
       exploreProCodeInput.setAttribute("maxlength", "5");
+      exploreProCodeInput.disabled = false;
     }
     setExploreProStatus("");
     if (exploreProResendCodeButton) {
@@ -27689,6 +27705,7 @@ ${calmPracticeMessage}`;
     }
     if (exploreProSendCodeButton) {
       exploreProSendCodeButton.disabled = false;
+      exploreProSendCodeButton.hidden = false;
     }
     if (exploreProResendCodeButton) {
       exploreProResendCodeButton.disabled = false;
@@ -27812,7 +27829,102 @@ ${calmPracticeMessage}`;
     }
   }
 
+  async function completeVerifiedRecovery(data, recoveredIdentifier) {
+    const userType = String(data?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    const latestState = readLauncherState();
+    const nextIdentityState = buildLauncherIdentityState(latestState, recoveredIdentifier, userType, {
+      recognizedIdentity: recoveredIdentifier,
+      entryMode: ""
+    });
+    if (data?.identifier_status && recoveredIdentifier) {
+      nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
+      nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(recoveredIdentifier)] = data.identifier_status;
+    }
+    writeLauncherState(nextIdentityState);
+    setLauncherProfileSaveSuppression(false, true);
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      const currentRuntime = readRuntimeSettings(role);
+      persistLauncherRuntimeIdentity(role, recoveredIdentifier, String(currentRuntime?.partner_email || "").trim(), currentRuntime);
+    });
+    setLauncherGuestEntryActive(false);
+    applyIdentityStateToLauncherInputs();
+    closeExploreProOverlay();
+    window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+  }
+
+  async function completeVerifiedClaim(data, claimContext) {
+    const acceptedHandle = String(data?.identifier || claimContext?.proposedHandle || "").trim();
+    const currentIdentifier = String(claimContext?.currentIdentifier || "").trim();
+    if (currentIdentifier && acceptedHandle) propagateClaimedHandle(currentIdentifier, acceptedHandle);
+    const migratedState = readLauncherState();
+    const normalizedUserType = String(data?.identifier_status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    const nextIdentityState = buildLauncherIdentityState(migratedState, acceptedHandle, normalizedUserType, {
+      recognizedIdentity: acceptedHandle,
+      entryMode: ""
+    });
+    nextIdentityState.visitorAlias = "";
+    if (data?.identifier_status && acceptedHandle) {
+      nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
+      nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = data.identifier_status;
+    }
+    writeLauncherState(nextIdentityState);
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      const currentRuntime = readRuntimeSettings(role);
+      persistLauncherRuntimeIdentity(role, acceptedHandle, String(currentRuntime?.partner_email || "").trim(), currentRuntime);
+    });
+    setLauncherGuestEntryActive(false);
+    applyIdentityStateToLauncherInputs();
+    closeExploreProOverlay();
+    if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
+      showInstallGuideView({ returnView: "feature-setup" });
+      return;
+    }
+    if (String(claimContext?.postClaimFlow || "").trim() === "go-pro-subscribe") {
+      showGoProView({
+        view: goProReturnView || "subscription-management",
+        role: goProReturnRole || String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
+        scrollY: goProReturnScrollY
+      });
+      return;
+    }
+    showFeatureSetupView({
+      role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
+      returnView: featureSetupReturnView || "card",
+      scrollY: Number.isFinite(Number(claimContext?.returnScrollY)) ? Number(claimContext.returnScrollY) : 0
+    });
+  }
+
+  async function queueApplePasskeySetup(data, completion) {
+    const ceremony = await prepareApplePasskeyEnrollment(data);
+    pendingApplePasskeySetup = { data, ceremony, completion };
+    if (exploreProTitle) exploreProTitle.textContent = "Set Up This iPad";
+    if (exploreProIntro) exploreProIntro.textContent = "Your unique name is verified. Set up this iPad so ESP GYM can recognize you after installation.";
+    if (exploreProAuthCopy) exploreProAuthCopy.textContent = "Tap the button below, then approve Appleâ€™s Face ID, Touch ID, or device-passcode prompt. ESP GYM never receives your passcode.";
+    if (exploreProEmailInput) exploreProEmailInput.disabled = true;
+    if (exploreProCodeInput) exploreProCodeInput.disabled = true;
+    if (exploreProSendCodeButton) exploreProSendCodeButton.hidden = true;
+    if (exploreProResendCodeButton) exploreProResendCodeButton.hidden = true;
+    if (exploreProStartButton) exploreProStartButton.textContent = "SET UP THIS IPAD";
+    setExploreProStatus("Unique name verified. Tap SET UP THIS IPAD to continue.");
+  }
+
   async function startExploreProTrial() {
+    if (pendingApplePasskeySetup) {
+      const setup = pendingApplePasskeySetup;
+      setExploreProStatus("Opening secure device setup...");
+      if (exploreProStartButton) exploreProStartButton.disabled = true;
+      try {
+        await completeApplePasskeyEnrollment(setup.data, setup.ceremony);
+        pendingApplePasskeySetup = null;
+        await setup.completion();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Secure device setup was not completed.";
+        setExploreProStatus(`${message} Tap SET UP THIS IPAD to try again.`, { isError: true });
+      } finally {
+        if (exploreProStartButton) exploreProStartButton.disabled = false;
+      }
+      return;
+    }
     const email = String(exploreProEmailInput?.value || "").trim();
     const code = String(exploreProCodeInput?.value || "").trim().toUpperCase();
     setExploreProStatus("Verifying code...");
@@ -27822,43 +27934,12 @@ ${calmPracticeMessage}`;
     try {
       if (exploreProOverlayMode === "recovery") {
         const data = await verifyIdentifierRecoveryCode(pendingRecoveryIdentifier, email, code);
-        let applePasskeyReady = true;
-        try {
-          applePasskeyReady = await enrollApplePasskeyAfterVerification(data);
-        } catch (passkeyError) {
-          // Recovery remains available even when a user declines the optional device prompt.
-          applePasskeyReady = false;
-          console.warn("ESP GYM passkey enrollment was not completed.", passkeyError);
-        }
         const recoveredIdentifier = String(data?.identifier || pendingRecoveryIdentifier).trim();
-        const userType = String(data?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
-        const latestState = readLauncherState();
-        const nextIdentityState = buildLauncherIdentityState(latestState, recoveredIdentifier, userType, {
-          recognizedIdentity: recoveredIdentifier,
-          entryMode: ""
-        });
-        if (data?.identifier_status && recoveredIdentifier) {
-          nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
-          nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(recoveredIdentifier)] = data.identifier_status;
+        if (detectMobileBrowser().isIOS) {
+          await queueApplePasskeySetup(data, () => completeVerifiedRecovery(data, recoveredIdentifier));
+          return;
         }
-        writeLauncherState(nextIdentityState);
-        setLauncherProfileSaveSuppression(false, true);
-        ["sender", "receiver", "remote-viewer"].forEach((role) => {
-          const currentRuntime = readRuntimeSettings(role);
-          persistLauncherRuntimeIdentity(
-            role,
-            recoveredIdentifier,
-            String(currentRuntime?.partner_email || "").trim(),
-            currentRuntime
-          );
-        });
-        setLauncherGuestEntryActive(false);
-        applyIdentityStateToLauncherInputs();
-        closeExploreProOverlay();
-        if (detectMobileBrowser().isIOS && !applePasskeyReady) {
-          window.alert("Your unique name was verified, but secure device setup was not completed. Before installing ESP GYM on this iPhone or iPad, try again and approve the device prompt.");
-        }
-        window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+        await completeVerifiedRecovery(data, recoveredIdentifier);
         return;
       }
       if (exploreProOverlayMode === "claim") {
@@ -27871,65 +27952,11 @@ ${calmPracticeMessage}`;
           email,
           code
         );
-        let applePasskeyReady = true;
-        try {
-          applePasskeyReady = await enrollApplePasskeyAfterVerification(data);
-        } catch (passkeyError) {
-          // Keep the verified-name claim successful if platform passkey setup is declined.
-          applePasskeyReady = false;
-          console.warn("ESP GYM passkey enrollment was not completed.", passkeyError);
-        }
-        const acceptedHandle = String(data?.identifier || claimContext?.proposedHandle || "").trim();
-        const currentIdentifier = String(claimContext?.currentIdentifier || "").trim();
-        if (currentIdentifier && acceptedHandle) {
-          propagateClaimedHandle(currentIdentifier, acceptedHandle);
-        }
-        const migratedState = readLauncherState();
-        const normalizedUserType = String(data?.identifier_status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
-        const nextIdentityState = buildLauncherIdentityState(migratedState, acceptedHandle, normalizedUserType, {
-          recognizedIdentity: acceptedHandle,
-          entryMode: ""
-        });
-        nextIdentityState.visitorAlias = "";
-        if (data?.identifier_status && acceptedHandle) {
-          nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
-          nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = data.identifier_status;
-        }
-        writeLauncherState(nextIdentityState);
-        ["sender", "receiver", "remote-viewer"].forEach((role) => {
-          const currentRuntime = readRuntimeSettings(role);
-          persistLauncherRuntimeIdentity(
-            role,
-            acceptedHandle,
-            String(currentRuntime?.partner_email || "").trim(),
-            currentRuntime
-          );
-        });
-        setLauncherGuestEntryActive(false);
-        applyIdentityStateToLauncherInputs();
-        closeExploreProOverlay();
-        if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
-          if (detectMobileBrowser().isIOS && !applePasskeyReady) {
-            window.alert("Your unique name was claimed, but secure device setup was not completed. Before installing ESP GYM on this iPhone or iPad, try again and approve the device prompt.");
-            showFeatureSetupView({ returnView: "card" });
-            return;
-          }
-          showInstallGuideView({ returnView: "feature-setup" });
+        if (detectMobileBrowser().isIOS) {
+          await queueApplePasskeySetup(data, () => completeVerifiedClaim(data, claimContext));
           return;
         }
-        if (String(claimContext?.postClaimFlow || "").trim() === "go-pro-subscribe") {
-          showGoProView({
-            view: goProReturnView || "subscription-management",
-            role: goProReturnRole || String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
-            scrollY: goProReturnScrollY
-          });
-          return;
-        }
-        showFeatureSetupView({
-          role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
-          returnView: featureSetupReturnView || "card",
-          scrollY: Number.isFinite(Number(claimContext?.returnScrollY)) ? Number(claimContext.returnScrollY) : 0
-        });
+        await completeVerifiedClaim(data, claimContext);
         return;
       }
       const data = await verifyExploreProCode(email, code);
