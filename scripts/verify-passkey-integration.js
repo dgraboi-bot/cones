@@ -57,6 +57,17 @@ async function main() {
     sessions: {},
     session_registry: {},
     user_types: { [testHandle.toLowerCase()]: "pro" },
+    unique_handles: {
+      [testHandle.toLowerCase()]: {
+        handle: testHandle,
+        canonical_handle: testHandle.toLowerCase(),
+        owner_identifier: testHandle,
+        created_ms: Date.now(),
+        updated_ms: Date.now()
+      }
+    },
+    handle_owners: {},
+    identifier_aliases: {},
     passkey_credentials: {},
     passkey_ceremonies: {},
     passkey_enrollment_grants: {
@@ -79,6 +90,12 @@ async function main() {
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.goto(`http://localhost:${port}/telepathybeginner.html`, { waitUntil: "domcontentloaded" });
+    if (await page.locator("[data-explore-pro-code-field]").count() !== 1 || !await page.locator("[data-explore-pro-code-field]").isHidden()) {
+      throw new Error("The verification-code field must be hidden until a verification code is sent.");
+    }
+    if (await page.locator("[data-explore-pro-verify-actions]").count() !== 1 || !await page.locator("[data-explore-pro-verify-actions]").isHidden()) {
+      throw new Error("The unique-name claim action must be hidden until a verification code is sent.");
+    }
     const cdp = await context.newCDPSession(page);
     await cdp.send("WebAuthn.enable");
     await cdp.send("WebAuthn.addVirtualAuthenticator", {
@@ -167,8 +184,9 @@ async function main() {
     const state = JSON.parse(await readFile(path.join(stateDir, "session-state.json"), "utf8"));
     if (Object.keys(state.passkey_credentials || {}).length !== 1) throw new Error("Expected exactly one stored passkey credential.");
 
-    const installedContext = await browser.newContext();
-    const installedPage = await installedContext.newPage();
+    // Use the page that registered the virtual platform credential. A real
+    // installed PWA uses the device's same-site passkey.
+    const installedPage = page;
     await installedPage.addInitScript(() => {
       Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1" });
       Object.defineProperty(navigator, "vendor", { configurable: true, get: () => "Apple Computer, Inc." });
@@ -184,8 +202,21 @@ async function main() {
       };
     });
     await installedPage.goto(`http://localhost:${port}/telepathybeginner.html?open=launcher`, { waitUntil: "domcontentloaded" });
-    await installedPage.locator("[data-temporary-home-continue]").filter({ hasText: "FINISH APP INSTALLATION" }).waitFor({ timeout: 5000 });
-    await installedContext.close();
+    const finishInstallButton = installedPage.locator("[data-temporary-home-continue]").filter({ hasText: "FINISH APP INSTALLATION" });
+    await finishInstallButton.waitFor({ timeout: 5000 });
+    if (await finishInstallButton.isDisabled()) throw new Error("The prepared iPad restore action remained disabled.");
+    await finishInstallButton.click();
+    try {
+      await installedPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    } catch (_) {
+      const failureStatus = String(await installedPage.locator("[data-temporary-home-invitation-status]").textContent() || "").trim();
+      throw new Error(`The installed iPad flow did not reach the launcher: ${failureStatus || "no restoration status was shown"}`);
+    }
+    const restoredIdentity = await installedPage.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem("cones-beginner-launcher-v2") || "{}");
+      return String(state.recognizedIdentity || "").trim();
+    });
+    if (restoredIdentity !== testHandle) throw new Error("The installed iPad flow did not restore its recognized identity.");
 
     const visitorContext = await browser.newContext();
     const visitorPage = await visitorContext.newPage();
@@ -208,7 +239,7 @@ async function main() {
     if (staleIdentity) throw new Error("Deleted identity was not cleared before entering as a visitor.");
     await visitorContext.close();
 
-    console.log("PASS: registration retry safety, replay protection, assertion validation, and server identity restoration completed in isolated state.");
+    console.log("PASS: staged unique-name verification, registration retry safety, replay protection, assertion validation, and installed-PWA identity restoration completed in isolated state.");
   } finally {
     if (browser) await browser.close();
     php.kill();

@@ -12694,7 +12694,9 @@ if ($action === 'begin_passkey_authentication') {
         if ($descriptors === []) throw new RuntimeException('No secure device identity is available yet.');
         $options = \Webauthn\PublicKeyCredentialRequestOptions::create(random_bytes(32), passkey_rp_id(), $descriptors, 'required', 60000);
         $ceremonyId = passkey_base64url_encode(random_bytes(18));
-        $state['passkey_ceremonies'][$ceremonyId] = ['kind' => 'authentication', 'options' => json_decode($serializer->serialize($options, 'json'), true, 512, JSON_THROW_ON_ERROR), 'expires_ms' => $nowMs + 120000];
+        // PWA setup includes several iOS system screens. Keep the prepared
+        // challenge available long enough for a person to complete them.
+        $state['passkey_ceremonies'][$ceremonyId] = ['kind' => 'authentication', 'options' => json_decode($serializer->serialize($options, 'json'), true, 512, JSON_THROW_ON_ERROR), 'expires_ms' => $nowMs + (10 * 60 * 1000)];
     } catch (Throwable $exception) { fail_request($handle, $nowMs, $exception->getMessage(), 400); }
     $response = ['ok' => true, 'ceremony_id' => $ceremonyId, 'public_key' => $state['passkey_ceremonies'][$ceremonyId]['options'], 'server_now_ms' => $nowMs];
     rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);

@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908f";
+  const launcherBuildVersion = "20260908g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -774,10 +774,12 @@
   const exploreProAuthCopy = document.querySelector("[data-explore-pro-auth-copy]");
   const exploreProEmailInput = document.querySelector("[data-explore-pro-email]");
   const exploreProCodeInput = document.querySelector("[data-explore-pro-code]");
+  const exploreProCodeField = document.querySelector("[data-explore-pro-code-field]");
   const exploreProStatus = document.querySelector("[data-explore-pro-status]");
   const exploreProSendCodeButton = document.querySelector("[data-explore-pro-send-code]");
   const exploreProResendCodeButton = document.querySelector("[data-explore-pro-resend-code]");
   const exploreProStartButton = document.querySelector("[data-explore-pro-start]");
+  const exploreProVerifyActions = document.querySelector("[data-explore-pro-verify-actions]");
   const exploreProSubscribeButton = document.querySelector("[data-explore-pro-subscribe]");
   const exploreProCloseButton = document.querySelector("[data-explore-pro-close]");
   const exploreProEndedOverlay = document.querySelector("[data-explore-pro-ended-overlay]");
@@ -1334,6 +1336,9 @@ ${calmPracticeMessage}`;
   let pendingUniqueNameClaim = null;
   let pendingApplePasskeySetup = null;
   let pendingApplePasskeyRestore = null;
+  let launcherStartupReady = false;
+  let applePasskeyRestoreInFlight = false;
+  let applePasskeyRestoreError = "";
   let currentUserTypeAdminHandle = "";
   let currentInviteeIdentifier = "";
   let inviteeAdminReturnView = "admin";
@@ -5780,7 +5785,8 @@ ${calmPracticeMessage}`;
       return Uint8Array.from(atob(normalized + "=".repeat((4 - (normalized.length % 4)) % 4)), (character) => character.charCodeAt(0));
     };
     copy.challenge = decode(copy.challenge);
-    copy.user.id = decode(copy.user.id);
+    // Registration has a user ID; authentication does not.
+    if (copy.user?.id) copy.user.id = decode(copy.user.id);
     ["excludeCredentials", "allowCredentials"].forEach((key) => {
       if (Array.isArray(copy[key])) copy[key].forEach((credential) => { credential.id = decode(credential.id); });
     });
@@ -27648,11 +27654,27 @@ ${calmPracticeMessage}`;
       normalizeIdentifierForStorage(String(exploreTrial.identifier || "")) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
 
     if (temporaryHomePageContinueButton) {
+      temporaryHomePageContinueButton.disabled = !launcherStartupReady || applePasskeyRestoreInFlight;
       temporaryHomePageContinueButton.textContent = pendingApplePasskeyRestore
         ? "FINISH APP INSTALLATION"
         : hasMatchingActiveExploreTrial
         ? "CONTINUE into your active ESP PRO exploration"
         : "CONTINUE into the ESP GYM";
+    }
+
+    if (!launcherStartupReady) {
+      setTemporaryHomeInvitationStatus("Preparing ESP GYM...");
+      return;
+    }
+
+    if (applePasskeyRestoreInFlight) {
+      setTemporaryHomeInvitationStatus("Confirming this device...");
+      return;
+    }
+
+    if (applePasskeyRestoreError) {
+      setTemporaryHomeInvitationStatus(applePasskeyRestoreError, { isError: true });
+      return;
     }
 
     if (pendingApplePasskeyRestore) {
@@ -27771,6 +27793,12 @@ ${calmPracticeMessage}`;
       exploreProCodeInput.setAttribute("maxlength", "5");
       exploreProCodeInput.disabled = false;
     }
+    if (exploreProCodeField) {
+      exploreProCodeField.hidden = true;
+    }
+    if (exploreProVerifyActions) {
+      exploreProVerifyActions.hidden = true;
+    }
     setExploreProStatus("");
     if (exploreProResendCodeButton) {
       exploreProResendCodeButton.hidden = true;
@@ -27881,6 +27909,12 @@ ${calmPracticeMessage}`;
         : await sendExploreProVerificationCode(email);
       if (exploreProResendCodeButton) {
         exploreProResendCodeButton.hidden = false;
+      }
+      if (exploreProCodeField) {
+        exploreProCodeField.hidden = false;
+      }
+      if (exploreProVerifyActions) {
+        exploreProVerifyActions.hidden = false;
       }
       if (exploreProSubscribeButton) {
         exploreProSubscribeButton.hidden = true;
@@ -28265,7 +28299,13 @@ ${calmPracticeMessage}`;
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
     if (!invitationCode) {
       if (pendingApplePasskeyRestore) {
+        if (applePasskeyRestoreInFlight) {
+          return;
+        }
+        applePasskeyRestoreInFlight = true;
+        applePasskeyRestoreError = "";
         setTemporaryHomeInvitationStatus("Confirming this device...");
+        renderTemporaryHomeReturnState();
         try {
           const restored = await completeApplePasskeyIdentityRestore(pendingApplePasskeyRestore);
           pendingApplePasskeyRestore = null;
@@ -28274,9 +28314,20 @@ ${calmPracticeMessage}`;
             return;
           }
         } catch (error) {
-          setTemporaryHomeInvitationStatus(error instanceof Error ? error.message : "This device could not be recognized. Please try again.", { isError: true });
+          const message = error instanceof Error ? error.message : "This device could not be recognized.";
+          // A server-side assertion attempt consumes its challenge. Prepare a
+          // fresh one so a visible retry is always meaningful.
+          pendingApplePasskeyRestore = await prepareApplePasskeyIdentityRestore();
+          applePasskeyRestoreError =
+            pendingApplePasskeyRestore
+              ? `${message} Tap FINISH APP INSTALLATION to try again.`
+              : message;
           return;
+        } finally {
+          applePasskeyRestoreInFlight = false;
+          renderTemporaryHomeReturnState();
         }
+        return;
       }
       // A deleted identity can remain in Safari storage after its server record is removed.
       // Validate it here so Continue cannot route into a stale recognized-user state.
@@ -34000,6 +34051,7 @@ ${calmPracticeMessage}`;
     }
 
     pendingApplePasskeyRestore = await prepareApplePasskeyIdentityRestore();
+    launcherStartupReady = true;
     setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
     if (launcherGuestEntryActive) {
       resetLauncherWorkingHomeForFreshEntry();
