@@ -6252,20 +6252,24 @@ function issue_passkey_enrollment_grant(array &$state, string $identifier, int $
     $token = passkey_base64url_encode(random_bytes(32));
     $state['passkey_enrollment_grants'][hash('sha256', $token)] = [
         'identifier' => $identifier,
-        'expires_ms' => $nowMs + (10 * 60 * 1000)
+        // A verified iPad user needs enough time to complete Apple's native
+        // Touch ID / passcode prompt and retry a transient handoff failure.
+        'expires_ms' => $nowMs + (30 * 60 * 1000)
     ];
     return $token;
 }
 
-function consume_passkey_enrollment_grant(array &$state, string $grant, int $nowMs): string
+function get_passkey_enrollment_grant(array $state, string $grant, int $nowMs): array
 {
     $key = hash('sha256', trim($grant));
     $record = is_array($state['passkey_enrollment_grants'][$key] ?? null) ? $state['passkey_enrollment_grants'][$key] : null;
-    unset($state['passkey_enrollment_grants'][$key]);
     if (!$record || (int) ($record['expires_ms'] ?? 0) < $nowMs) {
         throw new RuntimeException('The secure device-link request has expired. Please verify your email again.');
     }
-    return trim((string) ($record['identifier'] ?? ''));
+    return [
+        'key' => $key,
+        'identifier' => trim((string) ($record['identifier'] ?? ''))
+    ];
 }
 
 function prune_expired_passkey_state(array &$state, int $nowMs): void
@@ -12585,13 +12589,15 @@ if ($action === 'verify_unique_name_claim_code') {
 if ($action === 'begin_passkey_registration') {
     try {
         require_allowed_keys($input, ['action', 'enrollment_grant'], 'request');
-        $identifier = consume_passkey_enrollment_grant($state, (string) ($input['enrollment_grant'] ?? ''), $nowMs);
+        $enrollmentGrant = get_passkey_enrollment_grant($state, (string) ($input['enrollment_grant'] ?? ''), $nowMs);
+        $identifier = $enrollmentGrant['identifier'];
         $ceremonyId = passkey_base64url_encode(random_bytes(18));
         $state['passkey_ceremonies'][$ceremonyId] = [
             'kind' => 'registration',
             'identifier' => $identifier,
+            'enrollment_grant_key' => $enrollmentGrant['key'],
             'options' => make_passkey_creation_options($identifier),
-            'expires_ms' => $nowMs + 120000
+            'expires_ms' => $nowMs + (10 * 60 * 1000)
         ];
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -12605,8 +12611,10 @@ if ($action === 'finish_passkey_registration') {
         require_allowed_keys($input, ['action', 'ceremony_id', 'credential'], 'request');
         $ceremonyId = trim((string) ($input['ceremony_id'] ?? ''));
         $ceremony = is_array($state['passkey_ceremonies'][$ceremonyId] ?? null) ? $state['passkey_ceremonies'][$ceremonyId] : null;
-        unset($state['passkey_ceremonies'][$ceremonyId]);
         if (!$ceremony || ($ceremony['kind'] ?? '') !== 'registration' || (int) ($ceremony['expires_ms'] ?? 0) < $nowMs) throw new RuntimeException('The secure device-link request has expired. Please verify your email again.');
+        $grantKey = trim((string) ($ceremony['enrollment_grant_key'] ?? ''));
+        $grant = is_array($state['passkey_enrollment_grants'][$grantKey] ?? null) ? $state['passkey_enrollment_grants'][$grantKey] : null;
+        if (!$grant || (int) ($grant['expires_ms'] ?? 0) < $nowMs) throw new RuntimeException('The secure device-link request has expired. Please verify your email again.');
         $serializer = get_passkey_serializer();
         $options = $serializer->deserialize(json_encode($ceremony['options'], JSON_THROW_ON_ERROR), \Webauthn\PublicKeyCredentialCreationOptions::class, 'json');
         $credential = $serializer->deserialize(json_encode($input['credential'], JSON_THROW_ON_ERROR), \Webauthn\PublicKeyCredential::class, 'json');
@@ -12617,6 +12625,7 @@ if ($action === 'finish_passkey_registration') {
         $source = \Webauthn\AuthenticatorAttestationResponseValidator::create($factory->creationCeremony())->check($responseObject, $options, passkey_rp_id());
         $credentialId = passkey_base64url_encode($source->publicKeyCredentialId);
         $state['passkey_credentials'][$credentialId] = ['identifier' => $ceremony['identifier'], 'source' => $serializer->normalize($source), 'created_ms' => $nowMs, 'updated_ms' => $nowMs];
+        unset($state['passkey_ceremonies'][$ceremonyId], $state['passkey_enrollment_grants'][$grantKey]);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, 'Unable to secure this device: ' . $exception->getMessage(), 400);
     }

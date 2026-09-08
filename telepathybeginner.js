@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907m";
+  const launcherBuildVersion = "20260907n";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -27925,15 +27925,20 @@ ${calmPracticeMessage}`;
   async function queueApplePasskeySetup(data, completion) {
     const ceremony = await prepareApplePasskeyEnrollment(data);
     pendingApplePasskeySetup = { data, ceremony, completion };
+    const verifiedIdentifier = String(data?.identifier || "").trim();
     if (exploreProTitle) exploreProTitle.textContent = "Set Up This iPad";
-    if (exploreProIntro) exploreProIntro.textContent = "Your unique name is verified. Set up this iPad so ESP GYM can recognize you after installation.";
+    if (exploreProIntro) exploreProIntro.textContent = verifiedIdentifier
+      ? `Your unique name, ${verifiedIdentifier}, is verified. Set up this iPad so ESP GYM can recognize you after installation.`
+      : "Your unique name is verified. Set up this iPad so ESP GYM can recognize you after installation.";
     if (exploreProAuthCopy) exploreProAuthCopy.textContent = "Tap the button below, then approve Apple's Face ID, Touch ID, or device-passcode prompt. ESP GYM never receives your passcode.";
     if (exploreProEmailInput) exploreProEmailInput.disabled = true;
     if (exploreProCodeInput) exploreProCodeInput.disabled = true;
     if (exploreProSendCodeButton) exploreProSendCodeButton.hidden = true;
     if (exploreProResendCodeButton) exploreProResendCodeButton.hidden = true;
     if (exploreProStartButton) exploreProStartButton.textContent = "SET UP THIS IPAD";
-    setExploreProStatus("Unique name verified. Tap SET UP THIS IPAD to continue.");
+    setExploreProStatus(verifiedIdentifier
+      ? `Your unique name, ${verifiedIdentifier}, is verified. Tap SET UP THIS IPAD to continue.`
+      : "Your unique name is verified. Tap SET UP THIS IPAD to continue.");
   }
 
   async function startExploreProTrial() {
@@ -27947,7 +27952,7 @@ ${calmPracticeMessage}`;
         await setup.completion();
       } catch (error) {
         const message = error instanceof Error ? error.message : "Secure device setup was not completed.";
-        setExploreProStatus(`${message} Tap SET UP THIS IPAD to try again.`, { isError: true });
+        setExploreProStatus(`${message} Your verified setup remains available. Tap SET UP THIS IPAD to try again.`, { isError: true });
       } finally {
         if (exploreProStartButton) exploreProStartButton.disabled = false;
       }

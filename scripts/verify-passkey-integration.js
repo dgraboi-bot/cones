@@ -98,6 +98,9 @@ async function main() {
     const registration = await api(page, { action: "begin_passkey_registration", enrollment_grant: grant });
     if (!registration.body.ok) throw new Error(`Registration begin failed: ${registration.body.error || "unknown error"}`);
 
+    const retryRegistration = await api(page, { action: "begin_passkey_registration", enrollment_grant: grant });
+    if (!retryRegistration.body.ok) throw new Error(`Verified enrollment grant was not reusable before completion: ${retryRegistration.body.error || "unknown error"}`);
+
     const credential = await page.evaluate(async (options) => {
       const decode = (value) => {
         const padded = `${String(value).replace(/-/g, "+").replace(/_/g, "/")}==`.slice(0, Math.ceil(String(value).length / 4) * 4);
@@ -157,7 +160,7 @@ async function main() {
 
     const state = JSON.parse(await readFile(path.join(stateDir, "session-state.json"), "utf8"));
     if (Object.keys(state.passkey_credentials || {}).length !== 1) throw new Error("Expected exactly one stored passkey credential.");
-    console.log("PASS: registration, replay protection, assertion validation, and server identity restoration completed in isolated state.");
+    console.log("PASS: registration retry safety, replay protection, assertion validation, and server identity restoration completed in isolated state.");
   } finally {
     if (browser) await browser.close();
     php.kill();
