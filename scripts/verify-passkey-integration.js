@@ -167,6 +167,26 @@ async function main() {
     const state = JSON.parse(await readFile(path.join(stateDir, "session-state.json"), "utf8"));
     if (Object.keys(state.passkey_credentials || {}).length !== 1) throw new Error("Expected exactly one stored passkey credential.");
 
+    const installedContext = await browser.newContext();
+    const installedPage = await installedContext.newPage();
+    await installedPage.addInitScript(() => {
+      Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1" });
+      Object.defineProperty(navigator, "vendor", { configurable: true, get: () => "Apple Computer, Inc." });
+      Object.defineProperty(navigator, "platform", { configurable: true, get: () => "iPad" });
+      Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, get: () => 5 });
+      const nativeMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query) => {
+        const result = nativeMatchMedia(query);
+        if (query === "(display-mode: standalone)") {
+          Object.defineProperty(result, "matches", { configurable: true, get: () => true });
+        }
+        return result;
+      };
+    });
+    await installedPage.goto(`http://localhost:${port}/telepathybeginner.html?open=launcher`, { waitUntil: "domcontentloaded" });
+    await installedPage.locator("[data-temporary-home-continue]").filter({ hasText: "FINISH APP INSTALLATION" }).waitFor({ timeout: 5000 });
+    await installedContext.close();
+
     const visitorContext = await browser.newContext();
     const visitorPage = await visitorContext.newPage();
     await visitorPage.addInitScript(() => {

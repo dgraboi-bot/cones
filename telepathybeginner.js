@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908d";
+  const launcherBuildVersion = "20260908f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -29703,6 +29703,13 @@ ${calmPracticeMessage}`;
             setRoleDifficultyLabel(role, requestedDifficultyLevel);
           });
         }
+      // Installed iPads launch through the stable manifest start URL
+      // (`open=launcher`). Do not let that route enter anonymously before the
+      // prepared passkey ceremony has a user gesture to complete it.
+      if (pendingApplePasskeyRestore) {
+        showTemporaryHomePageView();
+        return;
+      }
       if (requestedView === "launcher") {
         void enterWorkingHomeFromLanding("resume");
         return;
