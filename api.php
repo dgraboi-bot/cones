@@ -6697,6 +6697,29 @@ function get_identifier_status(array $state, string $identifier): array
     ];
 }
 
+function identifier_has_passkey_credential(array $state, string $identifier): bool
+{
+    $status = get_identifier_status($state, $identifier);
+    $candidates = array_values(array_unique(array_filter([
+        normalize_identifier_for_lookup($identifier),
+        normalize_identifier_for_lookup((string) ($status['preferred_identifier'] ?? '')),
+        normalize_identifier_for_lookup((string) ($status['owner_identifier'] ?? ''))
+    ], static fn(string $value): bool => $value !== '')));
+
+    if ($candidates === []) {
+        return false;
+    }
+
+    foreach ((array) ($state['passkey_credentials'] ?? []) as $record) {
+        $credentialIdentifier = normalize_identifier_for_lookup((string) ($record['identifier'] ?? ''));
+        if ($credentialIdentifier !== '' && in_array($credentialIdentifier, $candidates, true)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function get_unique_handle_change_status(array &$state, string $identifier, int $nowMs): array
 {
     $cleanIdentifier = validate_participant_identifier_string($identifier, 'identifier', true);
@@ -12436,6 +12459,7 @@ if ($action === 'get_identifier_status') {
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
         'formal_identity_exists' => formal_identifier_exists($state, $identifier),
         'auth_email_on_file' => get_identifier_recovery_email($state, $identifier) !== '',
+        'passkey_registered' => identifier_has_passkey_credential($state, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
         'server_now_ms' => $nowMs
     ];

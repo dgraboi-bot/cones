@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908c";
+  const launcherBuildVersion = "20260908d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5240,7 +5240,8 @@ ${calmPracticeMessage}`;
       ...data.identifier_status,
       identifier_exists: !!data?.identifier_exists,
       formal_identity_exists: !!data?.formal_identity_exists,
-      auth_email_on_file: !!data?.auth_email_on_file
+      auth_email_on_file: !!data?.auth_email_on_file,
+      passkey_registered: !!data?.passkey_registered
     };
   }
 
@@ -5811,9 +5812,10 @@ ${calmPracticeMessage}`;
     writeLauncherState(state);
   }
 
-  function hasRememberedApplePasskeyEnrollment(identifier) {
+  function clearRememberedApplePasskeyEnrollment() {
     const state = readLauncherState();
-    return String(state?.applePasskeyEnrollmentIdentity || "") === normalizeIdentifierForStorage(String(identifier || "").trim());
+    delete state.applePasskeyEnrollmentIdentity;
+    writeLauncherState(state);
   }
 
   async function prepareApplePasskeyEnrollment(data) {
@@ -9877,7 +9879,7 @@ ${calmPracticeMessage}`;
     const isAndroid = /android/i.test(ua);
     // iPadOS may present a desktop-style Macintosh user agent. Touch-capable
     // MacIntel is therefore treated as iPadOS, while ordinary Macs remain Mac.
-    const isIPadOSDesktopMode = platform.includes("mac") && Number(navigator.maxTouchPoints || 0) > 1;
+    const isIPadOSDesktopMode = (platform.includes("mac") || /macintosh/i.test(ua)) && Number(navigator.maxTouchPoints || 0) > 1;
     const isIOS = /iphone|ipad|ipod/i.test(ua) || isIPadOSDesktopMode;
     const isMac = !isIOS && (platform.includes("mac") || /macintosh|mac os x/i.test(ua));
     const isEdge = /edg\//i.test(ua) || brands.some((brand) => brand.includes("edge"));
@@ -10070,7 +10072,7 @@ ${calmPracticeMessage}`;
     } else if (environment.isIOS && environment.isSafari) {
       summary = installed
         ? "ESP GYM is already installed on this iPhone or iPad."
-        : "On iPhone or iPad Safari, install ESP GYM using Share and Add to Home Screen.";
+        : "";
       steps = installed
         ? [
             "Look for the ESP GYM icon on your home screen.",
@@ -10147,6 +10149,7 @@ ${calmPracticeMessage}`;
     }
     if (installGuideSummary) {
       installGuideSummary.textContent = model.summary;
+      installGuideSummary.hidden = !model.summary;
     }
     if (installGuideSteps) {
       installGuideSteps.innerHTML = "";
@@ -31008,7 +31011,7 @@ ${calmPracticeMessage}`;
     const ua = navigator.userAgent || "";
     const vendor = navigator.vendor || "";
     const platform = String(navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
-    const isIPadOSDesktopMode = platform.includes("mac") && Number(navigator.maxTouchPoints || 0) > 1;
+    const isIPadOSDesktopMode = (platform.includes("mac") || /macintosh/i.test(ua)) && Number(navigator.maxTouchPoints || 0) > 1;
     const isIOS = /iPhone|iPad|iPod/i.test(ua) || isIPadOSDesktopMode;
     const isChromeIOS = /CriOS/i.test(ua);
     const isSafariIOS = isIOS && /Safari/i.test(ua) && /Apple/i.test(vendor) && !isChromeIOS;
@@ -31161,7 +31164,8 @@ ${calmPracticeMessage}`;
         openFeatureSetupHandleFlow("install-gate");
         return;
       }
-      if (browser.isIOS && !hasRememberedApplePasskeyEnrollment(context.identifier)) {
+      if (browser.isIOS && !context?.status?.passkey_registered) {
+        clearRememberedApplePasskeyEnrollment();
         window.alert("Before installing ESP GYM on this iPhone or iPad, please verify your existing unique name once. Your device will then ask you to approve a secure passkey. ESP GYM never receives your passcode or Face ID information.");
         openExploreProOverlay({ mode: "recovery", identifier: String(context.identifier).trim() });
         return;

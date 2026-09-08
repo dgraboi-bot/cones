@@ -95,6 +95,9 @@ async function main() {
     const noCredential = await api(page, { action: "begin_passkey_authentication" });
     if (noCredential.status !== 400) throw new Error(`Expected no-credential rejection, got ${noCredential.status}.`);
 
+    const beforeRegistrationStatus = await api(page, { action: "get_identifier_status", identifier: testHandle });
+    if (beforeRegistrationStatus.body.passkey_registered) throw new Error("A passkey was reported before registration.");
+
     const registration = await api(page, { action: "begin_passkey_registration", enrollment_grant: grant });
     if (!registration.body.ok) throw new Error(`Registration begin failed: ${registration.body.error || "unknown error"}`);
 
@@ -127,6 +130,9 @@ async function main() {
     if (!registrationFinish.body.ok || registrationFinish.body.identifier !== testHandle) {
       throw new Error(`Registration finish failed: ${registrationFinish.body.error || "unexpected identity"}`);
     }
+
+    const afterRegistrationStatus = await api(page, { action: "get_identifier_status", identifier: testHandle });
+    if (!afterRegistrationStatus.body.passkey_registered) throw new Error("The registered passkey was not reported by identifier status.");
 
     const replayGrant = await api(page, { action: "begin_passkey_registration", enrollment_grant: grant });
     if (replayGrant.status !== 400) throw new Error("A consumed enrollment grant was unexpectedly accepted.");
