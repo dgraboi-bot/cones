@@ -170,10 +170,16 @@ async function main() {
         entryMode: "",
         resolvedMainUserType: "pro"
       }));
+      localStorage.setItem("cones-apple-passkey-enrollment-identity-v1", "Deleted Test Identity");
     });
     await visitorPage.goto(`http://localhost:${port}/telepathybeginner.html?open=landing`, { waitUntil: "domcontentloaded" });
     await visitorPage.locator("[data-temporary-home-continue]").click();
     await visitorPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    const staleIdentity = await visitorPage.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem("cones-beginner-launcher-v2") || "{}");
+      return String(state.recognizedIdentity || "").trim();
+    });
+    if (staleIdentity) throw new Error("Deleted identity was not cleared before entering as a visitor.");
     await visitorContext.close();
 
     console.log("PASS: registration retry safety, replay protection, assertion validation, and server identity restoration completed in isolated state.");

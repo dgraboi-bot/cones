@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908b";
+  const launcherBuildVersion = "20260908c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -28275,7 +28275,10 @@ ${calmPracticeMessage}`;
           return;
         }
       }
-      const launcherState = readLauncherState();
+      // A deleted identity can remain in Safari storage after its server record is removed.
+      // Validate it here so Continue cannot route into a stale recognized-user state.
+      setTemporaryHomeInvitationStatus("Preparing ESP GYM...");
+      const launcherState = await sanitizeRecognizedIdentityForLauncherEntry(readLauncherState());
       if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
