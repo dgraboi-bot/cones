@@ -160,6 +160,22 @@ async function main() {
 
     const state = JSON.parse(await readFile(path.join(stateDir, "session-state.json"), "utf8"));
     if (Object.keys(state.passkey_credentials || {}).length !== 1) throw new Error("Expected exactly one stored passkey credential.");
+
+    const visitorContext = await browser.newContext();
+    const visitorPage = await visitorContext.newPage();
+    await visitorPage.addInitScript(() => {
+      localStorage.setItem("cones-beginner-launcher-v2", JSON.stringify({
+        recognizedIdentity: "Deleted Test Identity",
+        ownNames: { sender: "Deleted Test Identity", receiver: "Deleted Test Identity", "remote-viewer": "Deleted Test Identity" },
+        entryMode: "",
+        resolvedMainUserType: "pro"
+      }));
+    });
+    await visitorPage.goto(`http://localhost:${port}/telepathybeginner.html?open=landing`, { waitUntil: "domcontentloaded" });
+    await visitorPage.locator("[data-temporary-home-continue]").click();
+    await visitorPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    await visitorContext.close();
+
     console.log("PASS: registration retry safety, replay protection, assertion validation, and server identity restoration completed in isolated state.");
   } finally {
     if (browser) await browser.close();

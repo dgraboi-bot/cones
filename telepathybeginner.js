@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907n";
+  const launcherBuildVersion = "20260908a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -28048,7 +28048,7 @@ ${calmPracticeMessage}`;
     return hasKnownLauncherIdentity(state) && !isVisitorLauncherEntry(state);
   }
 
-  function startVisitorLandingEntry() {
+  function startVisitorLandingEntry(options = {}) {
     const baseState = readLauncherState();
     if (shouldResumeRecognizedLandingIdentity(baseState)) {
       window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
@@ -28056,6 +28056,10 @@ ${calmPracticeMessage}`;
     }
     const nextState = buildVisitorLauncherState(baseState);
     writeLauncherState(nextState);
+    if (options.direct === true) {
+      void enterWorkingHomeFromLanding("visitor");
+      return;
+    }
     window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
   }
 
@@ -28072,7 +28076,7 @@ ${calmPracticeMessage}`;
         openExploreProOverlay();
         return;
       }
-      startVisitorLandingEntry();
+      startVisitorLandingEntry({ direct: true });
     } catch (error) {
       showTemporaryHomePageView();
       resetTemporaryHomeExploreButton();
@@ -28215,7 +28219,7 @@ ${calmPracticeMessage}`;
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
       }
-      startVisitorLandingEntry();
+      startVisitorLandingEntry({ direct: true });
       return;
     }
 
@@ -32528,7 +32532,9 @@ ${calmPracticeMessage}`;
   baselineSaveButton?.addEventListener("click", saveBaselineQuestions);
   courseBaselineSaveButton?.addEventListener("click", saveCourseBaselineQuestions);
   afterFirstSessionSaveButton?.addEventListener("click", saveAfterFirstSessionQuestions);
-  temporaryHomePageContinueButton?.addEventListener("click", () => {
+  temporaryHomePageContinueButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     void continueFromLandingPage();
   });
   temporaryHomePageInvitationCodeInput?.addEventListener("keydown", (event) => {
