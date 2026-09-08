@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907i";
+  const launcherBuildVersion = "20260907j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5746,6 +5746,93 @@ ${calmPracticeMessage}`;
     return parseApiResponse(response, `Unique-name claim verification failed with status ${response.status}`);
   }
 
+  function passkeyBytesToBase64Url(value) {
+    const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value || []);
+    let binary = "";
+    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+
+  function passkeyOptionsToBrowserOptions(options) {
+    const copy = structuredClone(options);
+    const decode = (text) => {
+      const normalized = String(text).replace(/-/g, "+").replace(/_/g, "/");
+      return Uint8Array.from(atob(normalized + "=".repeat((4 - (normalized.length % 4)) % 4)), (character) => character.charCodeAt(0));
+    };
+    copy.challenge = decode(copy.challenge);
+    copy.user.id = decode(copy.user.id);
+    ["excludeCredentials", "allowCredentials"].forEach((key) => {
+      if (Array.isArray(copy[key])) copy[key].forEach((credential) => { credential.id = decode(credential.id); });
+    });
+    return copy;
+  }
+
+  function serializePasskeyCredential(credential) {
+    const response = credential.response;
+    return {
+      id: credential.id,
+      rawId: passkeyBytesToBase64Url(credential.rawId),
+      type: credential.type,
+      response: {
+        clientDataJSON: passkeyBytesToBase64Url(response.clientDataJSON),
+        attestationObject: response.attestationObject ? passkeyBytesToBase64Url(response.attestationObject) : undefined,
+        authenticatorData: response.authenticatorData ? passkeyBytesToBase64Url(response.authenticatorData) : undefined,
+        signature: response.signature ? passkeyBytesToBase64Url(response.signature) : undefined,
+        userHandle: response.userHandle ? passkeyBytesToBase64Url(response.userHandle) : undefined
+      },
+      clientExtensionResults: credential.getClientExtensionResults()
+    };
+  }
+
+  function rememberApplePasskeyEnrollment(identifier) {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier) return;
+    const state = readLauncherState();
+    state.applePasskeyEnrollmentIdentity = normalizeIdentifierForStorage(cleanIdentifier);
+    writeLauncherState(state);
+  }
+
+  function hasRememberedApplePasskeyEnrollment(identifier) {
+    const state = readLauncherState();
+    return String(state?.applePasskeyEnrollmentIdentity || "") === normalizeIdentifierForStorage(String(identifier || "").trim());
+  }
+
+  async function enrollApplePasskeyAfterVerification(data) {
+    const browser = detectMobileBrowser();
+    const grant = String(data?.passkey_enrollment_grant || "").trim();
+    if (!browser.isIOS) return true;
+    if (!grant || !window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) return false;
+    if (!(await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())) return false;
+    const begin = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "begin_passkey_registration", enrollment_grant: grant }) });
+    const ceremony = await parseApiResponse(begin, `Secure device setup failed with status ${begin.status}`);
+    const credential = await navigator.credentials.create({ publicKey: passkeyOptionsToBrowserOptions(ceremony.public_key) });
+    const finish = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "finish_passkey_registration", ceremony_id: ceremony.ceremony_id, credential: serializePasskeyCredential(credential) }) });
+    const result = await parseApiResponse(finish, `Secure device setup failed with status ${finish.status}`);
+    rememberApplePasskeyEnrollment(String(result?.identifier || data?.identifier || ""));
+    return true;
+  }
+
+  async function restoreApplePasskeyIdentity() {
+    const browser = detectMobileBrowser();
+    if (!browser.isIOS || !isStandaloneShell() || getCanonicalRecognizedIdentity(readLauncherState()) || !window.PublicKeyCredential) return false;
+    try {
+      const begin = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "begin_passkey_authentication" }) });
+      const ceremony = await parseApiResponse(begin, `Secure device check failed with status ${begin.status}`);
+      const credential = await navigator.credentials.get({ publicKey: passkeyOptionsToBrowserOptions(ceremony.public_key) });
+      const finish = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "finish_passkey_authentication", ceremony_id: ceremony.ceremony_id, credential: serializePasskeyCredential(credential) }) });
+      const data = await parseApiResponse(finish, `Secure device check failed with status ${finish.status}`);
+      const identifier = String(data?.identifier || "").trim();
+      if (!identifier) return false;
+      const userType = String(data?.user_type || "").toLowerCase() === "pro" ? "pro" : "standard";
+      const nextState = buildLauncherIdentityState(readLauncherState(), identifier, userType, { recognizedIdentity: identifier, entryMode: "" });
+      if (data?.identifier_status) nextState.identifierStatusMap[normalizeIdentifierForStorage(identifier)] = data.identifier_status;
+      writeLauncherState(nextState);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function fetchLandingInvitationIdentity(identifier) {
     const cleanIdentifier = assertValidParticipantIdentifier(identifier, "Invitation code");
     const response = await fetch("api.php", {
@@ -8585,6 +8672,9 @@ ${calmPracticeMessage}`;
     if (handleIntro) {
       handleIntro.textContent = defaultHandleDialogIntro;
     }
+    if (submitHandleButton) {
+      submitHandleButton.textContent = "SUBMIT";
+    }
     handleOverlayReturnRole = activeHandleRole;
     if (handleStatus) {
       handleStatus.textContent = "";
@@ -9412,7 +9502,8 @@ ${calmPracticeMessage}`;
         : installPromptOpen
           ? "INSTALLING..."
           : "INSTALL APP";
-      featureSetupInstallActionButton.disabled = installPromptOpen;
+      // A PWA needs a verified identity before it can restore the user's profile.
+      featureSetupInstallActionButton.disabled = installPromptOpen || (visitorMode && !recognizedUser);
     }
     if (featureSetupBeepStatus) {
       featureSetupBeepStatus.textContent = "Use this test to confirm the countdown beep is audible on this device.";
@@ -27731,6 +27822,14 @@ ${calmPracticeMessage}`;
     try {
       if (exploreProOverlayMode === "recovery") {
         const data = await verifyIdentifierRecoveryCode(pendingRecoveryIdentifier, email, code);
+        let applePasskeyReady = true;
+        try {
+          applePasskeyReady = await enrollApplePasskeyAfterVerification(data);
+        } catch (passkeyError) {
+          // Recovery remains available even when a user declines the optional device prompt.
+          applePasskeyReady = false;
+          console.warn("ESP GYM passkey enrollment was not completed.", passkeyError);
+        }
         const recoveredIdentifier = String(data?.identifier || pendingRecoveryIdentifier).trim();
         const userType = String(data?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
         const latestState = readLauncherState();
@@ -27756,6 +27855,9 @@ ${calmPracticeMessage}`;
         setLauncherGuestEntryActive(false);
         applyIdentityStateToLauncherInputs();
         closeExploreProOverlay();
+        if (detectMobileBrowser().isIOS && !applePasskeyReady) {
+          window.alert("Your unique name was verified, but secure device setup was not completed. Before installing ESP GYM on this iPhone or iPad, try again and approve the device prompt.");
+        }
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
       }
@@ -27769,6 +27871,14 @@ ${calmPracticeMessage}`;
           email,
           code
         );
+        let applePasskeyReady = true;
+        try {
+          applePasskeyReady = await enrollApplePasskeyAfterVerification(data);
+        } catch (passkeyError) {
+          // Keep the verified-name claim successful if platform passkey setup is declined.
+          applePasskeyReady = false;
+          console.warn("ESP GYM passkey enrollment was not completed.", passkeyError);
+        }
         const acceptedHandle = String(data?.identifier || claimContext?.proposedHandle || "").trim();
         const currentIdentifier = String(claimContext?.currentIdentifier || "").trim();
         if (currentIdentifier && acceptedHandle) {
@@ -27799,6 +27909,11 @@ ${calmPracticeMessage}`;
         applyIdentityStateToLauncherInputs();
         closeExploreProOverlay();
         if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
+          if (detectMobileBrowser().isIOS && !applePasskeyReady) {
+            window.alert("Your unique name was claimed, but secure device setup was not completed. Before installing ESP GYM on this iPhone or iPad, try again and approve the device prompt.");
+            showFeatureSetupView({ returnView: "card" });
+            return;
+          }
           showInstallGuideView({ returnView: "feature-setup" });
           return;
         }
@@ -30873,6 +30988,25 @@ ${calmPracticeMessage}`;
   async function handleInstallRequest() {
     const browser = detectMobileBrowser();
 
+    // Do not let a new mobile installation create an unlinked app container.
+    // The claim flow returns here after its existing email verification succeeds.
+    if (browser.isIOS || browser.isAndroid) {
+      const context = await resolveFeatureSetupContext(featureSetupReturnRole || activeLauncherRole || "sender");
+      if (!String(context?.identifier || "").trim()) {
+        showFeatureSetupView({
+          role: String(context?.role || activeLauncherRole || "sender").trim() || "sender",
+          returnView: "card"
+        });
+        openFeatureSetupHandleFlow("install-gate");
+        return;
+      }
+      if (browser.isIOS && !hasRememberedApplePasskeyEnrollment(context.identifier)) {
+        window.alert("Before installing ESP GYM on this iPhone or iPad, please verify your existing unique name once. Your device will then ask you to approve a secure passkey. ESP GYM never receives your passcode or Face ID information.");
+        openExploreProOverlay({ mode: "recovery", identifier: String(context.identifier).trim() });
+        return;
+      }
+    }
+
     if (browser.isSafariIOS) {
       recordInstallGuidanceShown("ios-safari");
       window.alert(
@@ -33679,6 +33813,7 @@ ${calmPracticeMessage}`;
       return;
     }
 
+    await restoreApplePasskeyIdentity();
     setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
     if (launcherGuestEntryActive) {
       resetLauncherWorkingHomeForFreshEntry();

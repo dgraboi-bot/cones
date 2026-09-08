@@ -29,9 +29,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 }
 
 $isWindows = DIRECTORY_SEPARATOR === '\\';
-$privateRoot = $isWindows
+$defaultPrivateRoot = $isWindows
     ? 'C:\\xampp\\telepathyexperiment_private\\cones'
     : '/var/www/telepathyexperiment_private/cones';
+// Local integration tests may use an isolated state tree. Apache/live requests
+// always retain the normal private root and cannot select an alternate path.
+$testPrivateRoot = PHP_SAPI === 'cli-server' ? trim((string) getenv('ESPGYM_TEST_PRIVATE_ROOT')) : '';
+$privateRoot = $testPrivateRoot !== '' ? $testPrivateRoot : $defaultPrivateRoot;
 $stateDir = $privateRoot . DIRECTORY_SEPARATOR . 'data';
 $backupDir = $privateRoot . DIRECTORY_SEPARATOR . 'backup';
 $logsDir = $privateRoot . DIRECTORY_SEPARATOR . 'logs';
@@ -6067,6 +6071,78 @@ function require_allowed_keys(array $value, array $allowedKeys, string $path): v
     }
 }
 
+function passkey_base64url_encode(string $value): string
+{
+    return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+}
+
+function get_passkey_serializer(): \Symfony\Component\Serializer\SerializerInterface
+{
+    $support = new \Webauthn\AttestationStatement\AttestationStatementSupportManager([
+        new \Webauthn\AttestationStatement\NoneAttestationStatementSupport()
+    ]);
+    return (new \Webauthn\Denormalizer\WebauthnSerializerFactory($support))->create();
+}
+
+function issue_passkey_enrollment_grant(array &$state, string $identifier, int $nowMs): string
+{
+    $token = passkey_base64url_encode(random_bytes(32));
+    $state['passkey_enrollment_grants'][hash('sha256', $token)] = [
+        'identifier' => $identifier,
+        'expires_ms' => $nowMs + (10 * 60 * 1000)
+    ];
+    return $token;
+}
+
+function consume_passkey_enrollment_grant(array &$state, string $grant, int $nowMs): string
+{
+    $key = hash('sha256', trim($grant));
+    $record = is_array($state['passkey_enrollment_grants'][$key] ?? null) ? $state['passkey_enrollment_grants'][$key] : null;
+    unset($state['passkey_enrollment_grants'][$key]);
+    if (!$record || (int) ($record['expires_ms'] ?? 0) < $nowMs) {
+        throw new RuntimeException('The secure device-link request has expired. Please verify your email again.');
+    }
+    return trim((string) ($record['identifier'] ?? ''));
+}
+
+function prune_expired_passkey_state(array &$state, int $nowMs): void
+{
+    foreach (['passkey_ceremonies', 'passkey_enrollment_grants'] as $collection) {
+        foreach ($state[$collection] as $key => $record) {
+            if (!is_array($record) || (int) ($record['expires_ms'] ?? 0) < $nowMs) {
+                unset($state[$collection][$key]);
+            }
+        }
+    }
+}
+
+function passkey_rp_id(): string
+{
+    $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? 'espgym.com')));
+    $host = preg_replace('/:\d+$/', '', $host) ?? 'espgym.com';
+    return in_array($host, ['localhost', '127.0.0.1'], true) ? $host : 'espgym.com';
+}
+
+function make_passkey_creation_options(string $identifier): array
+{
+    $serializer = get_passkey_serializer();
+    $userId = hash('sha256', normalize_identifier_for_lookup($identifier), true);
+    $options = \Webauthn\PublicKeyCredentialCreationOptions::create(
+        \Webauthn\PublicKeyCredentialRpEntity::create('ESP GYM', passkey_rp_id()),
+        \Webauthn\PublicKeyCredentialUserEntity::create($identifier, $userId, $identifier),
+        random_bytes(32),
+        [
+            \Webauthn\PublicKeyCredentialParameters::create('public-key', -7),
+            \Webauthn\PublicKeyCredentialParameters::create('public-key', -257)
+        ],
+        \Webauthn\AuthenticatorSelectionCriteria::create('platform', 'required', 'required'),
+        'none',
+        [],
+        60000
+    );
+    return json_decode($serializer->serialize($options, 'json'), true, 512, JSON_THROW_ON_ERROR);
+}
+
 function validate_email_identifier_string($value, string $field, bool $required = true): string
 {
     $text = trim((string) $value);
@@ -10956,6 +11032,16 @@ if (!is_array($state['identifier_recovery_verifications'] ?? null)) {
 if (!is_array($state['unique_name_claim_verifications'] ?? null)) {
     $state['unique_name_claim_verifications'] = [];
 }
+if (!is_array($state['passkey_credentials'] ?? null)) {
+    $state['passkey_credentials'] = [];
+}
+if (!is_array($state['passkey_ceremonies'] ?? null)) {
+    $state['passkey_ceremonies'] = [];
+}
+if (!is_array($state['passkey_enrollment_grants'] ?? null)) {
+    $state['passkey_enrollment_grants'] = [];
+}
+prune_expired_passkey_state($state, $nowMs);
 if (!is_array($state['push_subscriptions'] ?? null)) {
     $state['push_subscriptions'] = [];
 }
@@ -12227,11 +12313,13 @@ if ($action === 'verify_identifier_recovery_code') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
+    $passkeyEnrollmentGrant = issue_passkey_enrollment_grant($state, $result['identifier'], $nowMs);
     $response = [
         'ok' => true,
         'identifier' => $result['identifier'],
         'identifier_status' => $result['identifier_status'],
         'user_type' => $result['user_type'],
+        'passkey_enrollment_grant' => $passkeyEnrollmentGrant,
         'server_now_ms' => $nowMs
     ];
 
@@ -12311,11 +12399,13 @@ if ($action === 'verify_unique_name_claim_code') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
+    $passkeyEnrollmentGrant = issue_passkey_enrollment_grant($state, $result['identifier'], $nowMs);
     $response = [
         'ok' => true,
         'identifier' => $result['identifier'],
         'identifier_status' => $result['identifier_status'],
         'user_type' => $result['user_type'],
+        'passkey_enrollment_grant' => $passkeyEnrollmentGrant,
         'server_now_ms' => $nowMs
     ];
 
@@ -12327,6 +12417,92 @@ if ($action === 'verify_unique_name_claim_code') {
     fclose($handle);
     echo json_encode($response);
     exit;
+}
+
+if ($action === 'begin_passkey_registration') {
+    try {
+        require_allowed_keys($input, ['action', 'enrollment_grant'], 'request');
+        $identifier = consume_passkey_enrollment_grant($state, (string) ($input['enrollment_grant'] ?? ''), $nowMs);
+        $ceremonyId = passkey_base64url_encode(random_bytes(18));
+        $state['passkey_ceremonies'][$ceremonyId] = [
+            'kind' => 'registration',
+            'identifier' => $identifier,
+            'options' => make_passkey_creation_options($identifier),
+            'expires_ms' => $nowMs + 120000
+        ];
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+    $response = ['ok' => true, 'ceremony_id' => $ceremonyId, 'public_key' => $state['passkey_ceremonies'][$ceremonyId]['options'], 'server_now_ms' => $nowMs];
+    rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
+}
+
+if ($action === 'finish_passkey_registration') {
+    try {
+        require_allowed_keys($input, ['action', 'ceremony_id', 'credential'], 'request');
+        $ceremonyId = trim((string) ($input['ceremony_id'] ?? ''));
+        $ceremony = is_array($state['passkey_ceremonies'][$ceremonyId] ?? null) ? $state['passkey_ceremonies'][$ceremonyId] : null;
+        unset($state['passkey_ceremonies'][$ceremonyId]);
+        if (!$ceremony || ($ceremony['kind'] ?? '') !== 'registration' || (int) ($ceremony['expires_ms'] ?? 0) < $nowMs) throw new RuntimeException('The secure device-link request has expired. Please verify your email again.');
+        $serializer = get_passkey_serializer();
+        $options = $serializer->deserialize(json_encode($ceremony['options'], JSON_THROW_ON_ERROR), \Webauthn\PublicKeyCredentialCreationOptions::class, 'json');
+        $credential = $serializer->deserialize(json_encode($input['credential'], JSON_THROW_ON_ERROR), \Webauthn\PublicKeyCredential::class, 'json');
+        $responseObject = $credential->response;
+        if (!$responseObject instanceof \Webauthn\AuthenticatorAttestationResponse) throw new RuntimeException('The device did not return a valid passkey registration response.');
+        $factory = new \Webauthn\CeremonyStep\CeremonyStepManagerFactory();
+        $factory->setAllowedOrigins(['https://espgym.com', 'http://localhost']);
+        $source = \Webauthn\AuthenticatorAttestationResponseValidator::create($factory->creationCeremony())->check($responseObject, $options, passkey_rp_id());
+        $credentialId = passkey_base64url_encode($source->publicKeyCredentialId);
+        $state['passkey_credentials'][$credentialId] = ['identifier' => $ceremony['identifier'], 'source' => $serializer->normalize($source), 'created_ms' => $nowMs, 'updated_ms' => $nowMs];
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, 'Unable to secure this device: ' . $exception->getMessage(), 400);
+    }
+    $response = ['ok' => true, 'identifier' => $ceremony['identifier'], 'server_now_ms' => $nowMs];
+    rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
+}
+
+if ($action === 'begin_passkey_authentication') {
+    try {
+        require_allowed_keys($input, ['action'], 'request');
+        $serializer = get_passkey_serializer();
+        $descriptors = [];
+        foreach ($state['passkey_credentials'] as $record) {
+            if (!is_array($record['source'] ?? null)) continue;
+            $source = $serializer->denormalize($record['source'], \Webauthn\PublicKeyCredentialSource::class);
+            $descriptors[] = $source->getPublicKeyCredentialDescriptor();
+        }
+        if ($descriptors === []) throw new RuntimeException('No secure device identity is available yet.');
+        $options = \Webauthn\PublicKeyCredentialRequestOptions::create(random_bytes(32), passkey_rp_id(), $descriptors, 'required', 60000);
+        $ceremonyId = passkey_base64url_encode(random_bytes(18));
+        $state['passkey_ceremonies'][$ceremonyId] = ['kind' => 'authentication', 'options' => json_decode($serializer->serialize($options, 'json'), true, 512, JSON_THROW_ON_ERROR), 'expires_ms' => $nowMs + 120000];
+    } catch (Throwable $exception) { fail_request($handle, $nowMs, $exception->getMessage(), 400); }
+    $response = ['ok' => true, 'ceremony_id' => $ceremonyId, 'public_key' => $state['passkey_ceremonies'][$ceremonyId]['options'], 'server_now_ms' => $nowMs];
+    rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
+}
+
+if ($action === 'finish_passkey_authentication') {
+    try {
+        require_allowed_keys($input, ['action', 'ceremony_id', 'credential'], 'request');
+        $ceremonyId = trim((string) ($input['ceremony_id'] ?? ''));
+        $ceremony = is_array($state['passkey_ceremonies'][$ceremonyId] ?? null) ? $state['passkey_ceremonies'][$ceremonyId] : null;
+        unset($state['passkey_ceremonies'][$ceremonyId]);
+        if (!$ceremony || ($ceremony['kind'] ?? '') !== 'authentication' || (int) ($ceremony['expires_ms'] ?? 0) < $nowMs) throw new RuntimeException('The secure device check expired.');
+        $credentialId = trim((string) ($input['credential']['id'] ?? ''));
+        $record = is_array($state['passkey_credentials'][$credentialId] ?? null) ? $state['passkey_credentials'][$credentialId] : null;
+        if (!$record) throw new RuntimeException('This device credential is not recognized.');
+        $serializer = get_passkey_serializer();
+        $source = $serializer->denormalize($record['source'], \Webauthn\PublicKeyCredentialSource::class);
+        $options = $serializer->deserialize(json_encode($ceremony['options'], JSON_THROW_ON_ERROR), \Webauthn\PublicKeyCredentialRequestOptions::class, 'json');
+        $credential = $serializer->deserialize(json_encode($input['credential'], JSON_THROW_ON_ERROR), \Webauthn\PublicKeyCredential::class, 'json');
+        $assertion = $credential->response;
+        if (!$assertion instanceof \Webauthn\AuthenticatorAssertionResponse) throw new RuntimeException('The device did not return a valid passkey response.');
+        $factory = new \Webauthn\CeremonyStep\CeremonyStepManagerFactory(); $factory->setAllowedOrigins(['https://espgym.com', 'http://localhost']);
+        $source = \Webauthn\AuthenticatorAssertionResponseValidator::create($factory->requestCeremony())->check($source, $assertion, $options, passkey_rp_id(), $assertion->userHandle);
+        $record['source'] = $serializer->normalize($source); $record['updated_ms'] = $nowMs; $state['passkey_credentials'][$credentialId] = $record;
+        $identifier = trim((string) ($record['identifier'] ?? ''));
+    } catch (Throwable $exception) { fail_request($handle, $nowMs, 'Unable to verify this device: ' . $exception->getMessage(), 400); }
+    $response = ['ok' => true, 'identifier' => $identifier, 'identifier_status' => get_identifier_status($state, $identifier), 'user_type' => get_user_type_for_identifier($state, $identifier), 'server_now_ms' => $nowMs];
+    rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
 }
 
 if ($action === 'send_explore_pro_verification_code') {

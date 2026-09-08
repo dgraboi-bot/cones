@@ -86,6 +86,11 @@ function Invoke-ExternalCommand {
   Write-ReleaseLog ("Starting {0}" -f $StepLabel) "DarkCyan"
   [void]$process.Start()
 
+  # Drain both pipes while the child runs. A hash batch can exceed the OS pipe
+  # buffer; waiting first would deadlock plink before it can exit.
+  $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+  $stderrTask = $process.StandardError.ReadToEndAsync()
+
   if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
     try {
       $process.Kill($true)
@@ -94,8 +99,8 @@ function Invoke-ExternalCommand {
     throw "{0} timed out after {1}s." -f $StepLabel, $TimeoutSeconds
   }
 
-  $stdout = $process.StandardOutput.ReadToEnd()
-  $stderr = $process.StandardError.ReadToEnd()
+  $stdout = $stdoutTask.GetAwaiter().GetResult()
+  $stderr = $stderrTask.GetAwaiter().GetResult()
   $exitCode = $process.ExitCode
 
   Add-Content -LiteralPath $releaseLogPath -Value ("[{0}] {1} stdout:`n{2}" -f (Get-Date -Format "HH:mm:ss"), $StepLabel, $stdout) -Encoding UTF8
@@ -225,18 +230,26 @@ function Get-RemoteSha256([string]$RemotePath) {
 
 function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
   $paths = @($RelativePaths | ForEach-Object { Convert-ToPosixPath $_ } | Sort-Object -Unique)
-  $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($paths | ConvertTo-Json -Compress)))
-  $pythonCode = "import base64, hashlib, json, os; root=r`"$liveRoot`"; paths=json.loads(base64.b64decode(`"$payload`").decode(`"utf-8`")); [print(hashlib.sha256(open(os.path.join(root, relative_path), `"rb`").read()).hexdigest().upper() if os.path.isfile(os.path.join(root, relative_path)) else `"MISSING`") for relative_path in paths]"
-  $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("python3 -c '$pythonCode'"))
-  $remoteCommand = "echo $encodedCommand | base64 -d | bash"
-  $output = Invoke-PlinkStep $remoteCommand "read batched live deploy hashes" -TimeoutSeconds 180
-  $hashRows = @($output | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
-  if ($hashRows.Count -ne $paths.Count) {
-    throw "Batched live deploy hash inventory returned $($hashRows.Count) rows for $($paths.Count) expected files."
-  }
   $hashes = @{}
-  for ($index = 0; $index -lt $paths.Count; $index++) {
-    $hashes[$paths[$index]] = $hashRows[$index].ToUpperInvariant()
+
+  # Composer dependencies can add thousands of files. Hash bounded path batches so
+  # neither Windows process creation nor the remote shell receives an oversized command.
+  $batchSize = 75
+  for ($offset = 0; $offset -lt $paths.Count; $offset += $batchSize) {
+    $lastIndex = [Math]::Min($offset + $batchSize - 1, $paths.Count - 1)
+    $batch = @($paths[$offset..$lastIndex])
+    $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($batch | ConvertTo-Json -Compress)))
+    $pythonCode = "import base64, hashlib, json, os; root=r`"$liveRoot`"; paths=json.loads(base64.b64decode(`"$payload`").decode(`"utf-8`")); [print(hashlib.sha256(open(os.path.join(root, relative_path), `"rb`").read()).hexdigest().upper() if os.path.isfile(os.path.join(root, relative_path)) else `"MISSING`") for relative_path in paths]"
+    $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("python3 -c '$pythonCode'"))
+    $remoteCommand = "echo $encodedCommand | base64 -d | bash"
+    $output = Invoke-PlinkStep $remoteCommand ("read live deploy hash batch {0}-{1}" -f ($offset + 1), ($lastIndex + 1)) -TimeoutSeconds 180
+    $hashRows = @($output | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
+    if ($hashRows.Count -ne $batch.Count) {
+      throw "Live deploy hash batch returned $($hashRows.Count) rows for $($batch.Count) expected files."
+    }
+    for ($index = 0; $index -lt $batch.Count; $index++) {
+      $hashes[$batch[$index]] = $hashRows[$index].ToUpperInvariant()
+    }
   }
   return $hashes
 }
@@ -358,6 +371,18 @@ $manifestRepoRoot = [string]$manifest.repo_root
 if (-not $manifestRepoRoot) {
   throw "Prepared release manifest is missing repo_root."
 }
+$vendorArchive = $manifest.vendor_archive
+if ($vendorArchive) {
+  $vendorArchivePath = [string]$vendorArchive.archive_path
+  $vendorArchiveHash = [string]$vendorArchive.archive_sha256
+  if (-not $vendorArchivePath -or -not $vendorArchiveHash -or -not (Test-Path -LiteralPath $vendorArchivePath)) {
+    throw "Prepared vendor archive is missing or incomplete. Re-run prepare-release."
+  }
+  $actualVendorArchiveHash = (Get-FileHash -LiteralPath $vendorArchivePath -Algorithm SHA256).Hash.ToUpperInvariant()
+  if ($actualVendorArchiveHash -ne $vendorArchiveHash.ToUpperInvariant()) {
+    throw "Prepared vendor archive drift detected. Re-run prepare-release."
+  }
+}
 
 $localHashes = @{}
 foreach ($row in @($manifest.local_hashes)) {
@@ -405,14 +430,21 @@ $relativeDirs = @($deployFilesList) |
 
 foreach ($dir in $relativeDirs) {
   $posixDir = Convert-ToPosixPath $dir
+  # A first-time dependency directory (for example vendor\package) does not
+  # exist in the live tree yet, but promotion uses an atomic temp file there.
+  $remoteDirs += "$liveRoot/$posixDir"
   $remoteDirs += "$snapshotPath/$posixDir"
   $remoteDirs += "$stageRoot/$posixDir"
 }
 
-$mkdirTargets = ($remoteDirs | Sort-Object -Unique) -join " "
+$mkdirTargets = @($remoteDirs | Sort-Object -Unique)
 Write-ReleaseLog "Phase 1/6: preparing remote staging directories" "Yellow"
 Invoke-PlinkStep "rm -rf '$stageRoot'" "clear remote stage root" -AllowEmptyOutput
-Invoke-PlinkStep "mkdir -p $mkdirTargets" "create remote stage/snapshot directories" -AllowEmptyOutput
+for ($offset = 0; $offset -lt $mkdirTargets.Count; $offset += 75) {
+  $lastIndex = [Math]::Min($offset + 74, $mkdirTargets.Count - 1)
+  $mkdirBatch = @($mkdirTargets[$offset..$lastIndex]) -join " "
+  Invoke-PlinkStep "mkdir -p $mkdirBatch" ("create remote directories {0}-{1}" -f ($offset + 1), ($lastIndex + 1)) -AllowEmptyOutput
+}
 
 $deployFileCount = $deployFilesList.Count
 Write-ReleaseLog ("Phase 2/6: uploading {0} deploy files to remote stage" -f $deployFileCount) "Yellow"
@@ -422,6 +454,17 @@ for ($index = 0; $index -lt $deployFileCount; $index++) {
   $remoteRelative = Convert-ToPosixPath ([string]$relativePath)
   $stagePath = "$stageRoot/$remoteRelative"
   Invoke-PscpUpload -LocalPath $localPath -RemotePath $stagePath -StepLabel ("upload staged file {0}/{1}: {2}" -f ($index + 1), $deployFileCount, $relativePath)
+}
+if ($vendorArchive) {
+  $remoteVendorArchivePath = "$stageRoot/vendor-release.tar.gz"
+  Write-ReleaseLog "Uploading verified Composer vendor archive" "Yellow"
+  Invoke-PscpUpload -LocalPath $vendorArchivePath -RemotePath $remoteVendorArchivePath -StepLabel "upload staged vendor archive"
+  $remoteVendorArchiveHash = Get-RemoteSha256 $remoteVendorArchivePath
+  if ($remoteVendorArchiveHash -ne $vendorArchiveHash.ToUpperInvariant()) {
+    throw "Staged vendor archive SHA-256 mismatch."
+  }
+  Invoke-PlinkStep "tar -tzf '$remoteVendorArchivePath' | grep -q '^vendor/autoload.php$'" "verify staged vendor archive contents" -AllowEmptyOutput
+  Invoke-PlinkStep "tar -xzf '$remoteVendorArchivePath' -C '$stageRoot' && test -f '$stageRoot/vendor/autoload.php'" "extract staged vendor archive" -AllowEmptyOutput
 }
 
 Write-ReleaseLog ("Phase 3/6: promoting {0} staged files into live root" -f $deployFileCount) "Yellow"
@@ -435,6 +478,13 @@ for ($index = 0; $index -lt $deployFileCount; $index++) {
   $tempLivePath = "$liveDir/.codex_stage_$Version-" + [IO.Path]::GetFileName($livePath)
   Invoke-PlinkStep "if [ -f '$livePath' ]; then cp '$livePath' '$snapshotFilePath'; fi" ("snapshot existing live file {0}/{1}: {2}" -f ($index + 1), $deployFileCount, $relativePath) -AllowEmptyOutput
   Invoke-PlinkStep "cp '$stagePath' '$tempLivePath' && mv -f '$tempLivePath' '$livePath'" ("promote staged file {0}/{1}: {2}" -f ($index + 1), $deployFileCount, $relativePath) -AllowEmptyOutput
+}
+if ($vendorArchive) {
+  $vendorSnapshotPath = "$snapshotPath/vendor"
+  $vendorPreviousPath = "$liveRoot/.vendor-previous-$Version"
+  Write-ReleaseLog "Promoting verified Composer vendor archive" "Yellow"
+  Invoke-PlinkStep "if [ -d '$liveRoot/vendor' ]; then cp -a '$liveRoot/vendor' '$vendorSnapshotPath'; fi" "snapshot existing vendor tree" -AllowEmptyOutput
+  Invoke-PlinkStep "rm -rf '$vendorPreviousPath' '$liveRoot/vendor.next-$Version'; mv '$stageRoot/vendor' '$liveRoot/vendor.next-$Version'; if [ -d '$liveRoot/vendor' ]; then mv '$liveRoot/vendor' '$vendorPreviousPath'; fi; mv '$liveRoot/vendor.next-$Version' '$liveRoot/vendor'; printf '%s\n' '$vendorArchiveHash' > '$liveRoot/vendor/.espgym-vendor-release.sha256'" "activate verified vendor tree" -AllowEmptyOutput
 }
 
 $privateDirs = @($privateContentRoot, "$privateContentRoot/new-learning-center-lessons")
@@ -457,6 +507,13 @@ Write-ReleaseLog "Phase 5/6: verifying version markers and live/private hashes" 
 $verifyTargets = (@($manifest.verify_version_files) | ForEach-Object { "$liveRoot/" + (Convert-ToPosixPath ([string]$_)) }) -join " "
 Invoke-PlinkStep "grep -q '$Version' $verifyTargets" "verify deployed version markers exist in live files" -AllowEmptyOutput
 Invoke-PlinkStep "test -f '$liveRoot/telepathybeginner.html' -a -f '$liveRoot/telepathybeginner.js' -a -f '$liveRoot/api.php'" "verify critical live files exist" -AllowEmptyOutput
+if ($vendorArchive) {
+  $liveVendorArchiveHash = (@(Invoke-PlinkStep "cat '$liveRoot/vendor/.espgym-vendor-release.sha256'" "read deployed vendor archive hash"))[0].Trim().ToUpperInvariant()
+  if ($liveVendorArchiveHash -ne $vendorArchiveHash.ToUpperInvariant()) {
+    throw "Live vendor archive hash audit failed."
+  }
+  Invoke-PlinkStep "test -f '$liveRoot/vendor/autoload.php'" "verify deployed Composer autoloader" -AllowEmptyOutput
+}
 
 $liveHashAuditFiles = @($manifest.live_hash_audit_files)
 $liveHashAuditCount = $liveHashAuditFiles.Count
@@ -492,10 +549,16 @@ Assert-RemoteManagedLessonSetConsistent -RepoRootForCheck $manifestRepoRoot
 Assert-LiveShellVersion -ExpectedVersion $Version
 Write-ReleaseLog "Phase 6/6: final live shell verification and cleanup" "Yellow"
 Invoke-PlinkStep "rm -rf '$stageRoot'" "remove remote stage root after successful deploy" -AllowEmptyOutput
+if ($vendorArchive) {
+  Invoke-PlinkStep "rm -rf '$liveRoot/.vendor-previous-$Version'" "remove superseded vendor tree after verification" -AllowEmptyOutput
+}
 
 Write-ReleaseLog ("Pushed prepared build {0}" -f $Version) "Green"
 Write-ReleaseLog ("Snapshot: {0}" -f $snapshotPath) "Green"
 Write-ReleaseLog ("Live SHA-256 audit passed for {0} files" -f $liveHashAuditCount) "Green"
+if ($vendorArchive) {
+  Write-ReleaseLog "Verified Composer vendor archive SHA-256 audit passed" "Green"
+}
 Write-ReleaseLog ("Private content SHA-256 audit passed for {0} files" -f $privateContentAuditCount) "Green"
 Write-ReleaseLog ("Live root: {0}" -f [string]$manifest.live_root_url) "Green"
 Write-ReleaseLog ("Cache-busted launcher: {0}" -f [string]$manifest.live_launcher_url) "Green"

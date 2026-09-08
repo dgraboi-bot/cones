@@ -32,6 +32,8 @@ $versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9]*'
 $deployFiles = @(
   ".htaccess",
   "api.php",
+  "composer.json",
+  "composer.lock",
   "clairvoyance_rv_page.jpg",
   "content_repo\esp-lessons.txt",
   "content_repo\learn-more-clairvoyance.txt",
@@ -62,6 +64,12 @@ $deployFiles = @(
   "telepathy-difficulty-guide-panel-build.png",
   "telepathybeginner.webmanifest"
 )
+
+# Server-side libraries are packaged as one verified archive by push-live.
+# They remain part of source control, but not the per-file deploy inventory.
+$vendorRoot = Join-Path $repoRoot "vendor"
+$vendorArchiveBuilder = Join-Path $PSScriptRoot "build-vendor-release.ps1"
+$vendorArchivePath = Join-Path $preparedReleaseRoot "vendor-release.tar.gz"
 
 $managedEditableDirectFiles = @(
   "content_repo\esp-lessons.txt",
@@ -233,8 +241,34 @@ $cacheCriticalVersionChecks = @(
   }
 )
 
-function Invoke-Plink([string]$Command) {
-  & $plinkPath -batch -load $puttySession $Command
+function Invoke-Plink([string]$Command, [string]$CommandFile = "") {
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $plinkPath
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  [void]$startInfo.ArgumentList.Add("-batch")
+  [void]$startInfo.ArgumentList.Add("-load")
+  [void]$startInfo.ArgumentList.Add($puttySession)
+  if ($CommandFile) {
+    [void]$startInfo.ArgumentList.Add("-m")
+    [void]$startInfo.ArgumentList.Add($CommandFile)
+  } else {
+    [void]$startInfo.ArgumentList.Add($Command)
+  }
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+  [void]$process.Start()
+  $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+  $stderrTask = $process.StandardError.ReadToEndAsync()
+  $process.WaitForExit()
+  $stdout = $stdoutTask.GetAwaiter().GetResult()
+  $stderr = $stderrTask.GetAwaiter().GetResult()
+  if ($process.ExitCode -ne 0) {
+    throw "plink failed with exit code $($process.ExitCode): $($stderr.Trim())"
+  }
+  return @($stdout -split "`r?`n" | Where-Object { $_ -ne "" })
 }
 
 function Get-RemoteSha256([string]$RemotePath) {
@@ -296,6 +330,9 @@ function Test-IsCoveredDeployPath([string]$RelativePath) {
     return $false
   }
   if ($deployFiles -contains $normalized) {
+    return $true
+  }
+  if ($normalized.StartsWith("vendor\", [System.StringComparison]::OrdinalIgnoreCase)) {
     return $true
   }
   if ($normalized.StartsWith("content_repo\new-learning-center-lessons\", [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -781,6 +818,11 @@ function Test-IsTextDeployFile([string]$RelativePath) {
 function Assert-NoMojibakeInDeployFiles([string[]]$RelativePaths) {
   $hits = New-Object System.Collections.Generic.List[string]
   foreach ($relativePath in $RelativePaths) {
+    # Dependency Unicode tables are executable data, not authored ESP GYM text.
+    # They remain hash-audited but are deliberately outside the content guard.
+    if ($relativePath -like "vendor\*") {
+      continue
+    }
     if (-not (Test-IsTextDeployFile $relativePath)) {
       continue
     }
@@ -817,8 +859,16 @@ function Get-PreparedFileHashes([string[]]$RelativePaths) {
 
 function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
   $paths = @($RelativePaths | ForEach-Object { ($_ -replace "\\", "/") } | Sort-Object -Unique)
-  $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($paths | ConvertTo-Json -Compress)))
-  $remoteCommand = @"
+  $hashes = @{}
+
+  # Keep each SSH command comfortably below the remote shell argument limit.
+  # Composer dependencies can add thousands of files to a release inventory.
+  $batchSize = 75
+  for ($offset = 0; $offset -lt $paths.Count; $offset += $batchSize) {
+    $lastIndex = [Math]::Min($offset + $batchSize - 1, $paths.Count - 1)
+    $batch = @($paths[$offset..$lastIndex])
+    $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($batch | ConvertTo-Json -Compress)))
+    $remoteCommand = @"
 python3 - <<'PY'
 import base64, hashlib, json, os
 root = r'''/var/www/telepathyexperiment/cones'''
@@ -832,14 +882,14 @@ for relative_path in paths:
         print('MISSING|' + relative_path)
 PY
 "@
-  $output = Invoke-Plink $remoteCommand
-  $hashes = @{}
-  foreach ($line in @($output)) {
-    $parts = ([string]$line).Trim() -split '\|', 2
-    if ($parts.Count -ne 2 -or -not $parts[1].Trim()) {
-      continue
+    $output = Invoke-Plink $remoteCommand
+    foreach ($line in @($output)) {
+      $parts = ([string]$line).Trim() -split '\|', 2
+      if ($parts.Count -ne 2 -or -not $parts[1].Trim()) {
+        continue
+      }
+      $hashes[(Get-NormalizedRelativePath $parts[1])] = $parts[0].Trim().ToUpperInvariant()
     }
-    $hashes[(Get-NormalizedRelativePath $parts[1])] = $parts[0].Trim().ToUpperInvariant()
   }
   return $hashes
 }
@@ -884,6 +934,21 @@ if ($AllowDirty) {
 
 $changedFiles = Get-GitChangedFiles -RepoRoot $repoRoot -BaseRef $BaselineRef
 Assert-DeployCoverage $changedFiles
+
+$vendorArchive = $null
+$vendorChanged = @($changedFiles | Where-Object {
+  (Get-NormalizedRelativePath $_).StartsWith("vendor\", [System.StringComparison]::OrdinalIgnoreCase)
+})
+if ($vendorChanged.Count -gt 0) {
+  if (-not (Test-Path -LiteralPath $vendorArchiveBuilder)) {
+    throw "Missing vendor archive builder: $vendorArchiveBuilder"
+  }
+  $vendorArchiveJson = & $vendorArchiveBuilder -OutputPath $vendorArchivePath
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Vendor archive builder failed.'
+  }
+  $vendorArchive = $vendorArchiveJson | ConvertFrom-Json
+}
 
 foreach ($relativePath in $deployFiles) {
   $fullPath = Join-Path $repoRoot $relativePath
@@ -1010,6 +1075,7 @@ $manifest = [ordered]@{
   live_hash_audit_files = @($changedDeployFiles)
   private_content_sync_files = @($privateContentSyncFiles | Sort-Object -Unique)
   changed_private_content_sync_files = @($changedPrivateContentSyncFiles)
+  vendor_archive = $vendorArchive
   remote_hashes = @($remoteHashRows)
   local_hashes = @($preparedHashRows)
 }
