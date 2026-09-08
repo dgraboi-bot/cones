@@ -922,8 +922,15 @@ function delete_invitee_record(array &$state, string $pairsDir, string $identifi
 
 function identity_value_matches_any_key($value, array $identityKeys): bool
 {
-    $lookup = normalize_identifier_for_lookup((string) $value);
-    return $lookup !== '' && isset($identityKeys[$lookup]);
+    $text = trim((string) $value);
+    $lookup = normalize_identifier_for_lookup($text);
+    if ($lookup !== '' && isset($identityKeys[$lookup])) {
+        return true;
+    }
+    // Admin lists format unclaimed historical names as "Name (guest)".
+    // Treat that display suffix as the same identity during permanent cleanup.
+    $guestBaseLookup = normalize_identifier_for_lookup(strip_guest_display_suffix($text));
+    return $guestBaseLookup !== '' && isset($identityKeys[$guestBaseLookup]);
 }
 
 function identity_payload_references_any_key($value, array $identityKeys): bool
@@ -994,7 +1001,11 @@ function delete_user_identity_record(array &$state, string $identifier): array
     }
     $handleKey = canonicalize_handle($cleanIdentifier);
     $handleRecord = is_array($state['unique_handles'][$handleKey] ?? null) ? $state['unique_handles'][$handleKey] : null;
-    if (!$handleRecord) {
+    $isResidualOnly = !$handleRecord;
+    if ($isResidualOnly && (
+        formal_identifier_exists($state, $cleanIdentifier)
+        || !participant_identifier_exists($state, $pairsDir, $cleanIdentifier)
+    )) {
         throw new RuntimeException('That claimed unique name was not found.');
     }
 
@@ -1014,7 +1025,7 @@ function delete_user_identity_record(array &$state, string $identifier): array
     $deletedPairFiles = delete_identity_pair_storage($pairsDir, $identityKeys) + delete_identity_pair_storage($simulationPairsDir, $identityKeys);
     $deletedQuestionnaires = delete_identity_questionnaire_records($questionnaireResponsesDir, $identityKeys);
 
-    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications'] as $bucket) {
+    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
         if (!is_array($state[$bucket] ?? null)) {
             continue;
         }
@@ -1078,9 +1089,27 @@ function delete_user_identity_record(array &$state, string $identifier): array
 
     return [
         'identifier' => $cleanIdentifier,
+        'residual_cleanup' => $isResidualOnly,
         'deleted_pair_files' => $deletedPairFiles,
         'deleted_questionnaires' => $deletedQuestionnaires
     ];
+}
+
+function identity_deletion_is_eligible(array $state, string $pairsDir, string $identifier): bool
+{
+    $cleanIdentifier = trim((string) $identifier);
+    if (!is_valid_handle_identifier($cleanIdentifier)) {
+        return false;
+    }
+    $handleKey = canonicalize_handle($cleanIdentifier);
+    if (is_array($state['unique_handles'][$handleKey] ?? null)) {
+        return true;
+    }
+    // A previously deleted development identity can retain only guest-formatted
+    // trial data. Permit its final cleanup, but never expose this for a formal
+    // active or retired identity.
+    return !formal_identifier_exists($state, $cleanIdentifier)
+        && participant_identifier_exists($state, $pairsDir, $cleanIdentifier);
 }
 
 function ensure_explore_pro_state(array &$state): void
@@ -6859,6 +6888,7 @@ function participant_identifier_exists(array $state, string $pairsDir, string $i
     $preferredIdentifier = trim((string) ($status['preferred_identifier'] ?? $cleanIdentifier));
     $preferredLookup = normalize_identifier_for_lookup($preferredIdentifier);
     $checks = array_values(array_unique(array_filter([$lookup, $preferredLookup], static fn(string $value): bool => $value !== '')));
+    $identityKeys = array_fill_keys($checks, true);
 
     foreach ($checks as $check) {
         if (isset($state['unique_handles'][$check]) && is_array($state['unique_handles'][$check])) {
@@ -6925,8 +6955,7 @@ function participant_identifier_exists(array $state, string $pairsDir, string $i
             continue;
         }
         foreach (['rx name', 'tx name'] as $fieldKey) {
-            $valueLookup = normalize_identifier_for_lookup((string) ($record[$fieldKey] ?? ''));
-            if ($valueLookup !== '' && in_array($valueLookup, $checks, true)) {
+            if (identity_value_matches_any_key($record[$fieldKey] ?? '', $identityKeys)) {
                 return true;
             }
         }
@@ -12863,6 +12892,7 @@ if ($action === 'get_user_type') {
         'ok' => true,
         'identifier_status' => get_identifier_status($state, $identifier),
         'identifier_exists' => participant_identifier_exists($state, $pairsDir, $identifier),
+        'identity_deletion_eligible' => identity_deletion_is_eligible($state, $pairsDir, $identifier),
         'user_type' => get_user_type_for_identifier($state, $identifier),
         'auth_email' => get_identifier_auth_email($state, $identifier),
         'explore_trial' => $exploreTrial,

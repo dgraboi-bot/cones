@@ -77,7 +77,9 @@ async function main() {
     identifier_recovery_verifications: {}, unique_name_claim_verifications: {}, invitees: []
   }));
   const csv = path.join(pairsDir, "rx-road-dog__tx-big-bopper.csv");
-  await writeFile(csv, '"rx name","tx name","round_id"\n"Road Dog","Big Bopper","round-1"\n');
+  // The Admin list renders an unclaimed historical name with this suffix.
+  // Deletion must recognize and remove it as Road Dog's data.
+  await writeFile(csv, '"rx name","tx name","round_id"\n"Road Dog (guest)","Big Bopper","round-1"\n');
   await writeFile(path.join(questionnaireDir, "baseline__road-dog.json"), JSON.stringify({ identifier: handle, response: { note: "test" } }));
 
   const port = 48882;
@@ -96,6 +98,24 @@ async function main() {
     if (state.unique_handles?.["road dog"] || state.passkey_credentials?.credential || state.named_reports?.length) throw new Error("Identity state artifacts remain after deletion.");
     const partnerProfile = state.launcher_profiles?.["big bopper"]?.sender || {};
     if (partnerProfile.current_partner || partnerProfile.partner_history?.length || partnerProfile.deleted_partners?.length) throw new Error("Partner profile still references the deleted identity.");
+
+    // Simulate the historical bug: a claimed record was removed while an
+    // already-formatted guest trial remained. Admin must offer and complete
+    // the final residual cleanup without deleting any active identity.
+    await writeFile(csv, '"rx name","tx name","round_id"\n"Road Dog (guest)","Big Bopper","round-2"\n');
+    const residualStatus = await request(port, { action: "get_user_type", identifier: handle });
+    if (!residualStatus.body.identifier_exists || !residualStatus.body.identity_deletion_eligible) {
+      throw new Error("Orphaned guest identity was not eligible for controlled cleanup.");
+    }
+    const residualDelete = await request(port, { action: "delete_user_identity", user_identifier: handle, secret_candidate: adminSecret, admin_client_id: adminClientId });
+    if (residualDelete.status !== 200 || !residualDelete.body.ok || !residualDelete.body.deleted_identity?.residual_cleanup) {
+      throw new Error("Residual identity cleanup failed.");
+    }
+    const finalStatus = await request(port, { action: "get_user_type", identifier: handle });
+    if (finalStatus.body.identifier_exists || finalStatus.body.identity_deletion_eligible) {
+      throw new Error("Residual guest identity remains visible after cleanup.");
+    }
+    await mustNotExist(csv, "Residual guest trial history");
     console.log("PASS: controlled identity deletion removes server identity, passkeys, reports, questionnaires, pair history, and partner references.");
   } finally {
     php.kill();
