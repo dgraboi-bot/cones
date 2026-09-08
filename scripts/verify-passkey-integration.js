@@ -239,7 +239,34 @@ async function main() {
     if (staleIdentity) throw new Error("Deleted identity was not cleared before entering as a visitor.");
     await visitorContext.close();
 
-    console.log("PASS: staged unique-name verification, registration retry safety, replay protection, assertion validation, and installed-PWA identity restoration completed in isolated state.");
+    // A slow or stalled identity lookup must never leave a normal browser
+    // landing page with its only entry action disabled forever.
+    const stalledContext = await browser.newContext();
+    const stalledPage = await stalledContext.newPage();
+    await stalledPage.addInitScript(() => {
+      localStorage.setItem("cones-beginner-launcher-v2", JSON.stringify({
+        recognizedIdentity: "Stalled Test Identity",
+        ownNames: { sender: "Stalled Test Identity", receiver: "Stalled Test Identity", "remote-viewer": "Stalled Test Identity" },
+        entryMode: "",
+        resolvedMainUserType: "pro"
+      }));
+    });
+    await stalledPage.route("**/api.php", async (route) => {
+      const body = route.request().postData() || "";
+      if (body.includes('"action":"get_identifier_status"')) {
+        await new Promise((resolve) => setTimeout(resolve, 5500));
+      }
+      await route.continue();
+    });
+    await stalledPage.goto(`http://localhost:${port}/telepathybeginner.html?open=landing`, { waitUntil: "domcontentloaded" });
+    const stalledContinueButton = stalledPage.locator("[data-temporary-home-continue]");
+    await stalledContinueButton.waitFor({ timeout: 3000 });
+    if (await stalledContinueButton.isDisabled()) throw new Error("Normal-browser Continue remained disabled during startup work.");
+    await stalledContinueButton.click();
+    await stalledPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 6500 });
+    await stalledContext.close();
+
+    console.log("PASS: passkey restoration, staged claim UI, and normal-browser stalled-identity recovery completed in isolated state.");
   } finally {
     if (browser) await browser.close();
     php.kill();

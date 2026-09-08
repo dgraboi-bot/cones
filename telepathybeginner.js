@@ -4,11 +4,12 @@
   const recognizedIdentityKey = "cones-recognized-identity-v1";
   const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
   const launcherStateWriteLockKey = "cones-launcher-state-write-lock-v1";
+  const launcherIdentityTimeoutBypassKey = "cones-launcher-identity-timeout-bypass-v1";
   const localFreshStartEpochKey = "cones-local-fresh-start-epoch-v1";
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260908i";
+  const launcherBuildVersion = "20260908j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5226,28 +5227,49 @@ ${calmPracticeMessage}`;
 
   async function fetchIdentifierStatus(identifier) {
     const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
-    const response = await fetch("api.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        action: "get_identifier_status",
-        identifier: cleanIdentifier
-      })
-    });
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    let timeoutId = 0;
+    let timedOut = false;
+    try {
+      if (controller) {
+        timeoutId = window.setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, 4000);
+      }
+      const response = await fetch("api.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "get_identifier_status",
+          identifier: cleanIdentifier
+        }),
+        signal: controller?.signal
+      });
 
-    const data = await parseApiResponse(response, `Identifier lookup failed with status ${response.status}`);
-    if (!data?.identifier_status || typeof data.identifier_status !== "object") {
-      return null;
+      const data = await parseApiResponse(response, `Identifier lookup failed with status ${response.status}`);
+      if (!data?.identifier_status || typeof data.identifier_status !== "object") {
+        return null;
+      }
+      return {
+        ...data.identifier_status,
+        identifier_exists: !!data?.identifier_exists,
+        formal_identity_exists: !!data?.formal_identity_exists,
+        auth_email_on_file: !!data?.auth_email_on_file,
+        passkey_registered: !!data?.passkey_registered
+      };
+    } catch (error) {
+      if (timedOut) {
+        throw new Error("Identifier lookup timed out.");
+      }
+      throw error;
+    } finally {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     }
-    return {
-      ...data.identifier_status,
-      identifier_exists: !!data?.identifier_exists,
-      formal_identity_exists: !!data?.formal_identity_exists,
-      auth_email_on_file: !!data?.auth_email_on_file,
-      passkey_registered: !!data?.passkey_registered
-    };
   }
 
   async function fetchUserType(identifier) {
@@ -12449,6 +12471,16 @@ ${calmPracticeMessage}`;
       });
       return readLauncherState();
     } catch (error) {
+      if (error instanceof Error && error.message === "Identifier lookup timed out.") {
+        // Let the immediately following launcher load proceed once without
+        // repeating the same stalled lookup. This does not alter identity
+        // data and is consumed as soon as it is read.
+        try {
+          sessionStorage.setItem(launcherIdentityTimeoutBypassKey, "1");
+        } catch (_) {
+          // A storage failure only means the normal next-load check will run.
+        }
+      }
       return state;
     }
   }
@@ -27654,7 +27686,10 @@ ${calmPracticeMessage}`;
       normalizeIdentifierForStorage(String(exploreTrial.identifier || "")) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
 
     if (temporaryHomePageContinueButton) {
-      temporaryHomePageContinueButton.disabled = !launcherStartupReady || applePasskeyRestoreInFlight;
+      // Browser Safari must retain an escape route even if optional startup
+      // work is slow. Installed PWA entry remains gated until its passkey
+      // restoration state is known.
+      temporaryHomePageContinueButton.disabled = (isStandaloneShell() && !launcherStartupReady) || applePasskeyRestoreInFlight;
       temporaryHomePageContinueButton.textContent = pendingApplePasskeyRestore
         ? "FINISH APP INSTALLATION"
         : hasMatchingActiveExploreTrial
@@ -29684,6 +29719,12 @@ ${calmPracticeMessage}`;
       const messageOwner = String(params.get("message_owner") || "").trim();
         const messagePartner = String(params.get("message_partner") || "").trim();
         const messageFocus = params.get("message_focus") === "1";
+        // Show a normal browser landing page immediately. A stale-identity
+        // check may still be running, but it must not keep the only entry
+        // action hidden or disabled.
+        if (requestedView === "landing") {
+          showTemporaryHomePageView();
+        }
         logLauncherDirectOpenDebug("apply_request_start", {
           requestedView,
           directOpen,
@@ -29693,7 +29734,20 @@ ${calmPracticeMessage}`;
           href: String(window.location.href || "").trim()
         });
         let launcherState = clearStaleDeviceTestModeArtifactsIfNeeded(readLauncherState());
-        launcherState = await sanitizeRecognizedIdentityForLauncherEntry(launcherState);
+        let skipIdentitySanitize = false;
+        try {
+          skipIdentitySanitize = sessionStorage.getItem(launcherIdentityTimeoutBypassKey) === "1";
+          sessionStorage.removeItem(launcherIdentityTimeoutBypassKey);
+        } catch (_) {
+          skipIdentitySanitize = false;
+        }
+        if (!skipIdentitySanitize) {
+          launcherState = await sanitizeRecognizedIdentityForLauncherEntry(launcherState);
+        } else {
+          logLauncherUserTypeDebug("launcher_identity_sanitize_bypassed_after_timeout", {
+            requestedView
+          });
+        }
         persistPendingGuidedTourContinuationMode(requestedGuidedTourContinuationMode);
         if (requestedGuidedTourContinuationMode) {
           launcherState.pendingGuidedTourContinuationMode = requestedGuidedTourContinuationMode;
