@@ -920,6 +920,169 @@ function delete_invitee_record(array &$state, string $pairsDir, string $identifi
     ];
 }
 
+function identity_value_matches_any_key($value, array $identityKeys): bool
+{
+    $lookup = normalize_identifier_for_lookup((string) $value);
+    return $lookup !== '' && isset($identityKeys[$lookup]);
+}
+
+function identity_payload_references_any_key($value, array $identityKeys): bool
+{
+    if (is_array($value)) {
+        foreach ($value as $entry) {
+            if (identity_payload_references_any_key($entry, $identityKeys)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return is_string($value) && identity_value_matches_any_key($value, $identityKeys);
+}
+
+function delete_identity_questionnaire_records(string $questionnaireResponsesDir, array $identityKeys): int
+{
+    $deleted = 0;
+    foreach (glob($questionnaireResponsesDir . DIRECTORY_SEPARATOR . '*.json') ?: [] as $path) {
+        $raw = @file_get_contents($path);
+        $payload = is_string($raw) ? json_decode($raw, true) : null;
+        if (is_array($payload) && identity_payload_references_any_key($payload, $identityKeys) && @unlink($path)) {
+            $deleted++;
+        }
+    }
+    return $deleted;
+}
+
+function delete_identity_pair_storage(string $pairsDir, array $identityKeys): int
+{
+    $deleted = 0;
+    foreach (glob($pairsDir . DIRECTORY_SEPARATOR . '*.csv') ?: [] as $path) {
+        $matches = false;
+        foreach (read_csv_records($path) as $record) {
+            if (identity_value_matches_any_key($record['rx name'] ?? '', $identityKeys) || identity_value_matches_any_key($record['tx name'] ?? '', $identityKeys)) {
+                $matches = true;
+                break;
+            }
+        }
+        if (!$matches) {
+            continue;
+        }
+        if (@unlink($path)) {
+            $deleted++;
+        }
+        $analysisPath = preg_replace('/\.csv$/', '.analysis.json', $path);
+        if (is_string($analysisPath) && is_file($analysisPath)) {
+            @unlink($analysisPath);
+        }
+    }
+    foreach (glob($pairsDir . DIRECTORY_SEPARATOR . '*.analysis.json') ?: [] as $path) {
+        $raw = @file_get_contents($path);
+        $payload = is_string($raw) ? json_decode($raw, true) : null;
+        if (is_array($payload) && identity_payload_references_any_key($payload, $identityKeys)) {
+            @unlink($path);
+        }
+    }
+    return $deleted;
+}
+
+function delete_user_identity_record(array &$state, string $identifier): array
+{
+    global $pairsDir, $simulationPairsDir, $questionnaireResponsesDir;
+
+    $cleanIdentifier = trim(preg_replace('/\s+/', ' ', $identifier) ?? '');
+    if (!is_valid_handle_identifier($cleanIdentifier)) {
+        throw new RuntimeException('A claimed unique name is required.');
+    }
+    $handleKey = canonicalize_handle($cleanIdentifier);
+    $handleRecord = is_array($state['unique_handles'][$handleKey] ?? null) ? $state['unique_handles'][$handleKey] : null;
+    if (!$handleRecord) {
+        throw new RuntimeException('That claimed unique name was not found.');
+    }
+
+    $ownerIdentifier = trim((string) ($handleRecord['owner_identifier'] ?? $cleanIdentifier));
+    $identityKeys = [];
+    foreach ([$cleanIdentifier, $ownerIdentifier, (string) ($handleRecord['handle'] ?? '')] as $candidate) {
+        $key = normalize_identifier_for_lookup($candidate);
+        if ($key !== '') {
+            $identityKeys[$key] = true;
+        }
+    }
+    $ownerKey = get_handle_owner_key($ownerIdentifier);
+    if ($ownerKey !== '') {
+        $identityKeys[$ownerKey] = true;
+    }
+
+    $deletedPairFiles = delete_identity_pair_storage($pairsDir, $identityKeys) + delete_identity_pair_storage($simulationPairsDir, $identityKeys);
+    $deletedQuestionnaires = delete_identity_questionnaire_records($questionnaireResponsesDir, $identityKeys);
+
+    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications'] as $bucket) {
+        if (!is_array($state[$bucket] ?? null)) {
+            continue;
+        }
+        foreach (array_keys($state[$bucket]) as $key) {
+            $entry = $state[$bucket][$key];
+            if (isset($identityKeys[normalize_identifier_for_lookup((string) $key)]) || identity_payload_references_any_key($entry, $identityKeys)) {
+                unset($state[$bucket][$key]);
+            }
+        }
+    }
+
+    foreach (['passkey_credentials', 'passkey_ceremonies', 'passkey_enrollment_grants'] as $bucket) {
+        foreach (array_keys((array) ($state[$bucket] ?? [])) as $key) {
+            if (identity_payload_references_any_key($state[$bucket][$key], $identityKeys)) {
+                unset($state[$bucket][$key]);
+            }
+        }
+    }
+    foreach (['sessions', 'session_registry', 'pair_difficulties'] as $bucket) {
+        foreach (array_keys((array) ($state[$bucket] ?? [])) as $key) {
+            if (identity_payload_references_any_key($state[$bucket][$key], $identityKeys)) {
+                unset($state[$bucket][$key]);
+            }
+        }
+    }
+    foreach (array_keys((array) ($state['named_reports'] ?? [])) as $index) {
+        if (identity_payload_references_any_key($state['named_reports'][$index], $identityKeys)) {
+            unset($state['named_reports'][$index]);
+        }
+    }
+    $state['named_reports'] = array_values((array) ($state['named_reports'] ?? []));
+
+    foreach (['push_subscriptions', 'partner_message_threads', 'partner_message_reads'] as $bucket) {
+        foreach (array_keys((array) ($state[$bucket] ?? [])) as $key) {
+            if (identity_payload_references_any_key($state[$bucket][$key], $identityKeys)) {
+                unset($state[$bucket][$key]);
+            }
+        }
+    }
+    foreach ((array) ($state['launcher_profiles'] ?? []) as $profileKey => $profiles) {
+        if (!is_array($profiles)) {
+            continue;
+        }
+        if (isset($identityKeys[normalize_identifier_for_lookup((string) $profileKey)])) {
+            unset($state['launcher_profiles'][$profileKey]);
+            continue;
+        }
+        foreach ($profiles as $role => $profile) {
+            if (!is_array($profile)) {
+                continue;
+            }
+            if (identity_value_matches_any_key($profile['current_partner'] ?? '', $identityKeys)) {
+                $profile['current_partner'] = '';
+            }
+            foreach (['partner_history', 'deleted_partners'] as $listKey) {
+                $profile[$listKey] = array_values(array_filter((array) ($profile[$listKey] ?? []), static fn($value): bool => !identity_value_matches_any_key($value, $identityKeys)));
+            }
+            $state['launcher_profiles'][$profileKey][$role] = $profile;
+        }
+    }
+
+    return [
+        'identifier' => $cleanIdentifier,
+        'deleted_pair_files' => $deletedPairFiles,
+        'deleted_questionnaires' => $deletedQuestionnaires
+    ];
+}
+
 function ensure_explore_pro_state(array &$state): void
 {
     if (!is_array($state['explore_pro_verifications'] ?? null)) {
@@ -13416,6 +13579,34 @@ if ($action === 'set_user_type' && $hasAdminAccess) {
         'identifier_status' => get_identifier_status($state, $validatedIdentifier),
         'identifier_exists' => true,
         'user_type' => get_user_type_for_identifier($state, $validatedIdentifier),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'delete_user_identity' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'user_identifier', 'secret_candidate', 'admin_client_id'], 'request');
+        $userIdentifier = trim((string) ($input['user_identifier'] ?? ''));
+        $deletedIdentity = delete_user_identity_record($state, $userIdentifier);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'deleted_identity' => $deletedIdentity,
+        'deleted_pair_files' => (int) ($deletedIdentity['deleted_pair_files'] ?? 0),
+        'deleted_questionnaires' => (int) ($deletedIdentity['deleted_questionnaires'] ?? 0),
+        'message' => 'Identity and associated ESP GYM data were permanently deleted.',
         'server_now_ms' => $nowMs
     ];
 

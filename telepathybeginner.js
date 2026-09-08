@@ -8,7 +8,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260907l";
+  const launcherBuildVersion = "20260907m";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -962,6 +962,7 @@
   const userTypeChoiceButtons = Array.from(document.querySelectorAll("[data-user-type-choice-button]"));
   const userTypeSaveButton = document.querySelector("[data-user-type-save]");
   const userTypeUpdateEmailButton = document.querySelector("[data-user-type-update-email]");
+  const userTypeDeleteButton = document.querySelector("[data-user-type-delete]");
   const userTypeClearButton = document.querySelector("[data-user-type-clear]");
   const inviteeIdentifierInput = document.querySelector("[data-invitee-identifier]");
   const inviteeFullNameInput = document.querySelector("[data-invitee-full-name]");
@@ -5431,6 +5432,22 @@ ${calmPracticeMessage}`;
       rememberIdentifierStatus(cleanHandle, data.identifier_status);
     }
     return String(data?.user_type || normalizedType).trim().toLowerCase() === "pro" ? "pro" : "standard";
+  }
+
+  async function deleteUserIdentity(userHandle) {
+    const cleanHandle = String(userHandle || "").replace(/\s+/g, " ").trim();
+    if (!isValidUniqueHandle(cleanHandle)) {
+      throw new Error("A claimed unique name is required.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(applyLauncherAdminContext({
+        action: "delete_user_identity",
+        user_identifier: cleanHandle
+      }))
+    });
+    return parseApiResponse(response, `Identity deletion failed with status ${response.status}`);
   }
 
   async function updateUserAuthEmail(userHandle, email) {
@@ -12378,7 +12395,7 @@ ${calmPracticeMessage}`;
         rememberIdentifierStatus(recognizedIdentity, status);
         return readLauncherState();
       }
-      clearLauncherIdentityArtifacts();
+      await clearAppLocalStorageArtifacts();
       logLauncherUserTypeDebug("recognized_identity_cleared_as_stale", {
         identifier: recognizedIdentity,
         identifierExists: !!status?.identifier_exists,
@@ -27248,6 +27265,7 @@ ${calmPracticeMessage}`;
     const showChoices = !!options.showChoices;
     const showInviteeButton = !!options.showInviteeButton;
     const showEmailUpdate = !!options.showEmailUpdate;
+    const showDelete = !!options.showDelete;
     const currentType = String(options.currentType || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
     const authEmail = String(options.authEmail || "").trim();
     pendingUserTypeSelection = currentType;
@@ -27274,6 +27292,10 @@ ${calmPracticeMessage}`;
       userTypeUpdateEmailButton.classList.toggle("beginner-view-hidden", !showEmailUpdate);
       userTypeUpdateEmailButton.hidden = !showEmailUpdate;
     }
+    if (userTypeDeleteButton) {
+      userTypeDeleteButton.classList.toggle("beginner-view-hidden", !showDelete);
+      userTypeDeleteButton.hidden = !showDelete;
+    }
     if (openInviteeAdminButton) {
       openInviteeAdminButton.classList.toggle("beginner-view-hidden", !showInviteeButton);
       openInviteeAdminButton.hidden = !showInviteeButton;
@@ -27287,6 +27309,7 @@ ${calmPracticeMessage}`;
       requested_show_choices: showChoices,
       requested_show_invitee_button: showInviteeButton,
       requested_show_email_update: showEmailUpdate,
+      requested_show_delete: showDelete,
       requested_current_type: currentType,
       requested_auth_email: authEmail,
       requested_status_text: statusText
@@ -28683,6 +28706,7 @@ ${calmPracticeMessage}`;
         showChoices: true,
         showInviteeButton: false,
         showEmailUpdate: true,
+        showDelete: !!identifierStatus?.uses_handle,
         authEmail: String(data?.auth_email || "").trim(),
         currentType: String(data?.user_type || "standard")
       });
@@ -28802,6 +28826,7 @@ ${calmPracticeMessage}`;
       statusText: "Saving user status...",
       showChoices: true,
       showEmailUpdate: true,
+      showDelete: true,
       authEmail: String(userTypeEmailInput?.value || "").trim(),
       currentType: selectedType
     });
@@ -28832,6 +28857,7 @@ ${calmPracticeMessage}`;
         showChoices: true,
         showInviteeButton: false,
         showEmailUpdate: true,
+        showDelete: true,
         authEmail: String(userTypeEmailInput?.value || "").trim(),
         currentType: savedType
       });
@@ -28853,6 +28879,7 @@ ${calmPracticeMessage}`;
         showChoices: true,
         showInviteeButton: false,
         showEmailUpdate: true,
+        showDelete: true,
         authEmail: String(userTypeEmailInput?.value || "").trim(),
         currentType: selectedType
       });
@@ -28867,6 +28894,33 @@ ${calmPracticeMessage}`;
         recognizedIdentityAfterError: String(readLauncherState()?.recognizedIdentity || "").trim(),
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  }
+
+  async function deleteCurrentUserIdentity() {
+    const handle = currentUserTypeAdminHandle || String(userTypeHandleInput?.value || "").trim();
+    if (!isValidUniqueHandle(handle)) {
+      renderUserTypeAdminState({ statusText: "A claimed unique name is required.", showChoices: false, showEmailUpdate: false, showDelete: false });
+      return;
+    }
+    const confirmed = window.confirm(`Delete ${handle} and all ESP GYM data associated with it? This permanently removes its account, passkeys, reports, messages, questionnaires, and every shared trial history involving this name.`);
+    if (!confirmed) {
+      return;
+    }
+    const typedName = window.prompt(`Type ${handle} exactly to permanently delete it.`);
+    if (String(typedName || "").trim().toLowerCase() !== handle.toLowerCase()) {
+      renderUserTypeAdminState({ statusText: "Identity deletion cancelled.", showChoices: true, showEmailUpdate: true, showDelete: true, authEmail: String(userTypeEmailInput?.value || "").trim(), currentType: pendingUserTypeSelection });
+      return;
+    }
+    renderUserTypeAdminState({ statusText: `Deleting ${handle} and associated app data...`, showChoices: false, showEmailUpdate: false, showDelete: false });
+    try {
+      const result = await deleteUserIdentity(handle);
+      resetUserTypeAdminView();
+      if (userTypeStatus) {
+        userTypeStatus.textContent = `${handle} was permanently deleted. Pair files removed: ${Number(result?.deleted_pair_files || 0)}. Questionnaires removed: ${Number(result?.deleted_questionnaires || 0)}.`;
+      }
+    } catch (error) {
+      renderUserTypeAdminState({ statusText: error instanceof Error ? error.message : "Unable to delete that identity right now.", showChoices: true, showEmailUpdate: true, showDelete: true, authEmail: String(userTypeEmailInput?.value || "").trim(), currentType: pendingUserTypeSelection });
     }
   }
 
@@ -32979,6 +33033,10 @@ ${calmPracticeMessage}`;
     logUserTypeAdminDebug("update_email_button_click");
     void saveUserTypeAuthEmail();
   });
+  userTypeDeleteButton?.addEventListener("click", () => {
+    logUserTypeAdminDebug("delete_identity_button_click");
+    void deleteCurrentUserIdentity();
+  });
   userTypeChoiceButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const value = String(button.dataset.userTypeChoiceButton || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
@@ -33736,17 +33794,25 @@ ${calmPracticeMessage}`;
       adminStatus.textContent = "Analyzing disk usage...";
     }
     try {
-        const data = await launcherAdminApi("analyze_disk_usage");
-        launcherAdminState.storage = data?.storage || launcherAdminState.storage;
-        launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
-        launcherAdminState.disk_usage_analysis = data?.disk_usage_analysis || null;
-        if (adminStatus) {
-          adminStatus.textContent = "Disk usage analysis updated.";
+      const data = await launcherAdminApi("analyze_disk_usage");
+      launcherAdminState.storage = data?.storage || launcherAdminState.storage;
+      launcherAdminState.debug_log = data?.debug_log || launcherAdminState.debug_log;
+      launcherAdminState.disk_usage_analysis = data?.disk_usage_analysis || {
+        available: false,
+        message: "The server did not return a disk-usage analysis for this request."
+      };
+      if (adminDiskUsage) {
+        adminDiskUsage.hidden = false;
+        adminDiskUsage.textContent = formatAdminDiskUsageAnalysis(launcherAdminState.disk_usage_analysis);
+      }
+      if (adminStatus) {
+        adminStatus.textContent = "Disk usage analysis updated.";
       }
       renderAdminView();
+      adminDiskUsage?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (error) {
       if (adminStatus) {
-        adminStatus.textContent = "Unable to analyze disk usage right now.";
+        adminStatus.textContent = String(error?.message || "Unable to analyze disk usage right now.");
       }
     }
   });
