@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925k";
+  const launcherBuildVersion = "20260925l";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -833,11 +833,32 @@
   const featureSetupBeepStatus = document.querySelector("[data-feature-setup-beep-status]");
   const featureSetupLocationStatus = document.querySelector("[data-feature-setup-location-status]");
   const featureSetupMessagingStatus = document.querySelector("[data-feature-setup-messaging-status]");
+  const featureSetupPartnerConfirmationStatus = document.querySelector("[data-feature-setup-partner-confirmation-status]");
   const featureSetupClaimActionButton = document.querySelector("[data-feature-setup-claim-action]");
   const featureSetupInstallActionButton = document.querySelector("[data-feature-setup-install-action]");
   const featureSetupBeepActionButton = document.querySelector("[data-feature-setup-beep-action]");
   const featureSetupLocationActionButton = document.querySelector("[data-feature-setup-location-action]");
   const featureSetupMessagingActionButton = document.querySelector("[data-feature-setup-messaging-action]");
+  const featureSetupPartnerConfirmationActionButton = document.querySelector("[data-feature-setup-partner-confirmation-action]");
+  const partnerConfirmationOverlay = document.querySelector("[data-partner-confirmation-overlay]");
+  const partnerConfirmationMethodOverlay = document.querySelector("[data-partner-confirmation-method-overlay]");
+  const partnerConfirmationMethodStatus = document.querySelector("[data-partner-confirmation-method-status]");
+  const partnerConfirmationCamera = document.querySelector("[data-partner-confirmation-camera]");
+  const partnerConfirmationStatus = document.querySelector("[data-partner-confirmation-status]");
+  const partnerConfirmationSelfLabel = document.querySelector("[data-partner-confirmation-self-label]");
+  const partnerConfirmationPartnerLabel = document.querySelector("[data-partner-confirmation-partner-label]");
+  const partnerConfirmationSelfFrame = document.querySelector("[data-partner-confirmation-self-frame]");
+  const partnerConfirmationPartnerFrame = document.querySelector("[data-partner-confirmation-partner-frame]");
+  const partnerConfirmationSelfStatus = document.querySelector("[data-partner-confirmation-self-status]");
+  const partnerConfirmationPartnerStatus = document.querySelector("[data-partner-confirmation-partner-status]");
+  const partnerConfirmationCaptureButton = document.querySelector("[data-partner-confirmation-capture]");
+  const partnerConfirmationApproveButton = document.querySelector("[data-partner-confirmation-approve]");
+  const partnerConfirmationCancelButton = document.querySelector("[data-partner-confirmation-cancel]");
+  const partnerConfirmationMethodButtons = Array.from(document.querySelectorAll("[data-partner-confirmation-method]"));
+  const closePartnerConfirmationMethodButton = document.querySelector("[data-close-partner-confirmation-method]");
+  let pendingPartnerConfirmation = null;
+  let partnerConfirmationPollTimer = 0;
+  let partnerConfirmationCameraStream = null;
   const uniqueNameChangeView = document.querySelector('[data-view="unique-name-change"]');
   const closeUniqueNameChangeButton = document.querySelector("[data-close-unique-name-change]");
   const uniqueNameChangeCurrent = document.querySelector("[data-unique-name-change-current]");
@@ -1870,6 +1891,7 @@ ${calmPracticeMessage}`;
         identifierStatusMap: typeof parsed?.identifierStatusMap === "object" && parsed.identifierStatusMap ? parsed.identifierStatusMap : {},
         messagingDeviceId: typeof parsed?.messagingDeviceId === "string" ? parsed.messagingDeviceId : "",
         notificationPermission: typeof parsed?.notificationPermission === "string" ? parsed.notificationPermission : "",
+        partnerConfirmationMethod: String(parsed?.partnerConfirmationMethod || "").trim().toLowerCase() === "camera" ? "camera" : "verified",
         updatesInterestEmail: typeof parsed?.updatesInterestEmail === "string" ? parsed.updatesInterestEmail : "",
         themeColor: typeof parsed?.themeColor === "string" ? parsed.themeColor : defaultThemeColor,
         learnMoreText: normalizeStoredLearnMoreText(parsed?.learnMoreText),
@@ -1935,6 +1957,7 @@ ${calmPracticeMessage}`;
         identifierStatusMap: {},
         messagingDeviceId: "",
         notificationPermission: "",
+        partnerConfirmationMethod: "verified",
         updatesInterestEmail: "",
         themeColor: defaultThemeColor,
         learnMoreText: defaultLearnMoreText,
@@ -9657,6 +9680,226 @@ ${calmPracticeMessage}`;
     return "sender";
   }
 
+  function hasPartnerConfirmationCameraCapability() {
+    return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function");
+  }
+
+  function getPartnerConfirmationMethod() {
+    return String(readLauncherState()?.partnerConfirmationMethod || "verified").trim().toLowerCase() === "camera"
+      ? "camera"
+      : "verified";
+  }
+
+  function setPartnerConfirmationMethod(method) {
+    const state = readLauncherState();
+    state.partnerConfirmationMethod = String(method || "").trim().toLowerCase() === "camera" ? "camera" : "verified";
+    writeLauncherState(state);
+  }
+
+  function openPartnerConfirmationMethodOverlay() {
+    if (!featureSetupOwnIdentifier) {
+      window.alert("First load or claim an accepted unique name, then choose a partner-confirmation method.");
+      return;
+    }
+    if (partnerConfirmationMethodStatus) {
+      partnerConfirmationMethodStatus.textContent = hasPartnerConfirmationCameraCapability()
+        ? "Choose the method for this browser or installed app."
+        : "This browser does not offer a camera for live confirmation. Verified-name confirmation remains available.";
+    }
+    partnerConfirmationMethodButtons.forEach((button) => {
+      button.disabled = String(button.dataset.partnerConfirmationMethod || "") === "camera" && !hasPartnerConfirmationCameraCapability();
+    });
+    partnerConfirmationMethodOverlay?.classList.remove("beginner-view-hidden");
+    partnerConfirmationMethodOverlay?.setAttribute("aria-hidden", "false");
+  }
+
+  function closePartnerConfirmationMethodOverlay() {
+    partnerConfirmationMethodOverlay?.classList.add("beginner-view-hidden");
+    partnerConfirmationMethodOverlay?.setAttribute("aria-hidden", "true");
+  }
+
+  function partnerConfirmationRoleLabel(role) {
+    return role === "sender" ? "Sender" : "Receiver";
+  }
+
+  async function postPartnerConfirmationRequest(action, payload = {}) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...payload })
+    });
+    return parseApiResponse(response, "Unable to confirm your partner right now.");
+  }
+
+  function stopPartnerConfirmationCamera() {
+    if (partnerConfirmationCameraStream) {
+      partnerConfirmationCameraStream.getTracks().forEach((track) => track.stop());
+    }
+    partnerConfirmationCameraStream = null;
+    if (partnerConfirmationCamera) {
+      partnerConfirmationCamera.srcObject = null;
+      partnerConfirmationCamera.hidden = true;
+    }
+  }
+
+  function closePartnerConfirmationOverlay() {
+    if (partnerConfirmationPollTimer) {
+      window.clearTimeout(partnerConfirmationPollTimer);
+      partnerConfirmationPollTimer = 0;
+    }
+    stopPartnerConfirmationCamera();
+    partnerConfirmationOverlay?.classList.add("beginner-view-hidden");
+    partnerConfirmationOverlay?.setAttribute("aria-hidden", "true");
+  }
+
+  function renderPartnerConfirmation(state = {}) {
+    const pending = pendingPartnerConfirmation;
+    if (!pending) return;
+    const own = state.own || {};
+    const partner = state.partner || {};
+    const ownName = pending.ownIdentifier;
+    const partnerName = pending.partnerIdentifier;
+    if (partnerConfirmationSelfLabel) partnerConfirmationSelfLabel.textContent = `You: ${ownName}`;
+    if (partnerConfirmationPartnerLabel) partnerConfirmationPartnerLabel.textContent = `Partner: ${partnerName}`;
+    const addPhoto = (frame, dataUrl) => {
+      if (!frame) return;
+      frame.querySelectorAll("img").forEach((image) => image.remove());
+      if (dataUrl) {
+        const image = document.createElement("img");
+        image.src = dataUrl;
+        image.alt = "Current temporary partner confirmation snapshot";
+        frame.append(image);
+        frame.classList.add("has-photo");
+      } else {
+        frame.classList.remove("has-photo");
+      }
+    };
+    addPhoto(partnerConfirmationSelfFrame, own.snapshot || "");
+    addPhoto(partnerConfirmationPartnerFrame, partner.snapshot || "");
+    if (partnerConfirmationSelfStatus) {
+      partnerConfirmationSelfStatus.textContent = own.method === "camera"
+        ? (own.snapshot ? "Current temporary snapshot" : "Take a current photo")
+        : "Verified unique name";
+    }
+    if (partnerConfirmationPartnerStatus) {
+      partnerConfirmationPartnerStatus.textContent = !partner.joined
+        ? `Waiting for ${partnerName} to begin`
+        : partner.method === "camera"
+          ? (partner.snapshot ? "Current temporary snapshot" : `Waiting for ${partnerName}'s photo`)
+          : "Verified unique name";
+    }
+    const partnerReady = !!partner.joined && (partner.method !== "camera" || !!partner.snapshot);
+    const ownReady = own.method !== "camera" || !!own.snapshot;
+    if (partnerConfirmationCaptureButton) {
+      partnerConfirmationCaptureButton.hidden = own.method !== "camera" || !!own.snapshot;
+      partnerConfirmationCaptureButton.disabled = false;
+    }
+    if (partnerConfirmationApproveButton) {
+      partnerConfirmationApproveButton.disabled = !partnerReady || !ownReady || !!own.confirmed;
+      partnerConfirmationApproveButton.hidden = !!own.confirmed;
+    }
+    if (partnerConfirmationStatus) {
+      partnerConfirmationStatus.textContent = state.ready
+        ? "Both partners confirmed. Starting the session..."
+        : own.confirmed
+          ? `You are confirmed. Waiting for ${partnerName}.`
+          : !partner.joined
+            ? `Waiting for ${partnerName} to begin partner confirmation.`
+            : !partnerReady
+              ? `Waiting for ${partnerName}'s current photo.`
+              : "Review your partner, then tap THIS IS MY PARTNER.";
+    }
+  }
+
+  async function refreshPartnerConfirmation() {
+    if (!pendingPartnerConfirmation) return;
+    try {
+      const data = await postPartnerConfirmationRequest("get_partner_confirmation", pendingPartnerConfirmation.request);
+      renderPartnerConfirmation(data.partner_confirmation || {});
+      if (data?.partner_confirmation?.ready) {
+        const targetUrl = pendingPartnerConfirmation.targetUrl;
+        pendingPartnerConfirmation = null;
+        closePartnerConfirmationOverlay();
+        window.location.href = targetUrl;
+        return;
+      }
+    } catch (error) {
+      if (partnerConfirmationStatus) partnerConfirmationStatus.textContent = error instanceof Error ? error.message : "Unable to check partner confirmation right now.";
+    }
+    if (pendingPartnerConfirmation) {
+      partnerConfirmationPollTimer = window.setTimeout(() => void refreshPartnerConfirmation(), 1000);
+    }
+  }
+
+  async function capturePartnerConfirmationPhoto() {
+    const pending = pendingPartnerConfirmation;
+    if (!pending || !hasPartnerConfirmationCameraCapability()) return;
+    try {
+      if (!partnerConfirmationCameraStream) {
+        partnerConfirmationCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, audio: false });
+        partnerConfirmationCamera.srcObject = partnerConfirmationCameraStream;
+        partnerConfirmationCamera.hidden = false;
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
+      }
+      const width = Math.max(1, partnerConfirmationCamera.videoWidth || 160);
+      const height = Math.max(1, partnerConfirmationCamera.videoHeight || 120);
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(160 / width, 120 / height, 1);
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      canvas.getContext("2d")?.drawImage(partnerConfirmationCamera, 0, 0, canvas.width, canvas.height);
+      const snapshot = canvas.toDataURL("image/jpeg", 0.72);
+      const data = await postPartnerConfirmationRequest("submit_partner_confirmation_snapshot", { ...pending.request, snapshot });
+      stopPartnerConfirmationCamera();
+      renderPartnerConfirmation(data.partner_confirmation || {});
+      void refreshPartnerConfirmation();
+    } catch (error) {
+      stopPartnerConfirmationCamera();
+      if (partnerConfirmationStatus) partnerConfirmationStatus.textContent = error instanceof Error ? error.message : "Camera confirmation was not available.";
+    }
+  }
+
+  async function approvePartnerConfirmation() {
+    if (!pendingPartnerConfirmation) return;
+    try {
+      const data = await postPartnerConfirmationRequest("approve_partner_confirmation", pendingPartnerConfirmation.request);
+      renderPartnerConfirmation(data.partner_confirmation || {});
+      if (data?.partner_confirmation?.ready) {
+        const targetUrl = pendingPartnerConfirmation.targetUrl;
+        pendingPartnerConfirmation = null;
+        closePartnerConfirmationOverlay();
+        window.location.href = targetUrl;
+      }
+    } catch (error) {
+      if (partnerConfirmationStatus) partnerConfirmationStatus.textContent = error instanceof Error ? error.message : "Unable to confirm your partner right now.";
+    }
+  }
+
+  async function cancelPartnerConfirmation() {
+    const pending = pendingPartnerConfirmation;
+    pendingPartnerConfirmation = null;
+    closePartnerConfirmationOverlay();
+    if (!pending) return;
+    try { await postPartnerConfirmationRequest("cancel_partner_confirmation", pending.request); } catch (_) { /* Expiry also clears temporary confirmation. */ }
+  }
+
+  async function requirePartnerConfirmation(options) {
+    const request = {
+      session_code: options.sessionCode,
+      role: options.role,
+      own_identifier: options.ownIdentifier,
+      partner_identifier: options.partnerIdentifier,
+      method: getPartnerConfirmationMethod()
+    };
+    const data = await postPartnerConfirmationRequest("begin_partner_confirmation", request);
+    pendingPartnerConfirmation = { request, targetUrl: options.targetUrl, ownIdentifier: options.ownIdentifier, partnerIdentifier: options.partnerIdentifier };
+    partnerConfirmationOverlay?.classList.remove("beginner-view-hidden");
+    partnerConfirmationOverlay?.setAttribute("aria-hidden", "false");
+    renderPartnerConfirmation(data.partner_confirmation || {});
+    void refreshPartnerConfirmation();
+    return false;
+  }
+
   function setFeatureSetupBackButtonTemporarilyHidden(hidden) {
     if (!closeFeatureSetupButton) {
       return;
@@ -9788,6 +10031,19 @@ ${calmPracticeMessage}`;
     if (featureSetupMessagingActionButton) {
       featureSetupMessagingActionButton.textContent = messagingActionLabel;
       featureSetupMessagingActionButton.disabled = messagingActionDisabled;
+    }
+
+    const partnerConfirmationMethod = getPartnerConfirmationMethod();
+    const cameraAvailable = hasPartnerConfirmationCameraCapability();
+    if (featureSetupPartnerConfirmationStatus) {
+      featureSetupPartnerConfirmationStatus.textContent = partnerConfirmationMethod === "camera"
+        ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
+        : cameraAvailable
+          ? "Verified-name confirmation is selected for this device. You can instead choose live camera confirmation."
+          : "This device does not offer a camera for live confirmation. Verified-name confirmation is selected.";
+    }
+    if (featureSetupPartnerConfirmationActionButton) {
+      featureSetupPartnerConfirmationActionButton.disabled = !featureSetupOwnIdentifier;
     }
 
     if (featureSetupSummary) {
@@ -11860,7 +12116,8 @@ ${calmPracticeMessage}`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return "To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To take a guided tour to experience what it's like to be a telepathic receiver using this tool, click here. To practice telepathy with actual human partners using this free Telepathy Beginner app, click here to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.";
+    const partnerRole = normalizedRole === "receiver" ? "sender" : "receiver";
+    return `To take a guided tour to experience what it's like to be a telepathic receiver using this tool, click here. To experience actually using this tool when your ${partnerRole} name is "Robot," it will simulate a human ${partnerRole}. To practice telepathy with a real human partner, click here to first create a unique identification name for yourself. Then give this name to others to identify you when practicing telepathy with them.`;
   }
 
   function buildVisitorRoleNoteHtml(role) {
@@ -11868,7 +12125,8 @@ ${calmPracticeMessage}`;
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return 'To experience now what it is like to use this tool as a telepathic receiver or a sender, your partner will not be an actual person, but will simulate one. To take a guided tour to experience what it\'s like to be a telepathic receiver using this tool, click <button class="role-note-link role-note-inline-link" type="button" data-inline-start-receiver-tour="1">here</button>. To practice telepathy with actual human partners using this free Telepathy Beginner app, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to create a unique identification name for yourself. You should then give this name to others to identify you when practicing telepathy with them.';
+    const partnerRole = normalizedRole === "receiver" ? "sender" : "receiver";
+    return 'To take a guided tour to experience what it\'s like to be a telepathic receiver using this tool, click <button class="role-note-link role-note-inline-link" type="button" data-inline-start-receiver-tour="1">here</button>. To experience actually using this tool when your ' + partnerRole + ' name is "Robot," it will <em>simulate</em> a human ' + partnerRole + '. To practice telepathy with a real human partner, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to first create a unique identification name for yourself. Then give this name to others to identify you when practicing telepathy with them.';
   }
 
   function getHandleExplanation(role) {
@@ -21223,6 +21481,25 @@ ${calmPracticeMessage}`;
         includeConfidence: activeGuidedTourMode ? false : undefined,
         includePositiveReinforcement: activeGuidedTourMode ? true : undefined
       });
+      if (
+        (role === "sender" || role === "receiver") &&
+        !robotSimulationPartner &&
+        !visitorRobotSession &&
+        !guidedTourLaunch
+      ) {
+        try {
+          await requirePartnerConfirmation({
+            role,
+            ownIdentifier: canonicalOwnName,
+            partnerIdentifier: canonicalPartnerName,
+            sessionCode: pairSessionCode,
+            targetUrl
+          });
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : "Unable to begin partner confirmation right now.");
+        }
+        return;
+      }
       if (!(await prepareLocationForGo(role, { targetUrl }))) {
         return;
       }
@@ -28036,7 +28313,7 @@ ${calmPracticeMessage}`;
           : "Verify your email to claim your unique name in ESP GYM.";
       }
       if (exploreProAuthCopy) {
-        exploreProAuthCopy.textContent = "Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code. Your unique name will be claimed only after verification succeeds.";
+        exploreProAuthCopy.textContent = "Your email address is used only for authentication. Please enter your email address below. You will be emailed a 5-character verification code. Your unique name will be claimed after verification succeeds.";
       }
       if (exploreProStartButton) {
         exploreProStartButton.textContent = "CLAIM UNIQUE NAME";
@@ -33218,6 +33495,33 @@ ${calmPracticeMessage}`;
     openPushSetupOverlay(featureSetupReturnRole || activeLauncherRole || "sender", featureSetupOwnIdentifier, {
       returnView: "feature-setup"
     });
+  });
+  featureSetupPartnerConfirmationActionButton?.addEventListener("click", () => {
+    openPartnerConfirmationMethodOverlay();
+  });
+  closePartnerConfirmationMethodButton?.addEventListener("click", closePartnerConfirmationMethodOverlay);
+  partnerConfirmationMethodButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const method = String(button.dataset.partnerConfirmationMethod || "").trim();
+      if (method === "camera" && !hasPartnerConfirmationCameraCapability()) {
+        if (partnerConfirmationMethodStatus) {
+          partnerConfirmationMethodStatus.textContent = "This browser does not offer a camera for live confirmation.";
+        }
+        return;
+      }
+      setPartnerConfirmationMethod(method);
+      closePartnerConfirmationMethodOverlay();
+      void refreshFeatureSetupView();
+    });
+  });
+  partnerConfirmationCaptureButton?.addEventListener("click", () => {
+    void capturePartnerConfirmationPhoto();
+  });
+  partnerConfirmationApproveButton?.addEventListener("click", () => {
+    void approvePartnerConfirmation();
+  });
+  partnerConfirmationCancelButton?.addEventListener("click", () => {
+    void cancelPartnerConfirmation();
   });
   openRoleMessagesButtons.forEach((button) => {
     button.addEventListener("pointerdown", () => {

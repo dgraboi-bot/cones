@@ -1823,6 +1823,87 @@ body.lesson-image-overlay-open {
   opacity: 0.78;
 }
 
+.partner-confirmation-dialog {
+  width: min(92vw, 660px);
+}
+
+.partner-confirmation-people {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.partner-confirmation-person {
+  min-width: 0;
+  text-align: center;
+}
+
+.partner-confirmation-person h3,
+.partner-confirmation-person p {
+  margin: 0;
+}
+
+.partner-confirmation-person h3 {
+  color: var(--text);
+  font-size: 0.96rem;
+}
+
+.partner-confirmation-person p {
+  margin-top: 8px;
+  color: rgba(235, 242, 255, 0.86);
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+
+.partner-confirmation-frame {
+  display: grid;
+  place-items: center;
+  width: min(100%, 180px);
+  aspect-ratio: 4 / 3;
+  margin: 10px auto 0;
+  overflow: hidden;
+  border: 2px solid rgba(155, 197, 255, 0.72);
+  border-radius: 12px;
+  background: rgba(4, 11, 26, 0.7);
+}
+
+.partner-confirmation-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.partner-confirmation-check {
+  color: #c9f6bb;
+  font-size: clamp(2.4rem, 9vw, 4rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.partner-confirmation-camera {
+  display: block;
+  width: min(100%, 300px);
+  margin: 14px auto 0;
+  border: 1px solid rgba(155, 197, 255, 0.6);
+  border-radius: 12px;
+  background: #02050b;
+}
+
+.partner-confirmation-actions {
+  justify-content: center;
+}
+
+@media (max-width: 520px) {
+  .partner-confirmation-people {
+    gap: 10px;
+  }
+
+  .partner-confirmation-frame {
+    border-radius: 9px;
+  }
+}
+
 @media (max-width: 720px) {
   .feature-setup-item {
     grid-template-columns: 1fr;
@@ -5196,7 +5277,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260925k") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260925l") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

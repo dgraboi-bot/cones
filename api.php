@@ -10233,6 +10233,76 @@ function default_profile(): array
     ];
 }
 
+function default_partner_confirmation_state(): array
+{
+    return [
+        'sender_identifier' => '',
+        'receiver_identifier' => '',
+        'created_ms' => 0,
+        'expires_ms' => 0,
+        'completed_ms' => 0,
+        'sender' => ['method' => 'verified', 'joined' => false, 'snapshot' => '', 'confirmed' => false],
+        'receiver' => ['method' => 'verified', 'joined' => false, 'snapshot' => '', 'confirmed' => false]
+    ];
+}
+
+function clear_partner_confirmation_state(array &$session): void
+{
+    $session['partner_confirmation'] = default_partner_confirmation_state();
+}
+
+function normalize_partner_confirmation_method($value): string
+{
+    return trim(strtolower((string) $value)) === 'camera' ? 'camera' : 'verified';
+}
+
+function normalize_partner_confirmation_snapshot($value): string
+{
+    $snapshot = trim((string) $value);
+    if ($snapshot === '') {
+        return '';
+    }
+    if (!preg_match('#^data:image/jpeg;base64,([A-Za-z0-9+/=]+)$#', $snapshot, $matches)) {
+        throw new RuntimeException('The confirmation photo was not in the expected format.');
+    }
+    $bytes = base64_decode($matches[1], true);
+    if ($bytes === false || strlen($bytes) < 32 || strlen($bytes) > 60000 || substr($bytes, 0, 2) !== "\xFF\xD8") {
+        throw new RuntimeException('The confirmation photo is invalid or too large.');
+    }
+    return $snapshot;
+}
+
+function partner_confirmation_payload(array $session, string $role, int $nowMs): array
+{
+    $confirmation = is_array($session['partner_confirmation'] ?? null)
+        ? $session['partner_confirmation']
+        : default_partner_confirmation_state();
+    $otherRole = $role === 'sender' ? 'receiver' : 'sender';
+    $expired = (int) ($confirmation['expires_ms'] ?? 0) > 0 && (int) $confirmation['expires_ms'] < $nowMs;
+    if ($expired) {
+        return ['expired' => true, 'ready' => false, 'own' => [], 'partner' => []];
+    }
+    $own = is_array($confirmation[$role] ?? null) ? $confirmation[$role] : [];
+    $partner = is_array($confirmation[$otherRole] ?? null) ? $confirmation[$otherRole] : [];
+    $completed = (int) ($confirmation['completed_ms'] ?? 0) > 0;
+    return [
+        'expired' => false,
+        'ready' => $completed,
+        'own' => [
+            'method' => normalize_partner_confirmation_method($own['method'] ?? 'verified'),
+            'joined' => !empty($own['joined']),
+            'snapshot' => $completed ? '' : (string) ($own['snapshot'] ?? ''),
+            'confirmed' => !empty($own['confirmed'])
+        ],
+        'partner' => [
+            'method' => normalize_partner_confirmation_method($partner['method'] ?? 'verified'),
+            'joined' => !empty($partner['joined']),
+            'snapshot' => $completed ? '' : (string) ($partner['snapshot'] ?? ''),
+            'confirmed' => !empty($partner['confirmed'])
+        ]
+    ];
+}
+
 function default_session_state(): array
 {
     return [
@@ -10259,6 +10329,7 @@ function default_session_state(): array
         'timeout_notice' => null,
         'timeout_exit' => null,
         'level_four' => default_level_four_session_state(),
+        'partner_confirmation' => default_partner_confirmation_state(),
         'stats' => [
             'last_layout_number' => null,
             'last_completed_ms' => null,
@@ -10292,6 +10363,11 @@ function prune_inactive_operational_state(
         if (!is_array($session)) {
             unset($state['sessions'][$sessionCode], $state['session_registry'][$sessionCode]);
             continue;
+        }
+
+        if ((int) ($session['partner_confirmation']['expires_ms'] ?? 0) > 0 && (int) $session['partner_confirmation']['expires_ms'] < $nowMs) {
+            clear_partner_confirmation_state($session);
+            $state['sessions'][$sessionCode] = $session;
         }
 
         $updatedMs = isset($session['updated_ms']) && is_numeric($session['updated_ms'])
@@ -10359,6 +10435,9 @@ function ensure_session_shape(array &$session): void
     }
     if (!is_array($session['stats'] ?? null)) {
         $session['stats'] = $defaults['stats'];
+    }
+    if (!is_array($session['partner_confirmation'] ?? null)) {
+        $session['partner_confirmation'] = default_partner_confirmation_state();
     }
     if (!array_key_exists('post_round', $session)) {
         $session['post_round'] = null;
@@ -11551,6 +11630,9 @@ if (!array_key_exists($sessionCode, $state['sessions']) || !is_array($state['ses
 
 ensure_session_shape($state['sessions'][$sessionCode]);
 $session =& $state['sessions'][$sessionCode];
+if ((int) ($session['partner_confirmation']['expires_ms'] ?? 0) > 0 && (int) $session['partner_confirmation']['expires_ms'] < $nowMs) {
+    clear_partner_confirmation_state($session);
+}
 $debugEnabled = (bool) $state['debug_enabled'];
 $profileInput = isset($input['profile']) && is_array($input['profile']) ? normalize_profile($input['profile']) : default_profile();
 $secretCandidate = isset($input['secret_candidate']) ? (string) $input['secret_candidate'] : '';
@@ -12578,6 +12660,93 @@ if ($action === 'get_identifier_status') {
     ];
 
     respond_json_and_close($handle, $response);
+}
+
+if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation', 'submit_partner_confirmation_snapshot', 'approve_partner_confirmation', 'cancel_partner_confirmation'], true)) {
+    try {
+        $allowedKeys = ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier', 'method'];
+        if ($action === 'submit_partner_confirmation_snapshot') {
+            $allowedKeys[] = 'snapshot';
+        }
+        require_allowed_keys($input, $allowedKeys, 'request');
+        $confirmationRole = trim((string) ($input['role'] ?? ''));
+        if ($confirmationRole !== 'sender' && $confirmationRole !== 'receiver') {
+            throw new RuntimeException('Partner confirmation role must be sender or receiver.');
+        }
+        $confirmationOwn = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $confirmationPartner = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+        if (!formal_identifier_exists($state, $confirmationOwn) || !formal_identifier_exists($state, $confirmationPartner)) {
+            throw new RuntimeException('Both people must use claimed unique names for live partner confirmation.');
+        }
+        if (normalize_identifier_for_lookup($confirmationOwn) === normalize_identifier_for_lookup($confirmationPartner)) {
+            throw new RuntimeException('The Sender and Receiver cannot be the same name.');
+        }
+
+        $ownStatus = get_identifier_status($state, $confirmationOwn);
+        $partnerStatus = get_identifier_status($state, $confirmationPartner);
+        $canonicalOwn = trim((string) ($ownStatus['preferred_identifier'] ?? $confirmationOwn));
+        $canonicalPartner = trim((string) ($partnerStatus['preferred_identifier'] ?? $confirmationPartner));
+        $senderIdentifier = $confirmationRole === 'sender' ? $canonicalOwn : $canonicalPartner;
+        $receiverIdentifier = $confirmationRole === 'receiver' ? $canonicalOwn : $canonicalPartner;
+        $confirmation =& $session['partner_confirmation'];
+        $activeSender = trim((string) ($confirmation['sender_identifier'] ?? ''));
+        $activeReceiver = trim((string) ($confirmation['receiver_identifier'] ?? ''));
+        $pairChanged = $activeSender !== '' && (
+            normalize_identifier_for_lookup($activeSender) !== normalize_identifier_for_lookup($senderIdentifier) ||
+            normalize_identifier_for_lookup($activeReceiver) !== normalize_identifier_for_lookup($receiverIdentifier)
+        );
+        if ($pairChanged) {
+            clear_partner_confirmation_state($session);
+            $confirmation =& $session['partner_confirmation'];
+        }
+
+        if ($action === 'begin_partner_confirmation') {
+            if ((int) ($confirmation['created_ms'] ?? 0) === 0) {
+                $confirmation['sender_identifier'] = $senderIdentifier;
+                $confirmation['receiver_identifier'] = $receiverIdentifier;
+                $confirmation['created_ms'] = $nowMs;
+                $confirmation['expires_ms'] = $nowMs + (2 * 60 * 1000);
+            }
+            $confirmation[$confirmationRole]['method'] = normalize_partner_confirmation_method($input['method'] ?? 'verified');
+            $confirmation[$confirmationRole]['joined'] = true;
+        } elseif ((int) ($confirmation['created_ms'] ?? 0) === 0) {
+            throw new RuntimeException('Partner confirmation has not been started yet.');
+        }
+
+        if ($action === 'submit_partner_confirmation_snapshot') {
+            if (normalize_partner_confirmation_method($confirmation[$confirmationRole]['method'] ?? 'verified') !== 'camera') {
+                throw new RuntimeException('This device is using verified-name confirmation, not live camera confirmation.');
+            }
+            $confirmation[$confirmationRole]['snapshot'] = normalize_partner_confirmation_snapshot($input['snapshot'] ?? '');
+        }
+        if ($action === 'approve_partner_confirmation') {
+            $otherRole = $confirmationRole === 'sender' ? 'receiver' : 'sender';
+            $other = is_array($confirmation[$otherRole] ?? null) ? $confirmation[$otherRole] : [];
+            $own = is_array($confirmation[$confirmationRole] ?? null) ? $confirmation[$confirmationRole] : [];
+            if (empty($other['joined']) || (normalize_partner_confirmation_method($other['method'] ?? 'verified') === 'camera' && empty($other['snapshot']))) {
+                throw new RuntimeException('Wait until your partner is ready before confirming.');
+            }
+            if (normalize_partner_confirmation_method($own['method'] ?? 'verified') === 'camera' && empty($own['snapshot'])) {
+                throw new RuntimeException('Take your current photo before confirming.');
+            }
+            $confirmation[$confirmationRole]['confirmed'] = true;
+            if (!empty($confirmation['sender']['confirmed']) && !empty($confirmation['receiver']['confirmed'])) {
+                // The images are deliberately removed as soon as the two people have confirmed.
+                $confirmation['sender']['snapshot'] = '';
+                $confirmation['receiver']['snapshot'] = '';
+                $confirmation['completed_ms'] = $nowMs;
+                $confirmation['expires_ms'] = $nowMs + (30 * 1000);
+            }
+        }
+        if ($action === 'cancel_partner_confirmation') {
+            clear_partner_confirmation_state($session);
+        }
+        $session['updated_ms'] = $nowMs;
+        $response = ['ok' => true, 'partner_confirmation' => partner_confirmation_payload($session, $confirmationRole, $nowMs), 'server_now_ms' => $nowMs];
+        rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
 }
 
 if ($action === 'get_unique_handle_change_status') {

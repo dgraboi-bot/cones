@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
-  <meta name="espgym-build-version" content="20260925k">
+  <meta name="espgym-build-version" content="20260925l">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260925k">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260925l">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260925k">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260925k">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260925k">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260925l">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260925l">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260925l">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260925k">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260925k">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260925k">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260925l">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260925l">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260925l">
   <script>
     (function () {
-      var buildVersion = "20260925k";
+      var buildVersion = "20260925l";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -490,7 +490,7 @@
         <div class="handle-dialog push-setup-dialog explore-pro-dialog" role="dialog" aria-modal="true" aria-labelledby="exploreProDialogTitle">
           <h2 class="about-section-title" id="exploreProDialogTitle" data-explore-pro-title>Explore ESP PRO</h2>
           <p class="about-section-copy" data-explore-pro-intro>Start your free 14-day ESP PRO exploration.</p>
-          <p class="about-section-copy" data-explore-pro-auth-copy>Your email address is used for authentication. Please enter your email address below. We will send you a 5-character verification code.</p>
+          <p class="about-section-copy" data-explore-pro-auth-copy>Your email address is used only for authentication. Please enter your email address below. You will be emailed a 5-character verification code.</p>
           <label class="settings-view-field">
             <span class="settings-view-label">Email address:</span>
             <input class="settings-view-input" type="email" autocomplete="email" spellcheck="false" data-explore-pro-email placeholder="name@example.com">
@@ -556,7 +556,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260925k</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260925l</span>
           </div>
         </div>
 
@@ -1926,6 +1926,15 @@
                 <button class="options-button feature-setup-action" type="button" data-feature-setup-messaging-action>ENABLE PARTNER MESSAGING</button>
               </section>
 
+              <section class="feature-setup-item" data-feature-setup-item="partner-confirmation">
+                <div class="feature-setup-copy">
+                  <h2 class="feature-setup-title">Partner Confirmation</h2>
+                  <p class="feature-setup-text">Choose how this device is identified to a human telepathy partner. A verified name shows a check mark. Live camera confirmation uses a current temporary snapshot before a session.</p>
+                  <div class="feature-setup-status" data-feature-setup-partner-confirmation-status>Verified-name confirmation is selected for this device.</div>
+                </div>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-partner-confirmation-action>CHOOSE METHOD</button>
+              </section>
+
             </div>
           </section>
         </section>
@@ -2020,6 +2029,49 @@
             </div>
             <div class="remote-view-mode-actions">
               <button class="options-button remote-view-mode-cancel" type="button" data-remote-view-mode-cancel>CANCEL</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="handle-overlay beginner-view-hidden" data-partner-confirmation-overlay aria-hidden="true">
+          <div class="handle-dialog partner-confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="partnerConfirmationTitle">
+            <h2 class="about-section-title" id="partnerConfirmationTitle">Confirm Your Partner</h2>
+            <p class="about-section-copy" data-partner-confirmation-intro>Before this session begins, confirm that you are working with the right person.</p>
+            <div class="partner-confirmation-people">
+              <section class="partner-confirmation-person" data-partner-confirmation-self>
+                <h3 data-partner-confirmation-self-label>You</h3>
+                <div class="partner-confirmation-frame" data-partner-confirmation-self-frame>
+                  <span class="partner-confirmation-check" aria-hidden="true">âœ“</span>
+                </div>
+                <p data-partner-confirmation-self-status>Verified unique name</p>
+              </section>
+              <section class="partner-confirmation-person" data-partner-confirmation-partner>
+                <h3 data-partner-confirmation-partner-label>Partner</h3>
+                <div class="partner-confirmation-frame" data-partner-confirmation-partner-frame>
+                  <span class="partner-confirmation-check" aria-hidden="true">âœ“</span>
+                </div>
+                <p data-partner-confirmation-partner-status>Waiting for your partner</p>
+              </section>
+            </div>
+            <video class="partner-confirmation-camera" data-partner-confirmation-camera autoplay muted playsinline hidden></video>
+            <div class="handle-dialog-status" data-partner-confirmation-status>Waiting for your partner to begin.</div>
+            <div class="handle-dialog-actions partner-confirmation-actions">
+              <button class="handle-dialog-button" type="button" data-partner-confirmation-capture>TAKE CURRENT PHOTO</button>
+              <button class="handle-dialog-button" type="button" data-partner-confirmation-approve disabled>THIS IS MY PARTNER</button>
+              <button class="handle-dialog-button" type="button" data-partner-confirmation-cancel>CANCEL</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="handle-overlay beginner-view-hidden" data-partner-confirmation-method-overlay aria-hidden="true">
+          <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="partnerConfirmationMethodTitle">
+            <h2 class="about-section-title" id="partnerConfirmationMethodTitle">Partner Confirmation</h2>
+            <p class="about-section-copy">Choose how this device is represented during a real human telepathy session. Live snapshots are temporary and are deleted when confirmation ends.</p>
+            <div class="handle-dialog-status" data-partner-confirmation-method-status></div>
+            <div class="handle-dialog-actions">
+              <button class="handle-dialog-button" type="button" data-partner-confirmation-method="verified">USE VERIFIED NAME</button>
+              <button class="handle-dialog-button" type="button" data-partner-confirmation-method="camera">USE LIVE CAMERA</button>
+              <button class="handle-dialog-button" type="button" data-close-partner-confirmation-method>BACK</button>
             </div>
           </div>
         </div>
@@ -2454,8 +2506,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260925k'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260925k'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260925l'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260925l'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3176,10 +3228,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260925k"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260925l"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260925k"></script>
-<script src="telepathybeginner.js?v=20260925k"></script>
+<script src="target-selection.js?v=20260925l"></script>
+<script src="telepathybeginner.js?v=20260925l"></script>
 </body>
 </html>
 
