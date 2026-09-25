@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925p";
+  const launcherBuildVersion = "20260925q";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -6027,18 +6027,17 @@ ${calmPracticeMessage}`;
       !!window.PublicKeyCredential;
   }
 
-  function offerInstallAfterUniqueNameClaim() {
-    if (isStandaloneShell() || getInstallConfirmationState() === "confirmed-installed") {
-      return false;
+  // Claiming a name can begin from a card or from a secondary view. Return to
+  // that exact saved context instead of leaving a successful claim in setup.
+  function returnToUniqueNameClaimOrigin(fallbackRole, fallbackScrollY) {
+    const hasSavedReturnContext = !!featureSetupReturnRole;
+    if (!hasSavedReturnContext && fallbackRole) {
+      featureSetupReturnRole = String(fallbackRole).trim();
     }
-    const installNow = window.confirm(
-      "For the best experience, install ESP GYM as an app. It will appear as an icon on your Home Screen or desktop. Would you like to install now?"
-    );
-    if (installNow) {
-      showInstallGuideView({ returnView: "feature-setup" });
-      return true;
+    if (!hasSavedReturnContext && Number.isFinite(Number(fallbackScrollY))) {
+      featureSetupReturnScrollY = Math.max(0, Number(fallbackScrollY));
     }
-    return false;
+    closeFeatureSetupView();
   }
 
   async function fetchLandingInvitationIdentity(identifier) {
@@ -9136,22 +9135,7 @@ ${calmPracticeMessage}`;
           showInstallGuideView({ returnView: "feature-setup" });
           return;
         }
-        if (offerInstallAfterUniqueNameClaim()) {
-          return;
-        }
-        showFeatureSetupView({
-          role: completedRole,
-          returnView: featureSetupReturnView || (completedRole === "remote-viewer" ? "remote-viewer" : "card"),
-          scrollY: featureSetupReturnView === "help" || featureSetupReturnView === "options"
-            ? featureSetupReturnScrollY
-            : returnScrollY
-        });
-        if ((featureSetupReturnView || "card") === "card" || completedRole === "remote-viewer") {
-          const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
-          if (matchingCard) {
-            ensureCardExpanded(matchingCard, { scrollIntoView: false });
-          }
-        }
+        returnToUniqueNameClaimOrigin(returnRole, returnScrollY);
       }
     } catch (error) {
       if (submitHandleButton) {
@@ -19827,7 +19811,7 @@ ${calmPracticeMessage}`;
 
   function maybePromptForLocationFineTune(state = readLauncherState()) {
     clearLocationAutoPromptTimer();
-    if (!isLauncherVisible() || locationPickerOpening || !locationPickerOverlay) {
+    if (!isLauncherVisible() || launcherGuidedTourState || locationPickerOpening || !locationPickerOverlay) {
       return;
     }
     const savedLocation = getSavedDeviceLocation(state);
@@ -19918,6 +19902,11 @@ ${calmPracticeMessage}`;
     }
 
     if (shouldGateGoForLocation(state)) {
+      // Guided Robot tours never stop for the optional map-review workflow.
+      // They use a browser estimate when available and otherwise continue.
+      if (options.skipReview === true) {
+        return true;
+      }
       const continuationTargetUrl = String(options?.targetUrl || "").trim();
       locationPickerPendingContinuation = continuationTargetUrl
         ? {
@@ -21587,6 +21576,9 @@ ${calmPracticeMessage}`;
         setRoleDifficultyLabel("sender", selectedDifficultyLevel);
         setRoleDifficultyLabel("receiver", selectedDifficultyLevel);
       }
+      if (guidedTourReturnLaunch) {
+        await prepareLocationForGo(role, { skipReview: true });
+      }
       const targetUrl = buildTargetUrl(role, canonicalOwnName, canonicalPartnerName, {
         difficultyLevel: selectedDifficultyLevel,
         visitorDisplayName: visitorRobotSession ? submittedOwnDisplayName : "",
@@ -21616,7 +21608,7 @@ ${calmPracticeMessage}`;
         }
         return;
       }
-      if (!(await prepareLocationForGo(role, { targetUrl }))) {
+      if (!guidedTourReturnLaunch && !(await prepareLocationForGo(role, { targetUrl }))) {
         return;
       }
 
@@ -22014,11 +22006,12 @@ ${calmPracticeMessage}`;
     });
   }
 
-  function getLauncherGuidedTourSteps(role) {
+  function getLauncherGuidedTourSteps(role, options = {}) {
     const elements = getGuideElements(role);
     const roleLabel = role === "sender" ? "Sender" : "Receiver";
     const partnerRoleLabel = role === "sender" ? "receiver" : "sender";
-    return [
+    const requiresNameEntry = options.requiresNameEntry !== false;
+    const steps = [
       {
         id: "open-card",
         text: `This guided tour will walk you through a ${roleLabel} session. Tap "I Will Be the ${roleLabel}" to start a session.`,
@@ -22035,16 +22028,6 @@ ${calmPracticeMessage}`;
         target: elements.emailNote,
         allowNext: true,
         allowed: [],
-        muteOthers: false,
-        placement: "explanation"
-      },
-      {
-        id: "own-name",
-        text: "Type your first name in the \"You\" field.",
-        target: elements.ownInput,
-        allowNext: true,
-        allowed: [elements.ownInput],
-        canAdvance: () => String(elements.ownInput?.value || "").trim().length > 0,
         muteOthers: false,
         placement: "explanation"
       },
@@ -22077,6 +22060,19 @@ ${calmPracticeMessage}`;
         placement: "explanation"
       }
     ];
+    if (requiresNameEntry) {
+      steps.splice(2, 0, {
+        id: "own-name",
+        text: "Enter a name in the \"You\" field.",
+        target: elements.ownInput,
+        allowNext: true,
+        allowed: [elements.ownInput],
+        canAdvance: () => String(elements.ownInput?.value || "").trim().length > 0,
+        muteOthers: false,
+        placement: "explanation"
+      });
+    }
+    return steps;
   }
 
   function getCurrentLauncherGuidedTourStep() {
@@ -22335,10 +22331,16 @@ ${calmPracticeMessage}`;
       const previousOwnReadOnly = !!elements.ownInput.readOnly;
       const previousOwnValue = elements.ownInput.value;
       const previousOwnTitle = elements.ownInput.title;
-      elements.ownInput.readOnly = false;
-      elements.ownInput.setAttribute("aria-readonly", "false");
-      elements.ownInput.title = "";
-      elements.ownInput.value = "";
+      const claimedIdentifier = getCanonicalRecognizedIdentity(readLauncherState());
+      const requiresNameEntry = !claimedIdentifier;
+      if (requiresNameEntry) {
+        elements.ownInput.readOnly = false;
+        elements.ownInput.setAttribute("aria-readonly", "false");
+        elements.ownInput.title = "";
+        elements.ownInput.value = "";
+      } else if (!String(elements.ownInput.value || "").trim()) {
+        elements.ownInput.value = claimedIdentifier;
+      }
 
       launcherGuidedTourState = {
         active: true,
@@ -22346,7 +22348,7 @@ ${calmPracticeMessage}`;
         mode: role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode,
         originState,
         stepIndex: 0,
-        steps: getLauncherGuidedTourSteps(role),
+        steps: getLauncherGuidedTourSteps(role, { requiresNameEntry }),
         ownInput: elements.ownInput,
         previousOwnReadOnly,
         previousOwnValue,
@@ -28566,14 +28568,10 @@ ${calmPracticeMessage}`;
       });
       return;
     }
-    if (offerInstallAfterUniqueNameClaim()) {
-      return;
-    }
-    showFeatureSetupView({
-      role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
-      returnView: featureSetupReturnView || "card",
-      scrollY: Number.isFinite(Number(claimContext?.returnScrollY)) ? Number(claimContext.returnScrollY) : 0
-    });
+    returnToUniqueNameClaimOrigin(
+      String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
+      Number.isFinite(Number(claimContext?.returnScrollY)) ? Number(claimContext.returnScrollY) : 0
+    );
   }
 
   async function queueApplePasskeySetup(data, completion) {
