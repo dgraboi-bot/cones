@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925r";
+  const launcherBuildVersion = "20260925s";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -41,7 +41,7 @@
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
-  const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore Level 2 and Level 3 by changing the level and pressing GO.";
+  const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore other levels by changing the level and pressing GO.";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -10132,11 +10132,13 @@ ${calmPracticeMessage}`;
     const partnerConfirmationMethod = getPartnerConfirmationMethod();
     const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     if (featureSetupPartnerConfirmationStatus) {
-      featureSetupPartnerConfirmationStatus.textContent = partnerConfirmationMethod === "camera"
-        ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
-        : cameraAvailable
-          ? "Verified-name confirmation is selected for this device. You can instead choose live camera confirmation."
-          : "Email-verified name confirmation is selected for this device.";
+      featureSetupPartnerConfirmationStatus.textContent = !featureSetupOwnIdentifier
+        ? "Verified-name confirmation for this browser on this device is selected after you claim a unique user name."
+        : partnerConfirmationMethod === "camera"
+          ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
+          : cameraAvailable
+            ? "Verified-name confirmation is selected for this device. You can instead choose live camera confirmation."
+            : "Email-verified name confirmation is selected for this device.";
     }
     if (featureSetupPartnerConfirmationActionButton) {
       featureSetupPartnerConfirmationActionButton.disabled = !featureSetupOwnIdentifier;
