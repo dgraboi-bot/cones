@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925g";
+  const launcherBuildVersion = "20260925h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1234,6 +1234,8 @@
   let launcherAdminDevicePrefs = readLauncherAdminDevicePrefs();
   let globalClientDebuggingEnabled = false;
   let globalDebugSourceCode = "";
+  let globalDebugContextKnown = false;
+  const pendingGlobalLandingTraces = [];
 
   function getClientDebugParticipantKey() {
     try {
@@ -1266,12 +1268,21 @@
     if (!data || typeof data !== "object") {
       return;
     }
+    if (Object.prototype.hasOwnProperty.call(data, "global_debug_enabled")) {
+      globalDebugContextKnown = true;
+    }
     globalClientDebuggingEnabled = !!data.global_debug_enabled;
     const sourceCode = String(data.debug_source_code || "");
     if (/^[A-Z]$/.test(sourceCode)) {
       globalDebugSourceCode = sourceCode;
     } else if (!globalClientDebuggingEnabled) {
       globalDebugSourceCode = "";
+      pendingGlobalLandingTraces.length = 0;
+    }
+    if (globalClientDebuggingEnabled && pendingGlobalLandingTraces.length) {
+      pendingGlobalLandingTraces.splice(0).forEach(({ label, details }) => {
+        writeClientDebugTrace(label, details);
+      });
     }
   }
 
@@ -1288,6 +1299,10 @@
       });
       const data = await parseApiResponse(response, `Debug context request failed with status ${response.status}`);
       applyGlobalDebugContext(data);
+      traceLauncherClient("global_debug:context_ready", {
+        global_debug_enabled: globalClientDebuggingEnabled,
+        debug_source: getClientDebugSourceCode()
+      });
       if (pendingDirectOpenStartupTrace && isClientDebuggingEnabled()) {
         traceLauncherClient("launcher_direct_open:startup_pending_applied", pendingDirectOpenStartupTrace);
       }
@@ -8572,8 +8587,18 @@ ${calmPracticeMessage}`;
 
   function traceLauncherClient(label, details = {}) {
     if (!isClientDebuggingEnabled()) {
+      if (!globalDebugContextKnown && String(label || "").startsWith("landing_continue:")) {
+        pendingGlobalLandingTraces.push({ label, details });
+        if (pendingGlobalLandingTraces.length > 12) {
+          pendingGlobalLandingTraces.shift();
+        }
+      }
       return;
     }
+    writeClientDebugTrace(label, details);
+  }
+
+  function writeClientDebugTrace(label, details = {}) {
     void fetch("api.php", {
       method: "POST",
       headers: {
