@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925f";
+  const launcherBuildVersion = "20260925g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -945,6 +945,7 @@
   const contactSendButton = document.querySelector("[data-contact-send]");
   const contactCancelButton = document.querySelector("[data-contact-cancel]");
   const adminDebugEnabledCheckbox = document.querySelector("[data-admin-debug-enabled]");
+  const adminGlobalDebugEnabledCheckbox = document.querySelector("[data-admin-global-debug-enabled]");
   const adminSubscriptionEmailsEnabledCheckbox = document.querySelector("[data-admin-subscription-emails-enabled]");
   const adminSubscriptionRemindersEnabledCheckbox = document.querySelector("[data-admin-subscription-reminders-enabled]");
   const adminEasyAdminEnabledCheckbox = document.querySelector("[data-admin-easy-admin-enabled]");
@@ -1020,32 +1021,17 @@
   const adminIdentityFilterButtons = Array.from(document.querySelectorAll("[data-admin-identity-filter]"));
   const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
   let receiverOwnLabelMeasurementShownAt = 0;
+  let pendingDirectOpenStartupTrace = null;
   try {
     const initialLauncherParams = new URLSearchParams(window.location.search);
     if (initialLauncherParams.get("direct_open") === "1") {
       document.documentElement.classList.add("launcher-direct-open-pending");
-      try {
-        void fetch("api.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            action: "log_debug",
-            admin_secret: localStorage.getItem("cones-admin-secret") || "",
-            device_debug_enabled: true,
-            label: "launcher_direct_open:startup_pending_applied",
-            details: [{
-              href: String(window.location.href || "").trim(),
-              readyState: String(document.readyState || "").trim(),
-              open: String(initialLauncherParams.get("open") || "").trim(),
-              difficulty_level: String(initialLauncherParams.get("difficulty_level") || "").trim()
-            }]
-          })
-        });
-      } catch (_fetchTraceError) {
-        // Ignore startup trace failures.
-      }
+      pendingDirectOpenStartupTrace = {
+        href: String(window.location.href || "").trim(),
+        readyState: String(document.readyState || "").trim(),
+        open: String(initialLauncherParams.get("open") || "").trim(),
+        difficulty_level: String(initialLauncherParams.get("difficulty_level") || "").trim()
+      };
     }
   } catch (_error) {
     // Ignore malformed direct-open hints during startup.
@@ -1198,6 +1184,7 @@
   let activeReportResize = null;
   let activeReportViewPan = null;
   const launcherAdminDevicePrefsKey = "cones-admin-device-prefs-v1";
+  const launcherDebugClientKey = "cones-debug-client-key-v1";
   const launcherAdminCrossModuleReturnKey = "cones-admin-cross-module-return-v1";
   function readLauncherAdminDevicePrefs() {
     try {
@@ -1205,6 +1192,7 @@
       const parsed = raw ? JSON.parse(raw) : {};
       return {
         debug_enabled: !!parsed?.debug_enabled,
+        debug_source_preference: parsed?.debug_source_preference === "A" ? "A" : "",
         easy_admin_enabled: !!parsed?.easy_admin_enabled,
         learn_more_save_enabled: !!parsed?.learn_more_save_enabled,
         cached_secret: typeof parsed?.cached_secret === "string" ? parsed.cached_secret.trim() : ""
@@ -1212,6 +1200,7 @@
     } catch (error) {
       return {
         debug_enabled: false,
+        debug_source_preference: "",
         easy_admin_enabled: false,
         learn_more_save_enabled: false,
         cached_secret: ""
@@ -1229,6 +1218,7 @@
     }
     launcherAdminDevicePrefs = {
       debug_enabled: !!next.debug_enabled,
+      debug_source_preference: next.debug_source_preference === "A" ? "A" : "",
       easy_admin_enabled: !!next.easy_admin_enabled,
       learn_more_save_enabled: !!next.learn_more_save_enabled,
       cached_secret: typeof next.cached_secret === "string" ? next.cached_secret.trim() : ""
@@ -1242,6 +1232,70 @@
   }
 
   let launcherAdminDevicePrefs = readLauncherAdminDevicePrefs();
+  let globalClientDebuggingEnabled = false;
+  let globalDebugSourceCode = "";
+
+  function getClientDebugParticipantKey() {
+    try {
+      const existing = String(localStorage.getItem(launcherDebugClientKey) || "").trim();
+      if (/^[a-z0-9_-]{8,48}$/i.test(existing)) {
+        return existing;
+      }
+      const generated = typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID().replace(/-/g, "")
+        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem(launcherDebugClientKey, generated);
+      return generated;
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function isClientDebuggingEnabled() {
+    return !!launcherAdminDevicePrefs.debug_enabled || globalClientDebuggingEnabled;
+  }
+
+  function getClientDebugSourceCode() {
+    if (launcherAdminDevicePrefs.debug_enabled || launcherAdminDevicePrefs.debug_source_preference === "A") {
+      return "A";
+    }
+    return globalDebugSourceCode;
+  }
+
+  function applyGlobalDebugContext(data) {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+    globalClientDebuggingEnabled = !!data.global_debug_enabled;
+    const sourceCode = String(data.debug_source_code || "");
+    if (/^[A-Z]$/.test(sourceCode)) {
+      globalDebugSourceCode = sourceCode;
+    } else if (!globalClientDebuggingEnabled) {
+      globalDebugSourceCode = "";
+    }
+  }
+
+  async function refreshGlobalDebugContext() {
+    try {
+      const response = await fetch("api.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "get_client_debug_context",
+          client_debug_key: getClientDebugParticipantKey(),
+          preferred_debug_source: getClientDebugSourceCode() === "A" ? "A" : ""
+        })
+      });
+      const data = await parseApiResponse(response, `Debug context request failed with status ${response.status}`);
+      applyGlobalDebugContext(data);
+      if (pendingDirectOpenStartupTrace && isClientDebuggingEnabled()) {
+        traceLauncherClient("launcher_direct_open:startup_pending_applied", pendingDirectOpenStartupTrace);
+      }
+      pendingDirectOpenStartupTrace = null;
+    } catch (_error) {
+      // Debug availability must never interfere with normal app startup.
+    }
+  }
   let launcherAdminSecret = "";
   let clairvoyanceLearnMoreMode = "reader";
   let clairvoyanceLearnMoreReturnView = "clairvoyance-viewing";
@@ -1403,6 +1457,7 @@ ${calmPracticeMessage}`;
   ].filter(Boolean);
   let launcherAdminState = {
       debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+      global_debug_enabled: false,
       admin_lock_active: false,
       subscription_emails_enabled: false,
       subscription_reminders_enabled: false,
@@ -7002,6 +7057,8 @@ ${calmPracticeMessage}`;
       throw new Error(String(data?.error || fallbackMessage || `Request failed with status ${response.status}`));
     }
 
+    applyGlobalDebugContext(data);
+
     return data;
   }
 
@@ -8514,6 +8571,9 @@ ${calmPracticeMessage}`;
   }
 
   function traceLauncherClient(label, details = {}) {
+    if (!isClientDebuggingEnabled()) {
+      return;
+    }
     void fetch("api.php", {
       method: "POST",
       headers: {
@@ -8522,17 +8582,19 @@ ${calmPracticeMessage}`;
       body: JSON.stringify({
         action: "trace_client",
         label,
-        details: [details]
+        details: [details],
+        local_debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+        debug_source_code: getClientDebugSourceCode()
       })
     }).catch(() => {
       // Ignore trace failures.
     });
   }
 
-  // Temporary, opt-in markers for the landing-page entry investigation. They
-  // deliberately remain silent unless this browser has debugging enabled.
+  // Opt-in markers for landing-page entry investigations. They are enabled by
+  // this browser's local setting or by the server-wide development setting.
   function traceLandingContinue(label, details = {}) {
-    if (!launcherAdminState.debug_enabled) {
+    if (!isClientDebuggingEnabled()) {
       return;
     }
     const state = readLauncherState();
@@ -26265,6 +26327,9 @@ ${calmPracticeMessage}`;
       if (adminDebugEnabledCheckbox) {
         adminDebugEnabledCheckbox.checked = !!launcherAdminState.debug_enabled;
       }
+      if (adminGlobalDebugEnabledCheckbox) {
+        adminGlobalDebugEnabledCheckbox.checked = !!launcherAdminState.global_debug_enabled;
+      }
       if (adminSubscriptionEmailsEnabledCheckbox) {
         adminSubscriptionEmailsEnabledCheckbox.checked = !!launcherAdminState.subscription_emails_enabled;
       }
@@ -26325,6 +26390,7 @@ ${calmPracticeMessage}`;
       }
         launcherAdminState = {
           debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+          global_debug_enabled: !!data?.global_debug_enabled,
           admin_lock_active: !!data?.admin_lock_active,
           subscription_emails_enabled: !!data?.subscription_emails_enabled,
           subscription_reminders_enabled: !!data?.subscription_reminders_enabled,
@@ -33521,10 +33587,41 @@ ${calmPracticeMessage}`;
     updateLauncherAdminDevicePrefs({
       debug_enabled: !!adminDebugEnabledCheckbox.checked
     });
+    if (launcherAdminDevicePrefs.debug_enabled) {
+      globalDebugSourceCode = "A";
+    }
     if (adminStatus) {
       adminStatus.textContent = launcherAdminState.debug_enabled ? "Debugging is currently enabled on this device." : "Debugging is currently disabled on this device.";
     }
     renderAdminView();
+  });
+  adminGlobalDebugEnabledCheckbox?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    if (adminStatus) {
+      adminStatus.textContent = "Saving global debugging setting...";
+    }
+    try {
+      updateLauncherAdminDevicePrefs({ debug_source_preference: "A" });
+      globalDebugSourceCode = "A";
+      const data = await launcherAdminApi("set_global_debug_enabled", {
+        enabled: !!adminGlobalDebugEnabledCheckbox.checked
+      });
+      applyGlobalDebugContext(data);
+      launcherAdminState.global_debug_enabled = globalClientDebuggingEnabled;
+      if (adminStatus) {
+        adminStatus.textContent = globalClientDebuggingEnabled
+          ? "Global debugging is currently enabled."
+          : "Global debugging is currently disabled.";
+      }
+      renderAdminView();
+    } catch (_error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the global debugging setting right now.";
+      }
+      renderAdminView();
+    }
   });
   adminSubscriptionEmailsEnabledCheckbox?.addEventListener("change", async () => {
     if (!hasLauncherAdminAccess()) {
@@ -34167,6 +34264,7 @@ ${calmPracticeMessage}`;
   }
 
   async function initializeLauncherStartup() {
+    void refreshGlobalDebugContext();
     if ("serviceWorker" in navigator) {
       // Service-worker registration improves offline/cache behavior, but Safari
       // can leave the registration promise pending. Never hold normal entry

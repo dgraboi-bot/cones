@@ -422,6 +422,51 @@ function build_admin_lock_conflict_message(): string
     return 'ADMIN / debugging is currently active from another device/browser. Admin access is temporarily locked to avoid conflicting admin/debug control.';
 }
 
+function normalize_debug_client_key($value): string
+{
+    $candidate = trim((string) $value);
+    return preg_match('/^[A-Za-z0-9_-]{8,48}$/', $candidate) ? $candidate : '';
+}
+
+function normalize_debug_source_code($value): string
+{
+    $candidate = strtoupper(trim((string) $value));
+    return preg_match('/^[A-Z]$/', $candidate) ? $candidate : '';
+}
+
+function assign_debug_source_code(array &$state, string $clientKey, string $preferredSource, bool $globalDebugEnabled): string
+{
+    if ($preferredSource === 'A') {
+        return 'A';
+    }
+    if (!$globalDebugEnabled || $clientKey === '') {
+        return '';
+    }
+
+    $sources = is_array($state['debug_client_sources'] ?? null) ? $state['debug_client_sources'] : [];
+    $existing = normalize_debug_source_code($sources[$clientKey] ?? '');
+    if ($existing !== '' && $existing !== 'A') {
+        return $existing;
+    }
+
+    $inUse = [];
+    foreach ($sources as $source) {
+        $normalized = normalize_debug_source_code($source);
+        if ($normalized !== '') {
+            $inUse[$normalized] = true;
+        }
+    }
+    foreach (range('B', 'Z') as $candidate) {
+        if (empty($inUse[$candidate])) {
+            $sources[$clientKey] = $candidate;
+            $state['debug_client_sources'] = $sources;
+            return $candidate;
+        }
+    }
+
+    return '?';
+}
+
 function claim_admin_lock(array &$state, string $clientId, int $nowMs): array
 {
     $normalizedClientId = normalize_admin_client_id($clientId);
@@ -11196,6 +11241,7 @@ if (!is_array($state)) {
         'stripe_processed_events' => [],
         'launcher_visit_count' => 0,
         'debug_enabled' => false,
+        'debug_client_sources' => [],
         'subscription_emails_enabled' => false,
         'subscription_reminders_enabled' => false,
         'easy_admin_enabled' => false,
@@ -11241,6 +11287,7 @@ if (!array_key_exists('sessions', $state)) {
         'stripe_processed_events' => [],
         'launcher_visit_count' => 0,
         'debug_enabled' => false,
+        'debug_client_sources' => [],
         'subscription_emails_enabled' => false,
         'subscription_reminders_enabled' => false,
         'easy_admin_enabled' => false,
@@ -11328,6 +11375,9 @@ ensure_stripe_state_sections($state);
 prune_stripe_processed_events($state, $nowMs);
 if (!array_key_exists('debug_enabled', $state)) {
     $state['debug_enabled'] = false;
+}
+if (!is_array($state['debug_client_sources'] ?? null)) {
+    $state['debug_client_sources'] = [];
 }
 // Easy Admin is device-local only. The server no longer honors or persists
 // any server-side Easy Admin bypass state.
@@ -11824,16 +11874,50 @@ if ($action === 'log_debug') {
     }
 }
 
+if ($action === 'set_global_debug_enabled' && $hasAdminAccess) {
+    try {
+        require_allowed_keys($input, ['action', 'enabled', 'secret_candidate', 'admin_client_id'], 'request');
+        $state['debug_enabled'] = !empty($input['enabled']);
+        if (empty($state['debug_enabled'])) {
+            $state['debug_client_sources'] = [];
+        }
+        $debugEnabled = (bool) $state['debug_enabled'];
+        append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
+            'time_ms' => $nowMs,
+            'session_code' => $sessionCode,
+            'role' => $role,
+            'label' => 'set_global_debug_enabled',
+            'details' => ['enabled' => $debugEnabled]
+        ]);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+}
+
+$debugSourceCode = '';
+if ($action === 'get_client_debug_context') {
+    $debugSourceCode = assign_debug_source_code(
+        $state,
+        normalize_debug_client_key($input['client_debug_key'] ?? ''),
+        normalize_debug_source_code($input['preferred_debug_source'] ?? ''),
+        $debugEnabled
+    );
+}
+
 if ($action === 'trace_client') {
     $label = isset($input['label']) ? (string) $input['label'] : 'client_trace';
     $details = isset($input['details']) && is_array($input['details']) ? $input['details'] : [];
-    append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
-        'time_ms' => $nowMs,
-        'session_code' => $sessionCode,
-        'role' => $role,
-        'label' => $label,
-        'details' => $details
-    ]);
+    $localDebugEnabled = !empty($input['local_debug_enabled']);
+    if ($debugEnabled || $localDebugEnabled) {
+        append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
+            'time_ms' => $nowMs,
+            'session_code' => $sessionCode,
+            'role' => $role,
+            'debug_source' => normalize_debug_source_code($input['debug_source_code'] ?? ''),
+            'label' => $label,
+            'details' => $details
+        ]);
+    }
 }
 
 if ($action === 'heartbeat' && is_array($session['abort_notice'] ?? null)) {
@@ -14196,6 +14280,8 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
 
     $state['sessions'] = [];
     $state['session_registry'] = [];
+    // Diagnostic source letters are temporary troubleshooting state, never user data.
+    $state['debug_client_sources'] = [];
 
     if (!$preservePairs) {
         $state['pair_difficulties'] = [];
@@ -14760,6 +14846,8 @@ $response = [
     'is_admin' => $hasAdminAccess,
     'admin_lock_active' => $hasAdminAccess ? true : is_array(get_active_admin_lock($state, $nowMs)),
     'debug_enabled' => $debugEnabled,
+    'global_debug_enabled' => $debugEnabled,
+    'debug_source_code' => $debugSourceCode,
     'subscription_emails_enabled' => !empty($state['subscription_emails_enabled']),
     'subscription_reminders_enabled' => !empty($state['subscription_reminders_enabled']),
     'easy_admin_enabled' => false,
