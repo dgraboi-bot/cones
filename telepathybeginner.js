@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925c";
+  const launcherBuildVersion = "20260925d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8526,6 +8526,25 @@ ${calmPracticeMessage}`;
       })
     }).catch(() => {
       // Ignore trace failures.
+    });
+  }
+
+  // Temporary, opt-in markers for the landing-page entry investigation. They
+  // deliberately remain silent unless this browser has debugging enabled.
+  function traceLandingContinue(label, details = {}) {
+    if (!launcherAdminState.debug_enabled) {
+      return;
+    }
+    const state = readLauncherState();
+    traceLauncherClient(`landing_continue:${label}`, {
+      href: String(window.location.href || "").trim(),
+      standalone: isStandaloneShell(),
+      startup_ready: !!launcherStartupReady,
+      pending_apple_restore: !!pendingApplePasskeyRestore,
+      recognized_identity: String(getCanonicalRecognizedIdentity(state) || "").trim(),
+      entry_mode: String(state?.entryMode || "").trim(),
+      visitor_entry: isVisitorLauncherEntry(state),
+      ...(details && typeof details === "object" ? details : {})
     });
   }
 
@@ -28187,16 +28206,25 @@ ${calmPracticeMessage}`;
 
   function startVisitorLandingEntry(options = {}) {
     const baseState = readLauncherState();
+    traceLandingContinue("visitor_start", {
+      direct: options.direct === true,
+      resume_recognized_identity: shouldResumeRecognizedLandingIdentity(baseState)
+    });
     if (shouldResumeRecognizedLandingIdentity(baseState)) {
+      traceLandingContinue("visitor_redirect_resume");
       window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
       return;
     }
     const nextState = buildVisitorLauncherState(baseState);
     writeLauncherState(nextState);
     if (options.direct === true) {
+      traceLandingContinue("visitor_direct_enter");
       void enterWorkingHomeFromLanding("visitor");
       return;
     }
+    traceLandingContinue("visitor_redirect_route", {
+      target: buildCanonicalLauncherUrl({ open: "visitor-launcher" })
+    });
     window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
   }
 
@@ -28350,6 +28378,7 @@ ${calmPracticeMessage}`;
 
   async function continueFromLandingPage() {
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
+    traceLandingContinue("click", { has_invitation_code: !!invitationCode });
     if (!invitationCode) {
       if (pendingApplePasskeyRestore) {
         if (applePasskeyRestoreInFlight) {
@@ -28385,8 +28414,14 @@ ${calmPracticeMessage}`;
       // A deleted identity can remain in Safari storage after its server record is removed.
       // Validate it here so Continue cannot route into a stale recognized-user state.
       setTemporaryHomeInvitationStatus("Preparing ESP GYM...");
+      traceLandingContinue("sanitize_begin");
       const launcherState = await sanitizeRecognizedIdentityForLauncherEntry(readLauncherState());
+      traceLandingContinue("sanitize_complete", {
+        sanitized_recognized_identity: String(getCanonicalRecognizedIdentity(launcherState) || "").trim(),
+        sanitized_visitor_entry: isVisitorLauncherEntry(launcherState)
+      });
       if (hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
+        traceLandingContinue("redirect_recognized_launcher");
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
       }
@@ -29845,14 +29880,20 @@ ${calmPracticeMessage}`;
         return;
       }
       if (requestedView === "visitor-launcher") {
+        traceLandingContinue("visitor_route_received", {
+          requested_view: requestedView,
+          route_visitor_entry: isVisitorLauncherEntry(launcherState)
+        });
         if (!isVisitorLauncherEntry(launcherState)) {
           if (hasKnownLauncherIdentity(launcherState)) {
+            traceLandingContinue("visitor_route_resume_recognized");
             void enterWorkingHomeFromLanding("resume");
             return;
           }
           launcherState = buildVisitorLauncherState(launcherState);
           writeLauncherState(launcherState);
         }
+        traceLandingContinue("visitor_route_enter_working_home");
         void enterWorkingHomeFromLanding("visitor");
         return;
       }
