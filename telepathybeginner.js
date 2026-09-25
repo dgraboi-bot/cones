@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925m";
+  const launcherBuildVersion = "20260925n";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -844,6 +844,8 @@
   const featureSetupPartnerConfirmationActionButton = document.querySelector("[data-feature-setup-partner-confirmation-action]");
   const partnerConfirmationOverlay = document.querySelector("[data-partner-confirmation-overlay]");
   const partnerConfirmationMethodOverlay = document.querySelector("[data-partner-confirmation-method-overlay]");
+  const partnerConfirmationMethodTitle = document.querySelector("[data-partner-confirmation-method-title]");
+  const partnerConfirmationMethodCopy = document.querySelector("[data-partner-confirmation-method-copy]");
   const partnerConfirmationMethodStatus = document.querySelector("[data-partner-confirmation-method-status]");
   const partnerConfirmationCamera = document.querySelector("[data-partner-confirmation-camera]");
   const partnerConfirmationStatus = document.querySelector("[data-partner-confirmation-status]");
@@ -861,6 +863,7 @@
   let pendingPartnerConfirmation = null;
   let partnerConfirmationPollTimer = 0;
   let partnerConfirmationCameraStream = null;
+  let pendingPartnerConfirmationMethodSelection = null;
   const uniqueNameChangeView = document.querySelector('[data-view="unique-name-change"]');
   const closeUniqueNameChangeButton = document.querySelector("[data-close-unique-name-change]");
   const uniqueNameChangeCurrent = document.querySelector("[data-unique-name-change-current]");
@@ -9079,6 +9082,7 @@ ${calmPracticeMessage}`;
         submitHandleButton.disabled = false;
       }
       if (acceptedHandle && completedRole) {
+        await choosePartnerConfirmationMethodAfterUniqueNameClaim();
         if (postClaimFlow === "install-gate") {
           showInstallGuideView({ returnView: "feature-setup" });
           return;
@@ -9698,26 +9702,50 @@ ${calmPracticeMessage}`;
     writeLauncherState(state);
   }
 
-  function openPartnerConfirmationMethodOverlay() {
-    if (!featureSetupOwnIdentifier) {
+  function openPartnerConfirmationMethodOverlay(options = {}) {
+    const isNewClaim = !!options.isNewClaim;
+    if (!featureSetupOwnIdentifier && !isNewClaim) {
       window.alert("First load or claim an accepted unique name, then choose a partner-confirmation method.");
       return;
     }
     if (partnerConfirmationMethodStatus) {
       partnerConfirmationMethodStatus.textContent = hasPartnerConfirmationCameraCapability()
-        ? "Choose the method for this browser or installed app."
+        ? (isNewClaim
+          ? "This affects how a real telepathy partner confirms this device. It does not replace the email verification you just completed."
+          : "Choose the method for this browser or installed app.")
         : "This browser does not offer a camera for live confirmation. Verified-name confirmation remains available.";
+    }
+    if (partnerConfirmationMethodTitle) {
+      partnerConfirmationMethodTitle.textContent = isNewClaim ? "Choose Partner Confirmation" : "Partner Confirmation";
+    }
+    if (partnerConfirmationMethodCopy) {
+      partnerConfirmationMethodCopy.textContent = isNewClaim
+        ? "When you practice telepathy with a real person, choose whether this device is represented by your verified name or by a current temporary camera snapshot. You can change this later in Setup Website Features."
+        : "Choose how this device is represented during a real human telepathy session. Live snapshots are temporary and are deleted when confirmation ends.";
     }
     partnerConfirmationMethodButtons.forEach((button) => {
       button.disabled = String(button.dataset.partnerConfirmationMethod || "") === "camera" && !hasPartnerConfirmationCameraCapability();
     });
     partnerConfirmationMethodOverlay?.classList.remove("beginner-view-hidden");
     partnerConfirmationMethodOverlay?.setAttribute("aria-hidden", "false");
+    if (closePartnerConfirmationMethodButton) {
+      closePartnerConfirmationMethodButton.hidden = isNewClaim;
+    }
   }
 
   function closePartnerConfirmationMethodOverlay() {
     partnerConfirmationMethodOverlay?.classList.add("beginner-view-hidden");
     partnerConfirmationMethodOverlay?.setAttribute("aria-hidden", "true");
+    if (closePartnerConfirmationMethodButton) {
+      closePartnerConfirmationMethodButton.hidden = false;
+    }
+  }
+
+  function choosePartnerConfirmationMethodAfterUniqueNameClaim() {
+    return new Promise((resolve) => {
+      pendingPartnerConfirmationMethodSelection = resolve;
+      openPartnerConfirmationMethodOverlay({ isNewClaim: true });
+    });
   }
 
   function partnerConfirmationRoleLabel(role) {
@@ -28428,6 +28456,7 @@ ${calmPracticeMessage}`;
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
     closeExploreProOverlay();
+    await choosePartnerConfirmationMethodAfterUniqueNameClaim();
     if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
       showInstallGuideView({ returnView: "feature-setup" });
       return;
@@ -33512,8 +33541,14 @@ ${calmPracticeMessage}`;
         return;
       }
       setPartnerConfirmationMethod(method);
+      const completeSelection = pendingPartnerConfirmationMethodSelection;
+      pendingPartnerConfirmationMethodSelection = null;
       closePartnerConfirmationMethodOverlay();
-      void refreshFeatureSetupView();
+      if (completeSelection) {
+        completeSelection(method);
+      } else {
+        void refreshFeatureSetupView();
+      }
     });
   });
   partnerConfirmationCaptureButton?.addEventListener("click", () => {
