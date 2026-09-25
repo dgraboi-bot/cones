@@ -305,6 +305,9 @@ async function main() {
     }
     await desktopPwaContinueButton.click();
     await desktopPwaPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    if (!/open=visitor-launcher/.test(desktopPwaPage.url())) {
+      throw new Error("Desktop-PWA Continue did not use the stable visitor-entry route.");
+    }
     await desktopPwaContext.close();
 
     // A slow or stalled identity lookup must never leave a normal browser

@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925b";
+  const launcherBuildVersion = "20260925c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -28390,7 +28390,10 @@ ${calmPracticeMessage}`;
         window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
         return;
       }
-      startVisitorLandingEntry({ direct: true });
+      // Navigate through the dedicated visitor route. Entering in place can
+      // race an unfinished landing initialization, which would otherwise put
+      // a standalone PWA straight back onto the landing page.
+      startVisitorLandingEntry();
       return;
     }
 
