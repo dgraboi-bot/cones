@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925q";
+  const launcherBuildVersion = "20260925r";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1109,7 +1109,6 @@
   let locationPickerReturnRole = "";
   let locationPickerPromptSourceTimestamp = 0;
   let locationPickerPendingContinuation = null;
-  let locationAutoPromptTimer = 0;
   let locationPermissionStatusHandle = null;
   let locationIndicatorWarmupTried = false;
   let activePairDifficultyCode = "";
@@ -19802,38 +19801,6 @@ ${calmPracticeMessage}`;
     return !!launcherView && !launcherView.classList.contains("beginner-view-hidden");
   }
 
-  function clearLocationAutoPromptTimer() {
-    if (locationAutoPromptTimer) {
-      window.clearTimeout(locationAutoPromptTimer);
-      locationAutoPromptTimer = 0;
-    }
-  }
-
-  function maybePromptForLocationFineTune(state = readLauncherState()) {
-    clearLocationAutoPromptTimer();
-    if (!isLauncherVisible() || launcherGuidedTourState || locationPickerOpening || !locationPickerOverlay) {
-      return;
-    }
-    const savedLocation = getSavedDeviceLocation(state);
-    if (!savedLocation || state.locationPermission !== "granted" || !locationNeedsFineTune(savedLocation)) {
-      return;
-    }
-    const dismissedTimestamp = Number(state.locationFineTuneDismissedForTimestamp || 0);
-    if (dismissedTimestamp && dismissedTimestamp === Number(savedLocation.timestamp || 0)) {
-      return;
-    }
-    locationAutoPromptTimer = window.setTimeout(() => {
-      clearLocationAutoPromptTimer();
-      if (!isLauncherVisible()) {
-        return;
-      }
-      void showLocationPicker(activeLauncherRole || "sender", {
-        mode: "auto-coarse",
-        sourceTimestamp: Number(savedLocation.timestamp || 0)
-      });
-    }, 450);
-  }
-
   function shouldGateGoForLocation(state = readLauncherState()) {
     const savedLocation = getSavedDeviceLocation(state);
     if (!savedLocation) {
@@ -20387,7 +20354,6 @@ ${calmPracticeMessage}`;
     if (!locationPickerOverlay || locationPickerOpening) {
       return;
     }
-    clearLocationAutoPromptTimer();
     locationPickerOpening = true;
     locationPickerReturnRole = role;
     locationPickerPromptSourceTimestamp = Number(options.sourceTimestamp || 0);
@@ -34789,9 +34755,8 @@ ${calmPracticeMessage}`;
     hideLocationPicker();
     refreshObservedInstallContext();
     renderLocationStatus();
-    void syncBrowserLocationPermission().then((state) => {
+    void syncBrowserLocationPermission().then(() => {
       renderLocationStatus();
-      maybePromptForLocationFineTune(state);
     });
     renderContactWordCount();
     updateInstallButtonLabel();
@@ -34863,9 +34828,8 @@ ${calmPracticeMessage}`;
     refreshObservedInstallContext();
     updateInstallButtonLabel();
     void refreshFeatureSetupView();
-    void syncBrowserLocationPermission().then((state) => {
+    void syncBrowserLocationPermission().then(() => {
       renderLocationStatus();
-      maybePromptForLocationFineTune(state);
     });
     const activeCard = roleCards.find((card) => card.classList.contains("active"));
     const activeRole = String(activeCard?.dataset.roleCard || "").trim();
@@ -34880,9 +34844,8 @@ ${calmPracticeMessage}`;
       refreshObservedInstallContext();
       updateInstallButtonLabel();
       void refreshFeatureSetupView();
-      void syncBrowserLocationPermission().then((state) => {
+      void syncBrowserLocationPermission().then(() => {
         renderLocationStatus();
-        maybePromptForLocationFineTune(state);
       });
       const activeCard = roleCards.find((card) => card.classList.contains("active"));
       const activeRole = String(activeCard?.dataset.roleCard || "").trim();
