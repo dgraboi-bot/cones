@@ -1587,6 +1587,12 @@ function send_unique_name_claim_verification_code(array &$state, string $current
     $cleanProposedHandle = trim((string) $proposedHandle);
     $cleanEmail = validate_email_identifier_string($email, 'email', true);
     assert_email_domain_accepts_mail($cleanEmail);
+    $establishedEmail = $cleanCurrentIdentifier !== ''
+        ? get_identifier_recovery_email($state, $cleanCurrentIdentifier)
+        : '';
+    if ($establishedEmail !== '' && normalize_explore_pro_email($cleanEmail) !== normalize_explore_pro_email($establishedEmail)) {
+        throw new RuntimeException('Use the email address already associated with this unique name.');
+    }
     append_debug_log(
         (string) ($GLOBALS['debugLogFile'] ?? ''),
         (bool) ($state['debug_enabled'] ?? false),

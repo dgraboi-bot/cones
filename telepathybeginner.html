@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
-  <meta name="espgym-build-version" content="20260925o">
+  <meta name="espgym-build-version" content="20260925p">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260925o">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260925p">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260925o">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260925o">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260925o">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260925p">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260925p">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260925p">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260925o">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260925o">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260925o">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260925p">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260925p">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260925p">
   <script>
     (function () {
-      var buildVersion = "20260925o";
+      var buildVersion = "20260925p";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -558,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260925o</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260925p</span>
           </div>
         </div>
 
@@ -1930,11 +1930,11 @@
 
               <section class="feature-setup-item" data-feature-setup-item="partner-confirmation">
                 <div class="feature-setup-copy">
-                  <h2 class="feature-setup-title">Partner Confirmation</h2>
-                  <p class="feature-setup-text">Choose how this device is identified to a human telepathy partner. A verified name shows a check mark. Live camera confirmation uses a current temporary snapshot before a session.</p>
+                  <h2 class="feature-setup-title">Partner Confirmation Method</h2>
+                  <p class="feature-setup-text">Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark. Live camera confirmation uses a temporary snapshot taken before a session.</p>
                   <div class="feature-setup-status" data-feature-setup-partner-confirmation-status>Verified-name confirmation is selected for this device.</div>
                 </div>
-                <button class="options-button feature-setup-action" type="button" data-feature-setup-partner-confirmation-action>CHOOSE METHOD</button>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-partner-confirmation-action>CHOOSE PARTNER<br>CONFIRMATION</button>
               </section>
 
             </div>
@@ -2067,13 +2067,13 @@
 
         <div class="handle-overlay beginner-view-hidden" data-partner-confirmation-method-overlay aria-hidden="true">
           <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="partnerConfirmationMethodTitle">
-            <h2 class="about-section-title" id="partnerConfirmationMethodTitle" data-partner-confirmation-method-title>Partner Confirmation</h2>
+            <h2 class="about-section-title" id="partnerConfirmationMethodTitle" data-partner-confirmation-method-title>Partner Confirmation Method</h2>
             <p class="about-section-copy" data-partner-confirmation-method-copy>Choose how this device is represented during a real human telepathy session. Live snapshots are temporary and are deleted when confirmation ends.</p>
             <div class="handle-dialog-status" data-partner-confirmation-method-status></div>
             <div class="handle-dialog-actions">
-              <button class="handle-dialog-button" type="button" data-partner-confirmation-method="verified">USE VERIFIED NAME</button>
-              <button class="handle-dialog-button" type="button" data-partner-confirmation-method="camera">USE LIVE CAMERA</button>
-              <button class="handle-dialog-button" type="button" data-close-partner-confirmation-method>BACK</button>
+              <button class="options-button partner-confirmation-method-button" type="button" data-partner-confirmation-method="verified">USE EMAIL-VERIFIED NAME</button>
+              <button class="options-button partner-confirmation-method-button" type="button" data-partner-confirmation-method="camera">USE LIVE CAMERA SNAPSHOT</button>
+              <button class="options-button partner-confirmation-method-button" type="button" data-close-partner-confirmation-method>BACK</button>
             </div>
           </div>
         </div>
@@ -2508,8 +2508,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260925o'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260925o'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260925p'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260925p'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3230,10 +3230,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260925o"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260925p"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260925o"></script>
-<script src="telepathybeginner.js?v=20260925o"></script>
+<script src="target-selection.js?v=20260925p"></script>
+<script src="telepathybeginner.js?v=20260925p"></script>
 </body>
 </html>
 

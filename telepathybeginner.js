@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925o";
+  const launcherBuildVersion = "20260925p";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -871,6 +871,7 @@
   const uniqueNameChangeContinueButton = document.querySelector("[data-unique-name-change-continue]");
   const featureSetupClaimItem = document.querySelector('[data-feature-setup-item="claim-name"]');
   const featureSetupMessagingItem = document.querySelector('[data-feature-setup-item="messaging"]');
+  const featureSetupPartnerConfirmationItem = document.querySelector('[data-feature-setup-item="partner-confirmation"]');
   const espLessonDetailTitle = document.querySelector("[data-esp-lesson-detail-title]");
   const espLessonDetailPreview = document.querySelector("[data-esp-lesson-detail-preview]");
   const espLessonDetailBody = document.querySelector("[data-esp-lesson-detail-body]");
@@ -2392,6 +2393,7 @@ ${calmPracticeMessage}`;
       identifierStatusMap: {},
       messagingDeviceId: typeof baseState?.messagingDeviceId === "string" ? baseState.messagingDeviceId : "",
       notificationPermission: typeof baseState?.notificationPermission === "string" ? baseState.notificationPermission : "",
+      partnerConfirmationMethod: String(baseState?.partnerConfirmationMethod || "").trim().toLowerCase() === "camera" ? "camera" : "verified",
       updatesInterestEmail: typeof baseState?.updatesInterestEmail === "string" ? baseState.updatesInterestEmail : "",
       themeColor: typeof baseState?.themeColor === "string" ? baseState.themeColor : defaultThemeColor,
       learnMoreText: normalizeStoredLearnMoreText(baseState?.learnMoreText),
@@ -8977,8 +8979,33 @@ ${calmPracticeMessage}`;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const postClaimFlow = featureSetupPendingHandleFlow;
-      // iPhone and iPad claims must complete email verification first so the
-      // verified claim response can enroll the device passkey.
+      if (!visitorMode && currentIdentifier && normalizeIdentifierForStorage(currentIdentifier) !== normalizeIdentifierForStorage(proposedHandle)) {
+        const currentStatus = await fetchIdentifierStatus(currentIdentifier);
+        if (currentStatus?.formal_identity_exists) {
+          activeHandleRole = "";
+          handleOverlayReturnRole = "";
+          featureSetupPendingHandleFlow = "";
+          handleOverlay?.classList.add("beginner-view-hidden");
+          if (handleStatus) {
+            handleStatus.textContent = "";
+          }
+          if (handleInput) {
+            handleInput.value = "";
+          }
+          openExploreProOverlay({
+            mode: "claim",
+            identifier: proposedHandle,
+            role: completedRole,
+            returnRole,
+            returnScrollY,
+            postClaimFlow,
+            currentIdentifier
+          });
+          return;
+        }
+      }
+      // A first claim selects its partner-verification method before the
+      // identity is created. Existing names continue through email recovery.
       if (visitorMode || detectMobileBrowser().isIOS) {
         let proposedStatus = null;
         try {
@@ -8988,7 +9015,27 @@ ${calmPracticeMessage}`;
         }
         if (proposedStatus?.formal_identity_exists) {
           if (!proposedStatus.auth_email_on_file) {
-            throw new Error("Your email address cannot be validated. Please contact ESP Gym.");
+            activeHandleRole = "";
+            handleOverlayReturnRole = "";
+            featureSetupPendingHandleFlow = "";
+            handleOverlay?.classList.add("beginner-view-hidden");
+            if (handleStatus) {
+              handleStatus.textContent = "";
+            }
+            if (handleInput) {
+              handleInput.value = "";
+            }
+            openExploreProOverlay({
+              mode: "claim",
+              claimPurpose: "associate-email",
+              identifier: String(proposedStatus.preferred_identifier || proposedHandle).trim(),
+              role: completedRole,
+              returnRole,
+              returnScrollY,
+              postClaimFlow,
+              currentIdentifier: String(proposedStatus.preferred_identifier || proposedHandle).trim()
+            });
+            return;
           }
           activeHandleRole = "";
           handleOverlayReturnRole = "";
@@ -9006,26 +9053,29 @@ ${calmPracticeMessage}`;
           });
           return;
         }
-        activeHandleRole = "";
-        handleOverlayReturnRole = "";
-        featureSetupPendingHandleFlow = "";
-        handleOverlay?.classList.add("beginner-view-hidden");
-        if (handleStatus) {
-          handleStatus.textContent = "";
+        const selectedMethod = await choosePartnerConfirmationMethodAfterUniqueNameClaim();
+        if (selectedMethod !== "camera") {
+          activeHandleRole = "";
+          handleOverlayReturnRole = "";
+          featureSetupPendingHandleFlow = "";
+          handleOverlay?.classList.add("beginner-view-hidden");
+          if (handleStatus) {
+            handleStatus.textContent = "";
+          }
+          if (handleInput) {
+            handleInput.value = "";
+          }
+          openExploreProOverlay({
+            mode: "claim",
+            identifier: proposedHandle,
+            role: completedRole,
+            returnRole,
+            returnScrollY,
+            postClaimFlow,
+            currentIdentifier
+          });
+          return;
         }
-        if (handleInput) {
-          handleInput.value = "";
-        }
-        openExploreProOverlay({
-          mode: "claim",
-          identifier: proposedHandle,
-          role: completedRole,
-          returnRole,
-          returnScrollY,
-          postClaimFlow,
-          currentIdentifier
-        });
-        return;
       }
       const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
@@ -9082,7 +9132,6 @@ ${calmPracticeMessage}`;
         submitHandleButton.disabled = false;
       }
       if (acceptedHandle && completedRole) {
-        await choosePartnerConfirmationMethodAfterUniqueNameClaim();
         if (postClaimFlow === "install-gate") {
           showInstallGuideView({ returnView: "feature-setup" });
           return;
@@ -9690,6 +9739,21 @@ ${calmPracticeMessage}`;
     return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function");
   }
 
+  async function hasAvailablePartnerConfirmationCamera() {
+    if (!hasPartnerConfirmationCameraCapability()) {
+      return false;
+    }
+    if (typeof navigator.mediaDevices.enumerateDevices !== "function") {
+      return true;
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.some((device) => device?.kind === "videoinput");
+    } catch (_) {
+      return false;
+    }
+  }
+
   function getPartnerConfirmationMethod() {
     return String(readLauncherState()?.partnerConfirmationMethod || "verified").trim().toLowerCase() === "camera"
       ? "camera"
@@ -9704,33 +9768,47 @@ ${calmPracticeMessage}`;
 
   function openPartnerConfirmationMethodOverlay(options = {}) {
     const isNewClaim = !!options.isNewClaim;
+    const cameraAvailable = typeof options.cameraAvailable === "boolean"
+      ? options.cameraAvailable
+      : hasPartnerConfirmationCameraCapability();
     if (!featureSetupOwnIdentifier && !isNewClaim) {
       window.alert("First load or claim an accepted unique name, then choose a partner-confirmation method.");
       return;
     }
     if (partnerConfirmationMethodStatus) {
-      partnerConfirmationMethodStatus.textContent = hasPartnerConfirmationCameraCapability()
+      partnerConfirmationMethodStatus.textContent = cameraAvailable
         ? (isNewClaim
-          ? "This affects how a real telepathy partner confirms this device. It does not replace the email verification you just completed."
+          ? "Choose the method for this device before continuing."
           : "Choose the method for this browser or installed app.")
         : "This browser does not offer a camera for live confirmation. Verified-name confirmation remains available.";
     }
     if (partnerConfirmationMethodTitle) {
-      partnerConfirmationMethodTitle.textContent = isNewClaim ? "Choose Partner Confirmation" : "Partner Confirmation";
+      partnerConfirmationMethodTitle.textContent = isNewClaim ? "Choose Partner Verification Method" : "Partner Confirmation Method";
     }
     if (partnerConfirmationMethodCopy) {
       partnerConfirmationMethodCopy.textContent = isNewClaim
-        ? "When you practice telepathy with a real person, choose whether this device is represented by your verified name or by a current temporary camera snapshot. You can change this later in Setup Website Features."
-        : "Choose how this device is represented during a real human telepathy session. Live snapshots are temporary and are deleted when confirmation ends.";
+        ? (cameraAvailable
+          ? "When you practice telepathy with a real person, choose whether your identity is verified by a snapshot of your face at that time, or by you verifying who you are now by entering a 5-character authorization code sent to your email. You can change this later in the Setup Website Features menu selection."
+          : "When you practice telepathy with a real person, choose whether your identity will be verified by you verifying your identity now by entering a 5-character authorization code sent to your email. Please enter your email, used only for this verification process, and then complete the process by pressing SEND CODE and entering the 5-character code emailed to you from ESP GYM.")
+        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark. Live camera confirmation uses a temporary snapshot taken before a session.";
     }
     partnerConfirmationMethodButtons.forEach((button) => {
-      button.disabled = String(button.dataset.partnerConfirmationMethod || "") === "camera" && !hasPartnerConfirmationCameraCapability();
+      const method = String(button.dataset.partnerConfirmationMethod || "").trim();
+      const isCameraChoice = method === "camera";
+      button.hidden = isNewClaim && isCameraChoice && !cameraAvailable;
+      button.disabled = isCameraChoice && !cameraAvailable;
+      if (method === "verified") {
+        button.textContent = isNewClaim && !cameraAvailable ? "OK" : "USE EMAIL-VERIFIED NAME";
+      } else if (isCameraChoice) {
+        button.textContent = "USE LIVE CAMERA SNAPSHOT";
+      }
     });
     partnerConfirmationMethodOverlay?.classList.remove("beginner-view-hidden");
     partnerConfirmationMethodOverlay?.setAttribute("aria-hidden", "false");
     if (closePartnerConfirmationMethodButton) {
       closePartnerConfirmationMethodButton.hidden = isNewClaim;
     }
+    setFeatureSetupBackButtonTemporarilyHidden(isNewClaim);
   }
 
   function closePartnerConfirmationMethodOverlay() {
@@ -9739,12 +9817,17 @@ ${calmPracticeMessage}`;
     if (closePartnerConfirmationMethodButton) {
       closePartnerConfirmationMethodButton.hidden = false;
     }
+    partnerConfirmationMethodButtons.forEach((button) => {
+      button.hidden = false;
+    });
+    setFeatureSetupBackButtonTemporarilyHidden(false);
   }
 
-  function choosePartnerConfirmationMethodAfterUniqueNameClaim() {
+  async function choosePartnerConfirmationMethodAfterUniqueNameClaim() {
+    const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     return new Promise((resolve) => {
       pendingPartnerConfirmationMethodSelection = resolve;
-      openPartnerConfirmationMethodOverlay({ isNewClaim: true });
+      openPartnerConfirmationMethodOverlay({ isNewClaim: true, cameraAvailable });
     });
   }
 
@@ -10064,16 +10147,19 @@ ${calmPracticeMessage}`;
     }
 
     const partnerConfirmationMethod = getPartnerConfirmationMethod();
-    const cameraAvailable = hasPartnerConfirmationCameraCapability();
+    const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     if (featureSetupPartnerConfirmationStatus) {
       featureSetupPartnerConfirmationStatus.textContent = partnerConfirmationMethod === "camera"
         ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
         : cameraAvailable
           ? "Verified-name confirmation is selected for this device. You can instead choose live camera confirmation."
-          : "This device does not offer a camera for live confirmation. Verified-name confirmation is selected.";
+          : "Email-verified name confirmation is selected for this device.";
     }
     if (featureSetupPartnerConfirmationActionButton) {
       featureSetupPartnerConfirmationActionButton.disabled = !featureSetupOwnIdentifier;
+    }
+    if (featureSetupPartnerConfirmationItem) {
+      featureSetupPartnerConfirmationItem.hidden = !cameraAvailable;
     }
 
     if (featureSetupSummary) {
@@ -28313,7 +28399,8 @@ ${calmPracticeMessage}`;
             returnScrollY: Math.max(0, Number(options.returnScrollY || 0) || 0),
             postClaimFlow: String(options.postClaimFlow || "").trim(),
             currentIdentifier: String(options.currentIdentifier || "").trim(),
-            proposedHandle: String(options.identifier || "").trim()
+            proposedHandle: String(options.identifier || "").trim(),
+            claimPurpose: String(options.claimPurpose || "").trim()
           }
         : null;
     }
@@ -28334,19 +28421,30 @@ ${calmPracticeMessage}`;
       }
     } else if (mode === "claim") {
       const proposedHandle = String(options.identifier || "").trim();
+      const isEmailAssociation = String(options.claimPurpose || "").trim() === "associate-email";
       if (exploreProTitle) {
-        exploreProTitle.textContent = "Verify New Unique Name";
+        exploreProTitle.textContent = isEmailAssociation ? "Verify Your Email" : "Verify New Unique Name";
       }
       if (exploreProIntro) {
-        exploreProIntro.textContent = proposedHandle
-          ? `Verify your email to claim ${proposedHandle} as your unique name in ESP GYM.`
-          : "Verify your email to claim your unique name in ESP GYM.";
+        if (proposedHandle) {
+          const name = document.createElement("strong");
+          name.textContent = proposedHandle;
+          exploreProIntro.replaceChildren(
+            isEmailAssociation ? "Verify your email to associate it with " : "Verify your email to claim ",
+            name,
+            isEmailAssociation ? " for use on this device." : " as your unique name in ESP GYM."
+          );
+        } else {
+          exploreProIntro.textContent = isEmailAssociation
+            ? "Verify your email for use on this device."
+            : "Verify your email to claim your unique name in ESP GYM.";
+        }
       }
       if (exploreProAuthCopy) {
         exploreProAuthCopy.textContent = "Your email address is used only for authentication. Please enter your email address below. You will be emailed a 5-character verification code. Your unique name will be claimed after verification succeeds.";
       }
       if (exploreProStartButton) {
-        exploreProStartButton.textContent = "CLAIM UNIQUE NAME";
+        exploreProStartButton.textContent = isEmailAssociation ? "VERIFY EMAIL" : "CLAIM UNIQUE NAME";
       }
     }
     setFeatureSetupBackButtonTemporarilyHidden(true);
@@ -28456,7 +28554,6 @@ ${calmPracticeMessage}`;
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
     closeExploreProOverlay();
-    await choosePartnerConfirmationMethodAfterUniqueNameClaim();
     if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
       showInstallGuideView({ returnView: "feature-setup" });
       return;
