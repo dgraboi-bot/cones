@@ -239,6 +239,74 @@ async function main() {
     if (staleIdentity) throw new Error("Deleted identity was not cleared before entering as a visitor.");
     await visitorContext.close();
 
+    // A fresh installed iPad must not be trapped on its landing page if its
+    // optional passkey-restore preparation cannot reach the server.
+    const resetIpadContext = await browser.newContext();
+    await resetIpadContext.addInitScript(() => {
+      Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1" });
+      Object.defineProperty(navigator, "vendor", { configurable: true, get: () => "Apple Computer, Inc." });
+      Object.defineProperty(navigator, "platform", { configurable: true, get: () => "iPad" });
+      Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, get: () => 5 });
+      const nativeMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query) => {
+        const result = nativeMatchMedia(query);
+        if (query === "(display-mode: standalone)") {
+          Object.defineProperty(result, "matches", { configurable: true, get: () => true });
+        }
+        return result;
+      };
+    });
+    const resetIpadPage = await resetIpadContext.newPage();
+    await resetIpadPage.route("**/api.php", async (route) => {
+      const body = route.request().postData() || "";
+      if (body.includes('"action":"begin_passkey_authentication"')) {
+        await route.abort("failed");
+        return;
+      }
+      await route.continue();
+    });
+    await resetIpadPage.goto(`http://localhost:${port}/telepathybeginner.html?open=landing`, { waitUntil: "domcontentloaded" });
+    const resetIpadContinueButton = resetIpadPage.locator("[data-temporary-home-continue]");
+    await resetIpadContinueButton.waitFor({ timeout: 5000 });
+    if (await resetIpadContinueButton.isDisabled()) {
+      throw new Error("Fresh installed-iPad Continue remained disabled after passkey preparation failed.");
+    }
+    await resetIpadContinueButton.click();
+    await resetIpadPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    await resetIpadContext.close();
+
+    // A desktop installed PWA has no Apple passkey prerequisite. Its Continue
+    // action must be available immediately, even while optional startup work
+    // is deliberately delayed.
+    const desktopPwaContext = await browser.newContext();
+    await desktopPwaContext.addInitScript(() => {
+      const nativeMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query) => {
+        const result = nativeMatchMedia(query);
+        if (query === "(display-mode: standalone)") {
+          Object.defineProperty(result, "matches", { configurable: true, get: () => true });
+        }
+        return result;
+      };
+    });
+    const desktopPwaPage = await desktopPwaContext.newPage();
+    await desktopPwaPage.route("**/api.php", async (route) => {
+      const body = route.request().postData() || "";
+      if (body.includes('"action":"begin_passkey_authentication"')) {
+        await new Promise((resolve) => setTimeout(resolve, 5500));
+      }
+      await route.continue();
+    });
+    await desktopPwaPage.goto(`http://localhost:${port}/telepathybeginner.html?open=landing`, { waitUntil: "domcontentloaded" });
+    const desktopPwaContinueButton = desktopPwaPage.locator("[data-temporary-home-continue]");
+    await desktopPwaContinueButton.waitFor({ timeout: 3000 });
+    if (await desktopPwaContinueButton.isDisabled()) {
+      throw new Error("Desktop-PWA Continue remained disabled during optional startup work.");
+    }
+    await desktopPwaContinueButton.click();
+    await desktopPwaPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    await desktopPwaContext.close();
+
     // A slow or stalled identity lookup must never leave a normal browser
     // landing page with its only entry action disabled forever.
     const stalledContext = await browser.newContext();

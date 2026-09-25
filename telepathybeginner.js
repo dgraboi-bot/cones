@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925a";
+  const launcherBuildVersion = "20260925b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5873,11 +5873,27 @@ ${calmPracticeMessage}`;
 
   async function prepareApplePasskeyIdentityRestore() {
     if (!shouldOfferApplePasskeyRestore()) return null;
+    // Passkey restoration is helpful after a real PWA install, but it must
+    // never prevent a freshly reset device from entering as an anonymous user.
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    let timeoutId = 0;
     try {
-      const begin = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "begin_passkey_authentication" }) });
+      if (controller) {
+        timeoutId = window.setTimeout(() => controller.abort(), 4000);
+      }
+      const begin = await fetch("api.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "begin_passkey_authentication" }),
+        ...(controller ? { signal: controller.signal } : {})
+      });
       return await parseApiResponse(begin, `Secure device check failed with status ${begin.status}`);
     } catch (_) {
       return null;
+    } finally {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     }
   }
 
@@ -27687,9 +27703,11 @@ ${calmPracticeMessage}`;
 
     if (temporaryHomePageContinueButton) {
       // Browser Safari must retain an escape route even if optional startup
-      // work is slow. Installed PWA entry remains gated until its passkey
-      // restoration state is known.
-      temporaryHomePageContinueButton.disabled = (isStandaloneShell() && !launcherStartupReady) || applePasskeyRestoreInFlight;
+      // work is slow. Only iPhone/iPad PWAs need a temporary entry gate while
+      // their passkey-restore state is being prepared; desktop and Android
+      // PWAs have no such prerequisite and must remain immediately usable.
+      const requiresApplePasskeyStartupGate = isStandaloneShell() && detectMobileBrowser().isIOS && !launcherStartupReady;
+      temporaryHomePageContinueButton.disabled = requiresApplePasskeyStartupGate || applePasskeyRestoreInFlight;
       temporaryHomePageContinueButton.textContent = pendingApplePasskeyRestore
         ? "FINISH APP INSTALLATION"
         : hasMatchingActiveExploreTrial
