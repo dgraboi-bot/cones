@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925j";
+  const launcherBuildVersion = "20260925k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8599,31 +8599,20 @@ ${calmPracticeMessage}`;
   }
 
   function writeClientDebugTrace(label, details = {}) {
-    const payload = JSON.stringify({
-      action: "trace_client",
-      label,
-      details: [details],
-      local_debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
-      debug_source_code: getClientDebugSourceCode()
-    });
-    // Safari can abandon ordinary fetches as CONTINUE navigates away. Beacon
-    // queues this tiny diagnostic payload without participating in navigation.
-    try {
-      if (navigator.sendBeacon && navigator.sendBeacon(
-        "api.php",
-        new Blob([payload], { type: "application/json" })
-      )) {
-        return;
-      }
-    } catch (_beaconError) {
-      // Use a normal best-effort request if Beacon is unavailable.
-    }
+    // Keep diagnostics completely separate from navigation. Safari's beacon
+    // behavior was not reliable during the landing-page investigation.
     void fetch("api.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: payload
+      body: JSON.stringify({
+        action: "trace_client",
+        label,
+        details: [details],
+        local_debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+        debug_source_code: getClientDebugSourceCode()
+      })
     }).catch(() => {
       // Ignore trace failures.
     });
