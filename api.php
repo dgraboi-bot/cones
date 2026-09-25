@@ -14219,6 +14219,11 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
         $state['user_preferences'] = [];
         $state['retired_handles'] = [];
         $state['handle_owners'] = [];
+        $state['identifier_recovery_verifications'] = [];
+        $state['unique_name_claim_verifications'] = [];
+        $state['passkey_credentials'] = [];
+        $state['passkey_ceremonies'] = [];
+        $state['passkey_enrollment_grants'] = [];
         $state['explore_pro_verifications'] = [];
         $state['explore_pro_trials'] = [];
         $state['stripe_users'] = [];

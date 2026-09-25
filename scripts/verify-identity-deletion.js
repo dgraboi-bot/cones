@@ -116,7 +116,44 @@ async function main() {
       throw new Error("Residual guest identity remains visible after cleanup.");
     }
     await mustNotExist(csv, "Residual guest trial history");
-    console.log("PASS: controlled identity deletion removes server identity, passkeys, reports, questionnaires, pair history, and partner references.");
+
+    // Fresh Start with users unchecked must also remove authentication and
+    // recovery records, or a new clean development pass can retain old access.
+    const freshStartState = JSON.parse(await readFile(statePath, "utf8"));
+    freshStartState.passkey_credentials = { credential: { identifier: handle, source: {}, created_ms: 1 } };
+    freshStartState.passkey_ceremonies = { ceremony: { identifier: handle, expires_ms: Date.now() + 60000 } };
+    freshStartState.passkey_enrollment_grants = { grant: { identifier: handle, expires_ms: Date.now() + 60000 } };
+    freshStartState.identifier_recovery_verifications = { recovery: { identifier: handle, expires_ms: Date.now() + 60000 } };
+    freshStartState.unique_name_claim_verifications = { claim: { identifier: handle, expires_ms: Date.now() + 60000 } };
+    await writeFile(statePath, JSON.stringify(freshStartState));
+    const freshStart = await request(port, {
+      action: "fresh_start",
+      preserve_users: false,
+      preserve_invitees: true,
+      preserve_pairs: true,
+      preserve_simulation_pairs: true,
+      preserve_questionnaires: true,
+      preserve_messaging_history: true,
+      preserve_analytics_counters: true,
+      secret_candidate: adminSecret,
+      admin_client_id: adminClientId
+    });
+    if (freshStart.status !== 200 || !freshStart.body.ok) {
+      throw new Error(`Fresh Start user reset failed: ${JSON.stringify(freshStart.body)}`);
+    }
+    const resetState = JSON.parse(await readFile(statePath, "utf8"));
+    for (const bucket of [
+      "passkey_credentials",
+      "passkey_ceremonies",
+      "passkey_enrollment_grants",
+      "identifier_recovery_verifications",
+      "unique_name_claim_verifications"
+    ]) {
+      if (Object.keys(resetState[bucket] || {}).length !== 0) {
+        throw new Error(`Fresh Start retained ${bucket} after users were cleared.`);
+      }
+    }
+    console.log("PASS: controlled identity deletion and Fresh Start remove server identities, passkeys, recovery records, reports, questionnaires, pair history, and partner references.");
   } finally {
     php.kill();
     await rm(privateRoot, { recursive: true, force: true });
