@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925h";
+  const launcherBuildVersion = "20260925i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8601,6 +8601,9 @@ ${calmPracticeMessage}`;
   function writeClientDebugTrace(label, details = {}) {
     void fetch("api.php", {
       method: "POST",
+      // Landing Continue immediately navigates. Keep this short diagnostic
+      // request eligible to finish while the browser is leaving the page.
+      keepalive: true,
       headers: {
         "Content-Type": "application/json"
       },
