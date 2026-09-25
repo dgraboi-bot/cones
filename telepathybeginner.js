@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925e";
+  const launcherBuildVersion = "20260925f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -29872,6 +29872,13 @@ ${calmPracticeMessage}`;
         return;
       }
       if (requestedView === "launcher") {
+        // A manifest launch must not silently bypass the landing page after a
+        // device-only reset. Resume recognized users, while a first-time or
+        // cleared device starts from the same landing page as a normal visit.
+        if (!hasKnownLauncherIdentity(launcherState) && !isVisitorLauncherEntry(launcherState)) {
+          showTemporaryHomePageView();
+          return;
+        }
         void enterWorkingHomeFromLanding("resume");
         return;
       }

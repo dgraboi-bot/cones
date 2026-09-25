@@ -310,6 +310,34 @@ async function main() {
     }
     await desktopPwaContext.close();
 
+    // Clearing an installed desktop PWA creates an anonymous device. Its
+    // manifest launcher route must show the landing page, then enter only
+    // after the user actively chooses Continue.
+    const clearedDesktopPwaContext = await browser.newContext();
+    await clearedDesktopPwaContext.addInitScript(() => {
+      const nativeMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query) => {
+        const result = nativeMatchMedia(query);
+        if (query === "(display-mode: standalone)") {
+          Object.defineProperty(result, "matches", { configurable: true, get: () => true });
+        }
+        return result;
+      };
+    });
+    const clearedDesktopPwaPage = await clearedDesktopPwaContext.newPage();
+    await clearedDesktopPwaPage.goto(`http://localhost:${port}/telepathybeginner.html?open=launcher`, { waitUntil: "domcontentloaded" });
+    const clearedDesktopContinueButton = clearedDesktopPwaPage.locator("[data-temporary-home-continue]");
+    await clearedDesktopContinueButton.waitFor({ timeout: 3000 });
+    if (await clearedDesktopContinueButton.isDisabled()) {
+      throw new Error("Cleared desktop-PWA Continue was disabled.");
+    }
+    await clearedDesktopContinueButton.click();
+    await clearedDesktopPwaPage.locator('[data-view="launcher"]:not(.beginner-view-hidden)').waitFor({ timeout: 5000 });
+    if (!/open=visitor-launcher/.test(clearedDesktopPwaPage.url())) {
+      throw new Error("Cleared desktop-PWA did not enter through the visitor route.");
+    }
+    await clearedDesktopPwaContext.close();
+
     // A slow or stalled identity lookup must never leave a normal browser
     // landing page with its only entry action disabled forever.
     const stalledContext = await browser.newContext();
