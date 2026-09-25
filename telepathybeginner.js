@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925l";
+  const launcherBuildVersion = "20260925m";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -29,7 +29,9 @@
     return `${yearCode}${monthCode}${day}${suffix}`;
   }
   const launcherDisplayVersion = formatPublicDisplayVersion(launcherBuildVersion);
-  const buildRecoveryAttemptKey = `espgym-build-recovery-attempt-${launcherBuildVersion}`;
+  // Keep the recovery limit shared across build versions. A stale shell and a
+  // current shell must not each get their own fresh set of reload attempts.
+  const buildRecoveryAttemptKey = "espgym-build-recovery-attempt";
   const buildRecoveryStatusParam = "build_recovery";
   const reportRequestRecoveryStatusParam = "report_recovery";
   const maxBuildRecoveryAttempts = 2;

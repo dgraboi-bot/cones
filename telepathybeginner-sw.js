@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260925l";
-const APP_VERSION = "20260925l";
+const CACHE_NAME = "telepathybeginner-v20260925m";
+const APP_VERSION = "20260925m";
 const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
   "./",
@@ -24,7 +24,7 @@ const APP_ASSETS = [
   "./tb-test-icon-3.png",
   "./tb-test-icon-4.png",
   "./BeginnerUserManual.html",
-  `./BeginnerUserManual.html?v=20260925l`,
+  `./BeginnerUserManual.html?v=20260925m`,
   "./minds-connected-uncropped.png",
   "./rewire.png",
   "./RV1.png",
@@ -87,27 +87,9 @@ self.addEventListener("fetch", (event) => {
   );
 
   if (event.request.mode === "navigate") {
-    const isStaleVersionedLauncherNavigation = !!(
-      requestUrl &&
-      requestUrl.origin === self.location.origin &&
-      /\/telepathybeginner\.html$/i.test(requestUrl.pathname) &&
-      requestUrl.searchParams.has("v") &&
-      requestUrl.searchParams.get("v") !== APP_VERSION
-    );
-
-    // Installed PWAs can retain a historic versioned start URL. Redirect it
-    // before its obsolete shell renders, rather than relying on a later
-    // client-side build-recovery reload that can discard a user tap.
-    if (isStaleVersionedLauncherNavigation) {
-      const launchUrl = new URL(APP_LAUNCH_URL, self.registration.scope);
-      const requestedView = String(requestUrl.searchParams.get("open") || "").trim();
-      if (requestedView) {
-        launchUrl.searchParams.set("open", requestedView);
-      }
-      event.respondWith(Promise.resolve(Response.redirect(launchUrl.href, 302)));
-      return;
-    }
-
+    // Navigation must remain network-first even when this worker is from an
+    // older build. Redirecting a newer URL to an older cached URL can bounce
+    // indefinitely against the newer shell's own version normalization.
     event.respondWith(
       fetch(event.request)
         .then((response) => {

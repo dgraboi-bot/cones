@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
-  <meta name="espgym-build-version" content="20260925l">
+  <meta name="espgym-build-version" content="20260925m">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -55,24 +55,26 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260925l">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260925m">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260925l">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260925l">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260925l">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260925m">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260925m">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260925m">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260925l">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260925l">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260925l">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260925m">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260925m">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260925m">
   <script>
     (function () {
-      var buildVersion = "20260925l";
+      var buildVersion = "20260925m";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
           currentUrl.searchParams.set("v", buildVersion);
-          window.location.replace(currentUrl.toString());
+          // Normalize the visible URL without asking a historic service worker
+          // to redirect this navigation back to its own cached build.
+          window.history.replaceState(null, "", currentUrl.toString());
         }
       } catch (error) {
         // Leave the page alone if URL parsing fails.
@@ -556,7 +558,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260925l</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260925m</span>
           </div>
         </div>
 
@@ -2041,14 +2043,14 @@
               <section class="partner-confirmation-person" data-partner-confirmation-self>
                 <h3 data-partner-confirmation-self-label>You</h3>
                 <div class="partner-confirmation-frame" data-partner-confirmation-self-frame>
-                  <span class="partner-confirmation-check" aria-hidden="true">âœ“</span>
+                  <span class="partner-confirmation-check" aria-hidden="true">Ã¢Å“â€œ</span>
                 </div>
                 <p data-partner-confirmation-self-status>Verified unique name</p>
               </section>
               <section class="partner-confirmation-person" data-partner-confirmation-partner>
                 <h3 data-partner-confirmation-partner-label>Partner</h3>
                 <div class="partner-confirmation-frame" data-partner-confirmation-partner-frame>
-                  <span class="partner-confirmation-check" aria-hidden="true">âœ“</span>
+                  <span class="partner-confirmation-check" aria-hidden="true">Ã¢Å“â€œ</span>
                 </div>
                 <p data-partner-confirmation-partner-status>Waiting for your partner</p>
               </section>
@@ -2506,8 +2508,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260925l'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260925l'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260925m'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260925m'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3228,10 +3230,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260925l"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260925m"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260925l"></script>
-<script src="telepathybeginner.js?v=20260925l"></script>
+<script src="target-selection.js?v=20260925m"></script>
+<script src="telepathybeginner.js?v=20260925m"></script>
 </body>
 </html>
 
