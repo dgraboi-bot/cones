@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926k";
+  const launcherBuildVersion = "20260926l";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -7848,6 +7848,9 @@ ${calmPracticeMessage}`;
       uses_handle: !!status.uses_handle,
       is_handle: !!status.is_handle,
       identifier_exists: !!status.identifier_exists,
+      formal_identity_exists: !!status.formal_identity_exists,
+      auth_email_on_file: !!status.auth_email_on_file,
+      passkey_registered: !!status.passkey_registered,
       updated_at: Date.now()
     };
 
@@ -10049,6 +10052,7 @@ ${calmPracticeMessage}`;
     const partnerReady = !!partner.joined && (partner.method !== "camera" || !!partner.snapshot);
     const ownReady = own.method !== "camera" || !!own.snapshot;
     const partnerUsesVerifiedName = !!partner.joined && partner.method !== "camera";
+    const bothUseVerifiedNames = !!own.joined && own.method !== "camera" && partnerUsesVerifiedName;
     if (partnerConfirmationCaptureButton) {
       partnerConfirmationCaptureButton.hidden = own.method !== "camera" || !!own.snapshot;
       partnerConfirmationCaptureButton.disabled = false;
@@ -10061,7 +10065,9 @@ ${calmPracticeMessage}`;
     }
     if (partnerConfirmationApproveButton) {
       partnerConfirmationApproveButton.textContent = partnerUsesVerifiedName ? "CONTINUE" : "THIS IS MY PARTNER";
-      partnerConfirmationApproveButton.disabled = partnerUsesVerifiedName
+      partnerConfirmationApproveButton.disabled = bothUseVerifiedNames
+        ? !partnerReady || !!own.confirmed
+        : partnerUsesVerifiedName
         ? !partner.confirmed || !ownReady || !!own.confirmed
         : !partnerReady || !ownReady || !!own.confirmed;
       partnerConfirmationApproveButton.hidden = !!own.confirmed;
@@ -10069,6 +10075,10 @@ ${calmPracticeMessage}`;
     if (partnerConfirmationStatus) {
       partnerConfirmationStatus.textContent = state.ready
         ? "Both partners confirmed. Starting the session..."
+        : bothUseVerifiedNames
+          ? own.confirmed
+            ? `Partners verified - Waiting for ${partnerName} to press CONTINUE.`
+            : "Partners verified - Press CONTINUE to proceed."
         : own.confirmed
           ? own.method !== "camera" && partner.method === "camera"
             ? `Your partner is confirmed. Waiting for ${partnerName} to proceed.`
@@ -10232,8 +10242,9 @@ ${calmPracticeMessage}`;
     featureSetupOwnIdentifier = String(context.identifier || "").trim();
 
     if (featureSetupIdentifier) {
+      const identifierStatus = getCachedIdentifierStatus(featureSetupOwnIdentifier);
       featureSetupIdentifier.textContent = featureSetupOwnIdentifier
-        ? `Current Unique Name: ${featureSetupOwnIdentifier}`
+        ? `Current Unique Name: ${featureSetupOwnIdentifier}${identifierStatus?.auth_email_on_file ? " - verified via email." : ""}`
         : "Current Unique Name: no unique name is currently recognized in this browser.";
     }
 
@@ -10344,8 +10355,8 @@ ${calmPracticeMessage}`;
         : partnerConfirmationMethod === "camera"
           ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
           : cameraAvailable
-            ? "Verified-name confirmation is selected for this device. You can instead choose live camera confirmation."
-            : "Email-verified name confirmation is selected for this device.";
+            ? "Email verification has been selected for this browser/device. You can instead choose live camera confirmation."
+            : "Email verification has been selected for this browser/device.";
     }
     if (featureSetupPartnerConfirmationActionButton) {
       featureSetupPartnerConfirmationActionButton.disabled = !featureSetupOwnIdentifier;
@@ -28461,6 +28472,10 @@ ${calmPracticeMessage}`;
     if (exploreProEmailInput) {
       exploreProEmailInput.value = "";
       exploreProEmailInput.disabled = false;
+      const emailField = exploreProEmailInput.closest("label");
+      if (emailField) {
+        emailField.hidden = false;
+      }
     }
     if (exploreProCodeInput) {
       exploreProCodeInput.value = "";
@@ -28662,7 +28677,11 @@ ${calmPracticeMessage}`;
     nextIdentityState.visitorAlias = "";
     if (data?.identifier_status && acceptedHandle) {
       nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
-      nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = data.identifier_status;
+      nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = {
+        ...data.identifier_status,
+        formal_identity_exists: true,
+        auth_email_on_file: true
+      };
     }
     writeLauncherState(nextIdentityState);
     ["sender", "receiver", "remote-viewer"].forEach((role) => {
@@ -28671,16 +28690,40 @@ ${calmPracticeMessage}`;
     });
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
-    closeExploreProOverlay();
     if (String(claimContext?.postClaimFlow || "").trim() === "partner-confirmation-verified") {
       setPartnerConfirmationMethod("verified");
-      showFeatureSetupView({
-        role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
-        returnView: featureSetupReturnView || "card",
-        scrollY: featureSetupReturnScrollY
-      });
+      if (exploreProTitle) {
+        exploreProTitle.textContent = "Email Verification Complete";
+      }
+      if (exploreProIntro) {
+        const name = document.createElement("strong");
+        name.textContent = acceptedHandle;
+        exploreProIntro.replaceChildren("Your unique name, ", name, ", is verified via email.");
+      }
+      if (exploreProAuthCopy) {
+        exploreProAuthCopy.textContent = "This browser/device will show your email-verified name to human telepathy partners.";
+      }
+      exploreProEmailInput?.closest("label")?.setAttribute("hidden", "");
+      if (exploreProCodeField) {
+        exploreProCodeField.hidden = true;
+      }
+      if (exploreProSendCodeButton) {
+        exploreProSendCodeButton.hidden = true;
+      }
+      if (exploreProResendCodeButton) {
+        exploreProResendCodeButton.hidden = true;
+      }
+      if (exploreProVerifyActions) {
+        exploreProVerifyActions.hidden = true;
+      }
+      if (exploreProCloseButton) {
+        exploreProCloseButton.textContent = "BACK";
+      }
+      setExploreProStatus("Email verification succeeded. Press BACK to return to Setup Website Features.");
+      void refreshFeatureSetupView();
       return;
     }
+    closeExploreProOverlay();
     if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
       showInstallGuideView({ returnView: "feature-setup" });
       return;
