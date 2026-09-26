@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926j";
+  const launcherBuildVersion = "20260926k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -10070,7 +10070,9 @@ ${calmPracticeMessage}`;
       partnerConfirmationStatus.textContent = state.ready
         ? "Both partners confirmed. Starting the session..."
         : own.confirmed
-          ? `Your partner is confirmed. Waiting for ${partnerName} to confirm you.`
+          ? own.method !== "camera" && partner.method === "camera"
+            ? `Your partner is confirmed. Waiting for ${partnerName} to proceed.`
+            : `Your partner is confirmed. Waiting for ${partnerName} to confirm you.`
           : partner.confirmed && partnerUsesVerifiedName
             ? "Your partner has confirmed you. Tap CONTINUE to proceed."
           : partner.confirmed
