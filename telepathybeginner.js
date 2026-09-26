@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926n";
+  const launcherBuildVersion = "20260926o";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -23152,6 +23152,8 @@ ${calmPracticeMessage}`;
     aidsView?.classList.add("beginner-view-hidden");
     toolsView?.classList.add("beginner-view-hidden");
     goProView?.classList.add("beginner-view-hidden");
+    goProIncludesView?.classList.add("beginner-view-hidden");
+    giftProSubscriptionView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
     subscriptionManagementView?.classList.add("beginner-view-hidden");
@@ -23217,6 +23219,11 @@ ${calmPracticeMessage}`;
     confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
+    researchParticipationView?.classList.add("beginner-view-hidden");
+    researchParticipationProView?.classList.add("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
+    researchInterestFormView?.classList.add("beginner-view-hidden");
+    researchTeamInterestView?.classList.add("beginner-view-hidden");
     messagesView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
     reportView?.classList.add("beginner-view-hidden");
@@ -31171,10 +31178,8 @@ ${calmPracticeMessage}`;
 
   function closeGoProIncludesView() {
     if (goProIncludesReturnView === "temporary-home-page") {
-      showTemporaryHomePageView();
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: goProIncludesReturnScrollY, left: 0, behavior: "auto" });
-      });
+      // Landing-page returns must leave no secondary page visible underneath it.
+      forceReturnToTemporaryHomePage(goProIncludesReturnScrollY);
       return;
     }
     if (goProIncludesReturnView === "subscription-management") {
