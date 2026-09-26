@@ -11334,6 +11334,7 @@ if (!is_array($state)) {
         'learn_more_save_enabled' => false,
         'explore_pro_test_duration_seconds' => 0,
         'trial_mode_public_enabled' => false,
+        'esp_pro_special_edition_enabled' => false,
         'subscription_email_templates' => default_subscription_email_templates()
     ];
 }
@@ -11380,6 +11381,7 @@ if (!array_key_exists('sessions', $state)) {
         'learn_more_save_enabled' => false,
         'explore_pro_test_duration_seconds' => 0,
         'trial_mode_public_enabled' => false,
+        'esp_pro_special_edition_enabled' => false,
         'subscription_email_templates' => default_subscription_email_templates()
     ];
 }
@@ -11473,6 +11475,9 @@ if (!array_key_exists('learn_more_save_enabled', $state)) {
 }
 if (!array_key_exists('trial_mode_public_enabled', $state)) {
     $state['trial_mode_public_enabled'] = false;
+}
+if (!array_key_exists('esp_pro_special_edition_enabled', $state)) {
+    $state['esp_pro_special_edition_enabled'] = false;
 }
 ensure_subscription_email_state($state);
 ensure_invitee_state($state);
@@ -12123,6 +12128,10 @@ if ($action === 'set_trial_mode_public_enabled' && $hasAdminAccess) {
     $state['trial_mode_public_enabled'] = !empty($input['enabled']);
 }
 
+if ($action === 'set_esp_pro_special_edition_enabled' && $hasAdminAccess) {
+    $state['esp_pro_special_edition_enabled'] = !empty($input['enabled']);
+}
+
 if ($action === 'set_messaging_limits' && $hasAdminAccess) {
     try {
         require_allowed_keys($input, ['action', 'secret_candidate', 'admin_client_id', 'messaging_limits'], 'request');
@@ -12230,7 +12239,8 @@ if ($action === 'release_admin_lock') {
 if ($action === 'get_public_trial_mode') {
     $response = [
         'ok' => true,
-        'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled'])
+        'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled']),
+        'esp_pro_special_edition_enabled' => !empty($state['esp_pro_special_edition_enabled'])
     ];
     respond_json_and_close($handle, $response);
 }
@@ -15043,6 +15053,7 @@ $response = [
     'learn_more_save_enabled' => !empty($state['learn_more_save_enabled']),
     'explore_pro_test_duration_seconds' => max(0, (int) ($state['explore_pro_test_duration_seconds'] ?? 0)),
     'trial_mode_public_enabled' => !empty($state['trial_mode_public_enabled']),
+    'esp_pro_special_edition_enabled' => !empty($state['esp_pro_special_edition_enabled']),
     'messaging_limits' => get_messaging_limits($state),
     'pair_difficulty' => normalize_difficulty_level($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
     'role_conflict' => $roleConflict,

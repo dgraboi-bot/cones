@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926o";
+  const launcherBuildVersion = "20260926p";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -611,6 +611,7 @@
   const closeMessagingParmsAdminButton = document.querySelector("[data-close-messaging-parms-admin]");
   const openContactButton = document.querySelector("[data-open-contact]");
   const temporaryHomePageContinueButton = document.querySelector("[data-temporary-home-continue]");
+  const temporaryHomePageInvitationAccess = document.querySelector("[data-temporary-home-invitation-access]");
   const temporaryHomePageInvitationCodeInput = document.querySelector("[data-temporary-home-invitation-code]");
   const temporaryHomePageInvitationStatus = document.querySelector("[data-temporary-home-invitation-status]");
   const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
@@ -697,6 +698,9 @@
   let telepathyDifficultyGuideReturnScrollY = 0;
   let performanceVisualizationGuideReturnScrollY = 0;
   let launcherGuestEntryActive = false;
+  let publicLandingMode = {
+    espProSpecialEditionEnabled: false
+  };
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
   const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
@@ -984,6 +988,7 @@
   const adminLearnMoreSaveEnabledCheckbox = document.querySelector("[data-admin-learn-more-save-enabled]");
   const adminExploreProTestDurationInput = document.querySelector("[data-admin-explore-pro-test-duration]");
   const adminTrialModePublicEnabledCheckbox = document.querySelector("[data-admin-trial-mode-public-enabled]");
+  const adminEspProSpecialEditionEnabledCheckbox = document.querySelector("[data-admin-esp-pro-special-edition-enabled]");
   const messagingParmsMaxMessagesInput = document.querySelector("[data-messaging-parms-max-messages]");
   const messagingParmsMaxCharsInput = document.querySelector("[data-messaging-parms-max-chars]");
   const messagingParmsMaxTotalCharsInput = document.querySelector("[data-messaging-parms-max-total-chars]");
@@ -1511,6 +1516,7 @@ ${calmPracticeMessage}`;
       learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
       explore_pro_test_duration_seconds: 0,
       trial_mode_public_enabled: false,
+      esp_pro_special_edition_enabled: false,
       storage: null,
       debug_log: null,
       subscription_email_log: null,
@@ -1920,7 +1926,9 @@ ${calmPracticeMessage}`;
           : defaultConfidenceSettings.includePositiveReinforcement,
         installState: normalizeInstallState(parsed?.installState),
         resolvedMainUserType: String(parsed?.resolvedMainUserType || "").trim().toLowerCase() === "pro" ? "pro" : "standard",
-        entryMode: String(parsed?.entryMode || "").trim().toLowerCase() === "visitor" ? "visitor" : "",
+        entryMode: ["visitor", "special-edition"].includes(String(parsed?.entryMode || "").trim().toLowerCase())
+          ? String(parsed?.entryMode || "").trim().toLowerCase()
+          : "",
         visitorAlias: typeof parsed?.visitorAlias === "string" ? parsed.visitorAlias.trim() : "",
         loadedInviteeIdentity: parsed?.loadedInviteeIdentity && typeof parsed.loadedInviteeIdentity === "object"
           ? parsed.loadedInviteeIdentity
@@ -2184,7 +2192,8 @@ ${calmPracticeMessage}`;
   }
 
   function normalizeLauncherEntryMode(value) {
-    return String(value || "").trim().toLowerCase() === "visitor" ? "visitor" : "";
+    const mode = String(value || "").trim().toLowerCase();
+    return mode === "visitor" || mode === "special-edition" ? mode : "";
   }
 
   function getLauncherEntryMode(state = readLauncherState()) {
@@ -5733,6 +5742,27 @@ ${calmPracticeMessage}`;
       })
     });
     return parseApiResponse(response, `Public trial mode request failed with status ${response.status}`);
+  }
+
+  function applyPublicLandingMode(data = null) {
+    publicLandingMode.espProSpecialEditionEnabled = !!data?.esp_pro_special_edition_enabled;
+    const state = readLauncherState();
+    if (!publicLandingMode.espProSpecialEditionEnabled && getLauncherEntryMode(state) === "special-edition") {
+      writeLauncherState({
+        ...state,
+        entryMode: "",
+        resolvedMainUserType: "standard"
+      });
+    }
+    if (temporaryHomePageInvitationAccess) {
+      temporaryHomePageInvitationAccess.hidden = publicLandingMode.espProSpecialEditionEnabled;
+    }
+    return publicLandingMode;
+  }
+
+  async function refreshPublicLandingMode() {
+    const data = await fetchPublicTrialModeState();
+    return applyPublicLandingMode(data);
   }
 
   async function sendExploreProVerificationCode(email) {
@@ -12835,6 +12865,9 @@ ${calmPracticeMessage}`;
   }
 
   function getDisplayedLauncherUserType() {
+    if (publicLandingMode.espProSpecialEditionEnabled) {
+      return "pro";
+    }
     if (launcherGuestEntryActive) {
       return "standard";
     }
@@ -14470,6 +14503,10 @@ ${calmPracticeMessage}`;
   }
 
   async function refreshMainUserType() {
+    if (publicLandingMode.espProSpecialEditionEnabled) {
+      renderMainTitle("pro", { persist: false });
+      return;
+    }
     if (launcherGuestEntryActive) {
       renderMainTitle("standard", { persist: false });
       return;
@@ -22801,7 +22838,7 @@ ${calmPracticeMessage}`;
         "1"
       )
     );
-    renderMainTitle("standard", { persist: false });
+    renderMainTitle(getDisplayedLauncherUserType(), { persist: false });
   }
 
   function applyFreshEntryRoleNotes(targetRole = "") {
@@ -26908,6 +26945,9 @@ ${calmPracticeMessage}`;
       if (adminTrialModePublicEnabledCheckbox) {
         adminTrialModePublicEnabledCheckbox.checked = !!launcherAdminState.trial_mode_public_enabled;
       }
+      if (adminEspProSpecialEditionEnabledCheckbox) {
+        adminEspProSpecialEditionEnabledCheckbox.checked = !!launcherAdminState.esp_pro_special_edition_enabled;
+      }
       applyMessagingLimitsUi(launcherAdminState.messaging_limits);
       if (adminClearDebugLogButton) {
         const debugLog = launcherAdminState.debug_log;
@@ -26957,6 +26997,7 @@ ${calmPracticeMessage}`;
           learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
           explore_pro_test_duration_seconds: Math.max(0, Number(data?.explore_pro_test_duration_seconds || 0) || 0),
           trial_mode_public_enabled: !!data?.trial_mode_public_enabled,
+          esp_pro_special_edition_enabled: !!data?.esp_pro_special_edition_enabled,
           storage: data?.storage || null,
           debug_log: data?.debug_log || null,
           subscription_email_log: data?.subscription_email_log || null,
@@ -28905,6 +28946,20 @@ ${calmPracticeMessage}`;
     window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
   }
 
+  function startEspProSpecialEditionLandingEntry() {
+    const baseState = readLauncherState();
+    const nextState = buildLauncherIdentityState(baseState, "", "pro", {
+      recognizedIdentity: "",
+      entryMode: "special-edition"
+    });
+    writeLauncherState(nextState);
+    setLauncherGuestEntryActive(false);
+    traceLandingContinue("special_edition_redirect", {
+      target: buildCanonicalLauncherUrl({ open: "launcher" })
+    });
+    window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+  }
+
   async function handleLandingExploreClick() {
     goProIncludesReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
     showGoProIncludesView("temporary-home-page");
@@ -28913,6 +28968,7 @@ ${calmPracticeMessage}`;
   async function resolveLandingExploreEntry() {
     try {
       const data = await fetchPublicTrialModeState();
+      applyPublicLandingMode(data);
       if (!!data?.trial_mode_public_enabled) {
         showTemporaryHomePageView();
         openExploreProOverlay();
@@ -29105,6 +29161,15 @@ ${calmPracticeMessage}`;
       // Navigate through the dedicated visitor route. Entering in place can
       // race an unfinished landing initialization, which would otherwise put
       // a standalone PWA straight back onto the landing page.
+      try {
+        await refreshPublicLandingMode();
+      } catch (error) {
+        // A transient public-setting read must not prevent normal entry.
+      }
+      if (publicLandingMode.espProSpecialEditionEnabled) {
+        startEspProSpecialEditionLandingEntry();
+        return;
+      }
       startVisitorLandingEntry();
       return;
     }
@@ -30552,7 +30617,11 @@ ${calmPracticeMessage}`;
         // A manifest launch must not silently bypass the landing page after a
         // device-only reset or identity deletion. Resume only a recognized
         // user; a first-time, cleared, or visitor device starts at landing.
-        if (!hasKnownLauncherIdentity(launcherState) || isVisitorLauncherEntry(launcherState)) {
+        // ESP PRO Special Edition is the explicit global exception.
+        const specialEditionEntry =
+          publicLandingMode.espProSpecialEditionEnabled &&
+          getLauncherEntryMode(launcherState) === "special-edition";
+        if ((!hasKnownLauncherIdentity(launcherState) || isVisitorLauncherEntry(launcherState)) && !specialEditionEntry) {
           showTemporaryHomePageView();
           return;
         }
@@ -34590,6 +34659,30 @@ ${calmPracticeMessage}`;
       }
     }
   });
+  adminEspProSpecialEditionEnabledCheckbox?.addEventListener("change", async () => {
+    if (!hasLauncherAdminAccess()) {
+      return;
+    }
+    try {
+      if (adminStatus) {
+        adminStatus.textContent = "Saving ESP PRO Special Edition setting...";
+      }
+      const data = await launcherAdminApi("set_esp_pro_special_edition_enabled", {
+        enabled: adminEspProSpecialEditionEnabledCheckbox.checked
+      });
+      launcherAdminState.esp_pro_special_edition_enabled = !!data?.esp_pro_special_edition_enabled;
+      if (adminStatus) {
+        adminStatus.textContent = launcherAdminState.esp_pro_special_edition_enabled
+          ? "ESP PRO Special Edition is currently enabled from the landing page."
+          : "ESP PRO Special Edition is currently disabled.";
+      }
+      renderAdminView();
+    } catch (error) {
+      if (adminStatus) {
+        adminStatus.textContent = "Unable to save the ESP PRO Special Edition setting right now.";
+      }
+    }
+  });
   adminSubscriptionsRefreshButton?.addEventListener("click", async () => {
     if (!hasLauncherAdminAccess()) {
       return;
@@ -34978,6 +35071,11 @@ ${calmPracticeMessage}`;
       return;
     }
 
+    try {
+      await refreshPublicLandingMode();
+    } catch (error) {
+      // Normal entry remains available if the public landing-mode read fails.
+    }
     pendingApplePasskeyRestore = await prepareApplePasskeyIdentityRestore();
     launcherStartupReady = true;
     setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
