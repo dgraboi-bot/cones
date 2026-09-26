@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926c";
+  const launcherBuildVersion = "20260926d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9894,6 +9894,9 @@ ${calmPracticeMessage}`;
       partnerConfirmationCamera.srcObject = null;
       partnerConfirmationCamera.hidden = true;
     }
+    if (partnerConfirmationCaptureButton) {
+      partnerConfirmationCaptureButton.textContent = "TAKE LIVE PHOTO";
+    }
   }
 
   function closePartnerConfirmationOverlay() {
@@ -9941,7 +9944,11 @@ ${calmPracticeMessage}`;
     setFrameCheckVisible(partnerConfirmationPartnerFrame, !partner.snapshot && !!partner.joined && partner.method !== "camera");
     if (partnerConfirmationSelfStatus) {
       partnerConfirmationSelfStatus.textContent = own.method === "camera"
-        ? (own.snapshot ? "Current temporary snapshot" : "Take a current photo")
+        ? (own.snapshot
+          ? "Current temporary snapshot"
+          : partnerConfirmationCameraStream
+            ? "Frame yourself, then snap your picture"
+            : "Take a live photo")
         : "Verified unique name";
     }
     if (partnerConfirmationPartnerStatus) {
@@ -9956,6 +9963,7 @@ ${calmPracticeMessage}`;
     if (partnerConfirmationCaptureButton) {
       partnerConfirmationCaptureButton.hidden = own.method !== "camera" || !!own.snapshot;
       partnerConfirmationCaptureButton.disabled = false;
+      partnerConfirmationCaptureButton.textContent = partnerConfirmationCameraStream ? "SNAP PICTURE" : "TAKE LIVE PHOTO";
     }
     if (partnerConfirmationApproveButton) {
       partnerConfirmationApproveButton.disabled = !partnerReady || !ownReady || !!own.confirmed;
@@ -10002,7 +10010,11 @@ ${calmPracticeMessage}`;
         partnerConfirmationCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } }, audio: false });
         partnerConfirmationCamera.srcObject = partnerConfirmationCameraStream;
         partnerConfirmationCamera.hidden = false;
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        partnerConfirmationCaptureButton.textContent = "SNAP PICTURE";
+        if (partnerConfirmationSelfStatus) {
+          partnerConfirmationSelfStatus.textContent = "Frame yourself, then snap your picture";
+        }
+        return;
       }
       const width = Math.max(1, partnerConfirmationCamera.videoWidth || 160);
       const height = Math.max(1, partnerConfirmationCamera.videoHeight || 120);

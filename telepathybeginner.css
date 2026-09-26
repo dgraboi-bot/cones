@@ -1879,6 +1879,7 @@ body.lesson-image-overlay-open {
 }
 
 .partner-confirmation-frame {
+  position: relative;
   display: grid;
   place-items: center;
   width: min(100%, 180px);
@@ -1890,10 +1891,15 @@ body.lesson-image-overlay-open {
   background: rgba(4, 11, 26, 0.7);
 }
 
-.partner-confirmation-frame img {
+.partner-confirmation-frame img,
+.partner-confirmation-frame .partner-confirmation-camera {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #02050b;
 }
 
 .partner-confirmation-check {
@@ -1905,18 +1911,16 @@ body.lesson-image-overlay-open {
 
 .partner-confirmation-camera {
   display: block;
-  width: min(100%, 300px);
-  margin: 14px auto 0;
-  border: 1px solid rgba(155, 197, 255, 0.6);
-  border-radius: 12px;
-  background: #02050b;
 }
 
-.partner-confirmation-actions {
-  justify-content: center;
+.partner-confirmation-camera[hidden] {
+  display: none;
 }
 
 .partner-confirmation-action-button {
+  display: block;
+  width: min(100%, 180px);
+  margin: 10px auto 0;
   min-height: 52px;
   padding: 12px 18px;
   font-size: clamp(0.94rem, 2.25vw, 1.08rem);
@@ -5333,7 +5337,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260926c") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260926d") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
