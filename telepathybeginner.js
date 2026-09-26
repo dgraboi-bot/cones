@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926r";
+  const launcherBuildVersion = "20260926s";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9033,8 +9033,8 @@ ${calmPracticeMessage}`;
     }
     const ownInput = isRemoteViewerRole ? remoteViewerOwnInput : form.querySelector('input[name="ownName"]');
     const partnerInput = isRemoteViewerRole ? null : form.querySelector('input[name="partnerName"]');
-    const visitorMode = isVisitorLauncherEntry();
-    const currentIdentifier = visitorMode
+    const firstClaimMode = isVisitorLauncherEntry() || getLauncherEntryMode() === "special-edition";
+    const currentIdentifier = firstClaimMode
       ? String(readLauncherState().visitorAlias || getOrCreateVisitorSimulationIdentifier()).trim()
       : String(ownInput?.value || "").trim();
     const proposedHandle = String(handleInput?.value || "").trim();
@@ -9048,7 +9048,7 @@ ${calmPracticeMessage}`;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const postClaimFlow = featureSetupPendingHandleFlow;
-      if (!visitorMode && currentIdentifier && normalizeIdentifierForStorage(currentIdentifier) !== normalizeIdentifierForStorage(proposedHandle)) {
+      if (!firstClaimMode && currentIdentifier && normalizeIdentifierForStorage(currentIdentifier) !== normalizeIdentifierForStorage(proposedHandle)) {
         const currentStatus = await fetchIdentifierStatus(currentIdentifier);
         if (currentStatus?.formal_identity_exists) {
           activeHandleRole = "";
@@ -9075,7 +9075,7 @@ ${calmPracticeMessage}`;
       }
       // A first claim selects its partner-verification method before the
       // identity is created. Existing names continue through email recovery.
-      if (visitorMode || detectMobileBrowser().isIOS) {
+      if (firstClaimMode || detectMobileBrowser().isIOS) {
         let proposedStatus = null;
         try {
           proposedStatus = await fetchIdentifierStatus(proposedHandle);
@@ -9167,7 +9167,7 @@ ${calmPracticeMessage}`;
         }
         void persistLauncherProfileForForm(activeHandleRole, form);
       }
-      if (isVisitorLauncherEntry() && acceptedHandle) {
+      if (firstClaimMode && acceptedHandle) {
         const latestState = readLauncherState();
         const normalizedUserType = String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
         const nextIdentityState = buildLauncherIdentityState(latestState, acceptedHandle, normalizedUserType, {
