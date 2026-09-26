@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926f";
+  const launcherBuildVersion = "20260926g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9818,6 +9818,39 @@ ${calmPracticeMessage}`;
     });
   }
 
+  function summarizePartnerConfirmationState(state = {}) {
+    const own = state?.own || {};
+    const partner = state?.partner || {};
+    return {
+      expired: !!state?.expired,
+      ready: !!state?.ready,
+      own: {
+        method: String(own.method || ""),
+        joined: !!own.joined,
+        has_snapshot: !!own.snapshot,
+        confirmed: !!own.confirmed
+      },
+      partner: {
+        method: String(partner.method || ""),
+        joined: !!partner.joined,
+        has_snapshot: !!partner.snapshot,
+        confirmed: !!partner.confirmed
+      }
+    };
+  }
+
+  function tracePartnerConfirmation(label, details = {}) {
+    const pending = pendingPartnerConfirmation;
+    traceLauncherClient(`partner_confirmation:${label}`, {
+      page_instance_id: launcherPageInstanceId,
+      session_code: String(pending?.request?.session_code || details.session_code || ""),
+      role: String(pending?.request?.role || details.role || ""),
+      own_identifier: String(pending?.request?.own_identifier || details.own_identifier || ""),
+      partner_identifier: String(pending?.request?.partner_identifier || details.partner_identifier || ""),
+      ...(details && typeof details === "object" ? details : {})
+    });
+  }
+
   function openPartnerConfirmationMethodOverlay(options = {}) {
     const isNewClaim = !!options.isNewClaim;
     const cameraAvailable = typeof options.cameraAvailable === "boolean"
@@ -9890,12 +9923,31 @@ ${calmPracticeMessage}`;
   }
 
   async function postPartnerConfirmationRequest(action, payload = {}) {
-    const response = await fetch("api.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, ...payload })
-    });
-    return parseApiResponse(response, "Unable to confirm your partner right now.");
+    const shouldTrace = action !== "get_partner_confirmation";
+    if (shouldTrace) {
+      tracePartnerConfirmation("request", { action, ...payload, snapshot: undefined });
+    }
+    try {
+      const response = await fetch("api.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...payload })
+      });
+      const data = await parseApiResponse(response, "Unable to confirm your partner right now.");
+      if (shouldTrace) {
+        tracePartnerConfirmation("response", {
+          action,
+          confirmation: summarizePartnerConfirmationState(data?.partner_confirmation || {})
+        });
+      }
+      return data;
+    } catch (error) {
+      tracePartnerConfirmation("error", {
+        action,
+        message: error instanceof Error ? error.message : String(error || "Unknown confirmation error")
+      });
+      throw error;
+    }
   }
 
   function stopPartnerConfirmationCamera() {
@@ -9991,11 +10043,15 @@ ${calmPracticeMessage}`;
       partnerConfirmationStatus.textContent = state.ready
         ? "Both partners confirmed. Starting the session..."
         : own.confirmed
-          ? `You are confirmed. Waiting for ${partnerName}.`
+          ? `Your partner is confirmed. Waiting for ${partnerName} to confirm you.`
+          : partner.confirmed
+            ? `Your partner has confirmed you. Confirm your partner to continue.`
           : !partner.joined
             ? `Waiting for ${partnerName} to begin partner confirmation.`
             : !partnerReady
               ? `Waiting for ${partnerName}'s current photo.`
+              : !ownReady
+                ? "Take your current photo before confirming your partner."
               : "Review your partner, then tap THIS IS MY PARTNER.";
     }
   }

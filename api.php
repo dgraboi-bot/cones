@@ -86,6 +86,7 @@ $maxHandleLifetimeClaims = 3;
 $exploreProTrialDurationMs = 14 * 24 * 60 * 60 * 1000;
 $exploreProVerificationTtlMs = 15 * 60 * 1000;
 $exploreProResendCooldownMs = 30 * 1000;
+$partnerConfirmationLifetimeMs = 10 * 60 * 1000;
 $nowMs = (int) floor(microtime(true) * 1000);
 
 if (!is_dir($simulationPairsDir)) {
@@ -12711,12 +12712,13 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
                 $confirmation['sender_identifier'] = $senderIdentifier;
                 $confirmation['receiver_identifier'] = $receiverIdentifier;
                 $confirmation['created_ms'] = $nowMs;
-                $confirmation['expires_ms'] = $nowMs + (2 * 60 * 1000);
             }
+            // Both people get a full confirmation window after either joins.
+            $confirmation['expires_ms'] = $nowMs + $partnerConfirmationLifetimeMs;
             $confirmation[$confirmationRole]['method'] = normalize_partner_confirmation_method($input['method'] ?? 'verified');
             $confirmation[$confirmationRole]['joined'] = true;
         } elseif ((int) ($confirmation['created_ms'] ?? 0) === 0) {
-            throw new RuntimeException('Partner confirmation has not been started yet.');
+            throw new RuntimeException('Partner confirmation has expired. Press BACK, then press GO to begin it again.');
         }
 
         if ($action === 'submit_partner_confirmation_snapshot') {
@@ -12724,6 +12726,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
                 throw new RuntimeException('This device is using verified-name confirmation, not live camera confirmation.');
             }
             $confirmation[$confirmationRole]['snapshot'] = normalize_partner_confirmation_snapshot($input['snapshot'] ?? '');
+            $confirmation['expires_ms'] = $nowMs + $partnerConfirmationLifetimeMs;
         }
         if ($action === 'clear_partner_confirmation_snapshot') {
             $otherRole = $confirmationRole === 'sender' ? 'receiver' : 'sender';
@@ -12746,6 +12749,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
                 throw new RuntimeException('Take your current photo before confirming.');
             }
             $confirmation[$confirmationRole]['confirmed'] = true;
+            $confirmation['expires_ms'] = $nowMs + $partnerConfirmationLifetimeMs;
             if (!empty($confirmation['sender']['confirmed']) && !empty($confirmation['receiver']['confirmed'])) {
                 // The images are deliberately removed as soon as the two people have confirmed.
                 $confirmation['sender']['snapshot'] = '';
