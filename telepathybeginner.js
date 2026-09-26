@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926q";
+  const launcherBuildVersion = "20260926r";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8407,7 +8407,7 @@ ${calmPracticeMessage}`;
         kicker.appendChild(document.createTextNode(" "));
         kicker.appendChild(badge);
       }
-      badge.hidden = !hasLauncherAdminAccess();
+      badge.hidden = !hasLauncherAdminLease();
     });
   }
 
@@ -8455,8 +8455,7 @@ ${calmPracticeMessage}`;
       await claimAdminLease();
       return hasLauncherAdminLease();
     } catch (_error) {
-      launcherAdminState.admin_lock_active = false;
-      renderAdminPrivilegeIndicator();
+      clearLauncherAdminSession();
       return false;
     }
   }
@@ -8488,8 +8487,7 @@ ${calmPracticeMessage}`;
       showAdminView();
       return true;
     } catch (error) {
-      launcherAdminState.admin_lock_active = false;
-      renderAdminPrivilegeIndicator();
+      clearLauncherAdminSession();
       const message = error instanceof Error ? error.message : "Unable to enter Admin right now.";
       if (statusNode) {
         statusNode.textContent = message;
@@ -8841,7 +8839,9 @@ ${calmPracticeMessage}`;
     const { ownLabel, partnerLabel } = getRoleLabelElements(role);
     const handleWrap = getRoleHandleWrap(role);
     const handleButton = getRoleHandleButton(role);
-    const isVisitorRole = isVisitorLauncherEntry() && (role === "sender" || role === "receiver");
+    const isVisitorRole =
+      (isVisitorLauncherEntry() || getLauncherEntryMode() === "special-edition") &&
+      (role === "sender" || role === "receiver");
     const temporaryIdentity = getTemporaryIdentityState();
     const formValues = readRoleFormValues(role);
     const ownIdentifier = String(formValues?.ownName || "").trim();
@@ -8863,7 +8863,7 @@ ${calmPracticeMessage}`;
     } else if (ownUsesHandle) {
       setRoleDefaultNoteText(role, calmPracticeMessage);
     } else {
-      setRoleDefaultNoteHtml(role, buildDefaultEmailIdentityNoteHtml(role), buildDefaultEmailIdentityNote(role));
+      setRoleDefaultNoteText(role, buildRoleGuidanceFallback(role));
     }
     if (handleWrap) {
       handleWrap.hidden = usesTemporaryIdentity ? false : (isVisitorRole ? true : ownUsesHandle);
@@ -12444,20 +12444,13 @@ ${calmPracticeMessage}`;
     return roleSkillExplanationCopy[String(role || "").trim()] || "";
   }
 
-  function buildDefaultEmailIdentityNote(role) {
+  function buildRoleGuidanceFallback(role) {
     const normalizedRole = String(role || "").trim();
     if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
       return "";
     }
-    return "The email addresses below are used only to uniquely identify participants. No emails are sent. This app can connect a sender and receiver only if both participants use identical identification spellings for each other. Please verify the spellings carefully. You don't need to use your email to identify yourself uniquely in this app. You can create your own unique name 3 to 24 characters long. Recommended: Click below to propose a unique name to use in this app.";
-  }
-
-  function buildDefaultEmailIdentityNoteHtml(role) {
-    const text = buildDefaultEmailIdentityNote(role);
-    if (!text) {
-      return "";
-    }
-    return escapeHtml(text).replace("Recommended:", '<span class="role-note-recommended">Recommended:</span>');
+    const partnerRole = normalizedRole === "receiver" ? "sender" : "receiver";
+    return `Enter your name and your ${partnerRole}'s name to practice telepathy. Choose a unique name when you are ready to practice with a real human partner.`;
   }
 
   function buildVisitorRoleNote(role) {
@@ -12479,7 +12472,7 @@ ${calmPracticeMessage}`;
   }
 
   function getHandleExplanation(role) {
-    return buildDefaultEmailIdentityNote(role);
+    return buildRoleGuidanceFallback(role);
   }
 
   function showRoleSkillExplanation(role) {
@@ -22844,14 +22837,14 @@ ${calmPracticeMessage}`;
   function applyFreshEntryRoleNotes(targetRole = "") {
     const roles = targetRole ? [String(targetRole).trim()] : ["sender", "receiver"];
     roles.forEach((role) => {
-      const visitorEntry = isVisitorLauncherEntry();
+      const visitorEntry = isVisitorLauncherEntry() || getLauncherEntryMode() === "special-edition";
       if (role !== "sender" && role !== "receiver") {
         return;
       }
       if (visitorEntry) {
         setRoleDefaultNoteHtml(role, buildVisitorRoleNoteHtml(role), buildVisitorRoleNote(role));
       } else {
-        setRoleDefaultNoteHtml(role, buildDefaultEmailIdentityNoteHtml(role), buildDefaultEmailIdentityNote(role));
+        setRoleDefaultNoteText(role, buildRoleGuidanceFallback(role));
       }
       const note = getRoleNoteElement(role);
       if (note) {
