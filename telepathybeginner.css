@@ -895,6 +895,7 @@ html.espgym-build-recovery-active body {
 .beginner-view[data-view="online-course"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
+.beginner-view[data-view="beep-test"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="about"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="baseline-questions"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
@@ -918,6 +919,7 @@ html.espgym-build-recovery-active body {
 .beginner-view[data-view="online-course"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
+.beginner-view[data-view="beep-test"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="about"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="baseline-questions"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
 .beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) > .beginner-top-row:first-child::before,
@@ -939,6 +941,7 @@ html.espgym-build-recovery-active body {
 .beginner-view[data-view="online-course"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) .beginner-title,
+.beginner-view[data-view="beep-test"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="about"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="baseline-questions"]:not(.beginner-view-hidden) .beginner-title,
 .beginner-view[data-view="beginner-user-manual"]:not(.beginner-view-hidden) .beginner-title,
@@ -1827,6 +1830,25 @@ body.lesson-image-overlay-open {
   width: min(92vw, 660px);
 }
 
+.partner-confirmation-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.partner-confirmation-title-row .about-section-title {
+  margin: 0;
+}
+
+.partner-confirmation-back-button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  font-size: 0.92rem;
+}
+
 .partner-confirmation-people {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1871,7 +1893,7 @@ body.lesson-image-overlay-open {
 .partner-confirmation-frame img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .partner-confirmation-check {
@@ -1892,6 +1914,12 @@ body.lesson-image-overlay-open {
 
 .partner-confirmation-actions {
   justify-content: center;
+}
+
+.partner-confirmation-action-button {
+  min-height: 52px;
+  padding: 12px 18px;
+  font-size: clamp(0.94rem, 2.25vw, 1.08rem);
 }
 
 @media (max-width: 520px) {
@@ -5305,7 +5333,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260925s") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260926a") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
@@ -5730,19 +5758,25 @@ html.launcher-direct-open-pending body {
 .beep-test-countdown {
   display: grid;
   place-items: center;
-  min-height: 220px;
-  margin: 10px 0 16px;
+  min-height: 150px;
+  margin: 6px 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.035);
   color: rgba(248, 240, 232, 0.96);
-  font-size: clamp(5rem, 16vw, 10rem);
+  font-size: clamp(4.5rem, 13vw, 8rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1;
   text-align: center;
   padding: 0 1.5rem;
+}
+
+.beginner-view[data-view="beep-test"] .settings-view-panel {
+  margin-top: 22px;
+  padding: 22px 24px;
+  gap: 12px;
 }
 
 .beep-test-countdown.is-ready {

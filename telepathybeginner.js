@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260925s";
+  const launcherBuildVersion = "20260926a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -857,13 +857,16 @@
   const partnerConfirmationPartnerStatus = document.querySelector("[data-partner-confirmation-partner-status]");
   const partnerConfirmationCaptureButton = document.querySelector("[data-partner-confirmation-capture]");
   const partnerConfirmationApproveButton = document.querySelector("[data-partner-confirmation-approve]");
-  const partnerConfirmationCancelButton = document.querySelector("[data-partner-confirmation-cancel]");
+  const partnerConfirmationBackButton = document.querySelector("[data-partner-confirmation-back]");
   const partnerConfirmationMethodButtons = Array.from(document.querySelectorAll("[data-partner-confirmation-method]"));
   const closePartnerConfirmationMethodButton = document.querySelector("[data-close-partner-confirmation-method]");
   let pendingPartnerConfirmation = null;
   let partnerConfirmationPollTimer = 0;
   let partnerConfirmationCameraStream = null;
   let pendingPartnerConfirmationMethodSelection = null;
+  // A direct camera-based claim keeps its choice overlay up until the
+  // destination is ready, preventing the underlying setup view from flashing.
+  let partnerConfirmationMethodClaimInFlight = false;
   const uniqueNameChangeView = document.querySelector('[data-view="unique-name-change"]');
   const closeUniqueNameChangeButton = document.querySelector("[data-close-unique-name-change]");
   const uniqueNameChangeCurrent = document.querySelector("[data-unique-name-change-current]");
@@ -9119,7 +9122,6 @@ ${calmPracticeMessage}`;
       activeHandleRole = "";
       handleOverlayReturnRole = "";
       featureSetupPendingHandleFlow = "";
-      handleOverlay?.classList.add("beginner-view-hidden");
       if (handleStatus) {
         handleStatus.textContent = "";
       }
@@ -9131,12 +9133,28 @@ ${calmPracticeMessage}`;
       }
       if (acceptedHandle && completedRole) {
         if (postClaimFlow === "install-gate") {
+          if (partnerConfirmationMethodClaimInFlight) {
+            partnerConfirmationMethodClaimInFlight = false;
+            closePartnerConfirmationMethodOverlay();
+          }
+          handleOverlay?.classList.add("beginner-view-hidden");
           showInstallGuideView({ returnView: "feature-setup" });
           return;
         }
+        // Keep the successful-claim overlay on top while the destination is
+        // restored, so Setup Website Features cannot flash between views.
         returnToUniqueNameClaimOrigin(returnRole, returnScrollY);
       }
+      if (partnerConfirmationMethodClaimInFlight) {
+        partnerConfirmationMethodClaimInFlight = false;
+        closePartnerConfirmationMethodOverlay();
+      }
+      handleOverlay?.classList.add("beginner-view-hidden");
     } catch (error) {
+      if (partnerConfirmationMethodClaimInFlight) {
+        partnerConfirmationMethodClaimInFlight = false;
+        closePartnerConfirmationMethodOverlay();
+      }
       if (submitHandleButton) {
         submitHandleButton.disabled = false;
       }
@@ -9802,6 +9820,7 @@ ${calmPracticeMessage}`;
     }
     partnerConfirmationMethodButtons.forEach((button) => {
       button.hidden = false;
+      button.disabled = false;
     });
     setFeatureSetupBackButtonTemporarilyHidden(false);
   }
@@ -9809,6 +9828,7 @@ ${calmPracticeMessage}`;
   async function choosePartnerConfirmationMethodAfterUniqueNameClaim() {
     const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     return new Promise((resolve) => {
+      partnerConfirmationMethodClaimInFlight = false;
       pendingPartnerConfirmationMethodSelection = resolve;
       openPartnerConfirmationMethodOverlay({ isNewClaim: true, cameraAvailable });
     });
@@ -9857,6 +9877,12 @@ ${calmPracticeMessage}`;
     const partnerName = pending.partnerIdentifier;
     if (partnerConfirmationSelfLabel) partnerConfirmationSelfLabel.textContent = `You: ${ownName}`;
     if (partnerConfirmationPartnerLabel) partnerConfirmationPartnerLabel.textContent = `Partner: ${partnerName}`;
+    const setFrameCheckVisible = (frame, visible) => {
+      const check = frame?.querySelector(".partner-confirmation-check");
+      if (check) {
+        check.hidden = !visible;
+      }
+    };
     const addPhoto = (frame, dataUrl) => {
       if (!frame) return;
       frame.querySelectorAll("img").forEach((image) => image.remove());
@@ -9866,12 +9892,15 @@ ${calmPracticeMessage}`;
         image.alt = "Current temporary partner confirmation snapshot";
         frame.append(image);
         frame.classList.add("has-photo");
+        setFrameCheckVisible(frame, false);
       } else {
         frame.classList.remove("has-photo");
       }
     };
     addPhoto(partnerConfirmationSelfFrame, own.snapshot || "");
     addPhoto(partnerConfirmationPartnerFrame, partner.snapshot || "");
+    setFrameCheckVisible(partnerConfirmationSelfFrame, !own.snapshot && own.method !== "camera");
+    setFrameCheckVisible(partnerConfirmationPartnerFrame, !partner.snapshot && !!partner.joined && partner.method !== "camera");
     if (partnerConfirmationSelfStatus) {
       partnerConfirmationSelfStatus.textContent = own.method === "camera"
         ? (own.snapshot ? "Current temporary snapshot" : "Take a current photo")
@@ -19819,77 +19848,13 @@ ${calmPracticeMessage}`;
   }
 
   async function prepareLocationForGo(role = "", options = {}) {
-    let state = await syncBrowserLocationPermission();
-    if (state.locationPermission === "denied") {
-      renderLocationStatus();
-      return true;
+    // Location review is an optional Setup Website Features task. A normal GO
+    // must never interrupt either role with a map or a browser-permission prompt.
+    const state = await syncBrowserLocationPermission();
+    renderLocationStatus();
+    if (state.locationPermission === "granted" || state.locationPermission === "manual") {
+      void requestDeviceLocationIfNeeded(false);
     }
-    if (!getSavedDeviceLocation(state) && navigator.geolocation && !locationRequestInFlight && state.locationPermission !== "denied") {
-      await new Promise((resolve) => {
-        lastLocationAttemptAt = Date.now();
-        locationRequestInFlight = true;
-        renderLocationStatus();
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const latest = readLauncherState();
-            latest.deviceLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy,
-              timestamp: Date.now(),
-              source: "device-geolocation"
-            };
-            latest.locationPermission = "granted";
-            if (!locationNeedsFineTune(latest.deviceLocation)) {
-              latest.locationFineTuneDismissedForTimestamp = 0;
-            }
-            writeLauncherState(latest);
-            locationRequestInFlight = false;
-            renderLocationStatus();
-            resolve();
-          },
-          (error) => {
-            const latest = readLauncherState();
-            if (error?.code === 1) {
-              clearLauncherStoredLocation(latest, "denied");
-            } else {
-              latest.locationPermission = "error";
-            }
-            writeLauncherState(latest);
-            locationRequestInFlight = false;
-            renderLocationStatus();
-            resolve();
-          },
-          {
-            enableHighAccuracy: true,
-            maximumAge: 300000,
-            timeout: 12000
-          }
-        );
-      });
-      state = readLauncherState();
-    }
-
-    if (shouldGateGoForLocation(state)) {
-      // Guided Robot tours never stop for the optional map-review workflow.
-      // They use a browser estimate when available and otherwise continue.
-      if (options.skipReview === true) {
-        return true;
-      }
-      const continuationTargetUrl = String(options?.targetUrl || "").trim();
-      locationPickerPendingContinuation = continuationTargetUrl
-        ? {
-            kind: "go-navigation",
-            role: String(role || activeLauncherRole || "sender").trim(),
-            targetUrl: continuationTargetUrl
-          }
-        : null;
-      await showLocationPicker(role || activeLauncherRole || "sender", {
-        sourceTimestamp: Number(state.deviceLocation?.timestamp || 0)
-      });
-      return false;
-    }
-
     return true;
   }
 
@@ -33606,6 +33571,17 @@ ${calmPracticeMessage}`;
       setPartnerConfirmationMethod(method);
       const completeSelection = pendingPartnerConfirmationMethodSelection;
       pendingPartnerConfirmationMethodSelection = null;
+      if (completeSelection && method === "camera") {
+        partnerConfirmationMethodClaimInFlight = true;
+        partnerConfirmationMethodButtons.forEach((choice) => {
+          choice.disabled = true;
+        });
+        if (partnerConfirmationMethodStatus) {
+          partnerConfirmationMethodStatus.textContent = "Claiming your unique name...";
+        }
+        completeSelection(method);
+        return;
+      }
       closePartnerConfirmationMethodOverlay();
       if (completeSelection) {
         completeSelection(method);
@@ -33620,7 +33596,7 @@ ${calmPracticeMessage}`;
   partnerConfirmationApproveButton?.addEventListener("click", () => {
     void approvePartnerConfirmation();
   });
-  partnerConfirmationCancelButton?.addEventListener("click", () => {
+  partnerConfirmationBackButton?.addEventListener("click", () => {
     void cancelPartnerConfirmation();
   });
   openRoleMessagesButtons.forEach((button) => {
