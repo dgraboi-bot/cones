@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926a";
+  const launcherBuildVersion = "20260926b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -21067,6 +21067,9 @@ ${calmPracticeMessage}`;
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const roleSettings = readRoleSettings(role);
     const visitorMode = isVisitorLauncherEntry(state);
+    // A visitor can claim a name without reloading this card. Event handlers
+    // must consult the current state rather than retaining this initial value.
+    const isCurrentVisitorMode = () => isVisitorLauncherEntry();
     const guestEntryActive = launcherGuestEntryActive || visitorMode;
     const lockedVisitorName = visitorMode ? getVisitorLockedName(state) : "";
     const savedOwn = guestEntryActive
@@ -21131,7 +21134,7 @@ ${calmPracticeMessage}`;
     });
 
     ownInput.addEventListener("input", () => {
-      if (visitorMode) {
+      if (isCurrentVisitorMode()) {
         const latestState = readLauncherState();
         latestState.visitorDisplayNames = latestState.visitorDisplayNames || {};
         const sharedVisitorName = stripGuestDisplaySuffix(ownInput.value);
@@ -21163,7 +21166,7 @@ ${calmPracticeMessage}`;
       if (launcherGuidedTourState && ownInput === launcherGuidedTourState.ownInput) {
         return;
       }
-      if (!visitorMode || !isVisitorNameLocked()) {
+      if (!isCurrentVisitorMode() || !isVisitorNameLocked()) {
         return;
       }
       const isEditingKey =
@@ -21181,7 +21184,7 @@ ${calmPracticeMessage}`;
       if (launcherGuidedTourState && ownInput === launcherGuidedTourState.ownInput) {
         return;
       }
-      if (!visitorMode || !isVisitorNameLocked()) {
+      if (!isCurrentVisitorMode() || !isVisitorNameLocked()) {
         return;
       }
       event.preventDefault();
@@ -21199,7 +21202,7 @@ ${calmPracticeMessage}`;
     });
 
     partnerInput.addEventListener("input", () => {
-      if (visitorMode) {
+      if (isCurrentVisitorMode()) {
         partnerInput.value = "Robot";
         return;
       }
@@ -21211,7 +21214,7 @@ ${calmPracticeMessage}`;
     });
     partnerInput.addEventListener("keydown", suppressIdentifierEnter);
     partnerInput.addEventListener("keydown", (event) => {
-      if (!visitorMode) {
+      if (!isCurrentVisitorMode()) {
         return;
       }
       const isEditingKey =
@@ -21225,13 +21228,13 @@ ${calmPracticeMessage}`;
       event.stopPropagation();
     });
     partnerInput.addEventListener("paste", (event) => {
-      if (!visitorMode) {
+      if (!isCurrentVisitorMode()) {
         return;
       }
       event.preventDefault();
     });
     partnerInput.addEventListener("change", () => {
-      if (visitorMode) {
+      if (isCurrentVisitorMode()) {
         partnerInput.value = "Robot";
       }
       void persistLauncherProfileForForm(role, form);
@@ -21239,7 +21242,7 @@ ${calmPracticeMessage}`;
       void syncDifficultyLabelForRole(role);
     });
     partnerInput.addEventListener("blur", () => {
-      if (visitorMode) {
+      if (isCurrentVisitorMode()) {
         partnerInput.value = "Robot";
       }
       void syncRoleIdentifierPresentation(role, form);
