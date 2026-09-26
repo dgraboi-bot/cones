@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926p";
+  const launcherBuildVersion = "20260926q";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -31812,11 +31812,11 @@ ${calmPracticeMessage}`;
       return "install-prompt-open";
     }
     const installState = getInstallState(state);
-    if (installState.confirmed) {
+    // A standalone shell is the browser's direct evidence that ESP GYM was
+    // launched from its installed app surface, even if old local state lacks
+    // the optional confirmation flag.
+    if (installState.confirmed || isStandaloneShell()) {
       return "confirmed-installed";
-    }
-    if (isStandaloneShell()) {
-      return "temporary-shell";
     }
     return "unknown";
   }
@@ -31888,15 +31888,10 @@ ${calmPracticeMessage}`;
       installState.lastSeenAt = now;
       changed = true;
     }
-    if (
-      !installState.confirmed &&
-      browser.isSafariIOS &&
-      shellMode === "standalone-shell" &&
-      installState.installGuidanceShownAt > 0
-    ) {
+    if (!installState.confirmed && shellMode === "standalone-shell") {
       installState.confirmed = true;
       installState.confirmedAt = now;
-      installState.confirmationSource = "ios-standalone-return";
+      installState.confirmationSource = browser.isSafariIOS ? "ios-standalone-detected" : "standalone-shell-detected";
       changed = true;
     }
     latest.installState = installState;
