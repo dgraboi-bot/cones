@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926e";
+  const launcherBuildVersion = "20260926f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9804,6 +9804,18 @@ ${calmPracticeMessage}`;
     const state = readLauncherState();
     state.partnerConfirmationMethod = String(method || "").trim().toLowerCase() === "camera" ? "camera" : "verified";
     writeLauncherState(state);
+  }
+
+  function tracePartnerConfirmationMethod(label, details = {}) {
+    const state = readLauncherState();
+    traceLauncherClient(`partner_confirmation_method:${label}`, {
+      page_instance_id: launcherPageInstanceId,
+      setup_identifier: String(featureSetupOwnIdentifier || "").trim(),
+      recognized_identity: String(getCanonicalRecognizedIdentity(state) || "").trim(),
+      entry_mode: String(state?.entryMode || "").trim(),
+      selected_method: getPartnerConfirmationMethod(),
+      ...(details && typeof details === "object" ? details : {})
+    });
   }
 
   function openPartnerConfirmationMethodOverlay(options = {}) {
@@ -33647,6 +33659,10 @@ ${calmPracticeMessage}`;
   partnerConfirmationMethodButtons.forEach((button) => {
     button.addEventListener("click", async () => {
       const method = String(button.dataset.partnerConfirmationMethod || "").trim();
+      tracePartnerConfirmationMethod("choice_clicked", {
+        requested_method: method,
+        claim_selection_pending: !!pendingPartnerConfirmationMethodSelection
+      });
       if (method === "camera" && !hasPartnerConfirmationCameraCapability()) {
         if (partnerConfirmationMethodStatus) {
           partnerConfirmationMethodStatus.textContent = "This browser does not offer a camera for live confirmation.";
@@ -33658,7 +33674,15 @@ ${calmPracticeMessage}`;
         try {
           const currentIdentifier = String(featureSetupOwnIdentifier || "").trim();
           const status = currentIdentifier ? await fetchIdentifierStatus(currentIdentifier) : null;
+          tracePartnerConfirmationMethod("email_status_checked", {
+            current_identifier: currentIdentifier,
+            formal_identity_exists: !!status?.formal_identity_exists,
+            auth_email_on_file: !!status?.auth_email_on_file
+          });
           if (!status?.auth_email_on_file) {
+            tracePartnerConfirmationMethod("opening_email_association", {
+              current_identifier: currentIdentifier
+            });
             closePartnerConfirmationMethodOverlay();
             openExploreProOverlay({
               mode: "claim",
@@ -33673,6 +33697,9 @@ ${calmPracticeMessage}`;
             return;
           }
         } catch (error) {
+          tracePartnerConfirmationMethod("email_status_check_failed", {
+            message: error instanceof Error ? error.message : String(error || "")
+          });
           if (partnerConfirmationMethodStatus) {
             partnerConfirmationMethodStatus.textContent = error instanceof Error
               ? error.message
@@ -33682,6 +33709,10 @@ ${calmPracticeMessage}`;
         }
       }
       setPartnerConfirmationMethod(method);
+      tracePartnerConfirmationMethod("method_selected", {
+        selected_method: method,
+        claim_selection_pending: !!completeSelection
+      });
       pendingPartnerConfirmationMethodSelection = null;
       if (completeSelection && method === "camera") {
         partnerConfirmationMethodClaimInFlight = true;
