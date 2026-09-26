@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926d";
+  const launcherBuildVersion = "20260926e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -856,6 +856,7 @@
   const partnerConfirmationSelfStatus = document.querySelector("[data-partner-confirmation-self-status]");
   const partnerConfirmationPartnerStatus = document.querySelector("[data-partner-confirmation-partner-status]");
   const partnerConfirmationCaptureButton = document.querySelector("[data-partner-confirmation-capture]");
+  const partnerConfirmationRetakeButton = document.querySelector("[data-partner-confirmation-retake]");
   const partnerConfirmationApproveButton = document.querySelector("[data-partner-confirmation-approve]");
   const partnerConfirmationBackButton = document.querySelector("[data-partner-confirmation-back]");
   const partnerConfirmationMethodButtons = Array.from(document.querySelectorAll("[data-partner-confirmation-method]"));
@@ -9965,6 +9966,11 @@ ${calmPracticeMessage}`;
       partnerConfirmationCaptureButton.disabled = false;
       partnerConfirmationCaptureButton.textContent = partnerConfirmationCameraStream ? "SNAP PICTURE" : "TAKE LIVE PHOTO";
     }
+    if (partnerConfirmationRetakeButton) {
+      const retakeLocked = !!own.confirmed || !!partner.confirmed;
+      partnerConfirmationRetakeButton.hidden = own.method !== "camera" || !own.snapshot || retakeLocked;
+      partnerConfirmationRetakeButton.disabled = retakeLocked;
+    }
     if (partnerConfirmationApproveButton) {
       partnerConfirmationApproveButton.disabled = !partnerReady || !ownReady || !!own.confirmed;
       partnerConfirmationApproveButton.hidden = !!own.confirmed;
@@ -10031,6 +10037,21 @@ ${calmPracticeMessage}`;
     } catch (error) {
       stopPartnerConfirmationCamera();
       if (partnerConfirmationStatus) partnerConfirmationStatus.textContent = error instanceof Error ? error.message : "Camera confirmation was not available.";
+    }
+  }
+
+  async function retakePartnerConfirmationPhoto() {
+    const pending = pendingPartnerConfirmation;
+    if (!pending) return;
+    try {
+      const data = await postPartnerConfirmationRequest("clear_partner_confirmation_snapshot", pending.request);
+      stopPartnerConfirmationCamera();
+      renderPartnerConfirmation(data.partner_confirmation || {});
+      void refreshPartnerConfirmation();
+    } catch (error) {
+      if (partnerConfirmationStatus) {
+        partnerConfirmationStatus.textContent = error instanceof Error ? error.message : "Unable to clear your temporary snapshot right now.";
+      }
     }
   }
 
@@ -28429,7 +28450,9 @@ ${calmPracticeMessage}`;
         }
       }
       if (exploreProAuthCopy) {
-        exploreProAuthCopy.textContent = "Your email address is used only for authentication. Please enter your email address below. You will be emailed a 5-character verification code. Your unique name will be claimed after verification succeeds.";
+        exploreProAuthCopy.textContent = isEmailAssociation
+          ? "Your email address is used only for authentication. Please enter your email address below. You will be emailed a 5-character verification code. Email-verified name confirmation will begin after verification succeeds."
+          : "Your email address is used only for authentication. Please enter your email address below. You will be emailed a 5-character verification code. Your unique name will be claimed after verification succeeds.";
       }
       if (exploreProStartButton) {
         exploreProStartButton.textContent = isEmailAssociation ? "VERIFY EMAIL" : "CLAIM UNIQUE NAME";
@@ -28542,6 +28565,15 @@ ${calmPracticeMessage}`;
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
     closeExploreProOverlay();
+    if (String(claimContext?.postClaimFlow || "").trim() === "partner-confirmation-verified") {
+      setPartnerConfirmationMethod("verified");
+      showFeatureSetupView({
+        role: String(claimContext?.role || featureSetupReturnRole || activeLauncherRole || "sender").trim() || "sender",
+        returnView: featureSetupReturnView || "card",
+        scrollY: featureSetupReturnScrollY
+      });
+      return;
+    }
     if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
       showInstallGuideView({ returnView: "feature-setup" });
       return;
@@ -33613,7 +33645,7 @@ ${calmPracticeMessage}`;
   });
   closePartnerConfirmationMethodButton?.addEventListener("click", closePartnerConfirmationMethodOverlay);
   partnerConfirmationMethodButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const method = String(button.dataset.partnerConfirmationMethod || "").trim();
       if (method === "camera" && !hasPartnerConfirmationCameraCapability()) {
         if (partnerConfirmationMethodStatus) {
@@ -33621,8 +33653,35 @@ ${calmPracticeMessage}`;
         }
         return;
       }
-      setPartnerConfirmationMethod(method);
       const completeSelection = pendingPartnerConfirmationMethodSelection;
+      if (method === "verified" && !completeSelection) {
+        try {
+          const currentIdentifier = String(featureSetupOwnIdentifier || "").trim();
+          const status = currentIdentifier ? await fetchIdentifierStatus(currentIdentifier) : null;
+          if (!status?.auth_email_on_file) {
+            closePartnerConfirmationMethodOverlay();
+            openExploreProOverlay({
+              mode: "claim",
+              claimPurpose: "associate-email",
+              identifier: String(status?.preferred_identifier || currentIdentifier).trim(),
+              currentIdentifier: String(status?.preferred_identifier || currentIdentifier).trim(),
+              role: featureSetupReturnRole || activeLauncherRole || "sender",
+              returnRole: featureSetupReturnRole || activeLauncherRole || "sender",
+              returnScrollY: featureSetupReturnScrollY,
+              postClaimFlow: "partner-confirmation-verified"
+            });
+            return;
+          }
+        } catch (error) {
+          if (partnerConfirmationMethodStatus) {
+            partnerConfirmationMethodStatus.textContent = error instanceof Error
+              ? error.message
+              : "Unable to check email verification for this unique name right now.";
+          }
+          return;
+        }
+      }
+      setPartnerConfirmationMethod(method);
       pendingPartnerConfirmationMethodSelection = null;
       if (completeSelection && method === "camera") {
         partnerConfirmationMethodClaimInFlight = true;
@@ -33645,6 +33704,9 @@ ${calmPracticeMessage}`;
   });
   partnerConfirmationCaptureButton?.addEventListener("click", () => {
     void capturePartnerConfirmationPhoto();
+  });
+  partnerConfirmationRetakeButton?.addEventListener("click", () => {
+    void retakePartnerConfirmationPhoto();
   });
   partnerConfirmationApproveButton?.addEventListener("click", () => {
     void approvePartnerConfirmation();

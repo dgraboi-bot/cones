@@ -12668,7 +12668,7 @@ if ($action === 'get_identifier_status') {
     respond_json_and_close($handle, $response);
 }
 
-if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation', 'submit_partner_confirmation_snapshot', 'approve_partner_confirmation', 'cancel_partner_confirmation'], true)) {
+if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation', 'submit_partner_confirmation_snapshot', 'clear_partner_confirmation_snapshot', 'approve_partner_confirmation', 'cancel_partner_confirmation'], true)) {
     try {
         $allowedKeys = ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier', 'method'];
         if ($action === 'submit_partner_confirmation_snapshot') {
@@ -12724,6 +12724,16 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
                 throw new RuntimeException('This device is using verified-name confirmation, not live camera confirmation.');
             }
             $confirmation[$confirmationRole]['snapshot'] = normalize_partner_confirmation_snapshot($input['snapshot'] ?? '');
+        }
+        if ($action === 'clear_partner_confirmation_snapshot') {
+            $otherRole = $confirmationRole === 'sender' ? 'receiver' : 'sender';
+            if (!empty($confirmation[$confirmationRole]['confirmed']) || !empty($confirmation[$otherRole]['confirmed'])) {
+                throw new RuntimeException('A snapshot cannot be changed after either partner has confirmed.');
+            }
+            if (normalize_partner_confirmation_method($confirmation[$confirmationRole]['method'] ?? 'verified') !== 'camera') {
+                throw new RuntimeException('This device is using verified-name confirmation, not live camera confirmation.');
+            }
+            $confirmation[$confirmationRole]['snapshot'] = '';
         }
         if ($action === 'approve_partner_confirmation') {
             $otherRole = $confirmationRole === 'sender' ? 'receiver' : 'sender';
