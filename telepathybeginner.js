@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926g";
+  const launcherBuildVersion = "20260926j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -864,6 +864,7 @@
   let pendingPartnerConfirmation = null;
   let partnerConfirmationPollTimer = 0;
   let partnerConfirmationCameraStream = null;
+  let partnerConfirmationRestartRequired = false;
   let pendingPartnerConfirmationMethodSelection = null;
   // A direct camera-based claim keeps its choice overlay up until the
   // destination is ready, preventing the underlying setup view from flashing.
@@ -9937,6 +9938,10 @@ ${calmPracticeMessage}`;
       if (shouldTrace) {
         tracePartnerConfirmation("response", {
           action,
+          session_code: String(payload.session_code || ""),
+          role: String(payload.role || ""),
+          own_identifier: String(payload.own_identifier || ""),
+          partner_identifier: String(payload.partner_identifier || ""),
           confirmation: summarizePartnerConfirmationState(data?.partner_confirmation || {})
         });
       }
@@ -9944,6 +9949,10 @@ ${calmPracticeMessage}`;
     } catch (error) {
       tracePartnerConfirmation("error", {
         action,
+        session_code: String(payload.session_code || ""),
+        role: String(payload.role || ""),
+        own_identifier: String(payload.own_identifier || ""),
+        partner_identifier: String(payload.partner_identifier || ""),
         message: error instanceof Error ? error.message : String(error || "Unknown confirmation error")
       });
       throw error;
@@ -9969,6 +9978,7 @@ ${calmPracticeMessage}`;
       window.clearTimeout(partnerConfirmationPollTimer);
       partnerConfirmationPollTimer = 0;
     }
+    partnerConfirmationRestartRequired = false;
     stopPartnerConfirmationCamera();
     partnerConfirmationOverlay?.classList.add("beginner-view-hidden");
     partnerConfirmationOverlay?.setAttribute("aria-hidden", "true");
@@ -9983,6 +9993,17 @@ ${calmPracticeMessage}`;
     const partnerName = pending.partnerIdentifier;
     if (partnerConfirmationSelfLabel) partnerConfirmationSelfLabel.textContent = `You: ${ownName}`;
     if (partnerConfirmationPartnerLabel) partnerConfirmationPartnerLabel.textContent = `Partner: ${partnerName}`;
+    if (!own.joined && partner.joined) {
+      partnerConfirmationRestartRequired = true;
+      if (partnerConfirmationCaptureButton) partnerConfirmationCaptureButton.hidden = true;
+      if (partnerConfirmationRetakeButton) partnerConfirmationRetakeButton.hidden = true;
+      if (partnerConfirmationApproveButton) partnerConfirmationApproveButton.hidden = true;
+      if (partnerConfirmationStatus) {
+        partnerConfirmationStatus.textContent = "Your partner began a new confirmation. Press BACK, then press GO to rejoin.";
+      }
+      return;
+    }
+    partnerConfirmationRestartRequired = false;
     const setFrameCheckVisible = (frame, visible) => {
       const check = frame?.querySelector(".partner-confirmation-check");
       if (check) {
@@ -10005,26 +10026,29 @@ ${calmPracticeMessage}`;
     };
     addPhoto(partnerConfirmationSelfFrame, own.snapshot || "");
     addPhoto(partnerConfirmationPartnerFrame, partner.snapshot || "");
-    setFrameCheckVisible(partnerConfirmationSelfFrame, !own.snapshot && own.method !== "camera");
+    setFrameCheckVisible(partnerConfirmationSelfFrame, !!own.joined && !own.snapshot && own.method !== "camera");
     setFrameCheckVisible(partnerConfirmationPartnerFrame, !partner.snapshot && !!partner.joined && partner.method !== "camera");
     if (partnerConfirmationSelfStatus) {
-      partnerConfirmationSelfStatus.textContent = own.method === "camera"
+      partnerConfirmationSelfStatus.textContent = !own.joined
+        ? "Waiting for this device to rejoin"
+        : own.method === "camera"
         ? (own.snapshot
           ? "Current temporary snapshot"
           : partnerConfirmationCameraStream
             ? "Frame yourself, then snap your picture"
             : "Take a live photo")
-        : "Verified unique name";
+        : "Verified via email";
     }
     if (partnerConfirmationPartnerStatus) {
       partnerConfirmationPartnerStatus.textContent = !partner.joined
         ? `Waiting for ${partnerName} to begin`
         : partner.method === "camera"
           ? (partner.snapshot ? "Current temporary snapshot" : `Waiting for ${partnerName}'s photo`)
-          : "Verified unique name";
+          : "Verified via email";
     }
     const partnerReady = !!partner.joined && (partner.method !== "camera" || !!partner.snapshot);
     const ownReady = own.method !== "camera" || !!own.snapshot;
+    const partnerUsesVerifiedName = !!partner.joined && partner.method !== "camera";
     if (partnerConfirmationCaptureButton) {
       partnerConfirmationCaptureButton.hidden = own.method !== "camera" || !!own.snapshot;
       partnerConfirmationCaptureButton.disabled = false;
@@ -10036,7 +10060,10 @@ ${calmPracticeMessage}`;
       partnerConfirmationRetakeButton.disabled = retakeLocked;
     }
     if (partnerConfirmationApproveButton) {
-      partnerConfirmationApproveButton.disabled = !partnerReady || !ownReady || !!own.confirmed;
+      partnerConfirmationApproveButton.textContent = partnerUsesVerifiedName ? "CONTINUE" : "THIS IS MY PARTNER";
+      partnerConfirmationApproveButton.disabled = partnerUsesVerifiedName
+        ? !partner.confirmed || !ownReady || !!own.confirmed
+        : !partnerReady || !ownReady || !!own.confirmed;
       partnerConfirmationApproveButton.hidden = !!own.confirmed;
     }
     if (partnerConfirmationStatus) {
@@ -10044,12 +10071,16 @@ ${calmPracticeMessage}`;
         ? "Both partners confirmed. Starting the session..."
         : own.confirmed
           ? `Your partner is confirmed. Waiting for ${partnerName} to confirm you.`
+          : partner.confirmed && partnerUsesVerifiedName
+            ? "Your partner has confirmed you. Tap CONTINUE to proceed."
           : partner.confirmed
             ? `Your partner has confirmed you. Confirm your partner to continue.`
           : !partner.joined
             ? `Waiting for ${partnerName} to begin partner confirmation.`
             : !partnerReady
               ? `Waiting for ${partnerName}'s current photo.`
+              : partnerUsesVerifiedName && own.method === "camera"
+                ? `Waiting for ${partnerName} to confirm your current photo.`
               : !ownReady
                 ? "Take your current photo before confirming your partner."
               : "Review your partner, then tap THIS IS MY PARTNER.";
@@ -10069,9 +10100,14 @@ ${calmPracticeMessage}`;
         return;
       }
     } catch (error) {
-      if (partnerConfirmationStatus) partnerConfirmationStatus.textContent = error instanceof Error ? error.message : "Unable to check partner confirmation right now.";
+      const message = error instanceof Error ? error.message : "Unable to check partner confirmation right now.";
+      if (partnerConfirmationStatus) partnerConfirmationStatus.textContent = message;
+      if (/confirmation has expired/i.test(message)) {
+        partnerConfirmationRestartRequired = true;
+        return;
+      }
     }
-    if (pendingPartnerConfirmation) {
+    if (pendingPartnerConfirmation && !partnerConfirmationRestartRequired) {
       partnerConfirmationPollTimer = window.setTimeout(() => void refreshPartnerConfirmation(), 1000);
     }
   }
@@ -10156,6 +10192,7 @@ ${calmPracticeMessage}`;
       method: getPartnerConfirmationMethod()
     };
     const data = await postPartnerConfirmationRequest("begin_partner_confirmation", request);
+    partnerConfirmationRestartRequired = false;
     pendingPartnerConfirmation = { request, targetUrl: options.targetUrl, ownIdentifier: options.ownIdentifier, partnerIdentifier: options.partnerIdentifier };
     partnerConfirmationOverlay?.classList.remove("beginner-view-hidden");
     partnerConfirmationOverlay?.setAttribute("aria-hidden", "false");

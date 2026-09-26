@@ -12717,7 +12717,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             $confirmation['expires_ms'] = $nowMs + $partnerConfirmationLifetimeMs;
             $confirmation[$confirmationRole]['method'] = normalize_partner_confirmation_method($input['method'] ?? 'verified');
             $confirmation[$confirmationRole]['joined'] = true;
-        } elseif ((int) ($confirmation['created_ms'] ?? 0) === 0) {
+        } elseif ((int) ($confirmation['created_ms'] ?? 0) === 0 && $action !== 'cancel_partner_confirmation') {
             throw new RuntimeException('Partner confirmation has expired. Press BACK, then press GO to begin it again.');
         }
 
