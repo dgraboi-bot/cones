@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926b";
+  const launcherBuildVersion = "20260926c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8952,6 +8952,39 @@ ${calmPracticeMessage}`;
     }
   }
 
+  function finalizeClaimedRoleInputs(role, identifier, userType) {
+    const normalizedRole = String(role || "").trim();
+    const acceptedIdentifier = String(identifier || "").trim();
+    if (!acceptedIdentifier || !["sender", "receiver"].includes(normalizedRole)) {
+      return;
+    }
+    const currentState = readLauncherState();
+    const claimedState = buildLauncherIdentityState(currentState, acceptedIdentifier, userType, {
+      recognizedIdentity: acceptedIdentifier,
+      entryMode: ""
+    });
+    writeLauncherState(claimedState);
+    setLauncherGuestEntryActive(false);
+    applyIdentityStateToLauncherInputs();
+
+    const form = document.querySelector(`[data-role-form="${normalizedRole}"]`);
+    const ownInput = form?.querySelector('input[name="ownName"]');
+    const partnerInput = form?.querySelector('input[name="partnerName"]');
+    if (ownInput instanceof HTMLInputElement) {
+      ownInput.value = acceptedIdentifier;
+      ownInput.readOnly = false;
+      ownInput.disabled = false;
+      ownInput.setAttribute("aria-readonly", "false");
+      ownInput.title = "";
+    }
+    if (partnerInput instanceof HTMLInputElement) {
+      partnerInput.readOnly = false;
+      partnerInput.disabled = false;
+      partnerInput.setAttribute("aria-readonly", "false");
+      partnerInput.title = "";
+    }
+  }
+
   async function submitUniqueHandle() {
     if (!activeHandleRole) {
       closeHandleOverlay();
@@ -9143,6 +9176,11 @@ ${calmPracticeMessage}`;
         }
         // Keep the successful-claim overlay on top while the destination is
         // restored, so Setup Website Features cannot flash between views.
+        finalizeClaimedRoleInputs(
+          completedRole,
+          acceptedHandle,
+          String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard"
+        );
         returnToUniqueNameClaimOrigin(returnRole, returnScrollY);
       }
       if (partnerConfirmationMethodClaimInFlight) {
