@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926w";
+  const launcherBuildVersion = "20260926x";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -669,6 +669,13 @@
   const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
   const temporaryHomePageExploreButton = document.querySelector("[data-temporary-home-explore]");
   const temporaryHomePageLearningCenterButton = document.querySelector("[data-open-temporary-home-learning-center]");
+  const temporaryHomePageRichCoursewareButton = document.querySelector("[data-temporary-home-rich-courseware]");
+  const temporaryHomeExperiencesGrid = document.querySelector("[data-temporary-home-experiences]");
+  const temporaryHomeTelepathyBeginnerCard = document.getElementById("temporary-home-telepathy-beginner");
+  const temporaryHomeEspProCard = document.getElementById("temporary-home-esp-pro");
+  const temporaryHomeEspProCopy = document.querySelector("[data-temporary-home-esp-pro-copy]");
+  const temporaryHomeRichCoursewareCard = document.getElementById("temporary-home-rich-courseware");
+  const temporaryHomeOngoingResearchCard = document.getElementById("temporary-home-ongoing-research");
   const openLandingPageButton = document.querySelector("[data-open-landing-page]");
   const temporaryHomePageClairvoyanceButton = document.querySelector("[data-temporary-home-clairvoyance]");
   const temporaryHomePageContactButton = document.querySelector("[data-open-temporary-home-contact]");
@@ -5801,6 +5808,7 @@ ${calmPracticeMessage}`;
 
   function applyPublicLandingMode(data = null) {
     publicLandingMode.espProSpecialEditionEnabled = !!data?.esp_pro_special_edition_enabled;
+    renderTemporaryHomeExperiences();
     const state = readLauncherState();
     if (!publicLandingMode.espProSpecialEditionEnabled && getLauncherEntryMode(state) === "special-edition") {
       writeLauncherState({
@@ -5813,6 +5821,30 @@ ${calmPracticeMessage}`;
       temporaryHomePageInvitationAccess.hidden = publicLandingMode.espProSpecialEditionEnabled;
     }
     return publicLandingMode;
+  }
+
+  function renderTemporaryHomeExperiences() {
+    if (
+      !temporaryHomeExperiencesGrid ||
+      !temporaryHomeTelepathyBeginnerCard ||
+      !temporaryHomeEspProCard ||
+      !temporaryHomeEspProCopy ||
+      !temporaryHomeRichCoursewareCard ||
+      !temporaryHomeOngoingResearchCard
+    ) {
+      return;
+    }
+    const specialEdition = publicLandingMode.espProSpecialEditionEnabled;
+    temporaryHomeEspProCopy.textContent = specialEdition
+      ? "A structured sender-receiver app for practicing visual telepathy and clairvoyance while tracking performance over time."
+      : "Advanced features and broader tools for deeper experimentation.";
+    temporaryHomeTelepathyBeginnerCard.hidden = specialEdition;
+    temporaryHomeRichCoursewareCard.hidden = !specialEdition;
+    temporaryHomeExperiencesGrid.replaceChildren(
+      ...(specialEdition
+        ? [temporaryHomeEspProCard, temporaryHomeRichCoursewareCard, temporaryHomeOngoingResearchCard]
+        : [temporaryHomeTelepathyBeginnerCard, temporaryHomeEspProCard, temporaryHomeOngoingResearchCard])
+    );
   }
 
   async function refreshPublicLandingMode() {
@@ -33636,6 +33668,13 @@ ${calmPracticeMessage}`;
     void handleLandingExploreClick();
   });
   temporaryHomePageLearningCenterButton?.addEventListener("click", () => {
+    showLearningCenterView({
+      view: "temporary-home-page",
+      scrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
+      tab: "welcome"
+    });
+  });
+  temporaryHomePageRichCoursewareButton?.addEventListener("click", () => {
     showLearningCenterView({
       view: "temporary-home-page",
       scrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
