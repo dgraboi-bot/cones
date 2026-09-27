@@ -2093,6 +2093,37 @@ body.lesson-image-overlay-open {
   transform: translateY(0);
 }
 
+.beginner-top-arrow-button[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: min(290px, calc(100vw - 28px));
+  padding: 8px 10px;
+  border: 1px solid rgba(150, 198, 255, 0.62);
+  border-radius: 12px;
+  background: rgba(7, 18, 38, 0.98);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34);
+  color: #f5f9ff;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.3;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.beginner-top-arrow-button[data-tooltip]:hover::after,
+.beginner-top-arrow-button[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .role-message-open.is-pro-locked-button:hover,
 .role-message-open.is-pro-locked-button:focus-visible,
 .feature-setup-action.is-pro-locked-button:hover,
@@ -5401,7 +5432,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260926x") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260926y") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

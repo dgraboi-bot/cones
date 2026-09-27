@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926x";
+  const launcherBuildVersion = "20260926y";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -13780,12 +13780,17 @@ ${calmPracticeMessage}`;
         swVersion = settledSwVersion;
       }
     }
+    // A PWA can be internally consistent while still running an older cached
+    // build. Compare its shell with the network-first live shell on startup.
+    const liveShellVersion = await fetchLiveShellBuildVersion();
     // An older worker can still control a newly loaded PWA briefly while its
     // replacement precaches assets. HTML and versioned JS are network-first,
     // so a worker handoff alone must not block a valid matching app shell.
     const mismatchReason = !htmlVersion
       ? "missing_html_build_version"
-      : (htmlVersion !== jsVersion ? "html_js_version_mismatch" : "");
+      : (htmlVersion !== jsVersion
+          ? "html_js_version_mismatch"
+          : (liveShellVersion && liveShellVersion !== jsVersion ? "live_shell_version_mismatch" : ""));
 
     if (!mismatchReason && swVersion && swVersion !== jsVersion) {
       logBuildRecoveryDebug("service_worker_update_pending", {
@@ -13805,6 +13810,7 @@ ${calmPracticeMessage}`;
     clearBuildRecoveryNotice();
     logBuildRecoveryDebug("verified", {
       sw_build_version: swVersion || "",
+      live_shell_build_version: liveShellVersion || "",
       recovery_query: String(new URLSearchParams(window.location.search).get(buildRecoveryStatusParam) || "").trim()
     });
     return true;
