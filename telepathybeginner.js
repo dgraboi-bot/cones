@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927f";
+  const launcherBuildVersion = "20260927g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1160,7 +1160,7 @@
   const remoteViewModeCancelButton = document.querySelector("[data-remote-view-mode-cancel]");
   const remoteViewerDisplayToggleWrap = document.querySelector("[data-remote-viewer-display-toggle-wrap]");
   const remoteViewerPartnerField = document.querySelector("[data-remote-viewer-partner-field]");
-  const remoteViewSimulationModeDefault = "remote-device";
+  const remoteViewSimulationModeDefault = "covered-screen";
   const coveredScreenInstructionDismissKey = "cones-covered-screen-instruction-dismiss-v1";
   let deferredInstallPrompt = null;
   let installPromptPending = false;
@@ -14512,9 +14512,11 @@ ${calmPracticeMessage}`;
   }
 
   function normalizeRemoteViewSimulationMode(value) {
-    return String(value || "").trim().toLowerCase() === "covered-screen"
-      ? "covered-screen"
-      : "remote-device";
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "covered-screen" || normalized === "remote-device") {
+      return normalized;
+    }
+    return remoteViewSimulationModeDefault;
   }
 
   function readRemoteViewSimulationMode(state = readLauncherState()) {
@@ -19995,10 +19997,13 @@ ${calmPracticeMessage}`;
       };
     }
 
-    const [ownType, partnerType] = await Promise.all([
-      fetchUserType(cleanOwnName),
-      fetchUserType(cleanPartnerName)
-    ]);
+    const specialEditionPro = publicLandingMode.espProSpecialEditionEnabled;
+    const [ownType, partnerType] = specialEditionPro
+      ? ["pro", "pro"]
+      : await Promise.all([
+        fetchUserType(cleanOwnName),
+        fetchUserType(cleanPartnerName)
+      ]);
     const receiverType = targetRole === "receiver" ? ownType : partnerType;
     const senderType = targetRole === "sender" ? ownType : partnerType;
 

@@ -6925,6 +6925,16 @@ function get_user_type_for_identifier(array &$state, string $identifier): string
     return 'standard';
 }
 
+function get_effective_difficulty_user_type_for_identifier(array &$state, string $identifier): string
+{
+    // Special Edition grants Level 4 access without changing stored memberships.
+    if (!empty($state['esp_pro_special_edition_enabled'])) {
+        return 'pro';
+    }
+
+    return get_user_type_for_identifier($state, $identifier);
+}
+
 function participant_identifier_exists(array $state, string $pairsDir, string $identifier): bool
 {
     $cleanIdentifier = trim((string) $identifier);
@@ -10631,8 +10641,8 @@ function get_pair_participants_for_session(array $state, array $session, string 
 function validate_pair_difficulty_access(array $state, string $receiverId, string $senderId, string $difficulty): array
 {
     $normalizedDifficulty = normalize_difficulty_level($difficulty);
-    $receiverType = get_user_type_for_identifier($state, $receiverId);
-    $senderType = get_user_type_for_identifier($state, $senderId);
+    $receiverType = get_effective_difficulty_user_type_for_identifier($state, $receiverId);
+    $senderType = get_effective_difficulty_user_type_for_identifier($state, $senderId);
     $robotPair = is_robot_simulation_identifier($receiverId) || is_robot_simulation_identifier($senderId);
 
     if (in_array($normalizedDifficulty, ['1', '2', '3'], true)) {
@@ -10657,10 +10667,9 @@ function validate_pair_difficulty_access(array $state, string $receiverId, strin
     }
 
     if ($normalizedDifficulty === '5') {
-        $allowed = $receiverType === 'pro' && $senderType === 'pro';
         return [
-            'allowed' => $allowed,
-            'message' => $allowed ? '' : 'Level 5 requires both participants to be PRO users.',
+            'allowed' => false,
+            'message' => 'Telepathy currently supports Levels 1 through 4.',
             'difficulty_level' => $normalizedDifficulty,
             'receiver_type' => $receiverType,
             'sender_type' => $senderType
@@ -10682,12 +10691,7 @@ function get_pair_max_difficulty_level(array $state, string $receiverId, string 
         return '4';
     }
 
-    $receiverType = get_user_type_for_identifier($state, $receiverId);
-    $senderType = get_user_type_for_identifier($state, $senderId);
-
-    if ($receiverType === 'pro' && $senderType === 'pro') {
-        return '5';
-    }
+    $receiverType = get_effective_difficulty_user_type_for_identifier($state, $receiverId);
 
     if ($receiverType === 'pro') {
         return '4';
@@ -14680,8 +14684,8 @@ if (($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') && 
     $receiverNameForDifficulty = trim((string) ($pairParticipants['receiver_name'] ?? ''));
     $senderNameForDifficulty = trim((string) ($pairParticipants['sender_name'] ?? ''));
     $pairDifficultyResponseMeta = [
-        'receiver_type' => $receiverNameForDifficulty !== '' ? get_user_type_for_identifier($state, $receiverNameForDifficulty) : 'standard',
-        'sender_type' => $senderNameForDifficulty !== '' ? get_user_type_for_identifier($state, $senderNameForDifficulty) : 'standard',
+        'receiver_type' => $receiverNameForDifficulty !== '' ? get_effective_difficulty_user_type_for_identifier($state, $receiverNameForDifficulty) : 'standard',
+        'sender_type' => $senderNameForDifficulty !== '' ? get_effective_difficulty_user_type_for_identifier($state, $senderNameForDifficulty) : 'standard',
         'max_allowed_difficulty_level' => ($receiverNameForDifficulty !== '' && $senderNameForDifficulty !== '')
             ? get_pair_max_difficulty_level($state, $receiverNameForDifficulty, $senderNameForDifficulty)
             : '3'
