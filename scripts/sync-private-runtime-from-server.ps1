@@ -83,8 +83,12 @@ function Get-LocalRuntimeManifest([string]$PrivateRoot) {
 }
 
 function Compare-NameSets([object[]]$Left, [object[]]$Right) {
-  $leftNames = @($Left | ForEach-Object { [string]$_.name } | Sort-Object)
-  $rightNames = @($Right | ForEach-Object { [string]$_.name } | Sort-Object)
+  $leftNames = @($Left | ForEach-Object {
+    if ($_ -and $_.PSObject.Properties['name']) { [string]$_.name }
+  } | Sort-Object)
+  $rightNames = @($Right | ForEach-Object {
+    if ($_ -and $_.PSObject.Properties['name']) { [string]$_.name }
+  } | Sort-Object)
   $leftOnly = @($leftNames | Where-Object { $_ -notin $rightNames })
   $rightOnly = @($rightNames | Where-Object { $_ -notin $leftNames })
   return [pscustomobject]@{
@@ -174,7 +178,7 @@ Ensure-Directory $localDataDir
 Write-Host ""
 Write-Host "Syncing local private runtime store from the server copy..." -ForegroundColor Yellow
 Get-ChildItem -LiteralPath $localPairsDir -File -ErrorAction SilentlyContinue | Remove-Item -Force
-Copy-Item -LiteralPath (Join-Path $stagePairs "*") -Destination $localPairsDir -Force
+Copy-Item -Path (Join-Path $stagePairs "*") -Destination $localPairsDir -Force
 Copy-Item -LiteralPath (Join-Path $stageData "session-state.json") -Destination (Join-Path $localDataDir "session-state.json") -Force
 
 $syncedManifest = Get-LocalRuntimeManifest -PrivateRoot $LocalPrivateRoot
