@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926u";
+  const launcherBuildVersion = "20260926v";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -935,7 +935,6 @@
   const messagesThread = document.querySelector("[data-messages-thread]");
   const messagesInput = document.querySelector("[data-messages-input]");
   const messagesSendButton = document.querySelector("[data-messages-send]");
-  const messagesCancelButton = document.querySelector("[data-messages-cancel]");
   const messagesEmojiButtons = Array.from(document.querySelectorAll("[data-messages-emoji]"));
   const messagesStatus = document.querySelector("[data-messages-status]");
   const difficultyLabels = Array.from(document.querySelectorAll("[data-pair-difficulty-label]"));
@@ -9288,6 +9287,27 @@ ${calmPracticeMessage}`;
     return savePushSubscription(cleanIdentifier, deviceId, subscription);
   }
 
+  function requestMessagingNotificationPermission() {
+    if (!isRunningAsInstalledApp() || !("Notification" in window)) {
+      return Promise.resolve(getNotificationPermissionSnapshot());
+    }
+    const permission = syncNotificationPermissionSnapshot();
+    if (permission !== "default") {
+      return Promise.resolve(permission);
+    }
+    // This runs directly from the Messages click path, which browsers require
+    // before they will show a notification-permission prompt.
+    return Notification.requestPermission()
+      .then((nextPermission) => {
+        syncNotificationPermissionSnapshot();
+        return String(nextPermission || "default").trim().toLowerCase() || "default";
+      })
+      .catch(() => {
+        syncNotificationPermissionSnapshot();
+        return getNotificationPermissionSnapshot();
+      });
+  }
+
   function getRoleIdentifiersForMessaging(role) {
     if (role === "remote-viewer") {
       return {
@@ -9392,10 +9412,8 @@ ${calmPracticeMessage}`;
     messagesStatus.style.color = options.isError ? "rgba(255, 196, 196, 0.96)" : "rgba(255, 230, 176, 0.94)";
   }
 
-  function formatConversationOptionLabel(partnerIdentifier, unreadCount = 0) {
-    const base = String(partnerIdentifier || "").trim() || "Conversation";
-    const count = Math.max(0, Number(unreadCount) || 0);
-    return count > 0 ? `${base} (${count})` : base;
+  function formatConversationOptionLabel(partnerIdentifier) {
+    return String(partnerIdentifier || "").trim() || "Conversation";
   }
 
   function getLastReadMsForPartner(inbox, partnerIdentifier) {
@@ -9529,8 +9547,8 @@ ${calmPracticeMessage}`;
       return `
         <div class="role-message-bubble ${isOwn ? "is-own" : "is-partner"} ${isUnread ? "is-unread" : ""}" data-message-id="${escapeHtml(messageId)}">
           <div class="role-message-meta-row">
-            <span class="role-message-meta">${isUnread ? `<span class="role-message-unread-dot" aria-hidden="true"></span>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" aria-hidden="true"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` - ${escapeHtml(createdLabel)}` : ""}</span>
-            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="Delete this message" title="Delete this message">&#128465;</button>
+            <span class="role-message-meta">${isUnread ? `<button class="role-message-unread-dot" type="button" data-message-mark-read="${escapeHtml(messageId)}" aria-label="Click red dot to indicate to partner that this message has been read" title="Click red dot to indicate to partner that this message has been read"></button>` : isOwn && recipientSeen ? `<span class="role-message-seen-dot" role="img" aria-label="Green dot marks an outgoing message that partner has marked read" title="Green dot marks an outgoing message that partner has marked read"></span>` : ""}${escapeHtml(isOwn ? "You" : senderIdentifier || "Partner")}${createdLabel ? ` - ${escapeHtml(createdLabel)}` : ""}</span>
+            <button class="role-message-trash" type="button" data-messages-delete="${escapeHtml(messageId)}" aria-label="${isOwn ? "Delete this message on this screen" : "Delete this message on this screen and mark it with a green dot on partner's screen"}" title="${isOwn ? "Delete this message on this screen" : "Delete this message on this screen and mark it with a green dot on partner's screen"}">&#128465;</button>
           </div>
           <div>${escapeHtml(String(message?.text || ""))}</div>
         </div>
@@ -10794,7 +10812,7 @@ ${calmPracticeMessage}`;
       if (installed) {
         summary = "ESP GYM is already installed. To make it easier to launch, pin it to the Windows taskbar.";
         steps = [
-          "Close the ESP GYM app window if it is open.",
+          "Close this ESP GYM app window if it is open.",
           "Press the Windows key and type ESP GYM.",
           "When ESP GYM appears in the search results, right-click it.",
           "Choose Pin to taskbar."
@@ -11559,7 +11577,7 @@ ${calmPracticeMessage}`;
       }
       const option = document.createElement("option");
       option.value = partnerIdentifier;
-      option.textContent = formatConversationOptionLabel(partnerIdentifier, Number(conversation?.unread_count || 0));
+      option.textContent = formatConversationOptionLabel(partnerIdentifier);
       messagesThreadSelect.append(option);
     });
 
@@ -11666,12 +11684,7 @@ ${calmPracticeMessage}`;
       }
       renderMessagesInboxSummary(activeMessagesThreadInbox);
 
-      const partnerPushCount = Number(messagingData?.partner_push_status?.subscription_count || 0);
-      setMessagesStatus(
-        partnerPushCount > 0
-          ? ""
-          : "Your partner has not yet enabled notification messaging on an installed app."
-      );
+      setMessagesStatus("");
       await refreshRoleMessageButton("sender");
       await refreshRoleMessageButton("receiver");
     } catch (error) {
@@ -11807,6 +11820,10 @@ ${calmPracticeMessage}`;
       return;
     }
 
+    // Start this before the first await so browsers retain the click gesture
+    // needed to display their notification-permission prompt.
+    const notificationPermissionPromise = requestMessagingNotificationPermission();
+
     let ownStatus = null;
     try {
       ownStatus = await fetchIdentifierStatus(ownRaw);
@@ -11820,6 +11837,16 @@ ${calmPracticeMessage}`;
     if (!isAcceptedUniqueHandleIdentifier(preferredOwnIdentifier, ownStatus)) {
       window.alert("First claim an accepted unique handle for You before using partner messaging.");
       return;
+    }
+
+    const notificationPermission = await notificationPermissionPromise;
+    if (notificationPermission === "granted") {
+      try {
+        await subscribeCurrentDeviceForIdentifier(preferredOwnIdentifier);
+      } catch (_) {
+        // The normal in-app message refresh remains available even if this
+        // browser cannot complete a push-subscription registration.
+      }
     }
 
     const capturedLauncherScrollY = Math.max(
@@ -11852,7 +11879,6 @@ ${calmPracticeMessage}`;
       activeMessagesThreadInbox = inboxData?.inbox || null;
       const conversationList = buildMessagingConversationList(activeMessagesThreadInbox, partnerRaw);
       renderMessagesConversationOptions(conversationList, partnerRaw);
-      renderMessagesInboxSummary(activeMessagesThreadInbox);
       activeMessagesPartnerIdentifier = String(messagesThreadSelect?.value || partnerRaw || "").trim();
       await loadActiveMessagesConversation({ markRead: false });
     } catch (error) {
@@ -12136,13 +12162,7 @@ ${calmPracticeMessage}`;
         String(ownStatus?.preferred_identifier || ownIdentifier).trim() || ownIdentifier,
         String(partnerStatus?.preferred_identifier || partnerIdentifier).trim() || partnerIdentifier
       );
-      const sentCount = Number(result?.delivery?.sent_count || 0);
-      setRoleMessageStatus(
-        role,
-        sentCount > 0
-          ? "Message sent to your partner."
-          : "Message saved, but your partner has not yet enabled notifications on an installed app."
-      );
+      setRoleMessageStatus(role, "Message sent to your partner.");
       schedulePartnerMessagePolling();
     } catch (error) {
       setRoleMessageStatus(role, error instanceof Error ? error.message : "Unable to send the message right now.", { isError: true });
@@ -34019,12 +34039,6 @@ ${calmPracticeMessage}`;
   });
   messagesSendButton?.addEventListener("click", () => {
     void sendActiveMessagesViewMessage();
-  });
-  messagesCancelButton?.addEventListener("click", () => {
-    if (messagesInput) {
-      messagesInput.value = "";
-    }
-    setMessagesStatus("");
   });
   messagesEmojiButtons.forEach((button) => {
     button.addEventListener("click", () => {
