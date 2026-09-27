@@ -17,7 +17,9 @@ Set-StrictMode -Version Latest
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $bumpScript = Join-Path $PSScriptRoot "bump-version.ps1"
 $plinkPath = "C:\Program Files\PuTTY\plink.exe"
-$puttySession = "DG Putty Settings"
+$sshTarget = "ec2-user@13.57.83.174"
+$sshPrivateKeyPath = "C:\pem\Putty saved key\puttykey.ppk"
+$sshHostKey = "SHA256:3KLXNH5dlbRXvcz9p70RAzK8MAE9WaYSb/O+ZC9WhNM"
 $mirrorRoot = "C:\xampp\htdocs\cones"
 $privateContentRoot = "/var/www/telepathyexperiment_private/cones/content"
 $localPrivateContentRoot = "C:\xampp\telepathyexperiment_private\cones\content"
@@ -248,11 +250,11 @@ function Invoke-Plink([string]$Command, [string]$CommandFile = "") {
   $startInfo.RedirectStandardError = $true
   $startInfo.UseShellExecute = $false
   $startInfo.CreateNoWindow = $true
-  $arguments = @("-batch", "-load", $puttySession)
+  $arguments = @("-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath)
   if ($CommandFile) {
-    $arguments += @("-m", $CommandFile)
+    $arguments += @("-m", $CommandFile, $sshTarget)
   } else {
-    $arguments += $Command
+    $arguments += @($sshTarget, $Command)
   }
   # Windows PowerShell lacks ProcessStartInfo.ArgumentList; preserve each
   # Plink argument as a single quoted command-line token instead.
@@ -308,6 +310,17 @@ function Assert-FileHashMatch([string]$LeftPath, [string]$RightPath, [string]$La
   if ($leftHash -ne $rightHash) {
     throw "Mirror verification failed for $Label"
   }
+}
+
+function Sync-MirrorFileIfNeeded([string]$SourcePath, [string]$MirrorPath, [string]$Label) {
+  $matches = (Test-Path -LiteralPath $MirrorPath) -and
+    ((Get-FileHash -Algorithm SHA256 -LiteralPath $SourcePath).Hash -eq (Get-FileHash -Algorithm SHA256 -LiteralPath $MirrorPath).Hash)
+  if (-not $matches) {
+    $mirrorDirectory = Split-Path -Parent $MirrorPath
+    New-Item -ItemType Directory -Force -Path $mirrorDirectory | Out-Null
+    Copy-Item -LiteralPath $SourcePath -Destination $MirrorPath -Force
+  }
+  Assert-FileHashMatch $SourcePath $MirrorPath $Label
 }
 
 function Get-NormalizedRelativePath([string]$Path) {
@@ -909,6 +922,7 @@ if (-not (Test-Path -LiteralPath $imagePairsSyncScript)) {
 }
 
 Assert-ToolExists $plinkPath "plink"
+Assert-ToolExists $sshPrivateKeyPath "SSH private key"
 
 $gitTopLevel = (git -C $repoRoot rev-parse --show-toplevel).Trim()
 if (-not $gitTopLevel) {
@@ -1006,6 +1020,9 @@ if ($SyncImagePairsFromLive) {
 Write-Host "Ordinary release manifests exclude the imagepairs payload after authoritative live sync, so unchanged imagepairs do not slow code releases." -ForegroundColor Green
 
 & powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
+if ($LASTEXITCODE -ne 0) {
+  throw "Version bump helper failed; mirror synchronization and release preparation were not attempted."
+}
 Assert-CacheVersionCompleteness -RepoRootForCheck $repoRoot -ExpectedVersion $Version
 
 $robocopyArgs = @(
@@ -1026,7 +1043,7 @@ if ($robocopyExit -gt 7) {
 foreach ($relativePath in $mirrorVerifyFiles) {
   $sourcePath = Join-Path $repoRoot $relativePath
   $mirrorPath = Join-Path $mirrorRoot $relativePath
-  Assert-FileHashMatch $sourcePath $mirrorPath $relativePath
+  Sync-MirrorFileIfNeeded $sourcePath $mirrorPath $relativePath
 }
 
 New-Item -ItemType Directory -Path $preparedReleaseRoot -Force | Out-Null

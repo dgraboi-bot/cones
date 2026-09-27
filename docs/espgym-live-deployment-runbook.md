@@ -596,13 +596,15 @@ Important:
 
 Primary SSH transport:
 
-`plink -batch -load "DG Putty Settings"`
+`plink -batch -hostkey "SHA256:3KLXNH5dlbRXvcz9p70RAzK8MAE9WaYSb/O+ZC9WhNM" -i "C:\pem\Putty saved key\puttykey.ppk" ec2-user@13.57.83.174`
+
+The release helpers use this explicit pinned server identity and key path rather than a PuTTY session stored in a specific Windows account's registry. This keeps automated deployment available when Codex runs under a separate Windows account.
 
 Primary file push pattern:
 
 ```powershell
 cmd /c type "C:\xampp\htdocs\telepathyexperiment\cones\somefile.ext" |
-  plink -batch -load "DG Putty Settings" "cat > /var/www/telepathyexperiment/cones/somefile.ext"
+  plink -batch -hostkey "SHA256:3KLXNH5dlbRXvcz9p70RAzK8MAE9WaYSb/O+ZC9WhNM" -i "C:\pem\Putty saved key\puttykey.ppk" ec2-user@13.57.83.174 "cat > /var/www/telepathyexperiment/cones/somefile.ext"
 ```
 
 Important:

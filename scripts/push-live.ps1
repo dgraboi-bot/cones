@@ -9,8 +9,9 @@ Set-StrictMode -Version Latest
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $pscpPath = "C:\Program Files\PuTTY\pscp.exe"
 $plinkPath = "C:\Program Files\PuTTY\plink.exe"
-$puttySession = "DG Putty Settings"
 $remoteUploadTarget = "ec2-user@13.57.83.174"
+$sshPrivateKeyPath = "C:\pem\Putty saved key\puttykey.ppk"
+$sshHostKey = "SHA256:3KLXNH5dlbRXvcz9p70RAzK8MAE9WaYSb/O+ZC9WhNM"
 $liveRoot = "/var/www/telepathyexperiment/cones"
 $privateContentRoot = "/var/www/telepathyexperiment_private/cones/content"
 $snapshotRoot = "/home/ec2-user/espgym_live_snapshots"
@@ -126,7 +127,7 @@ function Invoke-ExternalCommand {
 }
 
 function Invoke-Plink([string]$Command) {
-  $result = Invoke-ExternalCommand -FilePath $plinkPath -ArgumentList @("-batch", "-load", $puttySession, $Command) -StepLabel "plink command" -TimeoutSeconds 180 -AllowEmptyOutput
+  $result = Invoke-ExternalCommand -FilePath $plinkPath -ArgumentList @("-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $remoteUploadTarget, $Command) -StepLabel "plink command" -TimeoutSeconds 180 -AllowEmptyOutput
   if (-not $result.StdOut) {
     return @()
   }
@@ -134,7 +135,7 @@ function Invoke-Plink([string]$Command) {
 }
 
 function Invoke-PlinkStep([string]$Command, [string]$StepLabel, [int]$TimeoutSeconds = 180, [switch]$AllowEmptyOutput) {
-  $result = Invoke-ExternalCommand -FilePath $plinkPath -ArgumentList @("-batch", "-load", $puttySession, $Command) -StepLabel $StepLabel -TimeoutSeconds $TimeoutSeconds -AllowEmptyOutput:$AllowEmptyOutput
+  $result = Invoke-ExternalCommand -FilePath $plinkPath -ArgumentList @("-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $remoteUploadTarget, $Command) -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput:$AllowEmptyOutput
   if (-not $result.StdOut) {
     return @()
   }
@@ -142,7 +143,7 @@ function Invoke-PlinkStep([string]$Command, [string]$StepLabel, [int]$TimeoutSec
 }
 
 function Invoke-PscpUpload([string]$LocalPath, [string]$RemotePath, [string]$StepLabel) {
-  [void](Invoke-ExternalCommand -FilePath $pscpPath -ArgumentList @("-q", "-batch", "-load", $puttySession, $LocalPath, "$remoteUploadTarget`:$RemotePath") -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput)
+  [void](Invoke-ExternalCommand -FilePath $pscpPath -ArgumentList @("-q", "-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $LocalPath, "$remoteUploadTarget`:$RemotePath") -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput)
 }
 
 function Convert-ToPosixPath([string]$Path) {
@@ -355,6 +356,7 @@ function Assert-RemoteManagedLessonSetConsistent([string]$RepoRootForCheck) {
 
 Assert-ToolExists $pscpPath "pscp"
 Assert-ToolExists $plinkPath "plink"
+Assert-ToolExists $sshPrivateKeyPath "SSH private key"
 Write-ReleaseLog ("Starting live push for build {0}" -f $Version) "Cyan"
 Write-ReleaseLog ("Release log: {0}" -f $releaseLogPath) "DarkGray"
 

@@ -1,12 +1,35 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$Version
+  [string]$Version,
+
+  [string]$MirrorRoot = "C:\xampp\htdocs\cones"
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 $versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9._-]*'
+
+function Assert-FileWritable([string]$Path, [string]$Label) {
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Missing ${Label}: $Path"
+  }
+  $stream = $null
+  try {
+    $stream = [System.IO.File]::Open(
+      $Path,
+      [System.IO.FileMode]::Open,
+      [System.IO.FileAccess]::ReadWrite,
+      [System.IO.FileShare]::ReadWrite
+    )
+  } catch {
+    throw "Preflight cannot open $Label for writing: $Path`n$($_.Exception.Message)"
+  } finally {
+    if ($null -ne $stream) {
+      $stream.Dispose()
+    }
+  }
+}
 
 $files = @(
   (Join-Path $root ".htaccess"),
@@ -44,6 +67,14 @@ foreach ($file in $files) {
   if (-not (Test-Path $file)) {
     throw "Missing file: $file"
   }
+}
+
+# Verify every source and matching mirror file before changing any version marker.
+foreach ($file in $files) {
+  $relativePath = $file.Substring($root.Length).TrimStart('\', '/')
+  $mirrorFile = Join-Path $MirrorRoot $relativePath
+  Assert-FileWritable $file "source file"
+  Assert-FileWritable $mirrorFile "mirror file"
 }
 
 $previousVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
@@ -136,12 +167,15 @@ $replacements = @{
 }
 
 foreach ($file in $files) {
-  $content = Get-Content -Raw -LiteralPath $file
+  $originalContent = Get-Content -Raw -LiteralPath $file
+  $content = $originalContent
   foreach ($rule in $replacements[$file]) {
     $content = [regex]::Replace($content, $rule.Pattern, $rule.Replacement)
   }
-  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-  [System.IO.File]::WriteAllText($file, $content, $utf8NoBom)
+  if ($content -ne $originalContent) {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($file, $content, $utf8NoBom)
+  }
 }
 
 $missingVersion = @()

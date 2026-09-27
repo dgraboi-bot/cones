@@ -9,7 +9,9 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927u";
+  const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
+  const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
+  const launcherBuildVersion = "20260927x";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8303,6 +8305,29 @@ ${calmPracticeMessage}`;
     return next;
   }
 
+  function applyExerciseOrderDefaultsMigration() {
+    if (localStorage.getItem(exerciseOrderDefaultsMigrationKey) === "1") {
+      return false;
+    }
+    const state = readLauncherState();
+    state.difficultyLevel = "1";
+    state.roleDifficultyLevels = {
+      ...(state.roleDifficultyLevels || {}),
+      sender: "1",
+      receiver: "1",
+      "remote-viewer": "1"
+    };
+    // Robot practice should start at the first exercise after the reorder too.
+    state.robotSimulationDifficultyLevels = {};
+    writeLauncherState(state);
+    ["sender", "receiver", "remote-viewer"].forEach((role) => {
+      writeRuntimeSettings(role, { difficulty_level: "1" });
+    });
+    localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
+    localStorage.setItem(exerciseOrderPairInitializationKey, "1");
+    return true;
+  }
+
   function clearRuntimeSettings(role) {
     try {
       localStorage.removeItem(`cones-settings-v2-${role}`);
@@ -14136,7 +14161,18 @@ ${calmPracticeMessage}`;
         : null;
 
     try {
-      const difficultyData = await fetchPairDifficulty(context.sessionCode, null, null, pairParticipants);
+      const initializePairAtExerciseOne =
+        localStorage.getItem(exerciseOrderPairInitializationKey) === "1"
+        && (normalizedRole === "sender" || normalizedRole === "receiver");
+      const difficultyData = await fetchPairDifficulty(
+        context.sessionCode,
+        initializePairAtExerciseOne ? "1" : null,
+        null,
+        pairParticipants
+      );
+      if (initializePairAtExerciseOne) {
+        localStorage.removeItem(exerciseOrderPairInitializationKey);
+      }
       const pairLevel = Number(normalizeDifficultyLevel(difficultyData?.pair_difficulty));
       const visibleLevel = normalizeDifficultyLevel(String(Math.min(pairLevel, getRoleMaxDifficultyLevel(normalizedRole, difficultyData))));
       setRoleDifficultyLabel(normalizedRole, visibleLevel || localFallbackLevel);
@@ -15104,18 +15140,20 @@ ${calmPracticeMessage}`;
     if (!/^demo\./i.test(text)) {
       return text;
     }
-    return text.replace(/@espgym\.com$/i, "");
+    return text
+      .replace(/@espgym\.com$/i, "")
+      .replace(/^demo\./i, "exercise.");
   }
 
   function getDemoReportShortLabel(receiverName, senderName) {
     const pairKey = buildPairMatchKey(receiverName, senderName);
     const labelByPairKey = {
-      "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "demo: too-little",
-      "demo.level1.promising.receiver|||demo.level1.promising.sender": "demo: promising",
-      "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "demo: not-telepathic",
-      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "demo: telepathic"
+      "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "exercise: too-little",
+      "demo.level1.promising.receiver|||demo.level1.promising.sender": "exercise: promising",
+      "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "exercise: not-telepathic",
+      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "exercise: telepathic"
     };
-    return labelByPairKey[pairKey] || "demo";
+    return labelByPairKey[pairKey] || "exercise";
   }
 
   function isNamedReportTarget(target) {
@@ -16109,9 +16147,10 @@ ${calmPracticeMessage}`;
       return "unknown";
     }
 
-    const useMiles = preferredUnit === "miles" || (!preferredUnit && distanceMeters >= 1609.344);
+    const useMiles = ["miles", "mi."].includes(preferredUnit) || (!preferredUnit && distanceMeters >= 1609.344);
     if (useMiles) {
-      return `${(distanceMeters / 1609.344).toFixed(1)} miles`;
+      const unit = preferredUnit === "mi." ? "mi." : "miles";
+      return `${(distanceMeters / 1609.344).toFixed(1)} ${unit}`;
     }
 
     return `${distanceMeters.toFixed(1)} meters`;
@@ -18521,22 +18560,22 @@ ${calmPracticeMessage}`;
       "rx choice1": "Response",
       "decoy": "Decoy",
       "score": "Score",
-      "difficulty level": "Level",
+      "difficulty level": "Exercise",
       "dist": "Distance",
       "rx done rt": "Time"
     };
     const colgroup = document.createElement("colgroup");
     const widths = [
-      "46px",
-      "88px",
-      "100px",
-      "86px",
-      "88px",
-      ...(hasLevelFourTrials ? ["88px"] : []),
-      "58px",
-      "60px",
-      "88px",
-      "54px"
+      "42px",
+      "82px",
+      "92px",
+      "80px",
+      "80px",
+      ...(hasLevelFourTrials ? ["80px"] : []),
+      "52px",
+      "66px",
+      "80px",
+      "48px"
     ];
     widths.forEach((width) => {
       const col = document.createElement("col");
@@ -18573,7 +18612,7 @@ ${calmPracticeMessage}`;
             locationHidden
               ? ""
               : receiverLocation && senderLocation
-                ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "miles" : "meters")
+                ? formatDistanceWithUnit(distanceMeters, distanceMeters >= 1609.344 ? "mi." : "meters")
                 : (simulationReport ? "N/A" : "");
           content.textContent = distanceText;
           td.appendChild(content);
@@ -18633,6 +18672,7 @@ ${calmPracticeMessage}`;
     probabilityRow.appendChild(probabilityCell);
     tfoot.appendChild(probabilityRow);
 
+    reportTable.classList.add("raw-data-report-table");
     reportTable.append(colgroup, thead, tbody, tfoot);
     reportTableWrap.hidden = false;
   }
@@ -26434,7 +26474,7 @@ ${calmPracticeMessage}`;
             );
           }
         } else {
-          setRoleDifficultyStatus(role, `This pair is already at Level ${currentLevel}.`, { prominent: false });
+          setRoleDifficultyStatus(role, `This pair is already at Exercise ${currentLevel}.`, { prominent: false });
         }
         rememberDifficultyLevel(String(currentLevel));
         persistRoleDifficultyPreference(role, String(currentLevel));
@@ -26491,7 +26531,7 @@ ${calmPracticeMessage}`;
     const currentLevel = receiverContext
       ? normalizeDifficultyLevel(readLauncherState().difficultyLevel)
       : "1";
-    const singleChoiceOnly = currentLevel === "1" || currentLevel === "2";
+    const singleChoiceOnly = currentLevel === "1" || currentLevel === "3";
 
     if (settingsCurrentPair) {
       settingsCurrentPair.textContent = receiverContext
@@ -35247,6 +35287,7 @@ ${calmPracticeMessage}`;
     renderContactWordCount();
     updateInstallButtonLabel();
     void recordLauncherVisit();
+    applyExerciseOrderDefaultsMigration();
     applyRememberedDifficultyLabels();
     void refreshDifficultyLabels();
     updatePendingLearningCenterLessonReturnButtons();

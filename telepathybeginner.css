@@ -4696,6 +4696,18 @@ body.lesson-image-overlay-open {
   border-collapse: collapse;
 }
 
+/* Raw Data has many short columns; keep them compact so the final Time column stays visible. */
+.report-table.raw-data-report-table {
+  width: 100%;
+  min-width: 820px;
+  table-layout: fixed;
+}
+
+.report-table.raw-data-report-table th,
+.report-table.raw-data-report-table td {
+  padding: 6px 4px;
+}
+
 .report-table th,
 .report-table td {
   padding: 7px 6px;
@@ -5514,7 +5526,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260927u") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260927x") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
@@ -6349,6 +6361,10 @@ html.launcher-direct-open-pending body {
   .report-table {
     /* Keep Raw Data swipeable on phones without the former oversized 2200px canvas. */
     min-width: 860px;
+  }
+
+  .report-table.raw-data-report-table {
+    min-width: 780px;
   }
 
   .report-table th,
