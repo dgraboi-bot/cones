@@ -31,7 +31,14 @@
       exactCorrectProbability: 0.5
     },
     2: {
+      // Exercise 2 is the image-pair exercise. Cone selection is not used.
       level: 2,
+      withoutReplacementPerCycle: true,
+      exactCorrectProbability: 0.5
+    },
+    3: {
+      // Exercise 3 retains the former Exercise 2 cone discrimination.
+      level: 3,
       manyProbability: 0.5,
       exactLayoutNumbers: [1, 6, 7, 8, 9],
       oneLayoutNumbers: [1],
@@ -45,8 +52,9 @@
       ],
       exactCorrectProbability: 1 / 5
     },
-    3: {
-      level: 3,
+    4: {
+      // Exercise 4 retains the former Exercise 3 cone discrimination.
+      level: 4,
       manyProbability: 0.5,
       exactLayoutNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9],
       oneLayoutNumbers: [1],
@@ -64,11 +72,6 @@
       ],
       exactCorrectProbability: 1 / 9
     },
-    4: {
-      level: 4,
-      withoutReplacementPerCycle: true,
-      exactCorrectProbability: 0.5
-    }
   };
 
   function cloneArray(values) {
@@ -203,7 +206,7 @@
   }
 
   return {
-    buildVersion: "20260927r",
+    buildVersion: "20260927u",
     layouts,
     normalizeLevel,
     getPolicy,

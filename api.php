@@ -9073,6 +9073,23 @@ function get_location_visualization_trial_score_model(array $record): array
     }
 
     $difficultyLevel = trim((string) ($record['difficulty level'] ?? ''));
+    $usesExerciseOrder = trim((string) ($record['export schema/version'] ?? '')) === 'cones-trials-v7-exercise-order';
+    $definitionLevel = $usesExerciseOrder
+        ? (['1' => '1', '2' => '4', '3' => '2', '4' => '3'][$difficultyLevel] ?? $difficultyLevel)
+        : $difficultyLevel;
+    if ($definitionLevel === '4') {
+        $sentImage = basename(parse_url(trim((string) ($record['sent image'] ?? '')), PHP_URL_PATH) ?: trim((string) ($record['sent image'] ?? '')));
+        $chosenImage = basename(parse_url(trim((string) ($record['rx image choice'] ?? '')), PHP_URL_PATH) ?: trim((string) ($record['rx image choice'] ?? '')));
+        if ($sentImage === '' || $chosenImage === '') {
+            return ['observed' => null, 'expected' => null, 'variance' => null, 'level' => 0];
+        }
+        return [
+            'observed' => strcasecmp($sentImage, $chosenImage) === 0 ? 1.0 : 0.0,
+            'expected' => 0.5,
+            'variance' => 0.25,
+            'level' => (int) $difficultyLevel
+        ];
+    }
     $sentLayout = is_numeric($record['sent layout'] ?? null) ? (int) $record['sent layout'] : 0;
     $choiceOneRaw = trim((string) ($record['rx choice1'] ?? ''));
     if ($choiceOneRaw === '') {
@@ -9090,7 +9107,7 @@ function get_location_visualization_trial_score_model(array $record): array
     $exactMatch = $sentLayout === $choiceOne;
     $countMatch = $sentConeCount > 0 && $sentConeCount === $chosenConeCount;
 
-    if ($difficultyLevel === '1') {
+    if ($definitionLevel === '1') {
         $choseOne = $choiceOneRaw === '1';
         $choseMany = $choiceOneRaw === '3';
         $observed = (($sentConeCount === 1 && $choseOne) || ($sentConeCount === 3 && $choseMany)) ? 1.0 : 0.0;
@@ -9102,14 +9119,14 @@ function get_location_visualization_trial_score_model(array $record): array
         ];
     }
 
-    if ($difficultyLevel === '2') {
+    if ($definitionLevel === '2') {
         if ($sentConeCount === 1) {
             $observed = $exactMatch ? 1.0 : 0.0;
             return [
                 'observed' => $observed,
                 'expected' => 0.2,
                 'variance' => 0.16,
-                'level' => 2
+                'level' => (int) $difficultyLevel
             ];
         }
 
@@ -9118,11 +9135,11 @@ function get_location_visualization_trial_score_model(array $record): array
             'observed' => $observed,
             'expected' => 1.0,
             'variance' => 0.4,
-            'level' => 2
+            'level' => (int) $difficultyLevel
         ];
     }
 
-    if ($difficultyLevel === '3') {
+    if ($definitionLevel === '3') {
         $countWeight = get_location_visualization_level_three_count_weight($sentConeCount);
         $arrangementBonus = $exactMatch ? 1.0 : 0.0;
         $observed = $countMatch ? $countWeight + $arrangementBonus : 0.0;
@@ -9132,7 +9149,7 @@ function get_location_visualization_trial_score_model(array $record): array
                 'observed' => $observed,
                 'expected' => 2 / 9,
                 'variance' => 32 / 81,
-                'level' => 3
+                'level' => (int) $difficultyLevel
             ];
         }
 
@@ -9141,7 +9158,7 @@ function get_location_visualization_trial_score_model(array $record): array
                 'observed' => $observed,
                 'expected' => 7 / 9,
                 'variance' => 68 / 81,
-                'level' => 3
+                'level' => (int) $difficultyLevel
             ];
         }
     }
@@ -10648,7 +10665,7 @@ function validate_pair_difficulty_access(array $state, string $receiverId, strin
     $senderType = get_effective_difficulty_user_type_for_identifier($state, $senderId);
     $robotPair = is_robot_simulation_identifier($receiverId) || is_robot_simulation_identifier($senderId);
 
-    if (in_array($normalizedDifficulty, ['1', '2', '3'], true)) {
+    if (in_array($normalizedDifficulty, ['1', '3', '4'], true)) {
         return [
             'allowed' => true,
             'message' => '',
@@ -10658,11 +10675,11 @@ function validate_pair_difficulty_access(array $state, string $receiverId, strin
         ];
     }
 
-    if ($normalizedDifficulty === '4') {
+    if ($normalizedDifficulty === '2') {
         $allowed = $robotPair || $receiverType === 'pro';
         return [
             'allowed' => $allowed,
-            'message' => $allowed ? '' : 'Level 4 requires the receiver to be a PRO user.',
+            'message' => $allowed ? '' : 'Exercise 2 requires the receiver to be a PRO user.',
             'difficulty_level' => $normalizedDifficulty,
             'receiver_type' => $receiverType,
             'sender_type' => $senderType
@@ -10700,7 +10717,7 @@ function get_pair_max_difficulty_level(array $state, string $receiverId, string 
         return '4';
     }
 
-    return '3';
+    return '1';
 }
 
 function validate_runtime_role_access(array $state, string $receiverId, string $senderId, string $difficulty, string $actingRole): array
@@ -10713,13 +10730,19 @@ function validate_runtime_role_access(array $state, string $receiverId, string $
     $normalizedDifficulty = (string) ($pairValidation['difficulty_level'] ?? normalize_difficulty_level($difficulty));
     $normalizedRole = trim((string) $actingRole);
 
-    if (in_array($normalizedDifficulty, ['1', '2', '3'], true)) {
+    if (in_array($normalizedDifficulty, ['1', '3', '4'], true)) {
         return $pairValidation;
     }
 
-    if ($normalizedDifficulty === '4' && $normalizedRole === 'receiver' && (($pairValidation['receiver_type'] ?? 'standard') !== 'pro')) {
+    if (
+        $normalizedDifficulty === '2'
+        && $normalizedRole === 'receiver'
+        && !is_robot_simulation_identifier($receiverId)
+        && !is_robot_simulation_identifier($senderId)
+        && (($pairValidation['receiver_type'] ?? 'standard') !== 'pro')
+    ) {
         $pairValidation['allowed'] = false;
-        $pairValidation['message'] = 'Level 4 requires a PRO receiver for this pair.';
+        $pairValidation['message'] = 'Exercise 2 requires a PRO receiver for this pair.';
     }
 
     if ($normalizedDifficulty === '5' && !in_array($normalizedRole, ['sender', 'receiver'], true)) {
@@ -14753,7 +14776,7 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
         'guess_submitted_ms' => null
     ];
 
-    if ($difficultyLevel === '4') {
+    if ($difficultyLevel === '2') {
         $levelFourPairs = get_level_four_image_pairs($imagePairsManifestFile);
         $pairParticipants = get_pair_participants_for_session($state, $session, $sessionCode);
         $receiverIdentifierForLevelFour = trim((string) ($pairParticipants['receiver_name'] ?? ''));
@@ -14770,8 +14793,8 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
             $session['session_limit_notice'] = [
                 'created_ms' => $nowMs,
                 'message' => count($levelFourPairs) > 0
-                    ? 'This receiver has now seen all available Level 4 image pairs. Press here to end the session.'
-                    : 'No Level 4 image pairs are available right now. Press here to end the session.',
+                    ? 'This receiver has now seen all available Exercise 2 image pairs. Press here to end the session.'
+                    : 'No Exercise 2 image pairs are available right now. Press here to end the session.',
                 'total_pairs' => count($levelFourPairs)
             ];
         } else {
@@ -15035,7 +15058,7 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
                     ($actualLayoutNumber === 1 && $guessLayoutNumber === 1) ||
                     (in_array($actualLayoutNumber, [6, 7, 8, 9], true) && $guessLayoutNumber === 3)
                 )) ||
-                ($difficultyLevel === '4' && $guessLayoutNumber === $actualLayoutNumber) ||
+                ($difficultyLevel === '2' && $guessLayoutNumber === $actualLayoutNumber) ||
                 ($difficultyLevel !== '1' && $guessLayoutNumber === $actualLayoutNumber)
             );
         append_debug_log(

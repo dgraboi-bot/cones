@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927r";
+  const launcherBuildVersion = "20260927u";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1887,11 +1887,11 @@ ${calmPracticeMessage}`;
     installGuidancePlatform: ""
   });
   const difficultyExplanationCopy = {
-    1: "In Level 1 the receiver simply decides whether the sender is sending one cone or three cones.",
-    2: "In Level 2, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.",
-    3: "In Level 3, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether the arrangement shows two or three cones and whether they are arranged horizontally, vertically, or diagonally running up or down.",
-    4: "In Level 4 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
-    5: 'In Level 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
+    1: "In Exercise 1 the receiver simply decides whether the sender is sending one cone or three cones.",
+    2: "In Exercise 2 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
+    3: "In Exercise 3, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.",
+    4: "In Exercise 4, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether the arrangement shows two or three cones and whether they are arranged horizontally, vertically, or diagonally running up or down.",
+    5: 'In Exercise 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
   const remoteViewExplanationCopy = "After the countdown ends, an image appears on the Remote Screen.\nTry to perceive that image using ESP. When you are ready, you are\nshown two images. Select the one that best matches what you perceived.";
   const roleSkillExplanationCopy = {
@@ -12710,7 +12710,7 @@ ${calmPracticeMessage}`;
     const setupWrap = getRoleSetupWrap(role);
     const normalizedLevel = normalizeDifficultyLevel(level);
     const explanation = role === "remote-viewer"
-      ? (Number(normalizedLevel) <= 3 ? getDifficultyExplanation(normalizedLevel) : remoteViewExplanationCopy)
+      ? (Number(normalizedLevel) === 2 ? remoteViewExplanationCopy : getDifficultyExplanation(normalizedLevel))
       : getDifficultyExplanation(normalizedLevel);
     if (!note || !panel || !explanation) {
       return;
@@ -12903,7 +12903,7 @@ ${calmPracticeMessage}`;
   }
 
   function getMaxDifficultyLevel() {
-    return getEffectiveLauncherUserType() === "pro" ? 4 : 3;
+    return getEffectiveLauncherUserType() === "pro" ? 4 : 1;
   }
 
   function getPairMaxDifficultyLevel(difficultyData) {
@@ -12933,14 +12933,14 @@ ${calmPracticeMessage}`;
       if (receiverType === "pro") {
         return Math.min(pairMax, 4);
       }
-      return Math.min(pairMax, 3);
+      return Math.min(pairMax, 1);
     }
 
     if (normalizedRole === "sender") {
       if (receiverType === "pro") {
         return Math.min(pairMax, 4);
       }
-      return Math.min(pairMax, 3);
+      return Math.min(pairMax, 1);
     }
 
     return Math.min(pairMax, getMaxDifficultyLevel());
@@ -12965,23 +12965,23 @@ ${calmPracticeMessage}`;
       return "Receiver currently supports Levels 1 through 4.";
     }
 
-    if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "sender" && senderType === "pro" && receiverType !== "pro") {
-      return "You are PRO, but this receiver is not PRO, so this pair cannot use Level 4.";
+    if (levelNumber >= 2 && maxLevel < 2 && normalizedRole === "sender" && senderType === "pro" && receiverType !== "pro") {
+      return "You are PRO, but this receiver is not PRO, so this pair cannot use Exercise 2.";
     }
 
-    if (levelNumber >= 4 && maxLevel < 4 && normalizedRole === "receiver" && receiverType !== "pro") {
-      return "You must be PRO in the receiver role for this pair to use Level 4.";
+    if (levelNumber >= 2 && maxLevel < 2 && normalizedRole === "receiver" && receiverType !== "pro") {
+      return "You must be PRO in the receiver role for this pair to use Exercise 2.";
     }
 
-    return `This pair cannot go above Level ${maxLevel}.`;
+    return `This pair cannot go above Exercise ${maxLevel}.`;
   }
 
   function shouldOfferProForLevelFour(role, currentLevel, delta, maxAllowedLevel) {
     return role !== "remote-viewer"
       && !isEffectiveLauncherUserPro()
-      && Number(currentLevel) === 3
+      && Number(currentLevel) === 1
       && Number(delta) > 0
-      && Number(maxAllowedLevel) < 4;
+      && Number(maxAllowedLevel) < 2;
   }
 
   function showLevelFourProFeature(role) {
@@ -13206,7 +13206,7 @@ ${calmPracticeMessage}`;
     }
     const ownLabel = String(document.querySelector(`[data-own-identifier-label="${role}"]`)?.textContent || "You").trim();
     const partnerLabel = getPartnerIdentifierShortLabel(role);
-    return `Enter both ${ownLabel} and ${partnerLabel} before going above Level 3.`;
+    return `Enter both ${ownLabel} and ${partnerLabel} before going above Exercise 1.`;
   }
 
   function getActiveOwnIdentifierForUserType() {
@@ -16563,6 +16563,26 @@ ${calmPracticeMessage}`;
     }
   }
 
+  function usesExerciseOrderSchema(record) {
+    return String(record?.["export schema/version"] ?? "").trim() === "cones-trials-v7-exercise-order";
+  }
+
+  function getExerciseDefinitionLevel(record) {
+    const displayedLevel = String(record?.["difficulty level"] ?? "").trim();
+    if (!usesExerciseOrderSchema(record)) {
+      return displayedLevel;
+    }
+    return ({ 1: "1", 2: "4", 3: "2", 4: "3" })[displayedLevel] || displayedLevel;
+  }
+
+  function getExercisePolicyLevel(definitionLevel) {
+    return ({ 1: 1, 2: 3, 3: 4, 4: 2 })[Number(definitionLevel)] || Number(definitionLevel);
+  }
+
+  function isImageExerciseTrial(record) {
+    return getExerciseDefinitionLevel(record) === "4";
+  }
+
   function getTrialScoreModel(record) {
     const trialAborted = String(record?.["trial aborted"] ?? "").trim().toLowerCase() === "yes";
     const trialTimedOut = String(record?.["trial timed out"] ?? "").trim().toLowerCase() === "yes";
@@ -16576,7 +16596,8 @@ ${calmPracticeMessage}`;
     }
 
     const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
-    if (difficultyLevel === "4") {
+    const definitionLevel = getExerciseDefinitionLevel(record);
+    if (definitionLevel === "4") {
       const sentImageIdentity = normalizeLevelFourImageIdentity(record?.["sent image"] ?? "");
       const chosenImageIdentity = normalizeLevelFourImageIdentity(record?.["rx image choice"] ?? "");
       if (!sentImageIdentity || !chosenImageIdentity) {
@@ -16591,7 +16612,7 @@ ${calmPracticeMessage}`;
         observed: sentImageIdentity === chosenImageIdentity ? 1 : 0,
         expected: 0.5,
         variance: 0.25,
-        level: 4
+        level: Number(difficultyLevel) || 0
       };
     }
     const sentLayout = Number(String(record?.["sent layout"] ?? "").trim());
@@ -16614,12 +16635,12 @@ ${calmPracticeMessage}`;
       };
     }
     const exactMatch = sentLayout === choiceOne;
-    const difficultyLevelNumber = Number(difficultyLevel);
+    const policyLevel = getExercisePolicyLevel(definitionLevel);
     const exactCorrectProbability = targetSelectionPolicy && typeof targetSelectionPolicy.getExactCorrectProbability === "function"
-      ? Number(targetSelectionPolicy.getExactCorrectProbability(difficultyLevelNumber))
+      ? Number(targetSelectionPolicy.getExactCorrectProbability(policyLevel))
       : Number.NaN;
 
-    if (difficultyLevel === "1") {
+    if (definitionLevel === "1") {
       const sentResponseToken = targetSelectionPolicy && typeof targetSelectionPolicy.getLevelResponseToken === "function"
         ? String(targetSelectionPolicy.getLevelResponseToken(1, sentLayout) || "").trim()
         : "";
@@ -16634,21 +16655,21 @@ ${calmPracticeMessage}`;
       };
     }
 
-    if (difficultyLevel === "2") {
+    if (definitionLevel === "2") {
       return {
         observed: exactMatch ? 1 : 0,
         expected: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability : 0.2,
         variance: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability * (1 - exactCorrectProbability) : 0.16,
-        level: 2
+        level: Number(difficultyLevel) || 0
       };
     }
 
-    if (difficultyLevel === "3") {
+    if (definitionLevel === "3") {
       return {
         observed: exactMatch ? 1 : 0,
         expected: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability : (1 / 9),
         variance: Number.isFinite(exactCorrectProbability) ? exactCorrectProbability * (1 - exactCorrectProbability) : ((1 / 9) * (8 / 9)),
-        level: 3
+        level: Number(difficultyLevel) || 0
       };
     }
 
@@ -16666,7 +16687,7 @@ ${calmPracticeMessage}`;
   }
 
   function getLevelDisplayName(level) {
-    return Number(level) === 4 ? "Level 4 image-discrimination" : `Level ${level}`;
+    return Number(level) === 2 ? "Exercise 2 image-discrimination" : `Exercise ${level}`;
   }
 
   function getLevelSpecificSignificanceMethod(targetLevel) {
@@ -16857,16 +16878,19 @@ ${calmPracticeMessage}`;
   }
 
   function getReportResponseLabel(record) {
-    const difficultyLevel = String(record?.["difficulty level"] ?? "").trim();
+    const definitionLevel = getExerciseDefinitionLevel(record);
     const rawValue = String(record?.["rx choice1"] ?? "").trim();
     if (!rawValue) {
       return "none";
     }
-    if (difficultyLevel === "1") {
+    if (definitionLevel === "4") {
+      return null;
+    }
+    if (definitionLevel === "1") {
       return getLevelOneChoiceLabel(rawValue);
     }
-    if ((difficultyLevel === "2" || difficultyLevel === "3") && targetSelectionPolicy && typeof targetSelectionPolicy.getLevelResponseToken === "function") {
-      const token = String(targetSelectionPolicy.getLevelResponseToken(difficultyLevel, rawValue) || "").trim();
+    if ((definitionLevel === "2" || definitionLevel === "3") && targetSelectionPolicy && typeof targetSelectionPolicy.getLevelResponseToken === "function") {
+      const token = String(targetSelectionPolicy.getLevelResponseToken(getExercisePolicyLevel(definitionLevel), rawValue) || "").trim();
       if (token) {
         return token
           .split(" ")
@@ -18560,14 +18584,14 @@ ${calmPracticeMessage}`;
         } else if (header === "score") {
           td.textContent = scoreValue;
         } else if (header === "decoy") {
-          if (difficultyLevel === "4") {
+          if (isImageExerciseTrial(record)) {
             td.classList.add("report-layout-cell");
             const decoyImageUrl = getLevelFourDecoyImageUrl(record, levelFourImagePairsIndex);
             td.appendChild(createReportImageThumbnailCell(decoyImageUrl, "Decoy image"));
           }
         } else if (header === "rx choice1") {
           const responseLabel = getReportResponseLabel(record);
-          if (difficultyLevel === "4") {
+          if (isImageExerciseTrial(record)) {
             td.classList.add("report-layout-cell");
             td.appendChild(createReportImageThumbnailCell(record?.["rx image choice"] ?? "", "Selected image"));
           } else if (responseLabel !== null) {
@@ -18578,7 +18602,7 @@ ${calmPracticeMessage}`;
           }
         } else if (header === "sent layout") {
           td.classList.add("report-layout-cell");
-          if (difficultyLevel === "4") {
+          if (isImageExerciseTrial(record)) {
             td.appendChild(createReportImageThumbnailCell(record?.["sent image"] ?? "", "Sent image"));
           } else {
             td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
@@ -19569,7 +19593,7 @@ ${calmPracticeMessage}`;
 
       const filteredRecords = isNamedReportTarget(pairInfo) ? getNamedReportFilteredRecords(pairInfo, records) : records;
       renderReportSummary(pairInfo, filteredRecords);
-      const hasLevelFourTrials = filteredRecords.some((record) => String(record?.["difficulty level"] ?? "").trim() === "4");
+      const hasLevelFourTrials = filteredRecords.some((record) => isImageExerciseTrial(record));
       const levelFourImagePairsIndex = hasLevelFourTrials
         ? await fetchLevelFourImagePairsIndex()
         : new Map();
@@ -19960,7 +19984,7 @@ ${calmPracticeMessage}`;
 
     const difficultyData = await fetchPairDifficulty(sessionCode, null, null, pairParticipants);
     const difficultyLevel = normalizeDifficultyLevel(difficultyData?.pair_difficulty);
-    if (["1", "2", "3"].includes(difficultyLevel)) {
+    if (["1", "3", "4"].includes(difficultyLevel)) {
       return {
         allowed: true,
         difficultyLevel,
@@ -19980,11 +20004,11 @@ ${calmPracticeMessage}`;
     const receiverType = targetRole === "receiver" ? ownType : partnerType;
     const senderType = targetRole === "sender" ? ownType : partnerType;
 
-    if (difficultyLevel === "4" && receiverType !== "pro") {
+    if (difficultyLevel === "2" && receiverType !== "pro") {
       return {
         allowed: false,
         difficultyLevel,
-        message: "Level 4 requires the receiver to be a PRO user.",
+        message: "Exercise 2 requires the receiver to be a PRO user.",
         ownType,
         partnerType
       };

@@ -47,8 +47,8 @@
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
-  const exportSchemaVersion = "cones-trials-v6";
-  const runtimeBuildVersion = "20260927r";
+  const exportSchemaVersion = "cones-trials-v7-exercise-order";
+  const runtimeBuildVersion = "20260927u";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260927r";
+  const launcherBuildVersion = "20260927u";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1375,7 +1375,7 @@
   }
 
   function isLevelFourDifficulty() {
-    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "4" && !isRemoteViewerLikeMode && !isRemoteDisplayMode;
+    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "2" && !isRemoteViewerLikeMode && !isRemoteDisplayMode;
   }
 
   function isLevelFourLikeRound(roundLike = activeRound) {
@@ -1900,7 +1900,7 @@
   }
 
   function isLevelTwoDifficulty() {
-    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "2";
+    return normalizeDifficultyLevel(currentPairDifficultyLevel) === "3";
   }
 
   function isSingleChoiceDifficulty() {
@@ -2028,15 +2028,15 @@
     settingsAllowSecondChoiceCheckbox.checked = lockedSingleChoice ? false : effectiveChecked;
     settingsAllowSecondChoiceCheckbox.disabled = lockedSingleChoice;
     settingsAllowSecondChoiceCheckbox.title = lockedSingleChoice
-      ? "Level 1 and Level 2 use one choice only."
+      ? "Exercise 1 and Exercise 3 use one choice only."
       : "";
     if (checkboxLabel) {
       checkboxLabel.style.opacity = lockedSingleChoice ? "0.62" : "";
     }
       if (checkboxText) {
         checkboxText.textContent = lockedSingleChoice
-          ? "Level 1 and Level 2 use one choice only."
-          : "Allow a second choice as well as a first choice (applies only to Level 3).";
+          ? "Exercise 1 and Exercise 3 use one choice only."
+          : "Allow a second choice as well as a first choice (applies only to Exercise 4).";
       }
   }
 
@@ -2079,11 +2079,11 @@
       case "1":
         return 0.68;
       case "2":
-        return 0.5;
-      case "3":
-        return 0.38;
-      case "4":
         return 0.62;
+      case "3":
+        return 0.5;
+      case "4":
+        return 0.38;
       default:
         return 0.5;
     }
@@ -2277,7 +2277,7 @@
       image_sent: ""
     };
 
-    if (difficultyLevel === "4") {
+    if (difficultyLevel === "2") {
       const pairs = await loadRobotLevelFourPairs();
       if (pairs.length) {
         const pair = pairs[randomInt(0, pairs.length - 1)];
@@ -2322,7 +2322,7 @@
       };
     }
 
-    if (difficultyLevel === "2") {
+    if (difficultyLevel === "3") {
       const candidateChoices = [1, 6, 7, 8, 9];
       const incorrectChoices = candidateChoices.filter((value) => value !== actualLayoutNumber);
       return {
@@ -3248,7 +3248,7 @@
         updateSecondChoiceSettingsControl(secondChoiceCheckbox.checked);
       });
       const secondChoiceText = document.createElement("span");
-      secondChoiceText.textContent = "Allow a second choice as well as a first choice (applies only to Level 3).";
+      secondChoiceText.textContent = "Allow a second choice as well as a first choice (applies only to Exercise 4).";
       secondChoiceField.append(secondChoiceCheckbox, secondChoiceText);
     }
 
@@ -6188,7 +6188,7 @@
       return targetSelectionPolicy.getAllowedTargetLayoutNumbers(difficultyLevel);
     }
 
-    if (difficultyLevel === "1" || difficultyLevel === "2") {
+    if (difficultyLevel === "1" || difficultyLevel === "3") {
       return [...levelOneTargetLayoutNumbers];
     }
 
