@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927k";
+  const launcherBuildVersion = "20260927m";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -12953,6 +12953,11 @@ ${calmPracticeMessage}`;
     const senderType = String(difficultyData?.pair_difficulty_meta?.sender_type || "").trim().toLowerCase();
 
     if (normalizedRole === "remote-viewer") {
+      return 4;
+    }
+
+    // Special Edition treats every participant as PRO for the complete Exercise 1-4 path.
+    if (publicLandingMode.espProSpecialEditionEnabled && (normalizedRole === "receiver" || normalizedRole === "sender")) {
       return 4;
     }
 
@@ -26348,7 +26353,7 @@ ${calmPracticeMessage}`;
     const finishAdjustment = markDifficultyAdjustment(role);
     setRoleDifficultyStatus(role, "");
     setDifficultyExplanationLocked(role, true);
-    const localMaxLevel = role === "remote-viewer" ? 4 : 3;
+    const localMaxLevel = role === "remote-viewer" || publicLandingMode.espProSpecialEditionEnabled ? 4 : 3;
 
     if (!identifiers.ownName || !identifiers.partnerName) {
       const currentLevel = getDifficultyLocalLevel(role);
