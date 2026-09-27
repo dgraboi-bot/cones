@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM Telepathy Beginner">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/telepathybeginner-og-preview.png">
-  <meta name="espgym-build-version" content="20260926v">
+  <meta name="espgym-build-version" content="20260926w">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -55,19 +55,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260926v">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20260926w">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260926v">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260926v">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20260926v">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20260926w">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20260926w">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20260926w">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260926v">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20260926v">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260926v">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20260926w">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20260926w">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20260926w">
   <script>
     (function () {
-      var buildVersion = "20260926v";
+      var buildVersion = "20260926w";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -84,6 +84,7 @@
 </head>
 <body>
   <div class="app-build-recovery-notice" data-build-recovery-notice hidden aria-live="polite" aria-atomic="true"></div>
+  <button class="fullscreen-toggle" type="button" data-fullscreen-toggle hidden aria-pressed="false" title="Show ESP GYM in full screen">Full screen</button>
   <main class="beginner-shell">
     <section class="beginner-panel" aria-labelledby="beginnerTitle">
       <section class="beginner-view beginner-view-hidden" data-view="launcher">
@@ -142,7 +143,7 @@
               </div>
               <div class="role-card-header-actions">
                 <div class="role-messaging-launch" data-role-messaging-launch="receiver">
-                  <button class="role-message-open" type="button" data-open-role-messages="receiver">
+                  <button class="role-message-open" type="button" data-open-role-messages="receiver" title="Click to bring up the messaging page. The number in the circle shows the number of messages that you have not marked as read." aria-label="Click to bring up the messaging page. The number in the circle shows the number of messages that you have not marked as read.">
                     <span>Messages</span>
                     <span class="role-message-badge" data-role-message-badge="receiver" hidden>0</span>
                   </button>
@@ -233,7 +234,7 @@
               </div>
               <div class="role-card-header-actions">
                 <div class="role-messaging-launch" data-role-messaging-launch="sender">
-                  <button class="role-message-open" type="button" data-open-role-messages="sender">
+                  <button class="role-message-open" type="button" data-open-role-messages="sender" title="Click to bring up the messaging page. The number in the circle shows the number of messages that you have not marked as read." aria-label="Click to bring up the messaging page. The number in the circle shows the number of messages that you have not marked as read.">
                     <span>Messages</span>
                     <span class="role-message-badge" data-role-message-badge="sender" hidden>0</span>
                   </button>
@@ -336,7 +337,7 @@
           <div class="messages-header-row">
             <label class="settings-view-field messages-conversation-field">
               <span>Conversation</span>
-              <select class="report-definition-select" data-messages-thread-select></select>
+              <select class="report-definition-select" data-messages-thread-select="" title="Select the partner whose messages will show up below" aria-label="Select the partner whose messages will show up below"></select>
             </label>
             <button class="beginner-top-button beginner-top-button-back beginner-top-pill messages-card-back" type="button" data-close-messages>BACK</button>
           </div>
@@ -568,7 +569,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20260926v</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20260926w</span>
           </div>
         </div>
 
@@ -2523,8 +2524,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260926v'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260926v'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20260926w'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20260926w'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3245,10 +3246,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20260926v"></script>
+<script src="vendor/leaflet/leaflet.js?v=20260926w"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20260926v"></script>
-<script src="telepathybeginner.js?v=20260926v"></script>
+<script src="target-selection.js?v=20260926w"></script>
+<script src="telepathybeginner.js?v=20260926w"></script>
 </body>
 </html>
 

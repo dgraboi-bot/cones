@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926v";
+  const launcherBuildVersion = "20260926w";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -126,6 +126,58 @@
   const adminView = document.querySelector('[data-view="admin"]');
   const beginnerPanel = document.querySelector(".beginner-panel");
   const buildRecoveryNotice = document.querySelector("[data-build-recovery-notice]");
+  const fullscreenToggleButton = document.querySelector("[data-fullscreen-toggle]");
+
+  function isAppFullscreen() {
+    return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function updateFullscreenToggle() {
+    if (!fullscreenToggleButton) {
+      return;
+    }
+    const fullscreen = isAppFullscreen();
+    fullscreenToggleButton.textContent = fullscreen ? "Exit full screen" : "Full screen";
+    fullscreenToggleButton.setAttribute("aria-pressed", fullscreen ? "true" : "false");
+    fullscreenToggleButton.title = fullscreen ? "Exit full screen" : "Show ESP GYM in full screen";
+  }
+
+  function canUseFullscreen() {
+    return Boolean(
+      document.documentElement.requestFullscreen ||
+      document.documentElement.webkitRequestFullscreen
+    );
+  }
+
+  async function toggleAppFullscreen() {
+    try {
+      if (isAppFullscreen()) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        return;
+      }
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      }
+    } catch (error) {
+      // Browsers may reject fullscreen when a platform policy does not allow it.
+    } finally {
+      updateFullscreenToggle();
+    }
+  }
+
+  if (fullscreenToggleButton && canUseFullscreen()) {
+    fullscreenToggleButton.hidden = false;
+    updateFullscreenToggle();
+    fullscreenToggleButton.addEventListener("click", toggleAppFullscreen);
+    document.addEventListener("fullscreenchange", updateFullscreenToggle);
+    document.addEventListener("webkitfullscreenchange", updateFullscreenToggle);
+  }
   const learningInfoDeferredMount = document.querySelector("[data-learning-info-deferred-mount]");
   const learningInfoDeferredFragmentUrl = `telepathybeginner-learning-info-fragments.html?v=${launcherBuildVersion}`;
   let learningInfoDeferredLoadPromise = null;

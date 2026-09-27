@@ -76,6 +76,35 @@ html.espgym-build-recovery-active body {
   background: rgba(74, 18, 18, 0.96);
 }
 
+.fullscreen-toggle {
+  position: fixed;
+  right: clamp(12px, 2vw, 24px);
+  bottom: clamp(12px, 2vw, 24px);
+  z-index: 40;
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 1px solid rgba(118, 171, 255, 0.62);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(47, 100, 188, 0.9), rgba(24, 62, 130, 0.92));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(0.78rem, 1.8vw, 0.9rem);
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.fullscreen-toggle:hover,
+.fullscreen-toggle:focus-visible {
+  outline: none;
+  background: linear-gradient(180deg, rgba(62, 121, 220, 0.98), rgba(31, 80, 165, 0.98));
+  border-color: rgba(164, 205, 255, 0.92);
+}
+
+.fullscreen-toggle[hidden] {
+  display: none;
+}
+
 .beginner-shell {
   min-height: 100vh;
   display: block;
@@ -5342,7 +5371,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20260926v") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20260926w") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
