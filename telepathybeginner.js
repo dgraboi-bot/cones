@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927c";
+  const launcherBuildVersion = "20260927d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -88,7 +88,8 @@
   const behaviorsView = null;
   const colorSchemeView = document.querySelector('[data-view="color-scheme"]');
   const blinkBehaviorView = document.querySelector('[data-view="blink-behavior"]');
-  const confidenceBehaviorView = document.querySelector('[data-view="confidence-behavior"]');
+  // The former confidence editor is removed; generic view cleanup can safely retain this no-op reference.
+  const confidenceBehaviorView = null;
   const userTypeAdminView = document.querySelector('[data-view="user-type-admin"]');
   const inviteeAdminView = document.querySelector('[data-view="invitee-admin"]');
   const handleUpdateAdminView = document.querySelector('[data-view="handle-update-admin"]');
@@ -275,7 +276,6 @@
   const openColorSchemeButton = document.querySelector("[data-open-color-scheme]");
   const openLocationPickerSettingsButton = document.querySelector("[data-open-location-picker-settings]");
   const openBlinkBehaviorButton = document.querySelector("[data-open-blink-behavior]");
-  const openConfidenceBehaviorButton = document.querySelector("[data-open-confidence-behavior]");
   const cancelProButton = document.querySelector("[data-cancel-pro]");
   const openUserTypeAdminButton = document.querySelector("[data-open-user-type-admin]");
   const openInviteeAdminButton = document.querySelector("[data-open-invitee-admin]");
@@ -649,7 +649,6 @@
   const otherSettingsHomeButton = document.querySelector("[data-other-settings-home]");
   const closeColorSchemeButton = document.querySelector("[data-close-color-scheme]");
   const closeBlinkBehaviorButton = document.querySelector("[data-close-blink-behavior]");
-  const closeConfidenceBehaviorButton = document.querySelector("[data-close-confidence-behavior]");
   const closeUserTypeAdminButton = document.querySelector("[data-close-user-type-admin]");
   const closeInviteeAdminButton = document.querySelector("[data-close-invitee-admin]");
   const closeHandleUpdateAdminButton = document.querySelector("[data-close-handle-update-admin]");
@@ -1038,9 +1037,6 @@
   const blinkOnSecondsInput = document.querySelector("[data-blink-on-seconds]");
   const blinkOffSecondsInput = document.querySelector("[data-blink-off-seconds]");
   const blinkStatus = document.querySelector("[data-blink-status]");
-  const confidenceModeButtons = Array.from(document.querySelectorAll("[data-confidence-mode]"));
-  const reinforcementModeButtons = Array.from(document.querySelectorAll("[data-reinforcement-mode]"));
-  const confidenceStatus = document.querySelector("[data-confidence-status]");
   const contactStatus = document.querySelector("[data-contact-status]");
   const contactSendButton = document.querySelector("[data-contact-send]");
   const contactCancelButton = document.querySelector("[data-contact-cancel]");
@@ -4243,105 +4239,8 @@ ${calmPracticeMessage}`;
   }
 
   function getConfidenceBehaviorSettings(state = readLauncherState()) {
-    return {
-      include: state?.includeConfidence === true,
-      includePositiveReinforcement: state?.includePositiveReinforcement === true
-    };
-  }
-
-  function applyConfidencePreferenceFromServer(userPreferences, { render = false } = {}) {
-    if (!userPreferences || typeof userPreferences !== "object") {
-      return readLauncherState();
-    }
-    if (!(Number(userPreferences.updated_ms) > 0)) {
-      if (render) {
-        renderConfidenceBehaviorView();
-      }
-      return readLauncherState();
-    }
-    const latest = readLauncherState();
-    latest.includeConfidence = !!userPreferences.include_confidence;
-    latest.includePositiveReinforcement = !!userPreferences.include_positive_reinforcement;
-    writeLauncherState(latest);
-    if (render) {
-      renderConfidenceBehaviorView();
-    }
-    return latest;
-  }
-
-  async function syncConfidencePreferenceForReceiverContext({ render = false } = {}) {
-    if (isVisitorLauncherEntry()) {
-      return readLauncherState();
-    }
-    const receiverContext = getPairContextForRole("receiver");
-    const ownerIdentifier = String(receiverContext?.ownName || "").trim();
-    if (!ownerIdentifier || isInternalVisitorSimulationName(ownerIdentifier)) {
-      return readLauncherState();
-    }
-    try {
-      const userPreferences = await fetchUserPreferences(ownerIdentifier);
-      return applyConfidencePreferenceFromServer(userPreferences, { render });
-    } catch (_error) {
-      return readLauncherState();
-    }
-  }
-
-  function renderConfidenceBehaviorView() {
-    const settings = getConfidenceBehaviorSettings();
-    confidenceModeButtons.forEach((button) => {
-      const mode = String(button.dataset.confidenceMode || "").trim().toLowerCase();
-      const selected =
-        (mode === "include" && settings.include)
-        || (mode === "exclude" && !settings.include);
-      button.classList.toggle("is-selected", selected);
-      button.setAttribute("aria-pressed", selected ? "true" : "false");
-    });
-    reinforcementModeButtons.forEach((button) => {
-      const mode = String(button.dataset.reinforcementMode || "").trim().toLowerCase();
-      const selected =
-        (mode === "include" && settings.includePositiveReinforcement)
-        || (mode === "exclude" && !settings.includePositiveReinforcement);
-      button.classList.toggle("is-selected", selected);
-      button.setAttribute("aria-pressed", selected ? "true" : "false");
-    });
-    if (confidenceStatus) {
-      if (!settings.includePositiveReinforcement) {
-        confidenceStatus.textContent = "Positive reinforcement sound does not occur.";
-      } else if (settings.include) {
-        confidenceStatus.textContent = "Positive reinforcement sound occurs when the target is revealed and the Receiver has correctly selected it.";
-      } else {
-        confidenceStatus.textContent = "Positive reinforcement sound occurs instantly when the Receiver correctly selects the target.";
-      }
-    }
-  }
-
-  async function persistConfidenceBehavior(includeConfidence, includePositiveReinforcement = null) {
-    const latest = readLauncherState();
-    latest.includeConfidence = includeConfidence !== false;
-    if (typeof includePositiveReinforcement === "boolean") {
-      latest.includePositiveReinforcement = includePositiveReinforcement;
-    } else if (typeof latest.includePositiveReinforcement !== "boolean") {
-      latest.includePositiveReinforcement = defaultConfidenceSettings.includePositiveReinforcement;
-    }
-    writeLauncherState(latest);
-    renderConfidenceBehaviorView();
-    if (isVisitorLauncherEntry()) {
-      return;
-    }
-    const receiverContext = getPairContextForRole("receiver");
-    const ownerIdentifier = String(receiverContext?.ownName || "").trim();
-    if (!ownerIdentifier || isInternalVisitorSimulationName(ownerIdentifier)) {
-      return;
-    }
-    try {
-      const storedPreferences = await saveUserPreferences(ownerIdentifier, {
-        include_confidence: latest.includeConfidence,
-        include_positive_reinforcement: !!latest.includePositiveReinforcement
-      });
-      applyConfidencePreferenceFromServer(storedPreferences, { render: true });
-    } catch (_error) {
-      renderConfidenceBehaviorView();
-    }
+    // These trial settings are intentionally fixed for every ESP GYM session.
+    return { ...defaultConfidenceSettings };
   }
 
   function buildReportRequestPayload(includeAdminContext = false) {
@@ -5812,6 +5711,9 @@ ${calmPracticeMessage}`;
   function applyPublicLandingMode(data = null) {
     publicLandingMode.espProSpecialEditionEnabled = !!data?.esp_pro_special_edition_enabled;
     renderTemporaryHomeExperiences();
+    if (openSubscriptionManagementButton) {
+      openSubscriptionManagementButton.hidden = publicLandingMode.espProSpecialEditionEnabled;
+    }
     const state = readLauncherState();
     if (!publicLandingMode.espProSpecialEditionEnabled && getLauncherEntryMode(state) === "special-edition") {
       writeLauncherState({
@@ -10096,7 +9998,7 @@ ${calmPracticeMessage}`;
         ? (cameraAvailable
           ? "When you practice telepathy with a real person, choose whether your identity is verified by a snapshot of your face at that time, or by you verifying who you are now by entering a 5-character authorization code sent to your email. You can change this later in the Setup Website Features menu selection."
           : "When you practice telepathy with a real person, choose whether your identity will be verified by you verifying your identity now by entering a 5-character authorization code sent to your email. Please enter your email, used only for this verification process, and then complete the process by pressing SEND CODE and entering the 5-character code emailed to you from ESP GYM.")
-        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark.\n\nLive camera confirmation uses a temporary snapshot taken before a session.\n\nWhen both Sender and Receiver have authenticated themselves via email confirmation, no additional confirmation is needed before a session starts, saving time.\nChoose the method for this browser or installed app.";
+        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark.\n\nLive camera confirmation uses a temporary snapshot taken before a session.\n\nWhen both Sender and Receiver have authenticated themselves via email confirmation, no additional confirmation is needed before a session starts, saving time.\n\n";
     }
     partnerConfirmationMethodButtons.forEach((button) => {
       const method = String(button.dataset.partnerConfirmationMethod || "").trim();
@@ -10639,7 +10541,6 @@ ${calmPracticeMessage}`;
     behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
-    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     reportDefinitionView?.classList.add("beginner-view-hidden");
@@ -18609,7 +18510,6 @@ ${calmPracticeMessage}`;
       "rx choice1",
       ...(hasLevelFourTrials ? ["decoy"] : []),
       "score",
-      "confidence",
       "difficulty level",
       "dist",
       "rx done rt"
@@ -18622,7 +18522,6 @@ ${calmPracticeMessage}`;
       "rx choice1": "Response",
       "decoy": "Decoy",
       "score": "Score",
-      "confidence": "Conf",
       "difficulty level": "Level",
       "dist": "Distance",
       "rx done rt": "Time"
@@ -18636,7 +18535,6 @@ ${calmPracticeMessage}`;
       "88px",
       ...(hasLevelFourTrials ? ["88px"] : []),
       "58px",
-      "54px",
       "60px",
       "88px",
       "54px"
@@ -18710,9 +18608,6 @@ ${calmPracticeMessage}`;
           } else {
             td.appendChild(createReportLayoutThumbnailCell(record?.[header] ?? ""));
           }
-        } else if (header === "confidence") {
-          const confidenceValue = String(record?.[header] ?? "").trim();
-          td.textContent = /^unknown$/i.test(confidenceValue) ? "" : confidenceValue;
         } else {
           td.textContent = String(record?.[header] ?? "");
         }
@@ -20152,12 +20047,8 @@ ${calmPracticeMessage}`;
     params.set("blink_image_on_seconds", blinkSettings.onSeconds);
     params.set("blink_image_off_seconds", blinkSettings.offSeconds);
     const confidenceSettings = getConfidenceBehaviorSettings(state);
-    const includeConfidence = typeof options.includeConfidence === "boolean"
-      ? options.includeConfidence
-      : confidenceSettings.include;
-    const includePositiveReinforcement = typeof options.includePositiveReinforcement === "boolean"
-      ? options.includePositiveReinforcement
-      : confidenceSettings.includePositiveReinforcement;
+    const includeConfidence = confidenceSettings.include;
+    const includePositiveReinforcement = confidenceSettings.includePositiveReinforcement;
     params.set("include_confidence", includeConfidence ? "1" : "0");
     params.set("include_positive_reinforcement", includePositiveReinforcement ? "1" : "0");
     params.set(
@@ -21145,7 +21036,6 @@ ${calmPracticeMessage}`;
     }
 
     if (role === "receiver") {
-      applyConfidencePreferenceFromServer(fetchedProfile?.user_preferences, { render: true });
     }
 
     if (fetchedProfile?.own_email) {
@@ -23211,7 +23101,6 @@ ${calmPracticeMessage}`;
     behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
-    confidenceBehaviorView?.classList.add("beginner-view-hidden");
     contactView?.classList.add("beginner-view-hidden");
     aboutView?.classList.add("beginner-view-hidden");
     researchParticipationView?.classList.add("beginner-view-hidden");
@@ -26662,7 +26551,6 @@ ${calmPracticeMessage}`;
     closeReportPairMenu();
     renderSettingsView();
     renderAdminPrivilegeIndicator();
-    void syncConfidencePreferenceForReceiverContext({ render: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -31659,41 +31547,6 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function showConfidenceBehaviorView() {
-    clearReportPanelOffset();
-    confidenceBehaviorView?.classList.remove("beginner-view-hidden");
-    launcherView?.classList.add("beginner-view-hidden");
-    lessonEditorView?.classList.add("beginner-view-hidden");
-    clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
-    optionsView?.classList.add("beginner-view-hidden");
-    helpView?.classList.add("beginner-view-hidden");
-    aidsView?.classList.add("beginner-view-hidden");
-    toolsView?.classList.add("beginner-view-hidden");
-    goProView?.classList.add("beginner-view-hidden");
-    otherSettingsView?.classList.add("beginner-view-hidden");
-    clairvoyanceViewingView?.classList.add("beginner-view-hidden");
-    behaviorsView?.classList.add("beginner-view-hidden");
-    colorSchemeView?.classList.add("beginner-view-hidden");
-    blinkBehaviorView?.classList.add("beginner-view-hidden");
-    contactView?.classList.add("beginner-view-hidden");
-    aboutView?.classList.add("beginner-view-hidden");
-    reportDefinitionView?.classList.add("beginner-view-hidden");
-    reportView?.classList.add("beginner-view-hidden");
-    visualizationView?.classList.add("beginner-view-hidden");
-    analyzerView?.classList.add("beginner-view-hidden");
-    difficultyView?.classList.add("beginner-view-hidden");
-    settingsView?.classList.add("beginner-view-hidden");
-    adminView?.classList.add("beginner-view-hidden");
-    userTypeAdminView?.classList.add("beginner-view-hidden");
-    handleUpdateAdminView?.classList.add("beginner-view-hidden");
-    imagePairAdminView?.classList.add("beginner-view-hidden");
-    adminUserListView?.classList.add("beginner-view-hidden");
-    adminIdentityListView?.classList.add("beginner-view-hidden");
-    closeReportPairMenu();
-    renderConfidenceBehaviorView();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
   function encodeCsvCell(value) {
     const text = value === null || value === undefined ? "" : String(value);
     return `"${text.replace(/"/g, "\"\"").replace(/\r?\n/g, " ")}"`;
@@ -33248,9 +33101,6 @@ ${calmPracticeMessage}`;
         case "remote-viewing":
           showClairvoyanceViewingView();
           break;
-        case "confidence":
-          showConfidenceBehaviorView();
-          break;
         case "visualization":
         case "raw-data":
           showReportDefinitionView();
@@ -33390,7 +33240,6 @@ ${calmPracticeMessage}`;
     });
   });
   openBlinkBehaviorButton?.addEventListener("click", showBlinkBehaviorView);
-  openConfidenceBehaviorButton?.addEventListener("click", showConfidenceBehaviorView);
   openUserTypeAdminButton?.addEventListener("click", showUserTypeAdminView);
   openInviteeAdminDirectButton?.addEventListener("click", () => {
     showInviteeAdminView({
@@ -34359,7 +34208,6 @@ ${calmPracticeMessage}`;
   });
   closeColorSchemeButton?.addEventListener("click", showAdminView);
   closeBlinkBehaviorButton?.addEventListener("click", showAdminView);
-  closeConfidenceBehaviorButton?.addEventListener("click", showOtherSettingsView);
   cancelProButton?.addEventListener("click", () => {
     window.alert("Cancel PRO will be added here later.");
   });
@@ -34380,20 +34228,6 @@ ${calmPracticeMessage}`;
   });
   blinkOffSecondsInput?.addEventListener("change", () => {
     persistBlinkBehaviorView();
-  });
-  confidenceModeButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const include = String(button.dataset.confidenceMode || "").trim().toLowerCase() !== "exclude";
-      const currentSettings = getConfidenceBehaviorSettings();
-      void persistConfidenceBehavior(include, currentSettings.includePositiveReinforcement);
-    });
-  });
-  reinforcementModeButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const includePositiveReinforcement = String(button.dataset.reinforcementMode || "").trim().toLowerCase() !== "exclude";
-      const currentSettings = getConfidenceBehaviorSettings();
-      void persistConfidenceBehavior(currentSettings.include, includePositiveReinforcement);
-    });
   });
   userTypeHandleInput?.addEventListener("input", () => {
     pendingUserTypeLookupToken += 1;
