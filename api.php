@@ -12718,6 +12718,10 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
         }
 
         if ($action === 'begin_partner_confirmation') {
+            $selectedMethod = normalize_partner_confirmation_method($input['method'] ?? 'verified');
+            if ($selectedMethod === 'verified' && get_identifier_recovery_email($state, $canonicalOwn) === '') {
+                throw new RuntimeException('Choose live camera confirmation, or verify this unique name by email before starting a session.');
+            }
             if ((int) ($confirmation['created_ms'] ?? 0) === 0) {
                 $confirmation['sender_identifier'] = $senderIdentifier;
                 $confirmation['receiver_identifier'] = $receiverIdentifier;
@@ -12725,8 +12729,23 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             }
             // Both people get a full confirmation window after either joins.
             $confirmation['expires_ms'] = $nowMs + $partnerConfirmationLifetimeMs;
-            $confirmation[$confirmationRole]['method'] = normalize_partner_confirmation_method($input['method'] ?? 'verified');
+            $confirmation[$confirmationRole]['method'] = $selectedMethod;
             $confirmation[$confirmationRole]['joined'] = true;
+
+            // Two independently email-verified identities need no per-session visual confirmation.
+            $senderUsesVerifiedName = normalize_partner_confirmation_method($confirmation['sender']['method'] ?? '') === 'verified';
+            $receiverUsesVerifiedName = normalize_partner_confirmation_method($confirmation['receiver']['method'] ?? '') === 'verified';
+            if (!empty($confirmation['sender']['joined']) && !empty($confirmation['receiver']['joined'])
+                && $senderUsesVerifiedName && $receiverUsesVerifiedName
+                && get_identifier_recovery_email($state, $senderIdentifier) !== ''
+                && get_identifier_recovery_email($state, $receiverIdentifier) !== '') {
+                $confirmation['sender']['confirmed'] = true;
+                $confirmation['receiver']['confirmed'] = true;
+                $confirmation['sender']['snapshot'] = '';
+                $confirmation['receiver']['snapshot'] = '';
+                $confirmation['completed_ms'] = $nowMs;
+                $confirmation['expires_ms'] = $nowMs + (30 * 1000);
+            }
         } elseif ((int) ($confirmation['created_ms'] ?? 0) === 0 && $action !== 'cancel_partner_confirmation') {
             throw new RuntimeException('Partner confirmation has expired. Press BACK, then press GO to begin it again.');
         }

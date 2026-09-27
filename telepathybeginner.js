@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926z";
+  const launcherBuildVersion = "20260927c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -996,6 +996,8 @@
   const messagesSendButton = document.querySelector("[data-messages-send]");
   const messagesEmojiButtons = Array.from(document.querySelectorAll("[data-messages-emoji]"));
   const messagesStatus = document.querySelector("[data-messages-status]");
+  const messagesNotificationsToggle = document.querySelector("[data-messages-notifications-toggle]");
+  const messagesNotificationsStatus = document.querySelector("[data-messages-notifications-status]");
   const difficultyLabels = Array.from(document.querySelectorAll("[data-pair-difficulty-label]"));
   const roleSkillTaglines = Array.from(document.querySelectorAll("[data-role-skill-tagline]"));
   const inlineContactButtons = Array.from(document.querySelectorAll("[data-open-contact-inline]"));
@@ -1214,6 +1216,7 @@
   let activeMessagesPartnerIdentifier = "";
   let activeMessagesThreadInbox = null;
   let activeMessagesThreadData = null;
+  let activeMessagesNotificationsTransitioning = false;
   let activeMessagesReadMessageIds = [];
   let activeMessagesReturnView = "launcher";
   let coveredScreenInstructionOverlay = null;
@@ -9338,6 +9341,73 @@ ${calmPracticeMessage}`;
     return state.notificationPermission;
   }
 
+  const messagingNotificationPreferenceKey = "cones-messaging-notification-preferences-v1";
+
+  function getMessagingNotificationPreference(identifier) {
+    const key = normalizeIdentifierForStorage(identifier);
+    if (!key) return null;
+    try {
+      const saved = JSON.parse(localStorage.getItem(messagingNotificationPreferenceKey) || "{}");
+      return typeof saved?.[key] === "boolean" ? saved[key] : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setMessagingNotificationPreference(identifier, enabled) {
+    const key = normalizeIdentifierForStorage(identifier);
+    if (!key) return;
+    let saved = {};
+    try {
+      const parsed = JSON.parse(localStorage.getItem(messagingNotificationPreferenceKey) || "{}");
+      saved = parsed && typeof parsed === "object" ? parsed : {};
+    } catch (_) {
+      saved = {};
+    }
+    saved[key] = !!enabled;
+    localStorage.setItem(messagingNotificationPreferenceKey, JSON.stringify(saved));
+  }
+
+  function renderMessagesNotificationControl(pushStatus = null) {
+    if (!messagesNotificationsToggle || !messagesNotificationsStatus) return;
+    const permission = syncNotificationPermissionSnapshot();
+    const preference = getMessagingNotificationPreference(activeMessagesOwnerIdentifier);
+    const registered = !!pushStatus?.notification_ready;
+    const enabled = activeMessagesNotificationsTransitioning
+      ? !!messagesNotificationsToggle.checked
+      : permission === "granted" && preference !== false && registered;
+    messagesNotificationsToggle.checked = enabled;
+    messagesNotificationsToggle.disabled = activeMessagesNotificationsTransitioning
+      || permission === "denied"
+      || permission === "unsupported";
+
+    if (activeMessagesNotificationsTransitioning) {
+      messagesNotificationsStatus.textContent = "Updating notification preference...";
+    } else if (permission === "denied") {
+      messagesNotificationsStatus.textContent = "Notifications are blocked by this browser or device. Change the browser notification setting before enabling them here.";
+    } else if (permission === "unsupported") {
+      messagesNotificationsStatus.textContent = "Notifications are not supported by this browser or device.";
+    } else if (enabled) {
+      messagesNotificationsStatus.textContent = "Notifications are enabled for ESP GYM on this browser/device.";
+    } else if (permission === "default") {
+      messagesNotificationsStatus.textContent = "Turn this on to allow ESP GYM to ask for notification permission.";
+    } else {
+      messagesNotificationsStatus.textContent = "Notifications are off for ESP GYM on this browser/device.";
+    }
+  }
+
+  async function refreshMessagesNotificationControl() {
+    if (!activeMessagesOwnerIdentifier) {
+      renderMessagesNotificationControl();
+      return;
+    }
+    const inboxData = await fetchPartnerMessageInbox(activeMessagesOwnerIdentifier, getOrCreateMessagingDeviceId());
+    if (inboxData?.identifier_status) {
+      rememberIdentifierStatus(activeMessagesOwnerIdentifier, inboxData.identifier_status);
+    }
+    renderMessagesNotificationControl(inboxData?.push_status || null);
+  }
+
   async function subscribeCurrentDeviceForIdentifier(identifier) {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
       throw new Error("This browser does not support app notifications.");
@@ -10026,7 +10096,7 @@ ${calmPracticeMessage}`;
         ? (cameraAvailable
           ? "When you practice telepathy with a real person, choose whether your identity is verified by a snapshot of your face at that time, or by you verifying who you are now by entering a 5-character authorization code sent to your email. You can change this later in the Setup Website Features menu selection."
           : "When you practice telepathy with a real person, choose whether your identity will be verified by you verifying your identity now by entering a 5-character authorization code sent to your email. Please enter your email, used only for this verification process, and then complete the process by pressing SEND CODE and entering the 5-character code emailed to you from ESP GYM.")
-        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark. Live camera confirmation uses a temporary snapshot taken before a session.";
+        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark.\n\nLive camera confirmation uses a temporary snapshot taken before a session.\n\nWhen both Sender and Receiver have authenticated themselves via email confirmation, no additional confirmation is needed before a session starts, saving time.\nChoose the method for this browser or installed app.";
     }
     partnerConfirmationMethodButtons.forEach((button) => {
       const method = String(button.dataset.partnerConfirmationMethod || "").trim();
@@ -10044,7 +10114,8 @@ ${calmPracticeMessage}`;
     if (closePartnerConfirmationMethodButton) {
       closePartnerConfirmationMethodButton.hidden = isNewClaim;
     }
-    setFeatureSetupBackButtonTemporarilyHidden(isNewClaim);
+    // The method dialog supplies its own BACK button, so never leave the setup-page BACK control active behind it.
+    setFeatureSetupBackButtonTemporarilyHidden(true);
   }
 
   function closePartnerConfirmationMethodOverlay() {
@@ -10352,6 +10423,11 @@ ${calmPracticeMessage}`;
     };
     const data = await postPartnerConfirmationRequest("begin_partner_confirmation", request);
     partnerConfirmationRestartRequired = false;
+    if (data?.partner_confirmation?.ready) {
+      // The second email-verified participant completes the server-confirmed fast path immediately.
+      window.location.href = options.targetUrl;
+      return false;
+    }
     pendingPartnerConfirmation = { request, targetUrl: options.targetUrl, ownIdentifier: options.ownIdentifier, partnerIdentifier: options.partnerIdentifier };
     partnerConfirmationOverlay?.classList.remove("beginner-view-hidden");
     partnerConfirmationOverlay?.setAttribute("aria-hidden", "false");
@@ -10414,7 +10490,7 @@ ${calmPracticeMessage}`;
       featureSetupInstallStatus.textContent = installPromptOpen
         ? "The system install prompt is open. Choose Add to finish installing ESP GYM."
         : installed
-        ? "Installed as an app on this device."
+        ? "Currently installed as an app on this browser/device combination."
         : visitorMode && !recognizedUser
           ? "You must first claim a unique name before installing the app for full Telepathy Beginner use."
           : installConfirmationState === "temporary-shell"
@@ -10423,7 +10499,7 @@ ${calmPracticeMessage}`;
     }
     if (featureSetupInstallActionButton) {
       featureSetupInstallActionButton.textContent = installed
-        ? "UNINSTALL HELP"
+        ? "UNINSTALL APP"
         : installPromptOpen
           ? "INSTALLING..."
           : "INSTALL APP";
@@ -10547,6 +10623,7 @@ ${calmPracticeMessage}`;
     helpView?.classList.add("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
     afterFirstSessionQuestionsView?.classList.add("beginner-view-hidden");
+    uniqueNameChangeView?.classList.add("beginner-view-hidden");
     featureSetupView?.classList.remove("beginner-view-hidden");
     setFeatureSetupBackButtonTemporarilyHidden(false);
     lessonEditorView?.classList.add("beginner-view-hidden");
@@ -11757,6 +11834,7 @@ ${calmPracticeMessage}`;
         : getReadMessageIdsForPartner(activeMessagesThreadInbox, preferredPartnerIdentifier);
       activeMessagesThreadData = messagingData?.thread || null;
       renderMessagesThread(activeMessagesThreadData, activeMessagesOwnerIdentifier, preferredPartnerIdentifier);
+      renderMessagesNotificationControl(messagingData?.push_status || null);
 
       if (markRead) {
         const readData = await markPartnerMessagesReadRequest(activeMessagesOwnerIdentifier, preferredPartnerIdentifier);
@@ -11906,7 +11984,10 @@ ${calmPracticeMessage}`;
 
     // Start this before the first await so browsers retain the click gesture
     // needed to display their notification-permission prompt.
-    const notificationPermissionPromise = requestMessagingNotificationPermission();
+    const notificationPreference = getMessagingNotificationPreference(ownRaw);
+    const notificationPermissionPromise = notificationPreference === false
+      ? Promise.resolve(getNotificationPermissionSnapshot())
+      : requestMessagingNotificationPermission();
 
     let ownStatus = null;
     try {
@@ -11924,9 +12005,10 @@ ${calmPracticeMessage}`;
     }
 
     const notificationPermission = await notificationPermissionPromise;
-    if (notificationPermission === "granted") {
+    if (notificationPermission === "granted" && notificationPreference !== false) {
       try {
         await subscribeCurrentDeviceForIdentifier(preferredOwnIdentifier);
+        setMessagingNotificationPreference(preferredOwnIdentifier, true);
       } catch (_) {
         // The normal in-app message refresh remains available even if this
         // browser cannot complete a push-subscription registration.
@@ -11961,6 +12043,7 @@ ${calmPracticeMessage}`;
         rememberIdentifierStatus(preferredOwnIdentifier, inboxData.identifier_status);
       }
       activeMessagesThreadInbox = inboxData?.inbox || null;
+      renderMessagesNotificationControl(inboxData?.push_status || null);
       const conversationList = buildMessagingConversationList(activeMessagesThreadInbox, partnerRaw);
       renderMessagesConversationOptions(conversationList, partnerRaw);
       activeMessagesPartnerIdentifier = String(messagesThreadSelect?.value || partnerRaw || "").trim();
@@ -12015,6 +12098,58 @@ ${calmPracticeMessage}`;
     }
   }
 
+  async function setActiveMessagesNotificationsEnabled(enabled) {
+    if (!activeMessagesOwnerIdentifier || activeMessagesNotificationsTransitioning) {
+      return;
+    }
+    const requestedEnabled = !!enabled;
+    const previousPreference = getMessagingNotificationPreference(activeMessagesOwnerIdentifier);
+    activeMessagesNotificationsTransitioning = true;
+    renderMessagesNotificationControl();
+    try {
+      if (!requestedEnabled) {
+        setMessagingNotificationPreference(activeMessagesOwnerIdentifier, false);
+        await disablePushSubscription(activeMessagesOwnerIdentifier, getOrCreateMessagingDeviceId());
+      } else {
+        let permission = getNotificationPermissionSnapshot();
+        if (permission === "denied") {
+          throw new Error("Notifications are blocked by this browser or device. Change the browser notification setting before enabling them here.");
+        }
+        if (permission === "unsupported") {
+          throw new Error("Notifications are not supported by this browser or device.");
+        }
+        if (permission === "default") {
+          permission = String(await Notification.requestPermission()).trim().toLowerCase() || "default";
+          syncNotificationPermissionSnapshot();
+        }
+        if (permission !== "granted") {
+          setMessagingNotificationPreference(activeMessagesOwnerIdentifier, false);
+          throw new Error("Notifications were not allowed for ESP GYM on this browser/device.");
+        }
+        await subscribeCurrentDeviceForIdentifier(activeMessagesOwnerIdentifier);
+        setMessagingNotificationPreference(activeMessagesOwnerIdentifier, true);
+      }
+      await refreshMessagesNotificationControl();
+    } catch (error) {
+      if (!requestedEnabled && previousPreference !== false) {
+        setMessagingNotificationPreference(activeMessagesOwnerIdentifier, true);
+      }
+      setMessagesStatus(error instanceof Error ? error.message : "Unable to update the notification preference right now.", { isError: true });
+      try {
+        await refreshMessagesNotificationControl();
+      } catch (_) {
+        renderMessagesNotificationControl();
+      }
+    } finally {
+      activeMessagesNotificationsTransitioning = false;
+      try {
+        await refreshMessagesNotificationControl();
+      } catch (_) {
+        renderMessagesNotificationControl();
+      }
+    }
+  }
+
   function closeMessagesView() {
     const returnRole = activeMessagesRole;
     const returnView = activeMessagesReturnView;
@@ -12024,6 +12159,7 @@ ${calmPracticeMessage}`;
     activeMessagesThreadInbox = null;
     activeMessagesThreadData = null;
     activeMessagesReadMessageIds = [];
+    activeMessagesNotificationsTransitioning = false;
     activeMessagesReturnView = "launcher";
     const returnScrollY = Math.max(0, Number(activeMessagesReturnScrollY) || 0);
     activeMessagesReturnScrollY = 0;
@@ -34133,6 +34269,9 @@ ${calmPracticeMessage}`;
   messagesThreadSelect?.addEventListener("change", () => {
     activeMessagesPartnerIdentifier = String(messagesThreadSelect.value || "").trim();
     void loadActiveMessagesConversation({ markRead: false });
+  });
+  messagesNotificationsToggle?.addEventListener("change", () => {
+    void setActiveMessagesNotificationsEnabled(!!messagesNotificationsToggle.checked);
   });
   messagesSendButton?.addEventListener("click", () => {
     void sendActiveMessagesViewMessage();
