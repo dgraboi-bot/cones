@@ -248,15 +248,22 @@ function Invoke-Plink([string]$Command, [string]$CommandFile = "") {
   $startInfo.RedirectStandardError = $true
   $startInfo.UseShellExecute = $false
   $startInfo.CreateNoWindow = $true
-  [void]$startInfo.ArgumentList.Add("-batch")
-  [void]$startInfo.ArgumentList.Add("-load")
-  [void]$startInfo.ArgumentList.Add($puttySession)
+  $arguments = @("-batch", "-load", $puttySession)
   if ($CommandFile) {
-    [void]$startInfo.ArgumentList.Add("-m")
-    [void]$startInfo.ArgumentList.Add($CommandFile)
+    $arguments += @("-m", $CommandFile)
   } else {
-    [void]$startInfo.ArgumentList.Add($Command)
+    $arguments += $Command
   }
+  # Windows PowerShell lacks ProcessStartInfo.ArgumentList; preserve each
+  # Plink argument as a single quoted command-line token instead.
+  $startInfo.Arguments = (($arguments | ForEach-Object {
+    $argument = [string]$_
+    if ($argument -match '[\s"]') {
+      '"' + ($argument -replace '"', '\"') + '"'
+    } else {
+      $argument
+    }
+  }) -join " ")
   $process = New-Object System.Diagnostics.Process
   $process.StartInfo = $startInfo
   [void]$process.Start()

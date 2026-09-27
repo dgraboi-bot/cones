@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926t";
+  const launcherBuildVersion = "20260926u";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -768,6 +768,10 @@
   const pushSetupEnableButton = document.querySelector("[data-push-setup-enable]");
   const pushSetupTestButton = document.querySelector("[data-push-setup-test]");
   const pushSetupCloseButton = document.querySelector("[data-push-setup-close]");
+  const messagingInstallOverlay = document.querySelector("[data-messaging-install-overlay]");
+  const messagingInstallDialog = messagingInstallOverlay?.querySelector(".handle-dialog") || null;
+  const messagingInstallConfirmButton = document.querySelector("[data-messaging-install-confirm]");
+  const messagingInstallCancelButton = document.querySelector("[data-messaging-install-cancel]");
   const updatesOverlay = document.querySelector("[data-updates-overlay]");
   const updatesDialog = updatesOverlay?.querySelector(".handle-dialog") || null;
   const updatesEmailInput = document.querySelector("[data-updates-email]");
@@ -9632,6 +9636,17 @@ ${calmPracticeMessage}`;
     void refreshPushSetupOverlay();
   }
 
+  function openMessagingInstallOverlay() {
+    messagingInstallOverlay?.classList.remove("beginner-view-hidden");
+    messagingInstallOverlay?.setAttribute("aria-hidden", "false");
+    window.requestAnimationFrame(() => messagingInstallConfirmButton?.focus());
+  }
+
+  function closeMessagingInstallOverlay() {
+    messagingInstallOverlay?.classList.add("beginner-view-hidden");
+    messagingInstallOverlay?.setAttribute("aria-hidden", "true");
+  }
+
   async function openMessagingSetupFromHelp(options = {}) {
     const requestedReturnView = String(options.returnView || "").trim().toLowerCase();
     const returnView = requestedReturnView === "feature-setup"
@@ -10934,8 +10949,9 @@ ${calmPracticeMessage}`;
 
   function showInstallGuideView(options = {}) {
     installGuideMode = String(options.mode || "install").trim().toLowerCase() === "uninstall" ? "uninstall" : "install";
-    installGuideReturnView = String(options.returnView || "feature-setup").trim().toLowerCase() === "push-setup"
-      ? "push-setup"
+    const requestedReturnView = String(options.returnView || "feature-setup").trim().toLowerCase();
+    installGuideReturnView = requestedReturnView === "push-setup" || requestedReturnView === "launcher"
+      ? requestedReturnView
       : "feature-setup";
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -10975,6 +10991,10 @@ ${calmPracticeMessage}`;
       openPushSetupOverlay(pushSetupReturnRole, pushSetupOwnIdentifier, {
         returnView: pushSetupReturnView
       });
+      return;
+    }
+    if (installGuideReturnView === "launcher") {
+      showLauncherView();
       return;
     }
     showFeatureSetupView({
@@ -11766,7 +11786,11 @@ ${calmPracticeMessage}`;
       return;
     }
     if (!isRunningAsInstalledApp()) {
-      window.alert("Partner messaging requires the installed ESP GYM app on this device. You are currently in browser mode. Please use Setup Website Features to install the app and enable partner messaging first.");
+      if (getDisplayedLauncherUserType() === "pro") {
+        openMessagingInstallOverlay();
+      } else {
+        window.alert("Partner messaging requires the installed ESP GYM app on this device. You are currently in browser mode. Please use Setup Website Features to install the app and enable partner messaging first.");
+      }
       return;
     }
     const availabilityReason = getRoleMessageAvailabilityReason(normalizedRole);
@@ -33696,6 +33720,19 @@ ${calmPracticeMessage}`;
   pushSetupOverlay?.addEventListener("click", (event) => {
     if (event.target === pushSetupOverlay) {
       closePushSetupOverlay();
+    }
+  });
+  messagingInstallConfirmButton?.addEventListener("click", () => {
+    closeMessagingInstallOverlay();
+    showInstallGuideView({ returnView: "launcher" });
+  });
+  messagingInstallCancelButton?.addEventListener("click", closeMessagingInstallOverlay);
+  messagingInstallDialog?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  messagingInstallOverlay?.addEventListener("click", (event) => {
+    if (event.target === messagingInstallOverlay) {
+      closeMessagingInstallOverlay();
     }
   });
   exploreProCloseButton?.addEventListener("click", closeExploreProOverlay);
