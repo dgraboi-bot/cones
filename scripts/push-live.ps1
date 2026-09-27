@@ -15,6 +15,7 @@ $sshHostKey = "SHA256:3KLXNH5dlbRXvcz9p70RAzK8MAE9WaYSb/O+ZC9WhNM"
 $liveRoot = "/var/www/telepathyexperiment/cones"
 $privateContentRoot = "/var/www/telepathyexperiment_private/cones/content"
 $snapshotRoot = "/home/ec2-user/espgym_live_snapshots"
+$snapshotRetentionCount = 8
 $snapshotName = "{0}_pre_{1}" -f (Get-Date -Format "yyyyMMddHHmm"), $Version
 $snapshotPath = "$snapshotRoot/$snapshotName"
 $stageRoot = "/home/ec2-user/espgym_stage_{0}" -f $Version
@@ -144,6 +145,37 @@ function Invoke-PlinkStep([string]$Command, [string]$StepLabel, [int]$TimeoutSec
 
 function Invoke-PscpUpload([string]$LocalPath, [string]$RemotePath, [string]$StepLabel) {
   [void](Invoke-ExternalCommand -FilePath $pscpPath -ArgumentList @("-q", "-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $LocalPath, "$remoteUploadTarget`:$RemotePath") -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput)
+}
+
+function Prune-RemoteReleaseSnapshots {
+  # Only standard release snapshot names are eligible; legacy/custom folders stay untouched.
+  $remoteScript = @"
+set -eu
+root='$snapshotRoot'
+keep=$snapshotRetentionCount
+current='$snapshotName'
+find "`$root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+  grep -E '^[0-9]{12,14}_pre_[A-Za-z0-9][A-Za-z0-9._-]*`$' |
+  LC_ALL=C sort -r |
+  awk -v keep="`$keep" 'NR > keep { print }' |
+  while IFS= read -r name; do
+    if [ "`$name" = "`$current" ]; then
+      continue
+    fi
+    rm -rf -- "`$root/`$name"
+    printf 'PRUNED %s\n' "`$name"
+  done
+"@
+  $encodedScript = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($remoteScript))
+
+  try {
+    $output = @(Invoke-PlinkStep "echo $encodedScript | base64 -d | bash" "prune retained release snapshots" -TimeoutSeconds 180 -AllowEmptyOutput)
+    $prunedCount = @($output | Where-Object { $_ -like "PRUNED *" }).Count
+    Write-ReleaseLog ("Release snapshot retention kept the newest {0} recognized snapshots and pruned {1}." -f $snapshotRetentionCount, $prunedCount) "DarkGreen"
+  } catch {
+    # Retention is post-deployment housekeeping; a cleanup failure must not obscure a verified release.
+    Write-ReleaseLog ("WARNING: release snapshot retention was not completed: {0}" -f $_.Exception.Message) "Yellow"
+  }
 }
 
 function Convert-ToPosixPath([string]$Path) {
@@ -554,6 +586,7 @@ Invoke-PlinkStep "rm -rf '$stageRoot'" "remove remote stage root after successfu
 if ($vendorArchive) {
   Invoke-PlinkStep "rm -rf '$liveRoot/.vendor-previous-$Version'" "remove superseded vendor tree after verification" -AllowEmptyOutput
 }
+Prune-RemoteReleaseSnapshots
 
 Write-ReleaseLog ("Pushed prepared build {0}" -f $Version) "Green"
 Write-ReleaseLog ("Snapshot: {0}" -f $snapshotPath) "Green"

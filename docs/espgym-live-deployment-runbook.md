@@ -1235,6 +1235,18 @@ Minimum rule:
 
 If a file is about to be overwritten live, its prior live copy must first be copied into the snapshot folder.
 
+## Deployment Snapshot Retention
+
+Release snapshots are rollback protection, not an unbounded archive. After a release has completed its live version and SHA-256 verification, `push-live.ps1` retains the newest eight recognized release snapshots under `/home/ec2-user/espgym_live_snapshots`.
+
+Safety rules:
+
+1. Only directories named `YYYYMMDDhhmm_pre_<release>` or `YYYYMMDDhhmmss_pre_<release>` are recognized for retention.
+2. The newest eight recognized snapshots are retained, including the snapshot made for the successful release.
+3. Every unrecognized, legacy, custom, or malformed folder is excluded from pruning and remains untouched.
+4. Retention runs only after deployment verification succeeds. A cleanup failure is logged as a warning and must not hide the outcome of an otherwise verified release.
+5. Before any one-time cleanup of old snapshots, audit the candidate names and aggregate disk usage first; do not use a broad recursive delete.
+
 ## Standard File Push Procedure
 
 After backup, push each changed local file with the standard direct single-file pipe-to-`cat` pattern.
