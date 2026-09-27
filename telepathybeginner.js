@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260926s";
+  const launcherBuildVersion = "20260926t";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -12865,6 +12865,15 @@ ${calmPracticeMessage}`;
       return "standard";
     }
     return resolvedMainUserType === "pro" ? "pro" : "standard";
+  }
+
+  function formatAdminUserTypeStatus(identifier, storedUserType) {
+    const handle = String(identifier || "").trim();
+    const storedType = String(storedUserType || "standard").trim().toLowerCase() === "pro" ? "pro" : "standard";
+    if (publicLandingMode.espProSpecialEditionEnabled) {
+      return `Current status for ${handle}: PRO (Special Edition). Stored membership: ${storedType.toUpperCase()}.`;
+    }
+    return `Current status for ${handle}: ${storedType.toUpperCase()}`;
   }
 
   function getUserGuideTargetType() {
@@ -29655,7 +29664,7 @@ ${calmPracticeMessage}`;
 
       currentUserTypeAdminHandle = handle;
       renderUserTypeAdminState({
-        statusText: `Current status for ${handle}: ${String(data?.user_type || "standard").toUpperCase()}`,
+        statusText: formatAdminUserTypeStatus(handle, data?.user_type),
         showChoices: true,
         showInviteeButton: false,
         showEmailUpdate: true,
@@ -29806,7 +29815,7 @@ ${calmPracticeMessage}`;
       }
       currentUserTypeAdminHandle = handle;
       renderUserTypeAdminState({
-        statusText: `Current status for ${handle}: ${savedType.toUpperCase()}.`,
+        statusText: formatAdminUserTypeStatus(handle, savedType),
         showChoices: true,
         showInviteeButton: false,
         showEmailUpdate: true,
