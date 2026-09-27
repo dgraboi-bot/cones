@@ -4,15 +4,24 @@ RewriteEngine On
 # root and legacy index requests on espgym.com should land on the versioned launcher URL
 # explicitly, instead of depending on DirectoryIndex fallthrough.
 RewriteCond %{HTTP_HOST} ^(?:www\.)?espgym\.com$ [NC]
-RewriteRule ^$ https://espgym.com/telepathybeginner.html?v=20260926y&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
+RewriteRule ^$ https://espgym.com/telepathybeginner.html?v=20260926z&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
 
 RewriteCond %{HTTP_HOST} ^(?:www\.)?espgym\.com$ [NC]
-RewriteRule ^index\.html$ https://espgym.com/telepathybeginner.html?v=20260926y&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
+RewriteRule ^index\.html$ https://espgym.com/telepathybeginner.html?v=20260926z&open=landing [R=302,L,NE,E=ESPGYM_ROOT_REDIRECT:1]
 
 <IfModule mod_headers.c>
 Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0" env=ESPGYM_ROOT_REDIRECT
 Header always set Pragma "no-cache" env=ESPGYM_ROOT_REDIRECT
 Header always set Expires "0" env=ESPGYM_ROOT_REDIRECT
+
+# An installed PWA must always revalidate its launcher and service worker.
+# Versioned assets may stay cached, but an older launcher must not remain
+# internally consistent forever after a newer release has gone live.
+<FilesMatch "^(telepathybeginner\.html|telepathybeginner-sw\.js)$">
+  Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  Header always set Pragma "no-cache"
+  Header always set Expires "0"
+</FilesMatch>
 </IfModule>
 
 # Keep the old public launcher URLs from existing as a second public copy of the app.
