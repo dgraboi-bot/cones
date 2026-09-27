@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927i";
+  const launcherBuildVersion = "20260927k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -12310,14 +12310,14 @@ ${calmPracticeMessage}`;
     const label = difficultyLabels.find((item) => item.dataset.pairDifficultyLabel === role);
     if (label) {
       if (!label.dataset.placeholder) {
-        label.dataset.placeholder = String(label.textContent || "Level 1").trim() || "Level 1";
+        label.dataset.placeholder = String(label.textContent || "Exercise 1").trim() || "Exercise 1";
       }
       if (level === "" || level === null) {
         label.textContent = label.dataset.placeholder;
         label.classList.add("role-card-level-hidden");
         return;
       }
-      const nextText = `Level ${clampLauncherDifficultyForRole(role, level)}`;
+      const nextText = `Exercise ${clampLauncherDifficultyForRole(role, level)}`;
       label.dataset.placeholder = nextText;
       label.textContent = nextText;
       label.classList.remove("role-card-level-hidden");
@@ -32288,6 +32288,10 @@ ${calmPracticeMessage}`;
     });
     header?.addEventListener("click", (event) => {
       if (isLauncherInteractiveTarget(event.target)) {
+        return;
+      }
+      // Blank header space opens a collapsed card, but never acts as a second BACK target.
+      if (card.classList.contains("active")) {
         return;
       }
       activateCard(card);
