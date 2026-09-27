@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927m";
+  const launcherBuildVersion = "20260927r";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1116,7 +1116,6 @@
   const adminIdentityListStatus = document.querySelector("[data-admin-identity-list-status]");
   const adminIdentityListBody = document.querySelector("[data-admin-identity-list-body]");
   const adminIdentityFilterButtons = Array.from(document.querySelectorAll("[data-admin-identity-filter]"));
-  const locationStatusBlocks = Array.from(document.querySelectorAll("[data-location-status]"));
   let receiverOwnLabelMeasurementShownAt = 0;
   let pendingDirectOpenStartupTrace = null;
   try {
@@ -9391,49 +9390,26 @@ ${calmPracticeMessage}`;
     return openRoleMessagesButtons.find((item) => item.dataset.openRoleMessages === role) || null;
   }
 
-  function getRoleMessageAvailabilityReason(role) {
-    const normalizedRole = String(role || "").trim();
-    if (!["sender", "receiver"].includes(normalizedRole)) {
-      return "";
-    }
-    const { partnerIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
-    if (isRobotSimulationIdentifier(partnerIdentifier)) {
-      return 'Messaging is unavailable when your partner is "Robot".';
-    }
-    return "";
-  }
-
   function applyRoleMessageAvailabilityState(role) {
     const normalizedRole = String(role || "").trim();
     const button = getRoleMessageLaunchButton(normalizedRole);
     const launchWrap = document.querySelector(`[data-role-messaging-launch="${normalizedRole}"]`);
-    const reason = getRoleMessageAvailabilityReason(normalizedRole);
-    const disabledForRobot = !!reason;
 
     if (launchWrap) {
-      launchWrap.classList.toggle("is-role-message-disabled", disabledForRobot);
-      if (disabledForRobot) {
-        launchWrap.setAttribute("title", reason);
-      } else {
-        launchWrap.removeAttribute("title");
-      }
+      launchWrap.classList.remove("is-role-message-disabled");
+      launchWrap.removeAttribute("title");
     }
 
     if (!button) {
-      return disabledForRobot;
+      return false;
     }
 
-    button.disabled = disabledForRobot;
-    if (disabledForRobot) {
-      button.setAttribute("aria-disabled", "true");
-      button.setAttribute("title", reason);
-    } else if (!isProLockedButton(button)) {
+    if (!isProLockedButton(button)) {
+      button.disabled = false;
       button.removeAttribute("aria-disabled");
       button.removeAttribute("title");
-    } else {
-      button.removeAttribute("title");
     }
-    return disabledForRobot;
+    return false;
   }
 
   function getRoleMessageBadge(role) {
@@ -9542,7 +9518,7 @@ ${calmPracticeMessage}`;
 
     conversations.forEach((conversation) => {
       const partnerIdentifier = String(conversation?.partner_identifier || "").trim();
-      if (!partnerIdentifier) {
+      if (!partnerIdentifier || isRobotSimulationIdentifier(partnerIdentifier)) {
         return;
       }
       const key = normalizeIdentifierForStorage(partnerIdentifier);
@@ -9558,7 +9534,7 @@ ${calmPracticeMessage}`;
     });
 
     const preferred = String(preferredPartnerIdentifier || "").trim();
-    if (preferred && !seen.has(normalizeIdentifierForStorage(preferred))) {
+    if (preferred && !isRobotSimulationIdentifier(preferred) && !seen.has(normalizeIdentifierForStorage(preferred))) {
       list.unshift({
         partner_identifier: preferred,
         unread_count: 0,
@@ -11869,14 +11845,10 @@ ${calmPracticeMessage}`;
       }
       return;
     }
-    const availabilityReason = getRoleMessageAvailabilityReason(normalizedRole);
-    if (availabilityReason) {
-      window.alert(availabilityReason);
-      return;
-    }
     const { ownIdentifier, partnerIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
     const ownRaw = String(options.ownerIdentifier || ownIdentifier || "").trim();
-    const partnerRaw = String(options.partnerIdentifier || partnerIdentifier || "").trim();
+    const requestedPartner = String(options.partnerIdentifier || partnerIdentifier || "").trim();
+    const partnerRaw = isRobotSimulationIdentifier(requestedPartner) ? "" : requestedPartner;
 
     if (!ownRaw) {
       window.alert("Enter your identifier before opening messages.");
@@ -12122,10 +12094,6 @@ ${calmPracticeMessage}`;
     let eligibleCount = 0;
 
     for (const role of ["sender", "receiver"]) {
-      if (getRoleMessageAvailabilityReason(role)) {
-        setRoleMessageBadge(role, 0);
-        continue;
-      }
       const ownIdentifier = String(getRoleIdentifiersForMessaging(role).ownIdentifier || "").trim();
       if (!ownIdentifier) {
         setRoleMessageBadge(role, 0);
@@ -20329,20 +20297,9 @@ ${calmPracticeMessage}`;
   }
 
   function renderLocationStatus() {
-    const state = readLauncherState();
-    const confidenceSettings = getConfidenceBehaviorSettings(state);
-    const statusText = `Reinforcement: ${confidenceSettings.includePositiveReinforcement ? "On" : "Off"}    Confidence: ${confidenceSettings.include ? "On" : "Off"}`;
-
-    locationStatusBlocks.forEach((block) => {
-      const textNode = block.querySelector(".role-location-text");
-      const exactButton = block.querySelector(".role-location-exact");
-      if (textNode) {
-        textNode.textContent = statusText;
-      }
-      if (exactButton) {
-        exactButton.hidden = false;
-        exactButton.disabled = locationRequestInFlight;
-      }
+    exactLocationButtons.forEach((exactButton) => {
+      exactButton.hidden = false;
+      exactButton.disabled = locationRequestInFlight;
     });
   }
 

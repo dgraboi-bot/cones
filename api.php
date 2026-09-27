@@ -5745,6 +5745,9 @@ function build_partner_message_inbox_summary(array $state, string $ownerIdentifi
         if ($partnerIdentifier === '') {
             continue;
         }
+        if (is_robot_simulation_identifier($partnerIdentifier)) {
+            continue;
+        }
 
         $hiddenMessageIds = get_partner_message_hidden_ids($state, $ownerIdentifier, $partnerIdentifier);
         $hiddenMap = [];
@@ -13431,6 +13434,9 @@ if ($action === 'get_partner_messaging') {
         $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
         $partnerIdentifier = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
         $deviceId = validate_device_id_value($input['device_id'] ?? '', 'device_id');
+        if (is_robot_simulation_identifier($ownIdentifier) || is_robot_simulation_identifier($partnerIdentifier)) {
+            throw new InvalidArgumentException('Partner messaging is only available between people.');
+        }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -13522,6 +13528,9 @@ if ($action === 'mark_partner_messages_read') {
         require_allowed_keys($input, ['action', 'own_identifier', 'partner_identifier', 'message_id'], 'request');
         $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
         $partnerIdentifier = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+        if (is_robot_simulation_identifier($ownIdentifier) || is_robot_simulation_identifier($partnerIdentifier)) {
+            throw new InvalidArgumentException('Partner messaging is only available between people.');
+        }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -13567,6 +13576,9 @@ if ($action === 'send_partner_message') {
         $recipientRole = validate_role_value($input['recipient_role'] ?? '', 'recipient_role');
         $messageText = validate_partner_message_text($input['message_text'] ?? '', 'message_text');
         $webPushConfig = load_webpush_config($webPushConfigFile);
+        if (is_robot_simulation_identifier($senderIdentifier) || is_robot_simulation_identifier($recipientIdentifier)) {
+            throw new InvalidArgumentException('Partner messaging is only available between people.');
+        }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -13642,6 +13654,9 @@ if ($action === 'delete_partner_message') {
         $messageId = trim((string) ($input['message_id'] ?? ''));
         if ($messageId === '' || !preg_match('/^[a-f0-9]{16}$/', $messageId)) {
             throw new InvalidArgumentException('message_id is invalid.');
+        }
+        if (is_robot_simulation_identifier($ownIdentifier) || is_robot_simulation_identifier($partnerIdentifier)) {
+            throw new InvalidArgumentException('Partner messaging is only available between people.');
         }
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
