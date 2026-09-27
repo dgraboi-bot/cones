@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927e";
+  const launcherBuildVersion = "20260927f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9998,7 +9998,7 @@ ${calmPracticeMessage}`;
         ? (cameraAvailable
           ? "When you practice telepathy with a real person, choose whether your identity is verified by a snapshot of your face at that time, or by you verifying who you are now by entering a 5-character authorization code sent to your email. You can change this later in the Setup Website Features menu selection."
           : "When you practice telepathy with a real person, choose whether your identity will be verified by you verifying your identity now by entering a 5-character authorization code sent to your email. Please enter your email, used only for this verification process, and then complete the process by pressing SEND CODE and entering the 5-character code emailed to you from ESP GYM.")
-        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark.\n\nLive camera confirmation uses a temporary snapshot taken before a session.\n\nWhen both Sender and Receiver have authenticated themselves via email confirmation, no additional confirmation is needed before a session starts, saving time.\n\n";
+        : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark.\n\nLive camera confirmation uses a temporary snapshot taken before a session.\n\nWhen both Sender and Receiver have authenticated themselves via email confirmation, no additional confirmation is needed before a session starts, saving time but not showing partner snapshots.\n\n";
     }
     partnerConfirmationMethodButtons.forEach((button) => {
       const method = String(button.dataset.partnerConfirmationMethod || "").trim();
@@ -33423,7 +33423,7 @@ ${calmPracticeMessage}`;
   closeGoProButton?.addEventListener("click", closeGoProViewToOrigin);
   closeGoProIncludesButton?.addEventListener("click", closeGoProIncludesView);
   closeOtherSettingsButton?.addEventListener("click", showOptionsView);
-  closeClairvoyanceViewingButton?.addEventListener("click", showOtherSettingsView);
+  closeClairvoyanceViewingButton?.addEventListener("click", showOptionsView);
   closeResearchParticipationProButton?.addEventListener("click", showOtherSettingsView);
   closeResearchProposalButton?.addEventListener("click", () => {
     if (researchProposalReturnView === "research-participation") {
