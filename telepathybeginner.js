@@ -9,7 +9,7 @@
   const deviceTestRestoreSnapshotKey = "cones-device-test-restore-snapshot-v1";
   const deviceTestNoticeKey = "cones-device-test-notice-v1";
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
-  const launcherBuildVersion = "20260927d";
+  const launcherBuildVersion = "20260927e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -761,7 +761,7 @@
   };
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
-  const proOnlyOtherSettingsButtons = Array.from(document.querySelectorAll("[data-pro-only-other-settings]"));
+  const proOnlyClairvoyanceButtons = Array.from(document.querySelectorAll("[data-pro-only-clairvoyance]"));
   let reportTableWrap = document.querySelector("[data-report-table-wrap]");
   let reportTable = document.querySelector("[data-report-table]");
   let visualizationSummary = document.querySelector("[data-visualization-summary]");
@@ -14278,7 +14278,7 @@ ${calmPracticeMessage}`;
     if (cancelProButton) {
       cancelProButton.hidden = !showProControls;
     }
-    proOnlyOtherSettingsButtons.forEach((button) => {
+    proOnlyClairvoyanceButtons.forEach((button) => {
       button.hidden = false;
     });
   }
