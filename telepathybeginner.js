@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928j";
+  const launcherBuildVersion = "20260928k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -44,7 +44,7 @@
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
-  const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore other levels by changing the level and pressing GO.";
+  const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore other exercises by changing the exercise and pressing GO.";
   const launcherPageInstanceId = `launcher-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
@@ -3063,7 +3063,31 @@ ${calmPracticeMessage}`;
         button.dataset.defaultLabel = String(button.textContent || "BACK").trim() || "BACK";
       }
       button.textContent = hasPendingReturn ? "RETURN TO LESSON" : button.dataset.defaultLabel;
-      const disableDuringLauncherGuidedTour = launcherGuidedTourActive && roleCardInlineBackButtons.includes(button);
+      const completionExitButton = roleCardInlineBackButtons.includes(button) && isGuidedTourCompletionNoticeActive(
+        button.dataset.collapseRoleCard || ""
+      );
+      const disableDuringLauncherGuidedTour = launcherGuidedTourActive
+        && roleCardInlineBackButtons.includes(button)
+        && !completionExitButton;
+      if (button.dataset.defaultTooltip === undefined) {
+        button.dataset.defaultTooltip = String(button.dataset.tooltip || "");
+        button.dataset.defaultTitle = String(button.title || "");
+      }
+      if (completionExitButton) {
+        button.dataset.tooltip = "Exit the guided tour and return to the home page.";
+        button.title = "Exit the guided tour and return to the home page.";
+      } else {
+        if (button.dataset.defaultTooltip) {
+          button.dataset.tooltip = button.dataset.defaultTooltip;
+        } else {
+          delete button.dataset.tooltip;
+        }
+        if (button.dataset.defaultTitle) {
+          button.title = button.dataset.defaultTitle;
+        } else {
+          button.removeAttribute("title");
+        }
+      }
       if ("disabled" in button) {
         button.disabled = disableDuringLauncherGuidedTour;
       }
@@ -20284,7 +20308,7 @@ ${calmPracticeMessage}`;
 
   function scheduleGuidedTourCompletionNotice(role) {
     const normalizedRole = String(role || "").trim().toLowerCase();
-    if (!["sender", "receiver"].includes(normalizedRole)) {
+    if (!["sender", "receiver", "remote-viewer"].includes(normalizedRole)) {
       return;
     }
     pendingGuidedTourCompletionNoticeRole = normalizedRole;
@@ -21862,11 +21886,12 @@ ${calmPracticeMessage}`;
         partner_name_display: String(partnerInput.value || "").trim()
       });
       event.preventDefault();
-      const anonymousVisitorGuidedTourLaunch = isAnonymousVisitorGuidedTourLaunch(
-        role,
-        ownInput.value,
-        partnerInput.value
-      );
+      const anonymousVisitorGuidedTourLaunch = !isGuidedTourCompletionNoticeActive(role)
+        && isAnonymousVisitorGuidedTourLaunch(
+          role,
+          ownInput.value,
+          partnerInput.value
+        );
       const guidedTourLaunch = isLauncherGuidedTourLaunchState(role) || anonymousVisitorGuidedTourLaunch;
       if (!guidedTourLaunch && launcherGuidedTourState && role === launcherGuidedTourState.role) {
         endLauncherGuidedTour();
@@ -22005,7 +22030,11 @@ ${calmPracticeMessage}`;
         getDifficultyLocalLevel(role) ||
         "1"
       ));
-      let selectedDifficultyLevel = preTourDifficultyLevel;
+      // At the completion notice the user may select a new exercise immediately
+      // before pressing GO. The visible control is the authoritative selection.
+      let selectedDifficultyLevel = guidedContinuationMode
+        ? normalizeDifficultyLevel(String(getDifficultyLocalLevel(role)))
+        : preTourDifficultyLevel;
       if (guidedTourLaunch) {
         selectedDifficultyLevel = "1";
       }
@@ -22363,19 +22392,31 @@ ${calmPracticeMessage}`;
   let launcherGuidedTourState = null;
 
   function getGuideElements(role) {
-    const normalizedRole = String(role || "").trim().toLowerCase() === "sender" ? "sender" : "receiver";
+    const requestedRole = String(role || "").trim().toLowerCase();
+    const normalizedRole = ["sender", "receiver", "remote-viewer"].includes(requestedRole)
+      ? requestedRole
+      : "receiver";
     const roleCard = findRoleCard(normalizedRole);
     const toggleButton = roleCard?.querySelector(".role-card-toggle") || null;
-    const roleForm = roleCard?.querySelector(`[data-role-form="${normalizedRole}"]`) || null;
+    const roleForm = normalizedRole === "remote-viewer"
+      ? remoteViewerForm
+      : roleCard?.querySelector(`[data-role-form="${normalizedRole}"]`) || null;
     const emailNote = roleForm?.querySelector(".role-email-note") || null;
-    const ownInput = roleForm?.querySelector('input[name="ownName"]') || null;
-    const partnerInput = roleForm?.querySelector('input[name="partnerName"]') || null;
+    const ownInput = normalizedRole === "remote-viewer"
+      ? remoteViewerOwnInput
+      : roleForm?.querySelector('input[name="ownName"]') || null;
+    const partnerInput = normalizedRole === "remote-viewer"
+      ? remoteViewerPartnerInput
+      : roleForm?.querySelector('input[name="partnerName"]') || null;
     const levelStack = roleCard?.querySelector(`[data-role-difficulty-stack="${normalizedRole}"]`) || null;
     const levelButtons = levelStack
       ? Array.from(levelStack.querySelectorAll(`[data-role-difficulty-bump="${normalizedRole}"]`))
       : [];
-    const goButton = roleForm?.querySelector('.role-go[type="submit"]') || null;
+    const goButton = normalizedRole === "remote-viewer"
+      ? remoteViewerGoButton
+      : roleForm?.querySelector('.role-go[type="submit"]') || null;
     const cardHeader = roleCard?.querySelector(".role-card-header") || roleCard;
+    const inlineBack = roleCard?.querySelector(`[data-collapse-role-card="${normalizedRole}"]`) || null;
     return {
       role: normalizedRole,
       roleCard,
@@ -22387,7 +22428,8 @@ ${calmPracticeMessage}`;
       levelStack,
       levelButtons,
       goButton,
-      cardHeader
+      cardHeader,
+      inlineBack
     };
   }
 
@@ -22766,6 +22808,14 @@ ${calmPracticeMessage}`;
     return "";
   }
 
+  function isGuidedTourCompletionNoticeActive(role = "") {
+    if (!launcherGuidedTourState || getCurrentLauncherGuidedTourStep()?.id !== "completion-notice") {
+      return false;
+    }
+    const normalizedRole = String(role || "").trim().toLowerCase();
+    return !normalizedRole || launcherGuidedTourState.role === normalizedRole;
+  }
+
   function isAllowedLauncherGuidedTarget(step, target) {
     if (!(target instanceof Element) || !step) {
       return false;
@@ -22831,7 +22881,7 @@ ${calmPracticeMessage}`;
         text: guidedTourCompletionNoticeText,
         target: elements.emailNote || elements.roleCard,
         allowNext: false,
-        allowed: [elements.levelStack, elements.goButton],
+        allowed: [elements.levelStack, elements.goButton, elements.inlineBack],
         muteOthers: false,
         placement: "explanation"
       }],
@@ -26686,14 +26736,6 @@ ${calmPracticeMessage}`;
       persistResolvedPairDifficultyForRole(role, pairContext, visibleConfirmedLevel);
       setRoleDifficultyLabel(role, visibleConfirmedLevel);
       void refreshDifficultyLabels();
-      if (role !== "remote-viewer") {
-        const pairLabel = describeDifficultyChange(role, pairContext);
-        setRoleDifficultyStatus(
-          role,
-          `${pairLabel} set to Level ${confirmedLevel}.`,
-          { prominent: false }
-        );
-      }
       scheduleGuidedLevelExplanation(role, visibleConfirmedLevel);
     } catch (error) {
       setRoleDifficultyStatus(
@@ -30955,7 +30997,7 @@ ${calmPracticeMessage}`;
         } else {
           delete launcherState.pendingGuidedTourContinuationMode;
         }
-        pendingGuidedTourCompletionNoticeRole = guidedTourCompleted && ["sender", "receiver"].includes(requestedView)
+        pendingGuidedTourCompletionNoticeRole = guidedTourCompleted && ["sender", "receiver", "remote-viewer"].includes(requestedView)
           ? requestedView
           : "";
         logLauncherUserTypeDebug("apply_launcher_open_request", {
@@ -31244,7 +31286,7 @@ ${calmPracticeMessage}`;
                     scrollY: Number(window.scrollY || 0)
                   });
                   finishDirectLauncherOpen(0);
-                  if (guidedTourCompleted && ["sender", "receiver"].includes(requestedView)) {
+                  if (guidedTourCompleted && ["sender", "receiver", "remote-viewer"].includes(requestedView)) {
                     scheduleGuidedTourCompletionNotice(requestedView);
                   }
                 }
@@ -32535,6 +32577,11 @@ ${calmPracticeMessage}`;
     inlineBack?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (isGuidedTourCompletionNoticeActive(role)) {
+        endLauncherGuidedTour();
+        collapseActiveLauncherCard();
+        return;
+      }
       if (triggerPendingLearningCenterLessonReturn()) {
         return;
       }
@@ -33063,6 +33110,36 @@ ${calmPracticeMessage}`;
     const requestedRemoteViewerDifficulty = normalizeDifficultyLevel(
       getDifficultyLocalLevel("remote-viewer")
     );
+    if (anonymousCoveredScreenTour) {
+      const guidedSnapshotState = readLauncherState();
+      guidedSnapshotState.difficultyLevel = requestedRemoteViewerDifficulty;
+      guidedSnapshotState.roleDifficultyLevels = guidedSnapshotState.roleDifficultyLevels || {};
+      guidedSnapshotState.roleDifficultyLevels["remote-viewer"] = requestedRemoteViewerDifficulty;
+      guidedSnapshotState.robotSimulationDifficultyLevels = guidedSnapshotState.robotSimulationDifficultyLevels || {};
+      guidedSnapshotState.robotSimulationDifficultyLevels[
+        buildRobotSimulationDifficultyKey("remote-viewer", submittedOwnDisplayName)
+      ] = requestedRemoteViewerDifficulty;
+      saveGuidedTourReturnSnapshot("remote-viewer", {
+        launcherState: guidedSnapshotState,
+        runtimeSettings: {
+          sender: readRuntimeSettings("sender"),
+          receiver: readRuntimeSettings("receiver"),
+          "remote-viewer": {
+            ...readRuntimeSettings("remote-viewer"),
+            difficulty_level: requestedRemoteViewerDifficulty
+          }
+        },
+        returnView: {
+          role: "remote-viewer",
+          ownDisplayName: submittedOwnDisplayName,
+          partnerDisplayName: "Robot",
+          visitorDisplayName: submittedOwnDisplayName,
+          difficultyLevel: requestedRemoteViewerDifficulty
+        },
+        launcherOrigin: null,
+        lessonReturnTarget: readPendingLearningCenterLessonReturnTarget()
+      });
+    }
     showLocalLauncherDebugAlert(1, `mode=${remoteViewSimulationMode} covered=${coveredScreenMode ? 1 : 0} runtime=${runtimeMode}`);
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
