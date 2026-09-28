@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928q";
+  const launcherBuildVersion = "20260928r";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -15314,12 +15314,12 @@ ${calmPracticeMessage}`;
   function getDemoReportShortLabel(receiverName, senderName) {
     const pairKey = buildPairMatchKey(receiverName, senderName);
     const labelByPairKey = {
-      "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "exercise: too-little",
-      "demo.level1.promising.receiver|||demo.level1.promising.sender": "exercise: promising",
-      "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "exercise: not-telepathic",
-      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "exercise: telepathic"
+      "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "Demo: Too Little Data - Telepathy Exercise 1",
+      "demo.level1.promising.receiver|||demo.level1.promising.sender": "Demo: Promising Data - Telepathy Exercise 1",
+      "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "Demo: Not Telepathic Data - Telepathy Exercise 1",
+      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "Demo: Telepathic Data - Telepathy Exercise 1"
     };
-    return labelByPairKey[pairKey] || "exercise";
+    return labelByPairKey[pairKey] || "Demo";
   }
 
   function isNamedReportTarget(target) {
@@ -16134,22 +16134,19 @@ ${calmPracticeMessage}`;
     const normalizedReceiverName = String(pairInfo?.receiverName || "").trim().toLowerCase();
     const normalizedSenderName = String(pairInfo?.senderName || "").trim().toLowerCase();
     const isDemoPair = isDemoReportPair(receiverLabel, senderLabel) || isDemoReportPair(pairInfo?.receiverName, pairInfo?.senderName);
-    const baseTelepathyLabel = isDemoPair
-      ? getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel)
-      : `${receiverLabel}\u00A0-\u00A0${senderLabel}`;
+    if (isDemoPair) {
+      return getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel);
+    }
+    const baseTelepathyLabel = `${receiverLabel}\u00A0-\u00A0${senderLabel}`;
     if (sessionMode === "remote_viewing") {
       if (remoteViewingSubmode === "covered_screen") {
-        const coveredScreenLabel = isDemoPair
-          ? getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel)
-          : receiverLabel;
+        const coveredScreenLabel = receiverLabel;
         return sessionLevel
           ? `${coveredScreenLabel} (Remote Viewing) Level ${sessionLevel} covered screen data`
           : `${coveredScreenLabel} (Remote Viewing) covered screen Multi-level data`;
       }
       const remoteScreenSubject = normalizedSenderName === "robot"
-        ? (isDemoPair
-            ? getDemoReportShortLabel(pairInfo?.receiverName || receiverLabel, pairInfo?.senderName || senderLabel)
-            : receiverLabel)
+        ? receiverLabel
         : baseTelepathyLabel;
       return sessionLevel
         ? `${remoteScreenSubject} (Remote Viewing) Level ${sessionLevel} remote screen data`
