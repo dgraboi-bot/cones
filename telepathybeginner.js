@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928b";
+  const launcherBuildVersion = "20260928c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -21218,6 +21218,15 @@ ${calmPracticeMessage}`;
     return true;
   }
 
+  function isAnonymousVisitorGuidedTourLaunch(role, ownName, partnerName) {
+    return (
+      (role === "sender" || role === "receiver") &&
+      isVisitorLauncherEntry() &&
+      normalizeIdentifierForStorage(stripGuestDisplaySuffix(ownName)) === normalizeIdentifierForStorage(anonymousVisitorDisplayName) &&
+      isRobotSimulationIdentifier(partnerName)
+    );
+  }
+
   async function refreshPartnerAliasHistory(role, form) {
     const ownInput = form.querySelector('input[name="ownName"]');
     const partnerInput = form.querySelector('input[name="partnerName"]');
@@ -21774,7 +21783,12 @@ ${calmPracticeMessage}`;
         partner_name_display: String(partnerInput.value || "").trim()
       });
       event.preventDefault();
-      const guidedTourLaunch = isLauncherGuidedTourLaunchState(role);
+      const anonymousVisitorGuidedTourLaunch = isAnonymousVisitorGuidedTourLaunch(
+        role,
+        ownInput.value,
+        partnerInput.value
+      );
+      const guidedTourLaunch = isLauncherGuidedTourLaunchState(role) || anonymousVisitorGuidedTourLaunch;
       if (!guidedTourLaunch && launcherGuidedTourState && role === launcherGuidedTourState.role) {
         endLauncherGuidedTour();
       }
@@ -29277,7 +29291,7 @@ ${calmPracticeMessage}`;
       }
       const roleSettings = readRoleSettings(role);
       const savedOwn = visitorMode
-        ? String(getPreferredVisitorDisplayNameForRole(role, state) || "").trim()
+        ? String(getPreferredVisitorDisplayNameForRole(role, state) || anonymousVisitorDisplayName).trim()
         : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
       const profileState = visitorMode ? null : (savedOwn ? readLauncherProfileState(role, savedOwn, state) : null);
       const savedPartner = visitorMode
