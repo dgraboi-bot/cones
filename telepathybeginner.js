@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928d";
+  const launcherBuildVersion = "20260928f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -762,6 +762,7 @@
   let publicLandingMode = {
     espProSpecialEditionEnabled: false
   };
+  let publicLandingModeRefreshInFlight = null;
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
   const proOnlyClairvoyanceButtons = Array.from(document.querySelectorAll("[data-pro-only-clairvoyance]"));
@@ -5708,17 +5709,29 @@ ${calmPracticeMessage}`;
     return parseApiResponse(response, `Temporary identity request failed with status ${response.status}`);
   }
 
-  async function fetchPublicTrialModeState() {
-    const response = await fetch("api.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        action: "get_public_trial_mode"
-      })
-    });
-    return parseApiResponse(response, `Public trial mode request failed with status ${response.status}`);
+  async function fetchPublicTrialModeState(timeoutMs = 2500) {
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    let timerId = 0;
+    try {
+      if (controller) {
+        timerId = window.setTimeout(() => controller.abort(), Math.max(500, Number(timeoutMs) || 2500));
+      }
+      const response = await fetch("api.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "get_public_trial_mode"
+        }),
+        signal: controller?.signal
+      });
+      return parseApiResponse(response, `Public trial mode request failed with status ${response.status}`);
+    } finally {
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+    }
   }
 
   function applyPublicLandingMode(data = null) {
@@ -5766,8 +5779,14 @@ ${calmPracticeMessage}`;
   }
 
   async function refreshPublicLandingMode() {
-    const data = await fetchPublicTrialModeState();
-    return applyPublicLandingMode(data);
+    if (!publicLandingModeRefreshInFlight) {
+      publicLandingModeRefreshInFlight = fetchPublicTrialModeState()
+        .then((data) => applyPublicLandingMode(data))
+        .finally(() => {
+          publicLandingModeRefreshInFlight = null;
+        });
+    }
+    return publicLandingModeRefreshInFlight;
   }
 
   async function sendExploreProVerificationCode(email) {
@@ -29247,6 +29266,11 @@ ${calmPracticeMessage}`;
     writeLauncherState(nextState);
     if (options.direct === true) {
       traceLandingContinue("visitor_direct_enter");
+      try {
+        window.history.replaceState({}, "", buildCanonicalLauncherUrl({ open: "visitor-launcher" }));
+      } catch (_) {
+        // The app can still open even if the browser does not permit URL replacement.
+      }
       void enterWorkingHomeFromLanding("visitor");
       return;
     }
@@ -29264,10 +29288,18 @@ ${calmPracticeMessage}`;
     });
     writeLauncherState(nextState);
     setLauncherGuestEntryActive(false);
+    const target = buildCanonicalLauncherUrl({ open: "launcher" });
     traceLandingContinue("special_edition_redirect", {
-      target: buildCanonicalLauncherUrl({ open: "launcher" })
+      target
     });
-    window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
+    // Reusing the current, initialized page avoids a second startup race that
+    // could leave a first-time Special PRO visitor on the Landing page.
+    try {
+      window.history.replaceState({}, "", target);
+      void enterWorkingHomeFromLanding("resume");
+    } catch (_) {
+      window.location.href = target;
+    }
   }
 
   async function handleLandingExploreClick() {
@@ -29474,7 +29506,9 @@ ${calmPracticeMessage}`;
       try {
         await refreshPublicLandingMode();
       } catch (error) {
-        // A transient public-setting read must not prevent normal entry.
+        // A public-setting request must never leave the only entry action stuck.
+        startVisitorLandingEntry({ direct: true });
+        return;
       }
       if (publicLandingMode.espProSpecialEditionEnabled) {
         startEspProSpecialEditionLandingEntry();
