@@ -154,3 +154,6 @@ $mirrorUrl = "http://localhost/cones/telepathybeginner.html?v=$Version"
 Write-Host "Prepared local debug build $Version"
 Write-Host "Authoritative local URL: $localUrl"
 Write-Host "Mirror local URL:        $mirrorUrl"
+Write-Host ""
+Write-Host "Local-debug preparation does not create a production release manifest." -ForegroundColor Yellow
+Write-Host "For production deployment, run scripts\deploy-live.ps1 -Version $Version instead of push-live.ps1 directly." -ForegroundColor Yellow

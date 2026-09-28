@@ -520,6 +520,8 @@ This prevents the exact failure mode where a deploy leaves files present but cau
 
 For local browser debugging, a fresh local version label is the primary defense against stale cache, not manual browser clearing.
 
+**Important boundary:** `prepare-local-debug.ps1` is only for localhost browser testing. It updates local version markers and the local mirror, but intentionally does **not** write `prepared-release.json`, obtain the live-file hash inventory, or authorize a production push. Never run `push-live.ps1` after only `prepare-local-debug.ps1`; use `deploy-live.ps1` for a normal release, or run `prepare-release.ps1` and then `push-live.ps1` with the same version.
+
 Required rule going forward:
 
 1. if browser-loaded HTML/CSS/JS has changed, do not trust an old local test URL
@@ -834,7 +836,9 @@ powershell -ExecutionPolicy Bypass -File scripts\push-live.ps1 -Version 20260705
 
 Default rule:
 
-- use the two-step helpers as the normal deployment path
+- prefer the one-command wrapper for ordinary releases: `scripts\deploy-live.ps1 -Version <release-version>`; it runs the required preparation and push stages in order
+- use the two-step helpers only when deliberately inspecting the prepared manifest between stages
+- `prepare-local-debug.ps1` is never a substitute for `prepare-release.ps1`
 - tell the user they may start live testing as soon as `push-live.ps1` finishes successfully
 - do not improvise a manual live push unless the helper is failing and the user needs an urgent exception
 - if a manual exception is ever used, fold the reason and the fix back into the helper and this runbook immediately afterward

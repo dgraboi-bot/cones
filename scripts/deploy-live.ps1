@@ -21,6 +21,27 @@ if ($PrepareOnly -and $PushOnly) {
 $prepareScript = Join-Path $PSScriptRoot "prepare-release.ps1"
 $pushScript = Join-Path $PSScriptRoot "push-live.ps1"
 
+function Invoke-PrepareRelease {
+  $arguments = @(
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    $prepareScript,
+    "-Version",
+    $Version,
+    "-BaselineRef",
+    $BaselineRef
+  )
+  if ($AllowDirty) {
+    $arguments += "-AllowDirty"
+  }
+  # Send child output to the host, not the function pipeline. The caller
+  # must receive only the numeric process exit code.
+  & powershell @arguments | Out-Host
+  $exitCode = $LASTEXITCODE
+  return $exitCode
+}
+
 if (-not (Test-Path -LiteralPath $prepareScript)) {
   throw "Missing prepare script: $prepareScript"
 }
@@ -29,8 +50,7 @@ if (-not (Test-Path -LiteralPath $pushScript)) {
 }
 
 if ($PrepareOnly) {
-  & powershell -ExecutionPolicy Bypass -File $prepareScript -Version $Version -BaselineRef $BaselineRef -AllowDirty:$AllowDirty
-  exit $LASTEXITCODE
+  exit (Invoke-PrepareRelease)
 }
 
 if ($PushOnly) {
@@ -38,9 +58,9 @@ if ($PushOnly) {
   exit $LASTEXITCODE
 }
 
-& powershell -ExecutionPolicy Bypass -File $prepareScript -Version $Version -BaselineRef $BaselineRef -AllowDirty:$AllowDirty
-if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
+$prepareExitCode = Invoke-PrepareRelease
+if ($prepareExitCode -ne 0) {
+  exit $prepareExitCode
 }
 
 & powershell -ExecutionPolicy Bypass -File $pushScript -Version $Version

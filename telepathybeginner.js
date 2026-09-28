@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928f";
+  const launcherBuildVersion = "20260928i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -763,6 +763,7 @@
     espProSpecialEditionEnabled: false
   };
   let publicLandingModeRefreshInFlight = null;
+  let publicLandingModeError = "";
   const visitorSimulationIdentifierPrefix = "Visitor";
   const guestDisplaySuffix = " (guest)";
   const proOnlyClairvoyanceButtons = Array.from(document.querySelectorAll("[data-pro-only-clairvoyance]"));
@@ -28745,6 +28746,11 @@ ${calmPracticeMessage}`;
       return;
     }
 
+    if (publicLandingModeError) {
+      setTemporaryHomeInvitationStatus(publicLandingModeError, { isError: true });
+      return;
+    }
+
     if (pendingApplePasskeyRestore) {
       setTemporaryHomeInvitationStatus("Tap FINISH APP INSTALLATION to confirm with Face ID, Touch ID, or your device passcode. No email code is needed.");
       return;
@@ -29455,6 +29461,7 @@ ${calmPracticeMessage}`;
     const invitationCode = String(temporaryHomePageInvitationCodeInput?.value || "").trim();
     traceLandingContinue("click", { has_invitation_code: !!invitationCode });
     if (!invitationCode) {
+      publicLandingModeError = "";
       if (pendingApplePasskeyRestore) {
         if (applePasskeyRestoreInFlight) {
           return;
@@ -29506,8 +29513,13 @@ ${calmPracticeMessage}`;
       try {
         await refreshPublicLandingMode();
       } catch (error) {
-        // A public-setting request must never leave the only entry action stuck.
-        startVisitorLandingEntry({ direct: true });
+        // Never guess an edition. Entering the normal visitor path while the
+        // Special PRO setting is unavailable would give a user the wrong app.
+        publicLandingModeError = "Unable to confirm the current ESP GYM edition. Please check your connection and press CONTINUE again.";
+        traceLandingContinue("edition_check_failed", {
+          message: error instanceof Error ? error.message : String(error || "unknown")
+        });
+        renderTemporaryHomeReturnState();
         return;
       }
       if (publicLandingMode.espProSpecialEditionEnabled) {
