@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928k";
+  const launcherBuildVersion = "20260928l";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -49,6 +49,7 @@
   const canonicalInfrastructureOrigin = "https://espgym.com";
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const launcherAlertDebugSeen = new Set();
+  const difficultyChangeInFlightRoles = new Set();
   let suppressLauncherProfileSaves = false;
   function showLocalLauncherDebugAlert(id, details = "") {
     return;
@@ -20035,7 +20036,10 @@ ${calmPracticeMessage}`;
 
   async function refreshDifficultyLabels() {
     const token = ++difficultyLabelToken;
-    if (launcherGuestEntryActive) {
+    // A Special PRO visitor is anonymous too, even though that edition does not
+    // use the older guest-entry flag. Never let shared pair history overwrite
+    // that visitor's local Robot exercise selection.
+    if (launcherGuestEntryActive || isAnonymousLauncherEntry()) {
       ["sender", "receiver", "remote-viewer"].forEach((role) => {
         const launcherState = readLauncherState();
         const context = getPairContextForRole(role);
@@ -35578,13 +35582,38 @@ ${calmPracticeMessage}`;
           previewLevelExplanationFromCurrentLabel(role);
         }
       });
-      button.addEventListener("click", async () => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         const role = String(button.dataset.roleDifficultyBump || "");
         const direction = String(button.dataset.direction || "").trim().toLowerCase();
         const delta = direction === "up" ? 1 : -1;
         if (role === "sender" || role === "receiver" || role === "remote-viewer") {
-          await changeDifficultyForRole(role, delta);
-          previewLevelExplanationFromCurrentLabel(role);
+          if (difficultyChangeInFlightRoles.has(role)) {
+            traceLauncherClient("exercise_control:duplicate_click_ignored", {
+              role,
+              delta,
+              visible_exercise: getDifficultyLocalLevel(role)
+            });
+            return;
+          }
+          difficultyChangeInFlightRoles.add(role);
+          traceLauncherClient("exercise_control:change_started", {
+            role,
+            delta,
+            visible_exercise: getDifficultyLocalLevel(role)
+          });
+          try {
+            await changeDifficultyForRole(role, delta);
+            previewLevelExplanationFromCurrentLabel(role);
+          } finally {
+            difficultyChangeInFlightRoles.delete(role);
+            traceLauncherClient("exercise_control:change_finished", {
+              role,
+              delta,
+              visible_exercise: getDifficultyLocalLevel(role)
+            });
+          }
         }
       });
     });
