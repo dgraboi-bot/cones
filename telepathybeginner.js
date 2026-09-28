@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928p";
+  const launcherBuildVersion = "20260928q";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1901,12 +1901,19 @@ ${calmPracticeMessage}`;
     installGuidanceShownAt: 0,
     installGuidancePlatform: ""
   });
-  const difficultyExplanationCopy = {
-    1: "In Exercise 1 the receiver simply decides whether the sender is sending one cone or three cones.",
-    2: "In Exercise 2 the sender sends an image. The receiver is given a choice of two images and picks the image that most closely matches the received visual information.",
-    3: "In Exercise 3, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.",
-    4: "In Exercise 4, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether the arrangement shows two or three cones and whether they are arranged horizontally, vertically, or diagonally running up or down.",
-    5: 'In Exercise 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
+  const telepathyExerciseExplanationCopy = {
+    receiver: {
+      1: 'In Exercise 1, use telepathic sensitivity to perceive whether the Sender sees one or "many" (three) cones on their screen after the beep.',
+      2: "In Exercise 2, use telepathic sensitivity to perceive features of the image that the Sender sees on their screen after the beep.",
+      3: "In Exercise 3, use telepathic sensitivity to perceive the arrangement of the cones the Sender sees on their screen after the beep. Is there a single cone, or are there three cones arranged in a horizontal, vertical, diagonal upwards or diagonal downwards arrangement?",
+      4: "In Exercise 4, use telepathic sensitivity to perceive the exact number of cones and their arrangement that the Sender sees on the screen after the beep."
+    },
+    sender: {
+      1: 'In Exercise 1, the Receiver uses telepathic sensitivity to perceive whether you see one cone or "many" (three) cones on your screen when they are displayed after the countdown.',
+      2: "In Exercise 2, the Receiver uses telepathic sensitivity to perceive features of the image you see on your screen when it is displayed after the countdown.",
+      3: "In Exercise 3, the Receiver uses telepathic sensitivity to perceive whether you see one cone or three cones arranged horizontally, vertically, diagonal upwards or diagonal downwards on your screen when displayed after the countdown.",
+      4: "In Exercise 4, the Receiver uses telepathic sensitivity to perceive the exact number of cones and how they are arranged on your screen when displayed after the countdown."
+    }
   };
   const roleSkillExplanationCopy = {
     sender: 'The Sender must learn to look intently at an image and "put it out there" strongly. Where exactly is "out there" is a good question.',
@@ -12673,8 +12680,9 @@ ${calmPracticeMessage}`;
     return difficultyLabels.find((item) => item.dataset.pairDifficultyLabel === role) || null;
   }
 
-  function getDifficultyExplanation(level) {
-    return difficultyExplanationCopy[normalizeDifficultyLevel(level)] || "";
+  function getDifficultyExplanation(role, level) {
+    const normalizedRole = String(role || "").trim().toLowerCase();
+    return telepathyExerciseExplanationCopy[normalizedRole]?.[normalizeDifficultyLevel(level)] || "";
   }
 
   function isTouchFirstRemoteViewDevice() {
@@ -12862,7 +12870,7 @@ ${calmPracticeMessage}`;
     const normalizedLevel = normalizeDifficultyLevel(level);
     const explanation = role === "remote-viewer"
       ? getRemoteViewerExerciseExplanation(normalizedLevel)
-      : getDifficultyExplanation(normalizedLevel);
+      : getDifficultyExplanation(role, normalizedLevel);
     if (!note || !panel || !explanation) {
       return;
     }
