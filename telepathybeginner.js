@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928a";
+  const launcherBuildVersion = "20260928b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -38,6 +38,7 @@
   const reportRequestRecoveryStatusParam = "report_recovery";
   const maxBuildRecoveryAttempts = 2;
   const robotSimulationIdentifier = "Robot";
+  const anonymousVisitorDisplayName = "Anonymous Visitor";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
   const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
@@ -1895,7 +1896,6 @@ ${calmPracticeMessage}`;
     4: "In Exercise 4, either one cone or many cones are sent. When many cones are sent the receiver tries to specify whether the arrangement shows two or three cones and whether they are arranged horizontally, vertically, or diagonally running up or down.",
     5: 'In Exercise 5 you can participate in a scientific experiment using "trusted remote senders". You attend a meeting where a trusted sender gives a presentation of the experiment and answers questions about it. Now that you have met your sender, you arrange to participate in an experiment where the sender sends you an image and you then try to pick it out of a few images.'
   };
-  const remoteViewExplanationCopy = "After the countdown ends, an image appears on the Remote Screen.\nTry to perceive that image using ESP. When you are ready, you are\nshown two images. Select the one that best matches what you perceived.";
   const roleSkillExplanationCopy = {
     sender: 'The Sender must learn to look intently at an image and "put it out there" strongly. Where exactly is "out there" is a good question.',
     receiver: 'The Receiver must learn to look at the contents of the Receiver\'s "mind\'s eye" and trust what appears to pop in, and remember what was seen in that relatively short span of time.',
@@ -12598,6 +12598,51 @@ ${calmPracticeMessage}`;
     return difficultyExplanationCopy[normalizeDifficultyLevel(level)] || "";
   }
 
+  function isTouchFirstRemoteViewDevice() {
+    return isLikelyTouchLauncherDevice();
+  }
+
+  function getRemoteViewerExerciseExplanation(level) {
+    const normalizedLevel = Number(normalizeDifficultyLevel(level));
+    const coveredScreen = readRemoteViewSimulationMode() === "covered-screen";
+    const touchFirst = isTouchFirstRemoteViewDevice();
+    const coveredReadyAction = touchFirst
+      ? "tapping any exposed portion of the screen"
+      : (normalizedLevel === 1
+        ? "pressing a key or mouse clicking"
+        : "pressing a key or clicking the mouse");
+
+    if (coveredScreen) {
+      if (normalizedLevel === 1) {
+        return `In Exercise 1, after covering your screen in some way during the countdown from 7 to 1, use clairvoyance / remote viewing sensitivity to decide whether one cone or three cones are displayed on the covered screen after the beep. After you indicate you are ready by ${coveredReadyAction}, uncover the screen and choose between the two alternatives shown.`;
+      }
+      if (normalizedLevel === 2) {
+        return `In Exercise 2, after covering your screen in some way during the countdown from 7 to 1, use clairvoyance / remote viewing sensitivity to perceive features of the image that is displayed on the covered screen after the beep. After you indicate you are ready by ${coveredReadyAction}, uncover the screen and choose between the two images shown.`;
+      }
+      if (normalizedLevel === 3) {
+        return `In Exercise 3, after covering your screen in some way during the countdown from 7 to 1, use clairvoyance / remote viewing sensitivity to decide whether one cone or three cones are displayed on the covered screen after the beep. When three cones are displayed, also try to perceive whether they are horizontal, vertical, diagonal up, or diagonal down. After you indicate you are ready by ${coveredReadyAction}, uncover the screen and choose among the five alternatives shown.`;
+      }
+      if (normalizedLevel === 4) {
+        return `In Exercise 4, after covering your screen in some way during the countdown from 7 to 1, use clairvoyance / remote viewing sensitivity to decide whether one cone, two cones, or three cones are displayed on the covered screen after the beep. When two or three cones are displayed, also try to perceive whether they are horizontal, vertical, diagonal up, or diagonal down. After you indicate you are ready by ${coveredReadyAction}, uncover the screen and choose among the nine alternatives shown.`;
+      }
+    }
+
+    if (normalizedLevel === 1) {
+      return "In Exercise 1, use clairvoyance / remote viewing sensitivity to perceive whether one cone or three cones are displayed on the remote screen after the beep. After you indicate you are ready, uncover the screen and choose between the two images shown. You must first claim a unique name for yourself and for the remote device to practice with a remote screen.";
+    }
+    if (normalizedLevel === 2) {
+      return "In Exercise 2, use clairvoyance / remote viewing sensitivity to perceive features of the image that is displayed on the remote screen after the beep at the end of the countdown from 3 to 1. After you indicate you are ready, choose between the two images shown. You must first claim a unique name for yourself and for the remote device to practice with a remote screen.";
+    }
+    if (normalizedLevel === 3) {
+      return "In Exercise 3, use clairvoyance / remote viewing sensitivity to decide whether one cone or three cones are displayed on the remote screen after the beep at the end of the countdown from 3 to 1. When three cones are displayed, also try to perceive whether they are horizontal, vertical, diagonal up, or diagonal down. After you indicate you are ready, choose among the five alternatives shown. You must first claim a unique name for yourself and for the remote device to practice with a remote screen.";
+    }
+    if (normalizedLevel === 4) {
+      return "In Exercise 4, use clairvoyance / remote viewing sensitivity to decide whether one cone, two cones, or three cones are displayed on the remote screen after the beep at the end of the countdown from 3 to 1. When two or three cones are displayed, also try to perceive whether they are horizontal, vertical, diagonal up, or diagonal down. After you indicate you are ready, choose among the nine alternatives shown. You must first claim a unique name for yourself and for the remote device to practice with a remote screen.";
+    }
+
+    return "";
+  }
+
   function getSkillExplanation(role) {
     return roleSkillExplanationCopy[String(role || "").trim()] || "";
   }
@@ -12735,7 +12780,7 @@ ${calmPracticeMessage}`;
     const setupWrap = getRoleSetupWrap(role);
     const normalizedLevel = normalizeDifficultyLevel(level);
     const explanation = role === "remote-viewer"
-      ? (Number(normalizedLevel) === 2 ? remoteViewExplanationCopy : getDifficultyExplanation(normalizedLevel))
+      ? getRemoteViewerExerciseExplanation(normalizedLevel)
       : getDifficultyExplanation(normalizedLevel);
     if (!note || !panel || !explanation) {
       return;
@@ -12919,6 +12964,25 @@ ${calmPracticeMessage}`;
         card.classList.remove("role-card-level-adjusting");
       }
     };
+  }
+
+  function getNextExerciseLevel(role, currentLevel, delta, maxLevel) {
+    const normalizedRole = String(role || "").trim();
+    const current = Number(currentLevel);
+    const maximum = Number(maxLevel);
+    const step = Number(delta);
+    if (
+      (normalizedRole === "sender" || normalizedRole === "receiver") &&
+      maximum >= 4
+    ) {
+      if (step > 0 && current >= 4) {
+        return 1;
+      }
+      if (step < 0 && current <= 1) {
+        return 4;
+      }
+    }
+    return Math.max(1, Math.min(maximum, current + step));
   }
 
   function describeDifficultyChange(role, pairContext) {
@@ -13221,7 +13285,7 @@ ${calmPracticeMessage}`;
 
   function getDifficultyLocalLevel(role) {
     const label = getDifficultyLabelElement(role);
-    const match = String(label?.textContent || "").match(/Level\s+([1-5])/i);
+    const match = String(label?.textContent || "").match(/(?:Exercise|Level)\s+([1-5])/i);
     if (match) {
       return Number(clampLauncherDifficultyForRole(role, match[1]));
     }
@@ -21507,7 +21571,7 @@ ${calmPracticeMessage}`;
     const guestEntryActive = launcherGuestEntryActive || visitorMode;
     const lockedVisitorName = visitorMode ? getVisitorLockedName(state) : "";
     const savedOwn = guestEntryActive
-      ? (lockedVisitorName || getPreferredVisitorDisplayNameForRole(role, state))
+      ? (lockedVisitorName || getPreferredVisitorDisplayNameForRole(role, state) || (visitorMode ? anonymousVisitorDisplayName : ""))
       : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
     const profileState = guestEntryActive ? null : readLauncherProfileState(role, savedOwn, state);
     const savedPartner = guestEntryActive
@@ -22991,7 +23055,9 @@ ${calmPracticeMessage}`;
       const ownInput = form.querySelector('input[name="ownName"]');
       const partnerInput = form.querySelector('input[name="partnerName"]');
       if (ownInput) {
-        ownInput.value = visitorMode ? getVisitorLockedName() : "";
+        ownInput.value = visitorMode
+          ? (getVisitorLockedName(state) || getPreferredVisitorDisplayNameForRole(role, state) || anonymousVisitorDisplayName)
+          : "";
         ownInput.placeholder = visitorMode ? "" : (role === "sender"
           ? "Enter unique name of sender"
           : "Enter unique name of receiver");
@@ -26399,7 +26465,7 @@ ${calmPracticeMessage}`;
 
     if (!identifiers.ownName || !identifiers.partnerName) {
       const currentLevel = getDifficultyLocalLevel(role);
-      const nextLevel = Math.max(1, Math.min(localMaxLevel, currentLevel + delta));
+      const nextLevel = getNextExerciseLevel(role, currentLevel, delta, localMaxLevel);
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
         persistRoleDifficultyPreference(role, String(nextLevel));
@@ -26423,7 +26489,7 @@ ${calmPracticeMessage}`;
       assertValidParticipantIdentifier(identifiers.partnerName, "Partner identifier");
     } catch (error) {
       const currentLevel = getDifficultyLocalLevel(role);
-      const nextLevel = Math.max(1, Math.min(localMaxLevel, currentLevel + delta));
+      const nextLevel = getNextExerciseLevel(role, currentLevel, delta, localMaxLevel);
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
         persistRoleDifficultyPreference(role, String(nextLevel));
@@ -26444,7 +26510,7 @@ ${calmPracticeMessage}`;
     const pairContext = getPairContextForRole(role);
     if (!pairContext) {
       const currentLevel = getDifficultyLocalLevel(role);
-      const nextLevel = Math.max(1, Math.min(localMaxLevel, currentLevel + delta));
+      const nextLevel = getNextExerciseLevel(role, currentLevel, delta, localMaxLevel);
       if (nextLevel !== currentLevel) {
         rememberDifficultyLevel(String(nextLevel));
         persistRoleDifficultyPreference(role, String(nextLevel));
@@ -26481,7 +26547,7 @@ ${calmPracticeMessage}`;
       }, pairParticipants);
       const currentLevel = Number(normalizeDifficultyLevel(currentData?.pair_difficulty));
       const maxAllowedLevel = getRoleMaxDifficultyLevel(role, currentData);
-      const nextLevel = Math.max(1, Math.min(maxAllowedLevel, currentLevel + delta));
+      const nextLevel = getNextExerciseLevel(role, currentLevel, delta, maxAllowedLevel);
 
       if (nextLevel === currentLevel) {
         if (delta > 0 && currentLevel >= maxAllowedLevel) {
@@ -32446,6 +32512,7 @@ ${calmPracticeMessage}`;
       persistRemoteViewerCardState();
       renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
       hideRemoteViewModeOverlay();
+      previewCurrentRoleExerciseOnEntry("remote-viewer");
       window.setTimeout(() => {
         const latestState = readLauncherState();
         applyRemoteViewerModePresentation(readRemoteViewSimulationMode(latestState), !!remoteViewerDisplayDeviceCheckbox?.checked);
