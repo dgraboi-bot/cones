@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928i";
+  const launcherBuildVersion = "20260928j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -822,6 +822,9 @@
   const handleStatus = document.querySelector("[data-handle-status]");
   const submitHandleButton = document.querySelector("[data-submit-handle]");
   const closeHandleButton = document.querySelector("[data-close-handle]");
+  const uniqueNameRequiredOverlay = document.querySelector("[data-unique-name-required-overlay]");
+  const uniqueNameRequiredClaimButton = document.querySelector("[data-unique-name-required-claim]");
+  const uniqueNameRequiredCloseButton = document.querySelector("[data-unique-name-required-close]");
   const pushSetupOverlay = document.querySelector("[data-push-setup-overlay]");
   const pushSetupDialog = pushSetupOverlay?.querySelector(".push-setup-dialog") || null;
   const pushSetupStatus = document.querySelector("[data-push-setup-status]");
@@ -1187,6 +1190,7 @@
   let locationIndicatorWarmupTried = false;
   let activePairDifficultyCode = "";
   let activeHandleRole = "";
+  let uniqueNameRequiredRole = "";
   let activeLauncherRole = "";
   let handleOverlayReturnRole = "";
   let pushSetupReturnRole = "";
@@ -7986,7 +7990,7 @@ ${calmPracticeMessage}`;
     }
     if (!isAcceptedUniqueHandleIdentifier(cleanIdentifier, status)) {
       if (allowClaimPrompt) {
-        throw new Error(`${fieldName} is not an accepted unique handle. To use it, first choose a unique name and claim that handle.`);
+        throw new Error("Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.");
       }
       if (String(fieldName || "").trim().toLowerCase() === "remote display identifier") {
         throw new Error('Remote Device identifier is not an accepted unique name. If not already done, bring up ESP GYM on that device, go to "Setup Website Features" and claim a unique name for use on that device. Then enter that device name in the Remote Device field here.');
@@ -9015,6 +9019,19 @@ ${calmPracticeMessage}`;
     setFeatureSetupBackButtonTemporarilyHidden(true);
     handleOverlay?.classList.remove("beginner-view-hidden");
     handleInput?.focus();
+  }
+
+  function openUniqueNameRequiredOverlay(role) {
+    uniqueNameRequiredRole = role === "sender" || role === "receiver" || role === "remote-viewer" ? role : "";
+    uniqueNameRequiredOverlay?.classList.remove("beginner-view-hidden");
+    uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "false");
+    uniqueNameRequiredClaimButton?.focus();
+  }
+
+  function closeUniqueNameRequiredOverlay() {
+    uniqueNameRequiredRole = "";
+    uniqueNameRequiredOverlay?.classList.add("beginner-view-hidden");
+    uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "true");
   }
 
   function closeHandleOverlay() {
@@ -14766,6 +14783,7 @@ ${calmPracticeMessage}`;
     if (remoteViewerOwnLabel) {
       remoteViewerOwnLabel.textContent = isDisplayDevice ? "This Device" : "You";
     }
+    updateRemoteViewerGoTooltip(ownIdentifier, mode, isDisplayDevice);
     applyRemoteViewerModePresentation(mode, isDisplayDevice);
     refreshRemoteViewModeUi(readLauncherState());
     setRoleMessagePresentation("remote-viewer", "default");
@@ -21255,12 +21273,37 @@ ${calmPracticeMessage}`;
   }
 
   function isAnonymousVisitorGuidedTourLaunch(role, ownName, partnerName) {
+    const normalizedOwnName = normalizeIdentifierForStorage(stripGuestDisplaySuffix(ownName));
+    const anonymousNames = [anonymousVisitorDisplayName, "Anonymous User"];
     return (
       (role === "sender" || role === "receiver") &&
-      isAnonymousLauncherEntry() &&
-      normalizeIdentifierForStorage(stripGuestDisplaySuffix(ownName)) === normalizeIdentifierForStorage(anonymousVisitorDisplayName) &&
+      anonymousNames.some((name) => normalizedOwnName === normalizeIdentifierForStorage(name)) &&
       isRobotSimulationIdentifier(partnerName)
     );
+  }
+
+  function isAnonymousVisitorDisplayName(value) {
+    const normalizedOwnName = normalizeIdentifierForStorage(stripGuestDisplaySuffix(value));
+    return [anonymousVisitorDisplayName, "Anonymous User"].some(
+      (name) => normalizedOwnName === normalizeIdentifierForStorage(name)
+    );
+  }
+
+  function isAnonymousCoveredScreenGuidedTourLaunch(ownName, mode = readRemoteViewSimulationMode(), isDisplayDevice = false) {
+    return !isDisplayDevice
+      && normalizeRemoteViewSimulationMode(mode) === "covered-screen"
+      && isAnonymousVisitorDisplayName(ownName);
+  }
+
+  function updateRemoteViewerGoTooltip(ownName, mode, isDisplayDevice = false) {
+    if (!remoteViewerGoButton) {
+      return;
+    }
+    const tooltip = isAnonymousCoveredScreenGuidedTourLaunch(ownName, mode, isDisplayDevice)
+      ? "Press the GO button to start a tour of this condition."
+      : "Press the GO button to start a practice or demonstration session.";
+    remoteViewerGoButton.dataset.tooltip = tooltip;
+    remoteViewerGoButton.title = tooltip;
   }
 
   async function refreshPartnerAliasHistory(role, form) {
@@ -21917,6 +21960,10 @@ ${calmPracticeMessage}`;
         }
       } catch (error) {
         if (error instanceof Error) {
+          if (error.message === "Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.") {
+            openUniqueNameRequiredOverlay(role);
+            return;
+          }
           alert(error.message);
         }
         return;
@@ -32875,6 +32922,12 @@ ${calmPracticeMessage}`;
     let ownName = String(remoteViewerOwnInput?.value || "").trim();
     let partnerName = coveredScreenMode ? robotSimulationIdentifier : String(remoteViewerPartnerInput?.value || "").trim();
     const isDisplayDevice = !coveredScreenMode && !!remoteViewerDisplayDeviceCheckbox?.checked;
+    const anonymousCoveredScreenTour = isAnonymousCoveredScreenGuidedTourLaunch(
+      ownName,
+      remoteViewSimulationMode,
+      isDisplayDevice
+    );
+    const submittedOwnDisplayName = stripGuestDisplaySuffix(ownName);
 
     if (!ownName || (!coveredScreenMode && !partnerName)) {
       if (!ownName) {
@@ -32885,29 +32938,36 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    try {
-      ownName = assertValidParticipantIdentifier(ownName, isDisplayDevice ? "Device identifier" : "Your identifier");
-      if (!coveredScreenMode) {
-        partnerName = assertValidParticipantIdentifier(partnerName, isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier");
+    if (anonymousCoveredScreenTour) {
+      ownName = getOrCreateVisitorSimulationIdentifier();
+      partnerName = "Robot";
+    } else {
+      try {
+        ownName = assertValidParticipantIdentifier(ownName, isDisplayDevice ? "Device identifier" : "Your identifier");
+        if (!coveredScreenMode) {
+          partnerName = assertValidParticipantIdentifier(partnerName, isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier");
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          window.alert(error.message);
+        }
+        return;
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        window.alert(error.message);
-      }
-      return;
     }
 
     let ownStatus = null;
     let partnerStatus = null;
-    try {
-      [ownStatus, partnerStatus] = coveredScreenMode
-        ? [await fetchIdentifierStatus(ownName), null]
-        : await Promise.all([
-            fetchIdentifierStatus(ownName),
-            fetchIdentifierStatus(partnerName)
-          ]);
-    } catch (error) {
-      // If lookup fails, continue with the identifiers as typed.
+    if (!anonymousCoveredScreenTour) {
+      try {
+        [ownStatus, partnerStatus] = coveredScreenMode
+          ? [await fetchIdentifierStatus(ownName), null]
+          : await Promise.all([
+              fetchIdentifierStatus(ownName),
+              fetchIdentifierStatus(partnerName)
+            ]);
+      } catch (error) {
+        // If lookup fails, continue with the identifiers as typed.
+      }
     }
 
     let latest = readLauncherState();
@@ -32918,30 +32978,37 @@ ${calmPracticeMessage}`;
       latest = rememberIdentifierStatus(partnerName, partnerStatus, latest);
     }
 
-    try {
-      ownName = assertAcceptedLauncherIdentifier(
-        ownName,
-        ownStatus,
-        isDisplayDevice ? "Device identifier" : "Your identifier"
-      );
-      if (!coveredScreenMode) {
-        partnerName = assertAcceptedLauncherIdentifier(
-          partnerName,
-          partnerStatus,
-          isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier",
-          { allowClaimPrompt: false }
+    if (!anonymousCoveredScreenTour) {
+      try {
+        ownName = assertAcceptedLauncherIdentifier(
+          ownName,
+          ownStatus,
+          isDisplayDevice ? "Device identifier" : "Your identifier",
+          { allowClaimPrompt: true }
         );
+        if (!coveredScreenMode) {
+          partnerName = assertAcceptedLauncherIdentifier(
+            partnerName,
+            partnerStatus,
+            isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier",
+            { allowClaimPrompt: false }
+          );
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === "Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.") {
+            openUniqueNameRequiredOverlay("remote-viewer");
+            return;
+          }
+          alert(error.message);
+        }
+        return;
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        alert(error.message);
-      }
-      return;
     }
 
     latest.ownNames = latest.ownNames || {};
     latest.currentPartners = latest.currentPartners || {};
-    latest.ownNames["remote-viewer"] = ownName;
+    latest.ownNames["remote-viewer"] = anonymousCoveredScreenTour ? submittedOwnDisplayName : ownName;
     latest.currentPartners["remote-viewer"] = coveredScreenMode ? "" : partnerName;
     latest.remoteViewerDisplayDevice = isDisplayDevice;
     latest.remoteViewerSimulationMode = remoteViewSimulationMode;
@@ -33000,16 +33067,18 @@ ${calmPracticeMessage}`;
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
       remoteDisplayDevice: isDisplayDevice,
-      difficultyLevel: requestedRemoteViewerDifficulty
+      difficultyLevel: requestedRemoteViewerDifficulty,
+      visitorDisplayName: anonymousCoveredScreenTour ? submittedOwnDisplayName : "",
+      guidedTour: anonymousCoveredScreenTour ? guidedReceiverTourMode : ""
     });
     showLocalLauncherDebugAlert(2, `target=${targetUrl}`);
-    if (coveredScreenMode) {
+    if (coveredScreenMode && !anonymousCoveredScreenTour) {
       const confirmed = await confirmCoveredScreenInstructionBeforeLaunch();
       if (!confirmed) {
         return;
       }
     }
-    if (!(await prepareLocationForGo("remote-viewer", { targetUrl }))) {
+    if (!anonymousCoveredScreenTour && !(await prepareLocationForGo("remote-viewer", { targetUrl }))) {
       return;
     }
     window.location.href = targetUrl;
@@ -33981,6 +34050,14 @@ ${calmPracticeMessage}`;
   });
   submitHandleButton?.addEventListener("click", () => {
     void submitUniqueHandle();
+  });
+  uniqueNameRequiredClaimButton?.addEventListener("click", () => {
+    const role = uniqueNameRequiredRole;
+    closeUniqueNameRequiredOverlay();
+    openHandleOverlay(role);
+  });
+  uniqueNameRequiredCloseButton?.addEventListener("click", () => {
+    closeUniqueNameRequiredOverlay();
   });
   pushSetupInstallButton?.addEventListener("click", () => {
     showInstallGuideView({ returnView: "push-setup" });
