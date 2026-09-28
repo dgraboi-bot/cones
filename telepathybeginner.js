@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928c";
+  const launcherBuildVersion = "20260928d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -2264,6 +2264,18 @@ ${calmPracticeMessage}`;
 
   function isVisitorLauncherEntry(state = readLauncherState()) {
     return getLauncherEntryMode(state) === "visitor";
+  }
+
+  function isAnonymousLauncherEntry(state = readLauncherState()) {
+    if (isVisitorLauncherEntry(state)) {
+      return true;
+    }
+    return (
+      getLauncherEntryMode(state) === "special-edition" &&
+      !getCanonicalRecognizedIdentity(state) &&
+      !getLoadedInviteeIdentity(state)?.identifier &&
+      !getTemporaryIdentityState(state)?.identifier
+    );
   }
 
   function stripGuestDisplaySuffix(value) {
@@ -12599,7 +12611,9 @@ ${calmPracticeMessage}`;
   }
 
   function isTouchFirstRemoteViewDevice() {
-    return isLikelyTouchLauncherDevice();
+    // A Windows PC can expose touch or a coarse pointer, but its covered-screen
+    // exercise still uses the keyboard/mouse instruction path.
+    return !detectInstallEnvironment().isWindows && isLikelyTouchLauncherDevice();
   }
 
   function getRemoteViewerExerciseExplanation(level) {
@@ -14477,7 +14491,9 @@ ${calmPracticeMessage}`;
       return;
     }
     const state = readLauncherState();
-    const savedOwn = String(state.ownNames?.["remote-viewer"] || "").trim() || getFallbackOwnIdentifierForRemoteViewer();
+    const savedOwn = isAnonymousLauncherEntry(state)
+      ? anonymousVisitorDisplayName
+      : String(state.ownNames?.["remote-viewer"] || "").trim() || getFallbackOwnIdentifierForRemoteViewer();
     const profileState = getRemoteViewerProfileState(state, savedOwn);
     remoteViewerOwnInput.value = savedOwn;
     remoteViewerPartnerInput.value = profileState.currentPartner || String(state.currentPartners?.["remote-viewer"] || "").trim() || readRoleSettings("remote-viewer").partnerName || "";
@@ -14741,7 +14757,7 @@ ${calmPracticeMessage}`;
     if (handleButton) {
       handleButton.textContent = usesTemporaryIdentity
         ? getTemporaryIdentityLinkText(temporaryIdentity.identifier)
-        : "Choose unique name instead of email address";
+        : "Create a unique identification name for yourself";
     }
     setRoleVisitorProPrompt("remote-viewer", false);
     setRoleDefaultNoteText(
@@ -21221,7 +21237,7 @@ ${calmPracticeMessage}`;
   function isAnonymousVisitorGuidedTourLaunch(role, ownName, partnerName) {
     return (
       (role === "sender" || role === "receiver") &&
-      isVisitorLauncherEntry() &&
+      isAnonymousLauncherEntry() &&
       normalizeIdentifierForStorage(stripGuestDisplaySuffix(ownName)) === normalizeIdentifierForStorage(anonymousVisitorDisplayName) &&
       isRobotSimulationIdentifier(partnerName)
     );
@@ -21573,10 +21589,10 @@ ${calmPracticeMessage}`;
     const select = form.querySelector('select[name="partnerHistory"]');
     const manageButton = form.querySelector('button[name="managePartnerNames"]');
     const roleSettings = readRoleSettings(role);
-    const visitorMode = isVisitorLauncherEntry(state);
+    const visitorMode = isAnonymousLauncherEntry(state);
     // A visitor can claim a name without reloading this card. Event handlers
     // must consult the current state rather than retaining this initial value.
-    const isCurrentVisitorMode = () => isVisitorLauncherEntry();
+    const isCurrentVisitorMode = () => isAnonymousLauncherEntry();
     const guestEntryActive = launcherGuestEntryActive || visitorMode;
     const lockedVisitorName = visitorMode ? getVisitorLockedName(state) : "";
     const savedOwn = guestEntryActive
@@ -29278,7 +29294,7 @@ ${calmPracticeMessage}`;
 
   function applyIdentityStateToLauncherInputs() {
     const state = readLauncherState();
-    const visitorMode = isVisitorLauncherEntry(state);
+    const visitorMode = isAnonymousLauncherEntry(state);
     ["sender", "receiver"].forEach((role) => {
       const form = document.querySelector(`[data-role-form="${role}"]`);
       if (!form) {
