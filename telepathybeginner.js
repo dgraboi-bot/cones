@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928l";
+  const launcherBuildVersion = "20260928n";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -50,6 +50,8 @@
   const localInfrastructureHosts = new Set(["localhost", "127.0.0.1"]);
   const launcherAlertDebugSeen = new Set();
   const difficultyChangeInFlightRoles = new Set();
+  let difficultyControlsBound = false;
+  let landingEntryHandledInPlace = false;
   let suppressLauncherProfileSaves = false;
   function showLocalLauncherDebugAlert(id, details = "") {
     return;
@@ -1252,6 +1254,9 @@
   let hasAttemptedUnreadMessagesAutoOpen = false;
   let activeDifficultyContext = null;
   let difficultyLabelToken = 0;
+  function invalidateDifficultyLabelRefreshes() {
+    difficultyLabelToken += 1;
+  }
   let lastDirectLauncherOpenMeta = null;
   let pendingDirectLauncherOutsideClickIgnore = false;
   let selectedReportPair = null;
@@ -26658,6 +26663,22 @@ ${calmPracticeMessage}`;
       return;
     }
 
+    // Robot practice is a device-local simulation. It must never consult or
+    // update the shared pair difficulty for the generic Anonymous Visitor /
+    // Robot names, because that would let one visitor change another's level.
+    if (isRobotSimulationIdentifier(identifiers.partnerName)) {
+      const currentLevel = getDifficultyLocalLevel(role);
+      const nextLevel = getNextExerciseLevel(role, currentLevel, delta, localMaxLevel);
+      rememberDifficultyLevel(String(nextLevel));
+      persistRoleDifficultyPreference(role, String(nextLevel));
+      persistRobotSimulationDifficulty(role, identifiers.ownName, String(nextLevel));
+      setRoleDifficultyLabel(role, String(nextLevel));
+      scheduleGuidedLevelExplanation(role, String(nextLevel));
+      finishAdjustment();
+      setDifficultyExplanationLocked(role, false);
+      return;
+    }
+
     const pairContext = getPairContextForRole(role);
     if (!pairContext) {
       const currentLevel = getDifficultyLocalLevel(role);
@@ -29365,6 +29386,7 @@ ${calmPracticeMessage}`;
     writeLauncherState(nextState);
     if (options.direct === true) {
       traceLandingContinue("visitor_direct_enter");
+      landingEntryHandledInPlace = true;
       try {
         window.history.replaceState({}, "", buildCanonicalLauncherUrl({ open: "visitor-launcher" }));
       } catch (_) {
@@ -29381,13 +29403,16 @@ ${calmPracticeMessage}`;
 
   function startEspProSpecialEditionLandingEntry() {
     const baseState = readLauncherState();
-    const nextState = buildLauncherIdentityState(baseState, "", "pro", {
-      recognizedIdentity: "",
-      entryMode: "special-edition"
-    });
+    // Special Edition changes available features, not visitor identity. Reuse
+    // the ordinary visitor state so anonymous Robot practice never becomes a
+    // shared server pair named "Anonymous Visitor".
+    const nextState = buildVisitorLauncherState(baseState);
+    nextState.resolvedMainUserType = "pro";
     writeLauncherState(nextState);
-    setLauncherGuestEntryActive(false);
-    const target = buildCanonicalLauncherUrl({ open: "launcher" });
+    invalidateDifficultyLabelRefreshes();
+    setLauncherGuestEntryActive(true);
+    landingEntryHandledInPlace = true;
+    const target = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
     traceLandingContinue("special_edition_redirect", {
       target
     });
@@ -29395,7 +29420,7 @@ ${calmPracticeMessage}`;
     // could leave a first-time Special PRO visitor on the Landing page.
     try {
       window.history.replaceState({}, "", target);
-      void enterWorkingHomeFromLanding("resume");
+      void enterWorkingHomeFromLanding("visitor");
     } catch (_) {
       window.location.href = target;
     }
@@ -35535,37 +35560,11 @@ ${calmPracticeMessage}`;
       });
   }
 
-  async function initializeLauncherStartup() {
-    void refreshGlobalDebugContext();
-    if ("serviceWorker" in navigator) {
-      // Service-worker registration improves offline/cache behavior, but Safari
-      // can leave the registration promise pending. Never hold normal entry
-      // behind that optional background work.
-      void registerLauncherServiceWorker();
-    }
-    const startupCanProceed = await ensureLauncherBuildConsistency();
-    if (!startupCanProceed) {
+  function bindDifficultyBumpControls() {
+    if (difficultyControlsBound) {
       return;
     }
-
-    try {
-      await refreshPublicLandingMode();
-    } catch (error) {
-      // Normal entry remains available if the public landing-mode read fails.
-    }
-    pendingApplePasskeyRestore = await prepareApplePasskeyIdentityRestore();
-    launcherStartupReady = true;
-    setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
-    if (launcherGuestEntryActive) {
-      resetLauncherWorkingHomeForFreshEntry();
-      applyFreshEntryRoleNotes();
-    }
-    renderMainTitle(getDisplayedLauncherUserType(), { persist: false });
-    if (!launcherGuestEntryActive) {
-      void refreshMainUserType();
-    }
-    void refreshEspLessonsSourceText();
-    normalizeLauncherVersionParamInUrl();
+    difficultyControlsBound = true;
     difficultyBumpButtons.forEach((button) => {
       button.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
@@ -35617,6 +35616,40 @@ ${calmPracticeMessage}`;
         }
       });
     });
+  }
+
+  async function initializeLauncherStartup() {
+    void refreshGlobalDebugContext();
+    if ("serviceWorker" in navigator) {
+      // Service-worker registration improves offline/cache behavior, but Safari
+      // can leave the registration promise pending. Never hold normal entry
+      // behind that optional background work.
+      void registerLauncherServiceWorker();
+    }
+    const startupCanProceed = await ensureLauncherBuildConsistency();
+    if (!startupCanProceed) {
+      return;
+    }
+
+    try {
+      await refreshPublicLandingMode();
+    } catch (error) {
+      // Normal entry remains available if the public landing-mode read fails.
+    }
+    pendingApplePasskeyRestore = await prepareApplePasskeyIdentityRestore();
+    launcherStartupReady = true;
+    setLauncherGuestEntryActive(shouldStartInVisitorGuestMode());
+    if (launcherGuestEntryActive) {
+      resetLauncherWorkingHomeForFreshEntry();
+      applyFreshEntryRoleNotes();
+    }
+    renderMainTitle(getDisplayedLauncherUserType(), { persist: false });
+    if (!launcherGuestEntryActive) {
+      void refreshMainUserType();
+    }
+    void refreshEspLessonsSourceText();
+    normalizeLauncherVersionParamInUrl();
+    bindDifficultyBumpControls();
     applyThemeColor(readLauncherState().themeColor || defaultThemeColor);
     if (appVersionLabel) {
       appVersionLabel.textContent = `ver. ${launcherDisplayVersion}`;
@@ -35638,14 +35671,16 @@ ${calmPracticeMessage}`;
     applyRememberedDifficultyLabels();
     void refreshDifficultyLabels();
     updatePendingLearningCenterLessonReturnButtons();
-    applyLauncherOpenRequest();
+    if (!landingEntryHandledInPlace) {
+      applyLauncherOpenRequest();
+    }
     if (pendingApplePasskeyRestore && !readRequestedLauncherView()) {
       showTemporaryHomePageView();
     }
     window.setTimeout(() => {
       void refreshDifficultyLabels();
     }, 0);
-    if (shouldStartInFreshLauncherMode()) {
+    if (!landingEntryHandledInPlace && shouldStartInFreshLauncherMode()) {
       window.setTimeout(() => {
         if (!isVisitorLauncherEntry(readLauncherState())) {
           return;
@@ -35671,6 +35706,9 @@ ${calmPracticeMessage}`;
     showTemporaryHomePageView({ preserveScroll: true });
   }
 
+  // These controls must work as soon as the launcher is visible, rather than
+  // waiting for optional startup reads such as install/passkey checks.
+  bindDifficultyBumpControls();
   void initializeLauncherStartup();
 
   window.addEventListener("beforeinstallprompt", (event) => {
