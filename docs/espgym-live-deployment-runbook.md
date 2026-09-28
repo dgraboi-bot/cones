@@ -1473,6 +1473,28 @@ After rollback:
 
 ## Required Closing Report
 
+## One-Click GitHub Checkpoint
+
+The live deployment and the GitHub checkpoint are separate operations. The deployment helper remains responsible for safely publishing and verifying the live build. After the intended release scope has been verified, prepare the fixed checkpoint plan for the user's normal Windows account.
+
+Fixed files:
+
+- desktop launcher: `C:\Users\dgrab\OneDrive\Desktop\ESP-GYM-GitHub-Checkpoint.cmd`
+- prepared plan: `C:\Users\dgrab\Documents\Codex\2026-05-01\to-start-with-i-want-to\ESP-GYM-GitHub-Checkpoint-Plan.json`
+- runner: `C:\Users\dgrab\Documents\Codex\2026-05-01\to-start-with-i-want-to\ESP-GYM-GitHub-Checkpoint-Runner.ps1`
+- persistent result log: `C:\Users\dgrab\Documents\Codex\2026-05-01\to-start-with-i-want-to\ESP-GYM-GitHub-Checkpoint.log`
+
+Before asking the user to double-click the launcher, populate the plan with:
+
+1. `ready: true`
+2. the current authoritative Git `HEAD` as `expectedHead`
+3. the exact commit message
+4. only the approved repository-relative file paths
+
+The launcher runs Git under the user's normal Windows account. It checks the expected starting revision, refuses to proceed if unrelated changes are already staged, stages only the listed paths, commits, pushes `origin main`, then sets `ready` back to `false` after a successful push.
+
+If no prepared checkpoint is pending, the launcher is intentionally inert: it logs the condition, makes no Git changes, and exits without a commit or push. After every run, inspect the persistent log and confirm the GitHub checkpoint result before reporting release closeout.
+
 After a successful deployment, report briefly:
 
 1. the deployed build version

@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260927x";
+  const launcherBuildVersion = "20260928a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -12803,11 +12803,21 @@ ${calmPracticeMessage}`;
 
   function previewLevelExplanationFromCurrentLabel(role) {
     const label = getDifficultyLabelElement(role);
-    const match = String(label?.textContent || "").match(/Level\s+([12345])/i);
+    const match = String(label?.textContent || "").match(/(?:Exercise|Level)\s+([12345])/i);
     if (!match) {
       return;
     }
     showRoleLevelExplanation(role, match[1]);
+  }
+
+  function previewCurrentRoleExerciseOnEntry(role) {
+    const normalizedRole = String(role || "").trim();
+    const card = findRoleCard(normalizedRole);
+    if (!normalizedRole || !card?.classList.contains("active")) {
+      return;
+    }
+    previewLevelExplanationFromCurrentLabel(normalizedRole);
+    scheduleRoleLevelExplanationClear(normalizedRole);
   }
 
   function clearDifficultyPreviewTimers(label) {
@@ -22036,7 +22046,9 @@ ${calmPracticeMessage}`;
       if (launcherGuestEntryActive && (role === "sender" || role === "receiver")) {
         applyFreshEntryRoleNotes(role);
       }
-      void syncDifficultyLabelForRole(role);
+      void syncDifficultyLabelForRole(role).finally(() => {
+        previewCurrentRoleExerciseOnEntry(role);
+      });
       void refreshDifficultyLabels();
       const toggle = card.querySelector(".role-card-toggle");
       if (toggle) {
@@ -22098,7 +22110,9 @@ ${calmPracticeMessage}`;
     card.classList.add("active");
     syncRoleCardTitle(card, true);
     activeLauncherRole = role;
-    void syncDifficultyLabelForRole(role);
+    void syncDifficultyLabelForRole(role).finally(() => {
+      previewCurrentRoleExerciseOnEntry(role);
+    });
     void refreshDifficultyLabels();
     const toggle = card.querySelector(".role-card-toggle");
     if (toggle) {
@@ -23151,6 +23165,13 @@ ${calmPracticeMessage}`;
     adminIdentityListView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     updatePendingLearningCenterLessonReturnButtons();
+    const activeCard = roleCards.find((card) => card.classList.contains("active"));
+    if (activeCard) {
+      const activeRole = String(activeCard.dataset.roleCard || "").trim();
+      void syncDifficultyLabelForRole(activeRole).finally(() => {
+        previewCurrentRoleExerciseOnEntry(activeRole);
+      });
+    }
   }
 
   function showClairvoyanceViewingView() {
