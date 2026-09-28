@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928n";
+  const launcherBuildVersion = "20260928p";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -21901,7 +21901,8 @@ ${calmPracticeMessage}`;
           ownInput.value,
           partnerInput.value
         );
-      const guidedTourLaunch = isLauncherGuidedTourLaunchState(role) || anonymousVisitorGuidedTourLaunch;
+      const launcherGuidedTourLaunch = isLauncherGuidedTourLaunchState(role);
+      const guidedTourLaunch = launcherGuidedTourLaunch || anonymousVisitorGuidedTourLaunch;
       if (!guidedTourLaunch && launcherGuidedTourState && role === launcherGuidedTourState.role) {
         endLauncherGuidedTour();
       }
@@ -22044,7 +22045,7 @@ ${calmPracticeMessage}`;
       let selectedDifficultyLevel = guidedContinuationMode
         ? normalizeDifficultyLevel(String(getDifficultyLocalLevel(role)))
         : preTourDifficultyLevel;
-      if (guidedTourLaunch) {
+      if (launcherGuidedTourLaunch) {
         selectedDifficultyLevel = "1";
       }
 
@@ -23247,8 +23248,10 @@ ${calmPracticeMessage}`;
       void refreshRoleMessaging(role);
     });
     if (remoteViewerOwnInput) {
-      remoteViewerOwnInput.value = "";
-      remoteViewerOwnInput.placeholder = "your unique handle";
+      remoteViewerOwnInput.value = visitorMode
+        ? (getVisitorLockedName(state) || getPreferredVisitorDisplayNameForRole("remote-viewer", state) || anonymousVisitorDisplayName)
+        : "";
+      remoteViewerOwnInput.placeholder = visitorMode ? "" : "your unique handle";
     }
     if (remoteViewerPartnerInput) {
       remoteViewerPartnerInput.value = "";
