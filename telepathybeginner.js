@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928r";
+  const launcherBuildVersion = "20260928s";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5282,6 +5282,7 @@ ${calmPracticeMessage}`;
     const returnUrl = buildAbsoluteModuleUrl("telepathybeginner.html", {
       v: launcherBuildVersion,
       open: "report-definition",
+      direct_open: 1,
       report_receiver: pairState?.receiverId || "",
       report_sender: pairState?.senderId || "",
       report_session_code: pairState?.sessionCode || "",
@@ -19719,13 +19720,18 @@ ${calmPracticeMessage}`;
     const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
     const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
     const secondLine = document.createElement("div");
-    secondLine.textContent = `Receiver: ${receiverLabel}   Sender: ${senderLabel}`;
-    if (isNamedReportTarget(pairInfo)) {
+    const isDemoPair = isDemoReportPair(pairInfo.receiverName, pairInfo.senderName);
+    if (isDemoPair) {
+      secondLine.textContent = `${getDemoReportShortLabel(pairInfo.receiverName, pairInfo.senderName)}; Receiver: John G; Sender: Sally B`;
+      reportPairBanner.replaceChildren(secondLine);
+    } else if (isNamedReportTarget(pairInfo)) {
+      secondLine.textContent = `Receiver: ${receiverLabel}   Sender: ${senderLabel}`;
       const title = String(pairInfo.reportTitle || "").trim() || "Unnamed named file";
       const firstLine = document.createElement("div");
       firstLine.textContent = `Named file: ${title}`;
       reportPairBanner.replaceChildren(firstLine, secondLine);
     } else {
+      secondLine.textContent = `Receiver: ${receiverLabel}   Sender: ${senderLabel}`;
       reportPairBanner.replaceChildren(secondLine);
     }
     reportPairBanner.hidden = false;

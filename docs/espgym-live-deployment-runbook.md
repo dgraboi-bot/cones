@@ -1364,6 +1364,25 @@ Known Playwright locations on this machine:
 - installed browser runtime directory:
   - `C:\Users\dgrab\AppData\Local\ms-playwright`
 
+Confirmed local installation (September 28, 2026):
+
+- Playwright package version: `1.62.1`
+- Chromium, Firefox, and WebKit browser executables are installed and launchable.
+- The preferred helper project is:
+  - `C:\Users\dgrab\Documents\Codex\2026-05-01\to-start-with-i-want-to\playwright-ui-check`
+
+Minimal availability check:
+
+```powershell
+Push-Location C:\Users\dgrab\Documents\Codex\2026-05-01\to-start-with-i-want-to\playwright-ui-check
+node -e "const { chromium } = require('playwright'); (async () => { const browser = await chromium.launch({ headless: true }); console.log('Playwright Chromium launch succeeded.'); await browser.close(); })().catch(error => { console.error(error); process.exit(1); });"
+Pop-Location
+```
+
+Expected result:
+
+- `Playwright Chromium launch succeeded.`
+
 Practical rule:
 
 - if in-app browser attach fails, immediately switch to the installed Playwright runtime rather than leaving verification unfinished

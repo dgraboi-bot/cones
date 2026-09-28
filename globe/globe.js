@@ -32,7 +32,7 @@
   }
 
   const query = dataApi.parseQueryParams();
-  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20260928r")}&open=launcher`;
+  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20260928s")}&open=launcher`;
   let globe = null;
   let renderedConnections = [];
   let renderedPoints = [];
@@ -44,6 +44,30 @@
   const CLOSE_CONNECTION_PLOTTED_DISTANCE_METERS = 250;
   const CLOSE_CONNECTION_RENDER_OFFSET_METERS = 18000;
   const CLOSE_CONNECTION_LABEL_OFFSET_METERS = 5500;
+
+  function getDemoPairTitle(pair) {
+    const receiver = String(pair?.receiver_id || pair?.receiver_label || "").trim().toLowerCase();
+    const sender = String(pair?.sender_id || pair?.sender_label || "").trim().toLowerCase();
+    const titles = {
+      "demo.level1.too-little.receiver|||demo.level1.too-little.sender": "Demo: Too Little Data - Telepathy Exercise 1; Receiver: John G; Sender: Sally B",
+      "demo.level1.promising.receiver|||demo.level1.promising.sender": "Demo: Promising Data - Telepathy Exercise 1; Receiver: John G; Sender: Sally B",
+      "demo.level1.not-telepathic.receiver|||demo.level1.not-telepathic.sender": "Demo: Not Telepathic Data - Telepathy Exercise 1; Receiver: John G; Sender: Sally B",
+      "demo.level1.telepathic.receiver|||demo.level1.telepathic.sender": "Demo: Telepathic Data - Telepathy Exercise 1; Receiver: John G; Sender: Sally B"
+    };
+    return titles[`${receiver}|||${sender}`] || "";
+  }
+
+  function renderPairLabel(pair) {
+    const demoTitle = getDemoPairTitle(pair);
+    if (demoTitle) {
+      const pairLabel = document.querySelector("[data-globe-pair-label]");
+      if (pairLabel) {
+        pairLabel.textContent = demoTitle;
+      }
+      return;
+    }
+    ui.renderPairLabel(pair);
+  }
 
   function getStrokeColor(colorClass) {
     switch (String(colorClass || "").trim()) {
@@ -493,15 +517,15 @@
     initializeViewer();
     warmupGlobeLocationIndicator();
     const payload = await dataApi.fetchLocationVisualizationData(query);
-    ui.renderPairLabel(payload.pair);
+    renderPairLabel(payload.pair);
     ui.renderSummary(payload, dataApi.formatDateOnlyUtc);
     ui.renderLegend(payload.legend);
     await setupLocationPermissionWatcher();
     applyLocationDisabledState(currentLocationDisabled, payload);
   } catch (error) {
-    ui.renderPairLabel({
-      receiver_label: query.receiverId || "unknown",
-      sender_label: query.senderId || "unknown"
+    renderPairLabel({
+      receiver_id: query.receiverId || "unknown",
+      sender_id: query.senderId || "unknown"
     });
     ui.renderSummary({ summary: { completed_trials: 0, connections: 0, first_trial_utc: null, last_trial_utc: null } }, dataApi.formatDateOnlyUtc);
     ui.renderLegend({});
