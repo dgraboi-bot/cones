@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260929b";
+  const launcherBuildVersion = "20260929e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -688,8 +688,8 @@
   const temporaryHomePageResearchButton = document.querySelector("[data-open-research-participation]");
   const openTelepathyDifficultyGuideButtons = Array.from(document.querySelectorAll("[data-open-telepathy-difficulty-guide]"));
   const openPerformanceVisualizationGuideButtons = Array.from(document.querySelectorAll("[data-open-performance-visualization-guide]"));
-  const footerOpenBeginnerLink = document.querySelector("[data-footer-open-beginner]");
   const footerOpenProLink = document.querySelector("[data-footer-open-pro]");
+  const footerOpenTelepathyLink = document.querySelector("[data-footer-open-telepathy]");
   const footerOpenRemoteViewingLink = document.querySelector("[data-footer-open-remote-viewing]");
   const footerOpenLearnLink = document.querySelector('[href="#temporary-home-learning-center"]');
   const footerOpenHelpLink = document.querySelector("[data-footer-open-help]");
@@ -14456,7 +14456,7 @@ ${calmPracticeMessage}`;
         : "A sender-receiver training app for telepathic development.";
     }
     if (launcherCopy) {
-      launcherCopy.textContent = "Choose your role in this session:";
+      launcherCopy.textContent = "Choose your role in this telepathy practice session";
     }
   }
 
@@ -26630,6 +26630,13 @@ ${calmPracticeMessage}`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (aboutOpenSection === "privacy" && aboutPrivacySection instanceof HTMLElement) {
+      // Wait until About has been laid out, then place the privacy policy at the bottom of the viewport.
+      window.setTimeout(() => {
+        const pageHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+        window.scrollTo({ top: Math.max(0, pageHeight - window.innerHeight), left: 0, behavior: "auto" });
+      }, 0);
+    }
   }
 
   async function changeDifficultyForRole(role, delta) {
@@ -29412,7 +29419,11 @@ ${calmPracticeMessage}`;
       } catch (_) {
         // The app can still open even if the browser does not permit URL replacement.
       }
-      void enterWorkingHomeFromLanding("visitor");
+      void enterWorkingHomeFromLanding("visitor").then(() => {
+        if (typeof options.afterEnter === "function") {
+          options.afterEnter();
+        }
+      });
       return;
     }
     traceLandingContinue("visitor_redirect_route", {
@@ -29421,7 +29432,7 @@ ${calmPracticeMessage}`;
     window.location.href = buildCanonicalLauncherUrl({ open: "visitor-launcher" });
   }
 
-  function startEspProSpecialEditionLandingEntry() {
+  function startEspProSpecialEditionLandingEntry(options = {}) {
     const baseState = readLauncherState();
     // Special Edition changes available features, not visitor identity. Reuse
     // the ordinary visitor state so anonymous Robot practice never becomes a
@@ -29440,10 +29451,35 @@ ${calmPracticeMessage}`;
     // could leave a first-time Special PRO visitor on the Landing page.
     try {
       window.history.replaceState({}, "", target);
-      void enterWorkingHomeFromLanding("visitor");
+      void enterWorkingHomeFromLanding("visitor").then(() => {
+        if (typeof options.afterEnter === "function") {
+          options.afterEnter();
+        }
+      });
     } catch (_) {
       window.location.href = target;
     }
+  }
+
+  function focusTelepathyPracticeRoleChoices() {
+    window.requestAnimationFrame(() => {
+      collapseActiveLauncherCard();
+      const hero = launcherView?.querySelector(".telepathy-hero");
+      if (!(hero instanceof HTMLElement)) {
+        return;
+      }
+      const targetTop = Math.max(0, Math.round(window.scrollY + hero.getBoundingClientRect().top));
+      window.scrollTo({ top: targetTop, left: 0, behavior: "smooth" });
+    });
+  }
+
+  function openTelepathyPracticeFromLanding() {
+    const entryOptions = { afterEnter: focusTelepathyPracticeRoleChoices };
+    if (publicLandingMode.espProSpecialEditionEnabled) {
+      startEspProSpecialEditionLandingEntry(entryOptions);
+      return;
+    }
+    startVisitorLandingEntry({ direct: true, ...entryOptions });
   }
 
   async function handleLandingExploreClick() {
@@ -31828,11 +31864,6 @@ ${calmPracticeMessage}`;
     handleUpdateAdminView?.classList.add("beginner-view-hidden");
     closeReportPairMenu();
     window.scrollTo({ top: 0, behavior: "smooth" });
-    if (aboutOpenSection === "privacy" && aboutPrivacySection instanceof HTMLElement) {
-      requestAnimationFrame(() => {
-        aboutPrivacySection.scrollIntoView({ block: "start", behavior: "auto" });
-      });
-    }
   }
 
   function closeAboutViewToOrigin() {
@@ -34095,27 +34126,26 @@ ${calmPracticeMessage}`;
   temporaryHomePageHelpButton?.addEventListener("click", () => {
     openUpdatesOverlay();
   });
-  footerOpenBeginnerLink?.addEventListener("click", (event) => {
-    event.preventDefault();
-    startVisitorLandingEntry();
-  });
   footerOpenProLink?.addEventListener("click", (event) => {
     event.preventDefault();
     void handleLandingExploreClick();
   });
+  footerOpenTelepathyLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    openTelepathyPracticeFromLanding();
+  });
   footerOpenRemoteViewingLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    openLessonImageOverlay("clairvoyance_rv_page.jpg", {
-      title: "Clairvoyance / Remote Viewing",
-      note: "This is an ESP PRO feature. It behaves much like the telepathy practice tools, but it uses a device such as a cellphone or laptop placed in a remote location. After the countdown, an image appears on the remote screen and the subject attempts to view that image. Then the subject is shown two images and selects the one that best fits what the subject may have picked up using ESP.",
-      caption: "ESP PRO feature preview",
-      alt: "Clairvoyance / Remote Viewing entry screen"
-    });
+    showClairvoyanceViewingView();
   });
   footerOpenLearnLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    const guidedDevelopmentCard = temporaryHomePageLearningCenterButton?.closest(".temporary-home-card");
-    scrollTemporaryHomeElementToTop(guidedDevelopmentCard instanceof HTMLElement ? guidedDevelopmentCard : temporaryHomePageLearningCenterButton);
+    const richCoursewareCard = temporaryHomePageRichCoursewareButton?.closest(".temporary-home-card");
+    scrollTemporaryHomeElementToTop(richCoursewareCard instanceof HTMLElement ? richCoursewareCard : temporaryHomePageRichCoursewareButton);
+    temporaryHomePageRichCoursewareButton?.classList.add("temporary-home-card-button-highlighted");
+    window.setTimeout(() => {
+      temporaryHomePageRichCoursewareButton?.classList.remove("temporary-home-card-button-highlighted");
+    }, 4200);
   });
   footerOpenHelpLink?.addEventListener("click", (event) => {
     event.preventDefault();
