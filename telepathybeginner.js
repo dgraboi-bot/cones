@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260929a";
+  const launcherBuildVersion = "20260929b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -25735,10 +25735,14 @@ ${calmPracticeMessage}`;
     clearReportPanelOffset();
     const requestedScrollY = Number(options.scrollY);
     const targetScrollY = Number.isFinite(requestedScrollY) ? Math.max(0, requestedScrollY) : 0;
+    const requestedReturnScrollY = Number(options.returnScrollY);
+    const returnScrollY = Number.isFinite(requestedReturnScrollY)
+      ? Math.max(0, requestedReturnScrollY)
+      : targetScrollY;
     learningCenterReturnTarget = {
       view: String(options.view || "options").trim() || "options",
       role: String(options.role || "").trim(),
-      scrollY: targetScrollY
+      scrollY: returnScrollY
     };
     const requestedTab = String(options.tab || "").trim();
     if (requestedTab) {
@@ -34064,7 +34068,7 @@ ${calmPracticeMessage}`;
   temporaryHomePageRichCoursewareButton?.addEventListener("click", () => {
     showLearningCenterView({
       view: "temporary-home-page",
-      scrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
+      returnScrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
       tab: "course"
     });
     renderLearningCenterCoursePage(4);
