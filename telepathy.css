@@ -329,6 +329,10 @@ body[data-guided-tour-active="1"] .settings-gear {
   display: none;
 }
 
+html.open-probe-pending body[data-role="receiver"] .screen > :not(#guidedTourProbeScreen) {
+  visibility: hidden;
+}
+
 .guided-tour-probe-panel {
   width: min(92vw, 860px);
   max-height: 90vh;

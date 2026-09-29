@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928u";
+  const launcherBuildVersion = "20260929a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -260,6 +260,7 @@
   const openGoProIncludesFromSubscriptionButton = document.querySelector("[data-open-go-pro-includes-from-subscription]");
   const openVisitorProFeatureButtons = Array.from(document.querySelectorAll("[data-open-visitor-pro-features]"));
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
+  const openPartnerMessagingButton = document.querySelector("[data-open-partner-messaging]");
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openResearchParticipationProButton = document.querySelector("[data-open-research-participation-pro]");
@@ -10565,7 +10566,7 @@ ${calmPracticeMessage}`;
     const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     if (featureSetupPartnerConfirmationStatus) {
       featureSetupPartnerConfirmationStatus.textContent = !featureSetupOwnIdentifier
-        ? "Verified-name confirmation for this browser on this device is selected after you claim a unique user name."
+        ? "The confirmation method for your identity on this browser is selected after you claim a unique user name."
         : partnerConfirmationMethod === "camera"
           ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
           : cameraAvailable
@@ -11753,6 +11754,7 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "auto" });
     messagesView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
     clairvoyanceLearnMoreView?.classList.add("beginner-view-hidden");
@@ -11951,11 +11953,7 @@ ${calmPracticeMessage}`;
       return;
     }
     if (!isRunningAsInstalledApp()) {
-      if (getDisplayedLauncherUserType() === "pro") {
-        openMessagingInstallOverlay();
-      } else {
-        window.alert("Partner messaging requires the installed ESP GYM app on this device. You are currently in browser mode. Please use Setup Website Features to install the app and enable partner messaging first.");
-      }
+      openMessagingInstallOverlay();
       return;
     }
     const { ownIdentifier, partnerIdentifier } = getRoleIdentifiersForMessaging(normalizedRole);
@@ -12003,13 +12001,15 @@ ${calmPracticeMessage}`;
 
     const capturedLauncherScrollY = Math.max(
       0,
-      Number(pendingMessagesOpenScrollY || lastKnownLauncherScrollY || window.scrollY || window.pageYOffset || 0)
+      Number(options.returnScrollY ?? (pendingMessagesOpenScrollY || lastKnownLauncherScrollY || window.scrollY || window.pageYOffset || 0))
     );
     pendingMessagesOpenScrollY = 0;
     activeMessagesRole = normalizedRole;
     activeMessagesOwnerIdentifier = preferredOwnIdentifier;
     activeMessagesPartnerIdentifier = partnerRaw;
-    activeMessagesReturnView = options.returnView === "launcher-main" ? "launcher-main" : "launcher";
+    activeMessagesReturnView = ["launcher-main", "other-settings", "learning-center"].includes(options.returnView)
+      ? options.returnView
+      : "launcher";
     activeMessagesReturnScrollY = Math.max(0, Math.round(capturedLauncherScrollY));
 
     showMessagesView();
@@ -12154,6 +12154,18 @@ ${calmPracticeMessage}`;
     if (messagesInput) {
       messagesInput.value = "";
     }
+    if (returnView === "other-settings") {
+      showOtherSettingsView();
+      return;
+    }
+    if (returnView === "learning-center") {
+      showLearningCenterView({
+        view: "learning-center",
+        tab: "start-here",
+        scrollY: returnScrollY
+      });
+      return;
+    }
     lastLauncherPointerDownInsideActiveCard = true;
     showLauncherView();
     if (returnView === "launcher-main") {
@@ -12193,6 +12205,24 @@ ${calmPracticeMessage}`;
 
   function isMessagesViewOpen() {
     return isBeginnerViewVisible(messagesView) && !!activeMessagesOwnerIdentifier;
+  }
+
+  async function openPartnerMessagingFromNavigation(returnView) {
+    if (!isRunningAsInstalledApp()) {
+      openMessagingInstallOverlay();
+      return;
+    }
+    const preferredRole = ["sender", "receiver"].includes(activeLauncherRole)
+      ? activeLauncherRole
+      : "receiver";
+    const context = await resolveFeatureSetupContext(preferredRole);
+    await openMessagesViewForRole(context.role === "sender" ? "sender" : "receiver", {
+      ownerIdentifier: String(context.identifier || "").trim(),
+      returnView,
+      returnScrollY: returnView === "learning-center"
+        ? Math.max(0, getLearningCenterTabsTopScrollY())
+        : Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
+    });
   }
 
   function getLauncherMessageSummaryRequest() {
@@ -15948,7 +15978,7 @@ ${calmPracticeMessage}`;
     if (reportPairTriggerText) {
       reportPairTriggerText.innerHTML = selectedReportTarget
         ? escapeHtml(getReportTargetDisplayLabel(selectedReportTarget))
-        : "Select receiver-sender pair or named file";
+        : "Select Receiver-Sender pair or named file:";
     }
     if (reportDeleteButton) {
       reportDeleteButton.hidden = !isNamedReportTarget(selectedReportTarget);
@@ -25251,13 +25281,7 @@ ${calmPracticeMessage}`;
         }
         return;
       case "partner-messaging":
-        showFeatureSetupView({
-          returnView: "learning-center",
-          scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
-        });
-        window.setTimeout(() => {
-          featureSetupMessagingItem?.scrollIntoView({ block: "start", behavior: "smooth" });
-        }, 0);
+        void openPartnerMessagingFromNavigation("learning-center");
         return;
       case "receiver-role":
         showRoleCourseTarget("receiver");
@@ -33231,7 +33255,7 @@ ${calmPracticeMessage}`;
       const requestedTab = button.dataset.learningCenterTab || "welcome";
       const normalizedTab = normalizeLearningCenterTabId(requestedTab);
       setLearningCenterTab(requestedTab);
-      if (normalizedTab === "key-concepts" || normalizedTab === "start-here" || normalizedTab === "index") {
+      if (["welcome", "course", "key-concepts", "start-here", "index"].includes(normalizedTab)) {
         const targetScrollY = getLearningCenterTabsTopScrollY();
         window.setTimeout(() => {
           window.scrollTo({ top: targetScrollY, behavior: "smooth" });
@@ -33576,6 +33600,9 @@ ${calmPracticeMessage}`;
     void startTelepathyProCheckout("annual");
   });
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
+  openPartnerMessagingButton?.addEventListener("click", () => {
+    void openPartnerMessagingFromNavigation("other-settings");
+  });
   openClairvoyanceViewingButton?.addEventListener("click", () => {
     if (isProLockedButton(openClairvoyanceViewingButton) && !isAdminProLockOverrideAllowed(openClairvoyanceViewingButton)) {
       return;
@@ -34038,8 +34065,12 @@ ${calmPracticeMessage}`;
     showLearningCenterView({
       view: "temporary-home-page",
       scrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
-      tab: "welcome"
+      tab: "course"
     });
+    renderLearningCenterCoursePage(4);
+    window.setTimeout(() => {
+      window.scrollTo({ top: getLearningCenterTabsTopScrollY(), behavior: "smooth" });
+    }, 0);
   });
   openTelepathyDifficultyGuideButtons.forEach((button) => {
     button.addEventListener("click", showTelepathyDifficultyGuideView);

@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20260928u";
+  const runtimeBuildVersion = "20260929a";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260928u";
+  const launcherBuildVersion = "20260929a";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -518,6 +518,7 @@
     guidedStandaloneProbeTopicId = "";
     renderGuidedReceiverTourProbeView();
     guidedTourProbeScreen.classList.remove("hidden");
+    document.documentElement.classList.remove("open-probe-pending");
     if (guidedTourProbeBody) {
       guidedTourProbeBody.scrollTop = 0;
     }
