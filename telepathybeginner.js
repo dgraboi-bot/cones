@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260928t";
+  const launcherBuildVersion = "20260928u";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -232,7 +232,6 @@
   const learningCenterActionButtons = Array.from(document.querySelectorAll("[data-learning-center-action]"));
   const learningCenterConceptCards = Array.from(document.querySelectorAll("[data-learning-center-concept-card]"));
   const learningCenterConceptPagination = document.querySelector("[data-learning-center-concept-pagination]");
-  const learningCenterConceptPages = document.querySelector("[data-learning-center-concept-pages]");
   const learningCenterConceptPreviousButton = document.querySelector("[data-learning-center-concept-previous]");
   const learningCenterConceptNextButton = document.querySelector("[data-learning-center-concept-next]");
   const learningCenterCoursePagination = document.querySelector("[data-learning-center-course-pagination]");
@@ -10463,6 +10462,7 @@ ${calmPracticeMessage}`;
 
     const recognizedUser = !!featureSetupOwnIdentifier;
     const visitorMode = isVisitorLauncherEntry();
+    const requiresInstallIdentity = !publicLandingMode.espProSpecialEditionEnabled;
     if (featureSetupClaimStatus) {
       featureSetupClaimStatus.textContent = recognizedUser
         ? `Current unique name: ${featureSetupOwnIdentifier}`
@@ -10481,7 +10481,7 @@ ${calmPracticeMessage}`;
         ? "The system install prompt is open. Choose Add to finish installing ESP GYM."
         : installed
         ? "Currently installed as an app on this browser/device combination."
-        : visitorMode && !recognizedUser
+        : requiresInstallIdentity && visitorMode && !recognizedUser
           ? "You must first claim a unique name before installing the app for full Telepathy Beginner use."
           : installConfirmationState === "temporary-shell"
             ? "ESP GYM is open in app mode temporarily, but it is not yet confirmed as permanently installed on this device."
@@ -10493,8 +10493,9 @@ ${calmPracticeMessage}`;
         : installPromptOpen
           ? "INSTALLING..."
           : "INSTALL APP";
-      // A PWA needs a verified identity before it can restore the user's profile.
-      featureSetupInstallActionButton.disabled = installPromptOpen || (visitorMode && !recognizedUser);
+      // Standard Telepathy Beginner needs an identity to restore a user profile.
+      // Special ESP PRO Edition permits an anonymous app installation.
+      featureSetupInstallActionButton.disabled = installPromptOpen || (requiresInstallIdentity && visitorMode && !recognizedUser);
     }
     if (featureSetupBeepStatus) {
       featureSetupBeepStatus.textContent = "Use this test to confirm the countdown beep is audible on this device.";
@@ -15582,9 +15583,9 @@ ${calmPracticeMessage}`;
     if (learningInfoDeferredHandlersBound) {
       return;
     }
-    closeGeneralInformationButton?.addEventListener("click", showAidsView);
+    closeGeneralInformationButton?.addEventListener("click", showLearningCenterIndexView);
     closeRewireButton?.addEventListener("click", showAidsView);
-    closeReadingsVideosButton?.addEventListener("click", showAidsView);
+    closeReadingsVideosButton?.addEventListener("click", showLearningCenterIndexView);
     closeWebsitesEventsListButton?.addEventListener("click", showAidsView);
     closeUserCommentsListButton?.addEventListener("click", showAidsView);
     closeCaseStudiesListButton?.addEventListener("click", showAidsView);
@@ -25406,38 +25407,6 @@ ${calmPracticeMessage}`;
     return sequence;
   }
 
-  function renderLearningCenterConceptPagination(pageCount, currentPage) {
-    if (!learningCenterConceptPages) {
-      return;
-    }
-    learningCenterConceptPages.replaceChildren();
-    buildLearningCenterConceptPageSequence(pageCount, currentPage).forEach((entry) => {
-      if (entry === "ellipsis") {
-        const ellipsis = document.createElement("span");
-        ellipsis.className = "learning-center-pagination-ellipsis";
-        ellipsis.textContent = "...";
-        ellipsis.setAttribute("aria-hidden", "true");
-        learningCenterConceptPages.appendChild(ellipsis);
-        return;
-      }
-      const pageButton = document.createElement("button");
-      pageButton.type = "button";
-      pageButton.className = "learning-center-pagination-page";
-      pageButton.textContent = String(entry);
-      if (entry === currentPage) {
-        pageButton.classList.add("learning-center-pagination-page-active");
-        pageButton.setAttribute("aria-current", "page");
-      } else {
-        pageButton.addEventListener("click", () => {
-          renderLearningCenterConceptPage(entry);
-          const targetScrollY = getLearningCenterTabsTopScrollY();
-          window.scrollTo({ top: targetScrollY, behavior: "smooth" });
-        });
-      }
-      learningCenterConceptPages.appendChild(pageButton);
-    });
-  }
-
   function renderLearningCenterConceptPage(pageNumber = 1) {
     const pageCount = getLearningCenterConceptPageCount();
     const normalizedPage = Math.min(pageCount, Math.max(1, Number(pageNumber || 1) || 1));
@@ -25451,12 +25420,11 @@ ${calmPracticeMessage}`;
       learningCenterConceptPagination.hidden = pageCount <= 1;
     }
     if (learningCenterConceptPreviousButton) {
-      learningCenterConceptPreviousButton.disabled = normalizedPage <= 1;
+      learningCenterConceptPreviousButton.hidden = normalizedPage <= 1;
     }
     if (learningCenterConceptNextButton) {
-      learningCenterConceptNextButton.disabled = normalizedPage >= pageCount;
+      learningCenterConceptNextButton.hidden = normalizedPage >= pageCount;
     }
-    renderLearningCenterConceptPagination(pageCount, normalizedPage);
   }
 
   function getLearningCenterTabsTopScrollY() {
@@ -26175,10 +26143,17 @@ ${calmPracticeMessage}`;
     showLearningCenterView({ view: "options" });
   }
 
+  function showLearningCenterIndexView() {
+    showLearningCenterView({ view: "learning-center", tab: "index" });
+  }
+
   async function showGeneralInformationView() {
     await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     generalInformationView?.classList.remove("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
@@ -26275,6 +26250,9 @@ ${calmPracticeMessage}`;
     await ensureLearningInfoDeferredViewsLoaded();
     clearReportPanelOffset();
     readingsVideosView?.classList.remove("beginner-view-hidden");
+    learningCenterView?.classList.add("beginner-view-hidden");
+    espLessonDetailView?.classList.add("beginner-view-hidden");
+    learningCenterConceptDetailView?.classList.add("beginner-view-hidden");
     aidsView?.classList.add("beginner-view-hidden");
     onlineCourseView?.classList.add("beginner-view-hidden");
     baselineQuestionsView?.classList.add("beginner-view-hidden");
@@ -32524,10 +32502,11 @@ ${calmPracticeMessage}`;
 
   async function handleInstallRequest() {
     const browser = detectMobileBrowser();
+    const requiresInstallIdentity = !publicLandingMode.espProSpecialEditionEnabled;
 
     // Do not let a new mobile installation create an unlinked app container.
     // The claim flow returns here after its existing email verification succeeds.
-    if (browser.isIOS || browser.isAndroid) {
+    if (requiresInstallIdentity && (browser.isIOS || browser.isAndroid)) {
       const context = await resolveFeatureSetupContext(featureSetupReturnRole || activeLauncherRole || "sender");
       if (!String(context?.identifier || "").trim()) {
         showFeatureSetupView({
@@ -33252,7 +33231,7 @@ ${calmPracticeMessage}`;
       const requestedTab = button.dataset.learningCenterTab || "welcome";
       const normalizedTab = normalizeLearningCenterTabId(requestedTab);
       setLearningCenterTab(requestedTab);
-      if (normalizedTab === "key-concepts" || normalizedTab === "start-here") {
+      if (normalizedTab === "key-concepts" || normalizedTab === "start-here" || normalizedTab === "index") {
         const targetScrollY = getLearningCenterTabsTopScrollY();
         window.setTimeout(() => {
           window.scrollTo({ top: targetScrollY, behavior: "smooth" });
@@ -34349,7 +34328,7 @@ ${calmPracticeMessage}`;
     closeUniqueNameChangeView();
   });
   featureSetupInstallActionButton?.addEventListener("click", () => {
-    if (isVisitorLauncherEntry() && !featureSetupOwnIdentifier) {
+    if (!publicLandingMode.espProSpecialEditionEnabled && isVisitorLauncherEntry() && !featureSetupOwnIdentifier) {
       const proceed = window.confirm(
         "You are currently a visitor to ESP GYM. To access the full feature set of Telepathy Beginner, including practicing telepathy with human partners and saved performance history, please claim a unique name for yourself as a user."
       );
