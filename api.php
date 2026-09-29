@@ -10309,7 +10309,7 @@ function normalize_partner_confirmation_snapshot($value): string
     return $snapshot;
 }
 
-function partner_confirmation_payload(array $session, string $role, int $nowMs): array
+function partner_confirmation_payload(array $session, string $role, int $nowMs, string $exercise = '1'): array
 {
     $confirmation = is_array($session['partner_confirmation'] ?? null)
         ? $session['partner_confirmation']
@@ -10325,6 +10325,7 @@ function partner_confirmation_payload(array $session, string $role, int $nowMs):
     return [
         'expired' => false,
         'ready' => $completed,
+        'exercise' => normalize_difficulty_level($exercise),
         'own' => [
             'method' => normalize_partner_confirmation_method($own['method'] ?? 'verified'),
             'joined' => !empty($own['joined']),
@@ -12821,7 +12822,12 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             clear_partner_confirmation_state($session);
         }
         $session['updated_ms'] = $nowMs;
-        $response = ['ok' => true, 'partner_confirmation' => partner_confirmation_payload($session, $confirmationRole, $nowMs), 'server_now_ms' => $nowMs];
+        $response = ['ok' => true, 'partner_confirmation' => partner_confirmation_payload(
+            $session,
+            $confirmationRole,
+            $nowMs,
+            (string) ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1')
+        ), 'server_now_ms' => $nowMs];
         rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);

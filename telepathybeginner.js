@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260929i";
+  const launcherBuildVersion = "20260929n";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -930,6 +930,7 @@
   const partnerConfirmationPartnerLabel = document.querySelector("[data-partner-confirmation-partner-label]");
   const partnerConfirmationSelfRole = document.querySelector("[data-partner-confirmation-self-role]");
   const partnerConfirmationPartnerRole = document.querySelector("[data-partner-confirmation-partner-role]");
+  const partnerConfirmationExercise = document.querySelector("[data-partner-confirmation-exercise]");
   const partnerConfirmationSelfFrame = document.querySelector("[data-partner-confirmation-self-frame]");
   const partnerConfirmationPartnerFrame = document.querySelector("[data-partner-confirmation-partner-frame]");
   const partnerConfirmationSelfStatus = document.querySelector("[data-partner-confirmation-self-status]");
@@ -4632,7 +4633,7 @@ ${calmPracticeMessage}`;
     const interpretation = buildInterpretationBundle(summaryStats, levelBreakdown, records);
     const [summaryText, probabilityText] = buildReportSummaryLines(summaryStats, levelBreakdown);
     const lines = [];
-    lines.push(getVisualizationPairSummaryLine(pairInfo));
+    lines.push(getVisualizationReportTitleLine(pairInfo));
     const utcRangeText = getVisualizationUtcRangeText(records);
     if (utcRangeText) {
       const createdText = getVisualizationReportCreatedText(pairInfo);
@@ -4965,9 +4966,9 @@ ${calmPracticeMessage}`;
             const lines = [];
             if (isNamedReportTarget(context.pairInfo)) {
               lines.push(String(context.pairInfo.reportTitle || "").trim() || "Unnamed named file");
-              lines.push(getVisualizationPairSummaryLine(context.pairInfo));
+              lines.push(getVisualizationReportTitleLine(context.pairInfo));
             } else {
-              lines.push(getVisualizationPairSummaryLine(context.pairInfo));
+              lines.push(getVisualizationReportTitleLine(context.pairInfo));
             }
             const utcRangeText = getVisualizationUtcRangeText(context.records || []);
             if (utcRangeText) {
@@ -10206,8 +10207,10 @@ ${calmPracticeMessage}`;
     const partnerName = pending.partnerIdentifier;
     const ownRole = pending.role === "sender" ? "Sender" : "Receiver";
     const partnerRole = ownRole === "Sender" ? "Receiver" : "Sender";
+    const exercise = normalizeDifficultyLevel(state.exercise || pending.exercise || "1");
     if (partnerConfirmationSelfRole) partnerConfirmationSelfRole.textContent = ownRole;
     if (partnerConfirmationPartnerRole) partnerConfirmationPartnerRole.textContent = partnerRole;
+    if (partnerConfirmationExercise) partnerConfirmationExercise.textContent = `Exercise ${exercise}`;
     if (partnerConfirmationSelfLabel) partnerConfirmationSelfLabel.textContent = `You: ${ownName}`;
     if (partnerConfirmationPartnerLabel) partnerConfirmationPartnerLabel.textContent = `Partner: ${partnerName}`;
     if (!own.joined && partner.joined) {
@@ -10424,7 +10427,14 @@ ${calmPracticeMessage}`;
       window.location.href = options.targetUrl;
       return false;
     }
-    pendingPartnerConfirmation = { request, targetUrl: options.targetUrl, ownIdentifier: options.ownIdentifier, partnerIdentifier: options.partnerIdentifier };
+    pendingPartnerConfirmation = {
+      request,
+      targetUrl: options.targetUrl,
+      role: options.role,
+      exercise: options.exercise,
+      ownIdentifier: options.ownIdentifier,
+      partnerIdentifier: options.partnerIdentifier
+    };
     partnerConfirmationOverlay?.classList.remove("beginner-view-hidden");
     partnerConfirmationOverlay?.setAttribute("aria-hidden", "false");
     renderPartnerConfirmation(data.partner_confirmation || {});
@@ -16180,19 +16190,34 @@ ${calmPracticeMessage}`;
       if (remoteViewingSubmode === "covered_screen") {
         const coveredScreenLabel = receiverLabel;
         return sessionLevel
-          ? `${coveredScreenLabel} (Remote Viewing) Level ${sessionLevel} covered screen data`
-          : `${coveredScreenLabel} (Remote Viewing) covered screen Multi-level data`;
+          ? `${coveredScreenLabel} (Clairvoyance) Exercise ${sessionLevel} covered screen data`
+          : `${coveredScreenLabel} (Clairvoyance) covered screen Multi-exercise data`;
       }
       const remoteScreenSubject = normalizedSenderName === "robot"
         ? receiverLabel
         : baseTelepathyLabel;
       return sessionLevel
-        ? `${remoteScreenSubject} (Remote Viewing) Level ${sessionLevel} remote screen data`
-        : `${remoteScreenSubject} (Remote Viewing) remote screen Multi-level data`;
+        ? `${remoteScreenSubject} (Clairvoyance) Exercise ${sessionLevel} remote screen data`
+        : `${remoteScreenSubject} (Clairvoyance) remote screen Multi-exercise data`;
     }
     return sessionLevel
-      ? `${baseTelepathyLabel} (Telepathy) Level ${sessionLevel} data`
-      : `${baseTelepathyLabel} (Telepathy) Multi-level data`;
+      ? `${baseTelepathyLabel} (Telepathy) Exercise ${sessionLevel} data`
+      : `${baseTelepathyLabel} (Telepathy) Multi-exercise data`;
+  }
+
+  function getVisualizationReportTitleLine(pairInfo) {
+    const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
+    const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
+    const sessionMode = normalizeReportSessionMode(pairInfo?.sessionMode);
+    const sessionLevel = normalizeReportSessionLevel(pairInfo?.sessionLevel || "");
+    const isDemoPair = isDemoReportPair(receiverLabel, senderLabel) || isDemoReportPair(pairInfo?.receiverName, pairInfo?.senderName);
+
+    if (isDemoPair || sessionMode === "remote_viewing") {
+      return getVisualizationPairSummaryLine(pairInfo);
+    }
+
+    const exerciseLabel = sessionLevel ? `Exercise ${sessionLevel}` : "Multi-exercise";
+    return `${receiverLabel} (Receiver) - ${senderLabel} (Sender) ${exerciseLabel} Telepathy data`;
   }
 
   function getRecordsForReportPair(records, pairInfo) {
@@ -17681,7 +17706,7 @@ ${calmPracticeMessage}`;
     }
     return [
       `Summary: Total trials = ${summaryStats.totalTrials}, Chance score = ${formatScoreValue(summaryStats.chanceScore)}, Your score = ${formatScoreValue(summaryStats.yourScore)}, Significance, P = ${formatProbabilityValue(telepathicSignificance)}.`,
-      `The probability that you would get this score or higher by chance alone is ${formatProbabilityPercent(telepathicSignificance)}.`
+      `If responses were made by chance alone, the one-sided p-value for getting this score or a higher score is ${formatProbabilityPercent(telepathicSignificance)}.`
     ];
   }
 
@@ -19298,13 +19323,13 @@ ${calmPracticeMessage}`;
     titleLine.className = "report-summary-line";
     titleLine.textContent = isNamedReportTarget(pairInfo)
       ? (String(pairInfo.reportTitle || "").trim() || "Unnamed named file")
-      : getVisualizationPairSummaryLine(pairInfo);
+      : getVisualizationReportTitleLine(pairInfo);
     visualizationAdvancedDetailSummary.append(titleLine);
 
     if (isNamedReportTarget(pairInfo)) {
       const pairLine = document.createElement("p");
       pairLine.className = "report-summary-line";
-      pairLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+      pairLine.textContent = getVisualizationReportTitleLine(pairInfo);
       visualizationAdvancedDetailSummary.append(pairLine);
     }
 
@@ -19353,20 +19378,20 @@ ${calmPracticeMessage}`;
     if (visualizationViewTitle) {
       visualizationViewTitle.textContent = isNamedReportTarget(pairInfo)
         ? (String(pairInfo.reportTitle || "").trim() || "Unnamed named file")
-        : getVisualizationPairSummaryLine(pairInfo);
+        : getVisualizationReportTitleLine(pairInfo);
     }
 
     const titleLine = document.createElement("p");
     titleLine.className = "report-summary-line";
     titleLine.textContent = isNamedReportTarget(pairInfo)
       ? (String(pairInfo.reportTitle || "").trim() || "Unnamed named file")
-      : getVisualizationPairSummaryLine(pairInfo);
+      : getVisualizationReportTitleLine(pairInfo);
     visualizationSummary.append(titleLine);
 
     if (isNamedReportTarget(pairInfo)) {
       const firstLine = document.createElement("p");
       firstLine.className = "report-summary-line";
-      firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+        firstLine.textContent = getVisualizationReportTitleLine(pairInfo);
       visualizationSummary.append(firstLine);
     }
 
@@ -19756,20 +19781,23 @@ ${calmPracticeMessage}`;
     }
     const receiverLabel = getPairInfoReceiverLabel(pairInfo) || "unknown";
     const senderLabel = getPairInfoSenderLabel(pairInfo) || "unknown";
-    const secondLine = document.createElement("div");
+    const participantLine = document.createElement("div");
+    participantLine.textContent = `Receiver: ${receiverLabel}\u00A0\u00A0Sender: ${senderLabel}`;
+    const dataTypeLine = document.createElement("div");
+    dataTypeLine.textContent = normalizeReportSessionMode(pairInfo.sessionMode) === "remote_viewing"
+      ? "Clairvoyance Data"
+      : "Telepathy Data";
     const isDemoPair = isDemoReportPair(pairInfo.receiverName, pairInfo.senderName);
     if (isDemoPair) {
-      secondLine.textContent = `${getDemoReportShortLabel(pairInfo.receiverName, pairInfo.senderName)}; Receiver: John G; Sender: Sally B`;
-      reportPairBanner.replaceChildren(secondLine);
+      participantLine.textContent = `${getDemoReportShortLabel(pairInfo.receiverName, pairInfo.senderName)}; Receiver: John G\u00A0\u00A0Sender: Sally B`;
+      reportPairBanner.replaceChildren(participantLine, dataTypeLine);
     } else if (isNamedReportTarget(pairInfo)) {
-      secondLine.textContent = `Receiver: ${receiverLabel}   Sender: ${senderLabel}`;
       const title = String(pairInfo.reportTitle || "").trim() || "Unnamed named file";
       const firstLine = document.createElement("div");
       firstLine.textContent = `Named file: ${title}`;
-      reportPairBanner.replaceChildren(firstLine, secondLine);
+      reportPairBanner.replaceChildren(firstLine, participantLine, dataTypeLine);
     } else {
-      secondLine.textContent = `Receiver: ${receiverLabel}   Sender: ${senderLabel}`;
-      reportPairBanner.replaceChildren(secondLine);
+      reportPairBanner.replaceChildren(participantLine, dataTypeLine);
     }
     reportPairBanner.hidden = false;
   }
@@ -19945,7 +19973,7 @@ ${calmPracticeMessage}`;
         visualizationSummary.replaceChildren();
         const firstLine = document.createElement("p");
         firstLine.className = "report-summary-line";
-        firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+        firstLine.textContent = getVisualizationReportTitleLine(pairInfo);
         visualizationSummary.append(firstLine);
         visualizationStatus.textContent = "No completed scored trials are available for visualization.";
         visualizationChart.replaceChildren();
@@ -19958,7 +19986,7 @@ ${calmPracticeMessage}`;
         visualizationSummary.replaceChildren();
         const firstLine = document.createElement("p");
         firstLine.className = "report-summary-line";
-        firstLine.textContent = getVisualizationPairSummaryLine(pairInfo);
+        firstLine.textContent = getVisualizationReportTitleLine(pairInfo);
         visualizationSummary.append(firstLine);
         visualizationStatus.textContent = range.message || "Unable to apply the selected trial range.";
         visualizationChart.replaceChildren();
@@ -22219,6 +22247,7 @@ ${calmPracticeMessage}`;
             ownIdentifier: canonicalOwnName,
             partnerIdentifier: canonicalPartnerName,
             sessionCode: pairSessionCode,
+            exercise: selectedDifficultyLevel,
             targetUrl
           });
         } catch (error) {
