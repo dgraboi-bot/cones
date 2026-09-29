@@ -569,6 +569,17 @@ function Get-RemoteTextFile([string]$RemotePath) {
   return (@($output) -join "`n")
 }
 
+function Get-NormalizedTextSha256([string]$Content) {
+  # Treat line-ending style as formatting for managed text; deployed files still use exact hashes.
+  $normalized = ($Content -replace "`r`n", "`n") -replace "`r", "`n"
+  $sha256 = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    return (([System.BitConverter]::ToString($sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($normalized))) -replace "-", "").ToUpperInvariant())
+  } finally {
+    $sha256.Dispose()
+  }
+}
+
 function Write-Utf8NoBomFile([string]$Path, [string]$Content) {
   $directory = Split-Path -Parent $Path
   if ($directory -and -not (Test-Path -LiteralPath $directory)) {
@@ -635,7 +646,7 @@ function Get-LocalManagedContentState() {
     if (-not $localPrivatePath -or -not (Test-Path -LiteralPath $localPrivatePath)) {
       continue
     }
-    $state[$relativePath] = (Get-FileHash -Algorithm SHA256 $localPrivatePath).Hash.ToUpperInvariant()
+    $state[$relativePath] = Get-NormalizedTextSha256 ([System.IO.File]::ReadAllText($localPrivatePath))
   }
   return $state
 }
@@ -655,7 +666,7 @@ function Get-RemoteManagedContentStateForRoot([string]$RootPrefix) {
     if (-not $exists) {
       continue
     }
-    $state[$relativePath] = (Get-RemoteSha256 $remotePath).ToUpperInvariant()
+    $state[$relativePath] = Get-NormalizedTextSha256 (Get-RemoteTextFile $remotePath)
   }
   return $state
 }
@@ -1001,6 +1012,8 @@ if ($SyncManagedContentFromLive) {
     Report-RemoteManagedContentDrift
   }
 }
+$localManagedContentState = Get-LocalManagedContentState
+$remoteManagedContentState = Get-RemoteManagedContentState
 if ($SyncImagePairsFromLive) {
   & powershell -ExecutionPolicy Bypass -File $imagePairsSyncScript
   if ($LASTEXITCODE -ne 0) {
@@ -1059,7 +1072,14 @@ foreach ($row in $preparedHashRows) {
 $remoteDeployHashes = Get-RemoteDeployFileHashes $deployFiles
 $changedDeployFiles = @(
   $preparedHashMap.Keys |
-    Where-Object { $remoteDeployHashes[[string]$_] -ne $preparedHashMap[[string]$_] } |
+    Where-Object {
+      $relativePath = [string]$_
+      if ($privateContentSyncFiles -contains $relativePath) {
+        $remoteManagedContentState[$relativePath] -ne $localManagedContentState[$relativePath]
+      } else {
+        $remoteDeployHashes[$relativePath] -ne $preparedHashMap[$relativePath]
+      }
+    } |
     Sort-Object
 )
 $missingVersionDeployFiles = @(

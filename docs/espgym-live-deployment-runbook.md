@@ -421,6 +421,7 @@ Additional authoring rule:
 - if the local repo and local private managed content copies disagree, stop the release and resolve that local conflict first
 - if the live repo/private managed editable content copies disagree, stop the release and resolve that live inconsistency first
 - if live managed editable content differs from local authoritative content during a normal deployment, preparation stops without overwriting either local copy
+- managed text comparisons normalize Windows and Linux line endings, so formatting alone does not trigger a content upload; files that are actually uploaded still receive exact SHA-256 verification after deployment
 - for intentional, reviewed managed-content changes, first ensure the local repo and local private copies match, then prepare with `-AllowManagedContentPublish`; this explicitly publishes the approved local content to both live copies
 - use `-SyncManagedContentFromLive` only for an explicit recovery decision to pull live content down into both local copies; that operation creates a timestamped local backup before replacing content
 - do not assume a successful in-browser save on `espgym.com` has already updated the local authoring tree
