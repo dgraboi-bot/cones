@@ -565,8 +565,12 @@ function Get-OutlineLessonPageIdsFromFile([string]$Path) {
 }
 
 function Get-RemoteTextFile([string]$RemotePath) {
-  $output = Invoke-Plink "cat '$RemotePath'"
-  return (@($output) -join "`n")
+  # Invoke-Plink returns output as lines and omits blank lines, so transport text as base64.
+  $encoded = (@(Invoke-Plink "base64 -w0 '$RemotePath'") -join "")
+  if (-not $encoded) {
+    throw "Unable to read remote text for $RemotePath"
+  }
+  return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($encoded))
 }
 
 function Get-NormalizedTextSha256([string]$Content) {
