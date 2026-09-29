@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260929g";
+  const launcherBuildVersion = "20260929i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -928,6 +928,8 @@
   const partnerConfirmationStatus = document.querySelector("[data-partner-confirmation-status]");
   const partnerConfirmationSelfLabel = document.querySelector("[data-partner-confirmation-self-label]");
   const partnerConfirmationPartnerLabel = document.querySelector("[data-partner-confirmation-partner-label]");
+  const partnerConfirmationSelfRole = document.querySelector("[data-partner-confirmation-self-role]");
+  const partnerConfirmationPartnerRole = document.querySelector("[data-partner-confirmation-partner-role]");
   const partnerConfirmationSelfFrame = document.querySelector("[data-partner-confirmation-self-frame]");
   const partnerConfirmationPartnerFrame = document.querySelector("[data-partner-confirmation-partner-frame]");
   const partnerConfirmationSelfStatus = document.querySelector("[data-partner-confirmation-self-status]");
@@ -10202,6 +10204,10 @@ ${calmPracticeMessage}`;
     const partner = state.partner || {};
     const ownName = pending.ownIdentifier;
     const partnerName = pending.partnerIdentifier;
+    const ownRole = pending.role === "sender" ? "Sender" : "Receiver";
+    const partnerRole = ownRole === "Sender" ? "Receiver" : "Sender";
+    if (partnerConfirmationSelfRole) partnerConfirmationSelfRole.textContent = ownRole;
+    if (partnerConfirmationPartnerRole) partnerConfirmationPartnerRole.textContent = partnerRole;
     if (partnerConfirmationSelfLabel) partnerConfirmationSelfLabel.textContent = `You: ${ownName}`;
     if (partnerConfirmationPartnerLabel) partnerConfirmationPartnerLabel.textContent = `Partner: ${partnerName}`;
     if (!own.joined && partner.joined) {

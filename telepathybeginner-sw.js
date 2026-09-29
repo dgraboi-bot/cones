@@ -1,5 +1,5 @@
-const CACHE_NAME = "telepathybeginner-v20260929g";
-const APP_VERSION = "20260929g";
+const CACHE_NAME = "telepathybeginner-v20260929i";
+const APP_VERSION = "20260929i";
 const APP_LAUNCH_URL = `./telepathybeginner.html?v=${APP_VERSION}&open=launcher`;
 const APP_ASSETS = [
   "./",
@@ -24,7 +24,7 @@ const APP_ASSETS = [
   "./tb-test-icon-3.png",
   "./tb-test-icon-4.png",
   "./BeginnerUserManual.html",
-  `./BeginnerUserManual.html?v=20260929g`,
+  `./BeginnerUserManual.html?v=20260929i`,
   "./minds-connected-uncropped.png",
   "./rewire.png",
   "./RV1.png",
