@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260929e";
+  const launcherBuildVersion = "20260929g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -23650,7 +23650,39 @@ ${calmPracticeMessage}`;
       return;
     }
     const targetTop = Math.max(0, Math.round(window.scrollY + element.getBoundingClientRect().top));
-    window.scrollTo({ top: targetTop, left: 0, behavior: "smooth" });
+    window.scrollTo({ top: targetTop, left: 0, behavior: "auto" });
+  }
+
+  let dismissRichCoursewareHighlight = null;
+
+  function highlightRichCoursewareExploreButton() {
+    const button = temporaryHomePageRichCoursewareButton;
+    if (!(button instanceof HTMLElement)) {
+      return;
+    }
+    dismissRichCoursewareHighlight?.();
+    button.classList.add("temporary-home-card-button-highlighted");
+    const initialScrollY = Math.round(window.scrollY || window.pageYOffset || 0);
+    let initialPositionScrollPending = true;
+    const dismissOnScroll = () => {
+      const currentScrollY = Math.round(window.scrollY || window.pageYOffset || 0);
+      if (initialPositionScrollPending && currentScrollY === initialScrollY) {
+        initialPositionScrollPending = false;
+        return;
+      }
+      dismiss();
+    };
+    const dismiss = () => {
+      button.classList.remove("temporary-home-card-button-highlighted");
+      window.removeEventListener("scroll", dismissOnScroll);
+      window.removeEventListener("pointerdown", dismiss, true);
+      if (dismissRichCoursewareHighlight === dismiss) {
+        dismissRichCoursewareHighlight = null;
+      }
+    };
+    dismissRichCoursewareHighlight = dismiss;
+    window.addEventListener("scroll", dismissOnScroll, { passive: true });
+    window.addEventListener("pointerdown", dismiss, { once: true, capture: true });
   }
 
   async function showTelepathyDifficultyGuideView() {
@@ -34142,10 +34174,7 @@ ${calmPracticeMessage}`;
     event.preventDefault();
     const richCoursewareCard = temporaryHomePageRichCoursewareButton?.closest(".temporary-home-card");
     scrollTemporaryHomeElementToTop(richCoursewareCard instanceof HTMLElement ? richCoursewareCard : temporaryHomePageRichCoursewareButton);
-    temporaryHomePageRichCoursewareButton?.classList.add("temporary-home-card-button-highlighted");
-    window.setTimeout(() => {
-      temporaryHomePageRichCoursewareButton?.classList.remove("temporary-home-card-button-highlighted");
-    }, 4200);
+    highlightRichCoursewareExploreButton();
   });
   footerOpenHelpLink?.addEventListener("click", (event) => {
     event.preventDefault();
