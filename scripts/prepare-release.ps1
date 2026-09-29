@@ -8,6 +8,8 @@ param(
 
   [switch]$SyncManagedContentFromLive,
 
+  [switch]$AllowManagedContentPublish,
+
   [switch]$SyncImagePairsFromLive
 )
 
@@ -991,9 +993,10 @@ if ($SyncManagedContentFromLive) {
   $managedContentDrift = @(Get-ManagedContentDriftSummary -LocalState $localManagedContentState -RemoteState $remoteManagedContentState)
   if ($managedContentDrift.Count -gt 0) {
     Report-RemoteManagedContentDrift
-    Sync-RemoteManagedContentToLocalAuthoritative
-    Assert-LocalPrivateContentInSync $privateContentSyncFiles
-    Assert-LocalManagedLessonSetConsistent
+    if (-not $AllowManagedContentPublish) {
+      throw ("Live managed content differs from the local approved content. Review the difference, ensure the local repo/private copies match, then rerun with -AllowManagedContentPublish to publish the approved content.")
+    }
+    Write-Host "Publishing the approved local managed-content change to live." -ForegroundColor Yellow
   } else {
     Report-RemoteManagedContentDrift
   }
@@ -1086,6 +1089,7 @@ $manifest = [ordered]@{
   baseline_ref = $BaselineRef
   allow_dirty = [bool]$AllowDirty
   sync_managed_content_from_live = [bool]$SyncManagedContentFromLive
+  allow_managed_content_publish = [bool]$AllowManagedContentPublish
   sync_imagepairs_from_live = [bool]$SyncImagePairsFromLive
   repo_root = $repoRoot
   mirror_root = $mirrorRoot

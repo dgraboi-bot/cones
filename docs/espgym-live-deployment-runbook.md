@@ -420,14 +420,12 @@ Additional authoring rule:
   - and the matching local private authoritative files under `C:\xampp\telepathyexperiment_private\cones\content\...`
 - if the local repo and local private managed content copies disagree, stop the release and resolve that local conflict first
 - if the live repo/private managed editable content copies disagree, stop the release and resolve that live inconsistency first
-- if live managed editable content differs from local authoritative content during a normal deployment, the normal prepare flow should:
-  - back up the local authoritative editable-content files that will be overwritten
-  - pull the live authoritative editable content down into both the local repo mirror and the local private authoritative tree
-  - re-verify local repo/private consistency and lesson-set consistency before continuing
-- after reconciliation, the refreshed local authoritative editable-content files become the source used for version bump, GitHub commit, and deployment
+- if live managed editable content differs from local authoritative content during a normal deployment, preparation stops without overwriting either local copy
+- for intentional, reviewed managed-content changes, first ensure the local repo and local private copies match, then prepare with `-AllowManagedContentPublish`; this explicitly publishes the approved local content to both live copies
+- use `-SyncManagedContentFromLive` only for an explicit recovery decision to pull live content down into both local copies; that operation creates a timestamped local backup before replacing content
 - do not assume a successful in-browser save on `espgym.com` has already updated the local authoring tree
 
-The deploy helper is expected to enforce this automatically for normal releases so that live lesson and Learn More edits are preserved into the next GitHub checkpoint and deployment.
+The deploy helper enforces this explicitly: it never silently replaces intentional local managed-content work during a normal release.
 
 Additional authoring rule for Level 4 image pairs:
 
