@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260930c";
+  const launcherBuildVersion = "20260930d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -10480,10 +10480,30 @@ ${calmPracticeMessage}`;
     const recognizedUser = !!featureSetupOwnIdentifier;
     const visitorMode = isVisitorLauncherEntry();
     const requiresInstallIdentity = !publicLandingMode.espProSpecialEditionEnabled;
+    const featureSetupClaimTitle = featureSetupClaimItem?.querySelector(".feature-setup-title");
+    const featureSetupClaimCopy = featureSetupClaimItem?.querySelector(".feature-setup-text");
+    const featureSetupGrid = featureSetupClaimItem?.parentElement;
+    if (featureSetupClaimTitle) {
+      featureSetupClaimTitle.textContent = recognizedUser ? "Change Unique Name" : "Claim Unique User Name";
+    }
+    if (featureSetupClaimCopy) {
+      featureSetupClaimCopy.textContent = recognizedUser
+        ? "Changing a unique name may involve a waiting period. Select CHANGE UNIQUE NAME for additional information."
+        : "Claiming a unique name allows you to practice telepathy with other recognized users and use all the features of this app.";
+    }
     if (featureSetupClaimStatus) {
       featureSetupClaimStatus.textContent = recognizedUser
         ? `Current unique name: ${featureSetupOwnIdentifier}`
         : "No unique name is currently recognized in this browser. If you have already registered a unique name in another browser or on another device, use this function to claim it here.";
+      featureSetupClaimStatus.hidden = recognizedUser;
+    }
+    if (featureSetupGrid && featureSetupClaimItem) {
+      // Claiming belongs first; changing an established name is a later setting.
+      if (recognizedUser) {
+        featureSetupGrid.append(featureSetupClaimItem);
+      } else {
+        featureSetupGrid.prepend(featureSetupClaimItem);
+      }
     }
     if (featureSetupClaimActionButton) {
       featureSetupClaimActionButton.textContent = recognizedUser ? "CHANGE UNIQUE NAME" : "CLAIM UNIQUE NAME";
@@ -12999,6 +13019,10 @@ ${calmPracticeMessage}`;
       return;
     }
     previewLevelExplanationFromCurrentLabel(normalizedRole);
+    // The Sender's selected exercise explanation stays visible while open.
+    if (normalizedRole === "sender") {
+      return;
+    }
     scheduleRoleLevelExplanationClear(normalizedRole);
   }
 
@@ -13063,6 +13087,14 @@ ${calmPracticeMessage}`;
     label.classList.remove("is-guided-preview");
     label.classList.add("is-guided-preview");
     showRoleLevelExplanation(role, level);
+    if (String(role || "").trim() === "sender") {
+      label.dataset.previewDelayTimer = "0";
+      label.dataset.previewClearTimer = String(window.setTimeout(() => {
+        label.classList.remove("is-guided-preview");
+        label.dataset.previewClearTimer = "0";
+      }, 2400));
+      return;
+    }
     label.dataset.previewDelayTimer = "0";
     label.dataset.previewClearTimer = String(window.setTimeout(() => {
       const stack = label.closest("[data-role-difficulty-stack]");
@@ -13079,6 +13111,21 @@ ${calmPracticeMessage}`;
       clearRoleLevelExplanation(role);
       label.dataset.previewClearTimer = "0";
     }, 2400));
+  }
+
+  async function previewReceiverSelectedExerciseBeforeSenderGo(level) {
+    const selectedLevel = normalizeDifficultyLevel(level);
+    const label = getDifficultyLabelElement("sender");
+    setRoleDifficultyLabel("sender", selectedLevel);
+    showRoleLevelExplanation("sender", selectedLevel);
+    label?.classList.add("is-guided-preview");
+    setRoleDifficultyStatus("sender", `Receiver selected: Exercise ${selectedLevel}`, {
+      prominent: true,
+      prominentDurationMs: 2600
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 2500));
+    label?.classList.remove("is-guided-preview");
+    setRoleDifficultyStatus("sender", "");
   }
 
   function markDifficultyAdjustment(role) {
@@ -14340,6 +14387,12 @@ ${calmPracticeMessage}`;
   async function syncDifficultyLabelForRole(role, options = {}) {
     const normalizedRole = String(role || "").trim();
     if (!normalizedRole) {
+      return "1";
+    }
+
+    // A guided tour always demonstrates Exercise 1, regardless of a prior local choice.
+    if (isLauncherGuidedTourLaunchState(normalizedRole)) {
+      setRoleDifficultyLabel(normalizedRole, "1");
       return "1";
     }
 
@@ -20122,6 +20175,10 @@ ${calmPracticeMessage}`;
     // that visitor's local Robot exercise selection.
     if (launcherGuestEntryActive || isAnonymousLauncherEntry()) {
       ["sender", "receiver", "remote-viewer"].forEach((role) => {
+        if (isLauncherGuidedTourLaunchState(role)) {
+          setRoleDifficultyLabel(role, "1");
+          return;
+        }
         const launcherState = readLauncherState();
         const context = getPairContextForRole(role);
         const robotFallbackLevel = context && isRobotSimulationIdentifier(context.partnerName)
@@ -20145,6 +20202,10 @@ ${calmPracticeMessage}`;
     const cache = new Map();
 
     for (const { role, context } of contexts) {
+      if (isLauncherGuidedTourLaunchState(role)) {
+        setRoleDifficultyLabel(role, "1");
+        continue;
+      }
       const launcherState = readLauncherState();
       const robotFallbackLevel = context && isRobotSimulationIdentifier(context.partnerName)
         ? getRobotSimulationDifficulty(role, context.ownName, launcherState)
@@ -22111,6 +22172,7 @@ ${calmPracticeMessage}`;
         ? (launcherGuidedTourState?.mode || (role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode))
         : guidedContinuationMode;
       const guidedTourReturnLaunch = !!activeGuidedTourMode;
+      let receiverSelectedDifficultyLevel = "";
       const preTourDifficultyLevel = normalizeDifficultyLevel(String(
         storedRoleDifficultyLevel ||
         getDifficultyLocalLevel(role) ||
@@ -22144,9 +22206,23 @@ ${calmPracticeMessage}`;
             window.alert(authorization.message || "This pair is not authorized for the current difficulty level.");
             return;
           }
+          receiverSelectedDifficultyLevel = normalizeDifficultyLevel(authorization?.difficultyLevel || "");
         } catch (error) {
           // If the authorization precheck fails, let the runtime/server make the final decision.
         }
+      }
+
+      // A real Sender follows the Receiver's current shared exercise. Show that
+      // selection briefly before the session continues, without requiring a second GO.
+      if (role === "sender" && receiverSelectedDifficultyLevel) {
+        selectedDifficultyLevel = receiverSelectedDifficultyLevel;
+        persistResolvedPairDifficultyForRole("sender", {
+          role: "sender",
+          ownName: canonicalOwnName,
+          partnerName: canonicalPartnerName,
+          sessionCode: pairSessionCode
+        }, selectedDifficultyLevel);
+        await previewReceiverSelectedExerciseBeforeSenderGo(selectedDifficultyLevel);
       }
 
       if (!guidedRobotSession) {
@@ -22697,7 +22773,7 @@ ${calmPracticeMessage}`;
       },
       {
         id: "level",
-        text: "The Level control at the upper right allows changing the difficulty of the telepathy task. This tour begins with Level 1, the simplest level.",
+        text: "The control at the upper right allows changing the telepathy exercise. This tour begins with Exercise 1, the simplest exercise.",
         target: elements.levelStack,
         allowNext: true,
         allowed: [],
@@ -23028,6 +23104,9 @@ ${calmPracticeMessage}`;
         partnerInput: elements.partnerInput,
         previousPartnerReadOnly
       };
+
+      // Keep the visible control aligned with the Exercise 1 session the tour launches.
+      setRoleDifficultyLabel(role, "1");
 
       updatePendingLearningCenterLessonReturnButtons();
       renderLauncherGuidedTourStep();
