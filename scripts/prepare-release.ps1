@@ -39,6 +39,7 @@ $deployFiles = @(
   "composer.json",
   "composer.lock",
   "clairvoyance_rv_page.jpg",
+  "esp-pro-og-preview.png",
   "content_repo\esp-lessons.txt",
   "content_repo\learn-more-clairvoyance.txt",
   "content_repo\learn-more-main.txt",
