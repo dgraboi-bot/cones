@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260930d";
+  const launcherBuildVersion = "20260930e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -13113,17 +13113,18 @@ ${calmPracticeMessage}`;
     }, 2400));
   }
 
-  async function previewReceiverSelectedExerciseBeforeSenderGo(level) {
+  async function previewReceiverSelectedExerciseBeforeSenderGo(level, exerciseChanged = false) {
     const selectedLevel = normalizeDifficultyLevel(level);
+    const previewDurationMs = exerciseChanged ? 10000 : 5000;
     const label = getDifficultyLabelElement("sender");
     setRoleDifficultyLabel("sender", selectedLevel);
     showRoleLevelExplanation("sender", selectedLevel);
     label?.classList.add("is-guided-preview");
     setRoleDifficultyStatus("sender", `Receiver selected: Exercise ${selectedLevel}`, {
       prominent: true,
-      prominentDurationMs: 2600
+      prominentDurationMs: previewDurationMs + 100
     });
-    await new Promise((resolve) => window.setTimeout(resolve, 2500));
+    await new Promise((resolve) => window.setTimeout(resolve, previewDurationMs));
     label?.classList.remove("is-guided-preview");
     setRoleDifficultyStatus("sender", "");
   }
@@ -22215,6 +22216,7 @@ ${calmPracticeMessage}`;
       // A real Sender follows the Receiver's current shared exercise. Show that
       // selection briefly before the session continues, without requiring a second GO.
       if (role === "sender" && receiverSelectedDifficultyLevel) {
+        const senderExerciseChanged = getDifficultyLocalLevel("sender") !== Number(receiverSelectedDifficultyLevel);
         selectedDifficultyLevel = receiverSelectedDifficultyLevel;
         persistResolvedPairDifficultyForRole("sender", {
           role: "sender",
@@ -22222,7 +22224,7 @@ ${calmPracticeMessage}`;
           partnerName: canonicalPartnerName,
           sessionCode: pairSessionCode
         }, selectedDifficultyLevel);
-        await previewReceiverSelectedExerciseBeforeSenderGo(selectedDifficultyLevel);
+        await previewReceiverSelectedExerciseBeforeSenderGo(selectedDifficultyLevel, senderExerciseChanged);
       }
 
       if (!guidedRobotSession) {

@@ -12764,10 +12764,8 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             $confirmation[$confirmationRole]['joined'] = true;
 
             // Two independently email-verified identities need no per-session visual confirmation.
-            $senderUsesVerifiedName = normalize_partner_confirmation_method($confirmation['sender']['method'] ?? '') === 'verified';
-            $receiverUsesVerifiedName = normalize_partner_confirmation_method($confirmation['receiver']['method'] ?? '') === 'verified';
+            // This remains true if a browser still has an older camera preference selected.
             if (!empty($confirmation['sender']['joined']) && !empty($confirmation['receiver']['joined'])
-                && $senderUsesVerifiedName && $receiverUsesVerifiedName
                 && get_identifier_recovery_email($state, $senderIdentifier) !== ''
                 && get_identifier_recovery_email($state, $receiverIdentifier) !== '') {
                 $confirmation['sender']['confirmed'] = true;

@@ -815,9 +815,13 @@ Required rule going forward:
 
 1. `prepare-release.ps1` computes SHA-256 hashes for the full authoritative deploy set and obtains one batched hash inventory of the current live set.
 2. The prepared manifest records the complete local and live hash boundary plus the exact `changed_deploy_files` list.
-3. `push-live.ps1` takes one new batched live hash inventory before changing anything. If any live file changed after preparation, it fails closed and requires a new preparation pass.
+3. `push-live.ps1` takes one new batched live hash inventory before changing anything. It fails closed for any unrecognized live-file hash. If an interrupted prior push has already applied a file and that file exactly matches the prepared local SHA-256, it safely resumes by leaving that file in place and promoting only the remaining prepared files.
 4. Only paths in `changed_deploy_files` are backed up, uploaded, promoted, and SHA-256 audited.
 5. Version-critical shell files must always appear in the changed list after a version bump; preparation fails if they do not.
+
+### Interrupted Push Recovery
+
+If a release process is interrupted after some files have already been promoted, do not rerun preparation or force an unverified overwrite. Run `push-live.ps1` again with the same prepared version. It accepts only two states for every live file: the prepared pre-release hash, or the prepared local release hash for a file listed in `changed_deploy_files`. Any third hash is treated as external drift and stops the release. Before resuming promotion, the helper snapshots every changed release file and performs its normal full SHA-256 audit.
 6. Managed private content is synchronized and audited only when its public source file is in the changed list.
 7. The release log must report both the changed-file count and the number of audited changed files.
 

@@ -447,17 +447,30 @@ if ($null -eq $manifest.changed_deploy_files) {
 }
 $deployFilesList = @($manifest.changed_deploy_files)
 $currentRemoteHashes = Get-RemoteDeployFileHashes @($manifest.deploy_files)
+$alreadyAppliedFiles = New-Object System.Collections.Generic.List[string]
 foreach ($relativePath in @($manifest.deploy_files)) {
   $remoteRelative = Convert-ToPosixPath ([string]$relativePath)
-  $expectedRemoteHash = [string]$preparedRemoteHashes[$remoteRelative]
-  $currentRemoteHash = [string]$currentRemoteHashes[$remoteRelative]
-  if ($currentRemoteHash -ne $expectedRemoteHash) {
-    throw "Live file drift detected for $relativePath after release preparation. Re-run prepare-release before pushing live."
+  $expectedRemoteHash = ([string]$preparedRemoteHashes[$remoteRelative]).ToUpperInvariant()
+  $expectedLocalHash = ([string]$localHashes[[string]$relativePath]).ToUpperInvariant()
+  $currentRemoteHash = ([string]$currentRemoteHashes[$remoteRelative]).ToUpperInvariant()
+  if ($currentRemoteHash -eq $expectedRemoteHash) {
+    continue
   }
+  if (($deployFilesList -contains $relativePath) -and $currentRemoteHash -eq $expectedLocalHash) {
+    $alreadyAppliedFiles.Add([string]$relativePath)
+    continue
+  }
+  throw "Live file drift detected for $relativePath after release preparation. Re-run prepare-release before pushing live."
 }
 
+if ($alreadyAppliedFiles.Count -gt 0) {
+  Write-ReleaseLog ("Resuming partial release; {0} file(s) already match the prepared release: {1}" -f $alreadyAppliedFiles.Count, ($alreadyAppliedFiles -join ", ")) "Yellow"
+}
+$deployFilesList = @($deployFilesList | Where-Object { $alreadyAppliedFiles -notcontains $_ })
+$snapshotFilesList = @($manifest.changed_deploy_files)
+
 $remoteDirs = @($snapshotRoot, $snapshotPath, $stageRoot)
-$relativeDirs = @($deployFilesList) |
+$relativeDirs = @($deployFilesList + $snapshotFilesList) |
   ForEach-Object { Split-Path -Parent ([string]$_) } |
   Where-Object { $_ -and $_ -ne "." } |
   Sort-Object -Unique
@@ -501,16 +514,23 @@ if ($vendorArchive) {
   Invoke-PlinkStep "tar -xzf '$remoteVendorArchivePath' -C '$stageRoot' && test -f '$stageRoot/vendor/autoload.php'" "extract staged vendor archive" -AllowEmptyOutput
 }
 
-Write-ReleaseLog ("Phase 3/6: promoting {0} staged files into live root" -f $deployFileCount) "Yellow"
+Write-ReleaseLog ("Phase 3/6: snapshotting {0} release files before promotion" -f $snapshotFilesList.Count) "Yellow"
+for ($index = 0; $index -lt $snapshotFilesList.Count; $index++) {
+  $relativePath = [string]$snapshotFilesList[$index]
+  $remoteRelative = Convert-ToPosixPath ([string]$relativePath)
+  $livePath = "$liveRoot/$remoteRelative"
+  $snapshotFilePath = "$snapshotPath/$remoteRelative"
+  Invoke-PlinkStep "if [ -f '$livePath' ]; then cp '$livePath' '$snapshotFilePath'; fi" ("snapshot existing live file {0}/{1}: {2}" -f ($index + 1), $snapshotFilesList.Count, $relativePath) -AllowEmptyOutput
+}
+
+Write-ReleaseLog ("Phase 4/6: promoting {0} staged files into live root" -f $deployFileCount) "Yellow"
 for ($index = 0; $index -lt $deployFileCount; $index++) {
   $relativePath = [string]$deployFilesList[$index]
   $remoteRelative = Convert-ToPosixPath ([string]$relativePath)
   $stagePath = "$stageRoot/$remoteRelative"
   $livePath = "$liveRoot/$remoteRelative"
-  $snapshotFilePath = "$snapshotPath/$remoteRelative"
   $liveDir = ($livePath -replace '/[^/]+$','')
   $tempLivePath = "$liveDir/.codex_stage_$Version-" + [IO.Path]::GetFileName($livePath)
-  Invoke-PlinkStep "if [ -f '$livePath' ]; then cp '$livePath' '$snapshotFilePath'; fi" ("snapshot existing live file {0}/{1}: {2}" -f ($index + 1), $deployFileCount, $relativePath) -AllowEmptyOutput
   Invoke-PlinkStep "cp '$stagePath' '$tempLivePath' && mv -f '$tempLivePath' '$livePath'" ("promote staged file {0}/{1}: {2}" -f ($index + 1), $deployFileCount, $relativePath) -AllowEmptyOutput
 }
 if ($vendorArchive) {
