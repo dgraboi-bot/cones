@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20260930f";
+  const runtimeBuildVersion = "20260930g";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -97,7 +97,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20260930f";
+  const launcherBuildVersion = "20260930g";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -159,6 +159,7 @@
   let receiverReady = false;
   let awaitingReceiverDone = false;
   let receiverChoiceOpen = false;
+  let clearInitialChoiceHover = null;
   let activeRound = null;
   let audioContext = null;
   let activeOscillator = null;
@@ -5424,6 +5425,32 @@
     return role === "receiver" ? choiceNodes : senderChoiceNodes;
   }
 
+  function armInitialChoiceHoverNeutrality(grid) {
+    clearInitialChoiceHover?.();
+    grid.classList.add("initial-choice-hover-neutral");
+
+    const clear = () => {
+      grid.classList.remove("initial-choice-hover-neutral");
+      document.removeEventListener("pointermove", onPointerMove, true);
+      grid.removeEventListener("pointerdown", onPointerDown, true);
+      if (clearInitialChoiceHover === clear) {
+        clearInitialChoiceHover = null;
+      }
+    };
+    const onPointerMove = (event) => {
+      if (event.pointerType === "mouse" || event.pointerType === "pen") {
+        clear();
+      }
+    };
+    const onPointerDown = () => {
+      clear();
+    };
+
+    clearInitialChoiceHover = clear;
+    document.addEventListener("pointermove", onPointerMove, true);
+    grid.addEventListener("pointerdown", onPointerDown, true);
+  }
+
   function showChoiceGrid() {
     const grid = arrangementNodes.get(getChoiceGridKey());
 
@@ -5441,6 +5468,7 @@
     updateChoiceGridLayout();
     showStage();
     grid.classList.add("visible");
+    armInitialChoiceHoverNeutrality(grid);
     updateSettingsGearVisibility();
     if (receiverMirrorPhase === "choices") {
       notifyGuidedReceiverTourPhase("choices");
@@ -5454,6 +5482,7 @@
       return;
     }
 
+    clearInitialChoiceHover?.();
     grid.classList.remove("visible");
     receiverChoiceOpen = false;
     updateSettingsGearVisibility();

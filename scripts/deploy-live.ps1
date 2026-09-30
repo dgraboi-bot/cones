@@ -26,6 +26,7 @@ if ($PrepareOnly -and $PushOnly) {
 
 $prepareScript = Join-Path $PSScriptRoot "prepare-release.ps1"
 $pushScript = Join-Path $PSScriptRoot "push-live.ps1"
+$monitorScript = Join-Path $PSScriptRoot "wait-live-release.ps1"
 
 function Invoke-PrepareRelease {
   $arguments = @(
@@ -49,11 +50,19 @@ function Invoke-PrepareRelease {
   return $exitCode
 }
 
+function Invoke-ReleaseMonitor {
+  & $powerShell7 -NoProfile -ExecutionPolicy Bypass -File $monitorScript -Version $Version
+  return $LASTEXITCODE
+}
+
 if (-not (Test-Path -LiteralPath $prepareScript)) {
   throw "Missing prepare script: $prepareScript"
 }
 if (-not (Test-Path -LiteralPath $pushScript)) {
   throw "Missing push script: $pushScript"
+}
+if (-not (Test-Path -LiteralPath $monitorScript)) {
+  throw "Missing release monitor script: $monitorScript"
 }
 
 if ($PrepareOnly) {
@@ -62,7 +71,11 @@ if ($PrepareOnly) {
 
 if ($PushOnly) {
   & $powerShell7 -NoProfile -ExecutionPolicy Bypass -File $pushScript -Version $Version
-  exit $LASTEXITCODE
+  $pushExitCode = $LASTEXITCODE
+  if ($pushExitCode -ne 0) {
+    exit $pushExitCode
+  }
+  exit (Invoke-ReleaseMonitor)
 }
 
 $prepareExitCode = Invoke-PrepareRelease
@@ -71,4 +84,8 @@ if ($prepareExitCode -ne 0) {
 }
 
 & $powerShell7 -NoProfile -ExecutionPolicy Bypass -File $pushScript -Version $Version
-exit $LASTEXITCODE
+$pushExitCode = $LASTEXITCODE
+if ($pushExitCode -ne 0) {
+  exit $pushExitCode
+}
+exit (Invoke-ReleaseMonitor)

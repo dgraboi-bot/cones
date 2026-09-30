@@ -12719,6 +12719,17 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             if ($selectedMethod === 'verified' && get_identifier_recovery_email($state, $canonicalOwn) === '') {
                 throw new RuntimeException('Choose live camera confirmation, or verify this unique name by email before starting a session.');
             }
+            $previousMethod = normalize_partner_confirmation_method($confirmation[$confirmationRole]['method'] ?? 'verified');
+            $confirmationExpired = (int) ($confirmation['expires_ms'] ?? 0) > 0
+                && (int) ($confirmation['expires_ms'] ?? 0) <= $nowMs;
+            $methodChangedForRole = !empty($confirmation[$confirmationRole]['joined'])
+                && $previousMethod !== $selectedMethod;
+            if (!empty($confirmation['completed_ms']) || $confirmationExpired || $methodChangedForRole) {
+                // A new GO attempt must not inherit a completed, expired, or
+                // differently configured confirmation from an earlier session.
+                clear_partner_confirmation_state($session);
+                $confirmation =& $session['partner_confirmation'];
+            }
             if ((int) ($confirmation['created_ms'] ?? 0) === 0) {
                 $confirmation['sender_identifier'] = $senderIdentifier;
                 $confirmation['receiver_identifier'] = $receiverIdentifier;
@@ -12729,9 +12740,11 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             $confirmation[$confirmationRole]['method'] = $selectedMethod;
             $confirmation[$confirmationRole]['joined'] = true;
 
-            // Two independently email-verified identities need no per-session visual confirmation.
-            // This remains true if a browser still has an older camera preference selected.
+            // Skip visual confirmation only when both participants selected email verification
+            // for this session. A current camera selection always requires a snapshot.
             if (!empty($confirmation['sender']['joined']) && !empty($confirmation['receiver']['joined'])
+                && normalize_partner_confirmation_method($confirmation['sender']['method'] ?? '') === 'verified'
+                && normalize_partner_confirmation_method($confirmation['receiver']['method'] ?? '') === 'verified'
                 && get_identifier_recovery_email($state, $senderIdentifier) !== ''
                 && get_identifier_recovery_email($state, $receiverIdentifier) !== '') {
                 $confirmation['sender']['confirmed'] = true;
@@ -12792,9 +12805,8 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             $nowMs,
             (string) ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1')
         );
-        // An email-verified pair never needs a visual confirmation panel. The
-        // first participant can enter the normal waiting screen before the
-        // second participant joins and completes the session.
+        // Tell a participant using email verification that the normal waiting
+        // screen may be used while the other email-verified participant joins.
         $partnerConfirmationPayload['email_verified_pair'] =
             get_identifier_recovery_email($state, $senderIdentifier) !== '' &&
             get_identifier_recovery_email($state, $receiverIdentifier) !== '';

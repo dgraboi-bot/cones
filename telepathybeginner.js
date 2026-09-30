@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260930f";
+  const launcherBuildVersion = "20260930g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -10422,7 +10422,8 @@ ${calmPracticeMessage}`;
     };
     const data = await postPartnerConfirmationRequest("begin_partner_confirmation", request);
     partnerConfirmationRestartRequired = false;
-    if (data?.partner_confirmation?.ready || data?.partner_confirmation?.email_verified_pair) {
+    const usesEmailVerification = request.method === "verified";
+    if (data?.partner_confirmation?.ready || (usesEmailVerification && data?.partner_confirmation?.email_verified_pair)) {
       // Email-verified pairs bypass the visual panel. The first participant
       // waits on the normal session screen; the second participant starts it.
       window.location.href = options.targetUrl;

@@ -841,12 +841,32 @@ powershell -ExecutionPolicy Bypass -File scripts\push-live.ps1 -Version 20260705
 
 Default rule:
 
-- prefer the one-command wrapper for ordinary releases: `scripts\deploy-live.ps1 -Version <release-version>`; it runs the required preparation and push stages in order
+- prefer the one-command wrapper for ordinary releases: `scripts\deploy-live.ps1 -Version <release-version>`; it runs the required preparation, push, and release-log monitoring stages in order
 - use the two-step helpers only when deliberately inspecting the prepared manifest between stages
 - `prepare-local-debug.ps1` is never a substitute for `prepare-release.ps1`
 - tell the user they may start live testing as soon as `push-live.ps1` finishes successfully
 - do not improvise a manual live push unless the helper is failing and the user needs an urgent exception
 - if a manual exception is ever used, fold the reason and the fix back into the helper and this runbook immediately afterward
+
+## Release Completion Monitoring
+
+Some Codex terminal executions can return control while the local PowerShell/SSH deployment worker is still running. That is a console-reporting artifact, not a failed release.
+
+Required rule going forward:
+
+1. start `scripts\deploy-live.ps1` only once for a release version
+2. after the command runner returns, always run the release-log monitor before judging the result or considering a retry
+3. never start another deployment while the monitor reports that the existing worker is still running
+4. report success only when the persistent log records both `Pushed prepared build <version>` and the live SHA-256 audit
+5. if the worker has stopped without those markers, inspect that exact log before taking any recovery action
+
+Standard monitor command:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\wait-live-release.ps1 -Version <release-version>
+```
+
+The monitor reads the authoritative logs under `C:\xampp\telepathyexperiment_private\cones\release-logs\`. It waits for a completed result, gives compact progress updates, and fails only when the release worker stopped without the required success record or the bounded wait expires.
 
 If a one-command flow is still desired, the wrapper remains valid:
 
