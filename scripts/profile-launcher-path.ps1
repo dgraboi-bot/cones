@@ -17,6 +17,7 @@ $plinkPath = "C:\Program Files\PuTTY\plink.exe"
 $puttySession = "DG Putty Settings"
 $nodeScriptPath = Join-Path $PSScriptRoot "measure-launcher-http.js"
 $resultsRoot = "C:\xampp\telepathyexperiment_private\cones\profiling\launcher-path"
+$profilingRetentionCount = 20
 $runStamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $runRoot = Join-Path $resultsRoot $runStamp
 $configRoot = Join-Path $runRoot "configs"
@@ -31,6 +32,19 @@ function Assert-ToolExists([string]$Path, [string]$Label) {
   if (-not (Test-Path -LiteralPath $Path)) {
     throw "Missing $Label at $Path"
   }
+}
+
+function Prune-ProfilingRuns {
+  $recognizedRuns = @(
+    Get-ChildItem -LiteralPath $resultsRoot -Directory -Force |
+      Where-Object { $_.Name -match '^\d{8}-\d{6}$' } |
+      Sort-Object LastWriteTime -Descending
+  )
+  $staleRuns = @($recognizedRuns | Select-Object -Skip $profilingRetentionCount)
+  foreach ($run in $staleRuns) {
+    Remove-Item -LiteralPath $run.FullName -Recurse -Force
+  }
+  return $staleRuns.Count
 }
 
 function New-StageSet([int[]]$Levels, [int]$Repetitions) {
@@ -104,6 +118,10 @@ $resolvedConcurrencyLevels = Resolve-ConcurrencyLevels -RawLevels $ConcurrencyLe
 
 New-Item -ItemType Directory -Force -Path $configRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $rawRoot | Out-Null
+$prunedRunCount = Prune-ProfilingRuns
+if ($prunedRunCount -gt 0) {
+  Write-Host ("Launcher profiling retention kept the newest {0} recognized runs and pruned {1}." -f $profilingRetentionCount, $prunedRunCount) -ForegroundColor DarkGreen
+}
 
 $rootUrl = "$Domain/"
 $directLauncherUrl = "$Domain/telepathybeginner.html?v=$Version&open=launcher"

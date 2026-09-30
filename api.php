@@ -10262,11 +10262,16 @@ function normalize_partner_confirmation_method($value): string
 function get_partner_confirmation_preference(array $state, string $identifier): string
 {
     $key = normalize_identifier_for_lookup($identifier);
+    if ($key === '') {
+        return '';
+    }
     $preferences = is_array($state['partner_confirmation_preferences'] ?? null)
         ? $state['partner_confirmation_preferences']
         : [];
-    $entry = is_array($preferences[$key] ?? null) ? $preferences[$key] : [];
-    return normalize_partner_confirmation_method($entry['method'] ?? 'verified');
+    if (!array_key_exists($key, $preferences) || !is_array($preferences[$key])) {
+        return '';
+    }
+    return normalize_partner_confirmation_method($preferences[$key]['method'] ?? 'verified');
 }
 
 function set_partner_confirmation_preference(array &$state, string $identifier, string $method, int $nowMs): void
@@ -12881,6 +12886,27 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             get_identifier_recovery_email($state, $senderIdentifier) !== '' &&
             get_identifier_recovery_email($state, $receiverIdentifier) !== '';
         $partnerConfirmationPayload['partner_preferred_method'] = $partnerPreferredMethod;
+        if ($action === 'begin_partner_confirmation') {
+            $confirmationTraceDetails = [
+                'own_identifier' => $canonicalOwn,
+                'partner_identifier' => $canonicalPartner,
+                'selected_method' => $selectedMethod,
+                'partner_preferred_method' => $partnerPreferredMethod,
+                'partner_preference_known' => $partnerPreferredMethod !== '',
+                'email_verified_pair' => !empty($partnerConfirmationPayload['email_verified_pair']),
+                'confirmation_ready' => !empty($partnerConfirmationPayload['ready']),
+                'exercise' => (string) ($partnerConfirmationPayload['exercise'] ?? '1')
+            ];
+            $confirmationTrace = [
+                'time_ms' => $nowMs,
+                'session_code' => $sessionCode,
+                'role' => $confirmationRole,
+                'label' => 'partner_confirmation_begin_decision',
+                'details' => $confirmationTraceDetails
+            ];
+            append_debug_log($debugLogFile, $debugEnabled, json_encode($confirmationTrace, JSON_UNESCAPED_SLASHES));
+            append_forced_trace($safetyLogFile, $safetyLogMaxBytes, $confirmationTrace);
+        }
         $response = ['ok' => true, 'partner_confirmation' => $partnerConfirmationPayload, 'server_now_ms' => $nowMs];
         rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
     } catch (Throwable $exception) {
@@ -14717,6 +14743,21 @@ if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
     );
     if ($action === 'set_pair_difficulty') {
         if (is_pair_exercise_locked($session)) {
+            $exerciseLockTrace = [
+                'time_ms' => $nowMs,
+                'session_code' => $sessionCode,
+                'role' => $role,
+                'label' => 'pair_difficulty_locked',
+                'details' => [
+                    'requested_exercise' => $requestedDifficultyLevel,
+                    'current_exercise' => (string) ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
+                    'sender_joined' => !empty($session['partner_confirmation']['sender']['joined']),
+                    'receiver_joined' => !empty($session['partner_confirmation']['receiver']['joined']),
+                    'frontend_build_version' => isset($input['frontend_build_version']) ? (string) $input['frontend_build_version'] : ''
+                ]
+            ];
+            append_debug_log($debugLogFile, $debugEnabled, json_encode($exerciseLockTrace, JSON_UNESCAPED_SLASHES));
+            append_forced_trace($safetyLogFile, $safetyLogMaxBytes, $exerciseLockTrace);
             fail_request($handle, $nowMs, 'Exercise is locked after a participant presses GO. Press BACK on both devices before choosing another exercise.', 409);
         }
         $pairDifficultyAccess = validate_pair_difficulty_access(

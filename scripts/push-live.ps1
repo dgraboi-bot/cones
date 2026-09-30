@@ -22,10 +22,24 @@ $stageRoot = "/home/ec2-user/espgym_stage_{0}" -f $Version
 $preparedReleaseRoot = "C:\xampp\telepathyexperiment_private\cones\release-prep"
 $preparedReleasePath = Join-Path $preparedReleaseRoot "prepared-release.json"
 $releaseLogRoot = "C:\xampp\telepathyexperiment_private\cones\release-logs"
+$releaseLogRetentionCount = 30
 $releaseLogStamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $releaseLogPath = Join-Path $releaseLogRoot ("push-live-{0}-{1}.log" -f $Version, $releaseLogStamp)
 
 New-Item -ItemType Directory -Force -Path $releaseLogRoot | Out-Null
+
+function Prune-LocalReleaseLogs {
+  $recognizedLogs = @(
+    Get-ChildItem -LiteralPath $releaseLogRoot -File -Force |
+      Where-Object { $_.Name -match '^push-live-[A-Za-z0-9][A-Za-z0-9._-]*-\d{8}-\d{6}\.log$' } |
+      Sort-Object LastWriteTime -Descending
+  )
+  $staleLogs = @($recognizedLogs | Select-Object -Skip $releaseLogRetentionCount)
+  foreach ($log in $staleLogs) {
+    Remove-Item -LiteralPath $log.FullName -Force
+  }
+  return $staleLogs.Count
+}
 
 function Write-ReleaseLog([string]$Message, [string]$Color = "Gray") {
   $timestamped = "[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"), $Message
@@ -403,6 +417,10 @@ Assert-ToolExists $plinkPath "plink"
 Assert-ToolExists $sshPrivateKeyPath "SSH private key"
 Write-ReleaseLog ("Starting live push for build {0}" -f $Version) "Cyan"
 Write-ReleaseLog ("Release log: {0}" -f $releaseLogPath) "DarkGray"
+$prunedReleaseLogCount = Prune-LocalReleaseLogs
+if ($prunedReleaseLogCount -gt 0) {
+  Write-ReleaseLog ("Local release-log retention kept the newest {0} recognized logs and pruned {1}." -f $releaseLogRetentionCount, $prunedReleaseLogCount) "DarkGreen"
+}
 
 if (-not (Test-Path -LiteralPath $preparedReleasePath)) {
   throw "Missing prepared release manifest: $preparedReleasePath"

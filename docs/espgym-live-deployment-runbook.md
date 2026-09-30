@@ -1641,3 +1641,25 @@ This section records release-process friction that did not fully break a deploym
 4. Large command output could obscure an actionable failure in a constrained terminal display.
    Hardening applied:
    the helper retains complete stdout and stderr in its release log, while a failure reported to the terminal includes only a bounded head-and-tail excerpt and the log path.
+
+## Production Debug Trace
+
+The local private runtime at `C:\xampp\telepathyexperiment_private\cones\` belongs to the local Apache development app. It is not the private runtime for `https://espgym.com`, so it cannot explain a session performed on the live site.
+
+For a read-only, authoritative production trace, use:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\read-live-debug.ps1 -SessionCode <sender__receiver>
+```
+
+For example, the session code for Sender `graboi` and Receiver `big bopper` is `bigbopper__graboi`.
+
+The helper reads only the bounded production safety trace through the same pinned SSH host key and private key used by the deployment helper. It does not deploy, modify logs, or alter server state. It includes confirmation-method decisions, exercise-lock rejections, exercise changes, and Sender preview timing.
+
+## Operational Log Retention
+
+Application-generated runtime logs are byte-capped: debug `512 KiB`, safety trace `50 KiB`, subscription-email `300 KiB`, and lesson-content audit `512 KiB`. Content auto-backups retain the newest eight copies per managed content file. Manually exported private backups are intentionally never removed automatically.
+
+Local deployment logs under `C:\xampp\telepathyexperiment_private\cones\release-logs\` retain the newest 30 recognized `push-live` logs. Launcher-path and mixed-load profiling each retain the newest 20 recognized run folders; unfamiliar folder names are preserved. Live release snapshots retain the newest eight recognized snapshots.
+
+On the live host, Apache and PHP-FPM use the system `logrotate` schedule: weekly rotation with four retained prior rotations. This was audited on 2026-09-30; the active logrotate timer was enabled and running.

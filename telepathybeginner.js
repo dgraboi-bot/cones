@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260930h";
+  const launcherBuildVersion = "20260930i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -10037,6 +10037,33 @@ ${calmPracticeMessage}`;
     await parseApiResponse(response, "Unable to save the partner confirmation method right now.");
   }
 
+  async function syncPartnerConfirmationMethodForIdentifier(identifier, role = "") {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier || isRobotSimulationIdentifier(cleanIdentifier)) {
+      return false;
+    }
+    const status = await fetchIdentifierStatus(cleanIdentifier);
+    if (!status?.formal_identity_exists) {
+      return false;
+    }
+    const canonicalIdentifier = String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier;
+    await savePartnerConfirmationMethod(canonicalIdentifier, getPartnerConfirmationMethod());
+    tracePartnerConfirmationMethod("method_synchronized", {
+      role: String(role || "").trim(),
+      identifier: canonicalIdentifier
+    });
+    return true;
+  }
+
+  async function syncPartnerConfirmationMethodForRole(role) {
+    const normalizedRole = String(role || "").trim();
+    if (normalizedRole !== "sender" && normalizedRole !== "receiver") {
+      return false;
+    }
+    const identifiers = readVisibleRoleIdentifiers(normalizedRole);
+    return syncPartnerConfirmationMethodForIdentifier(identifiers?.ownName, normalizedRole);
+  }
+
   function tracePartnerConfirmationMethod(label, details = {}) {
     const state = readLauncherState();
     traceLauncherClient(`partner_confirmation_method:${label}`, {
@@ -13135,6 +13162,11 @@ ${calmPracticeMessage}`;
   async function previewReceiverSelectedExerciseBeforeSenderGo(level, exerciseChanged = false) {
     const selectedLevel = normalizeDifficultyLevel(level);
     const previewDurationMs = exerciseChanged ? 10000 : 5000;
+    traceLauncherClient("sender_exercise_preview:start", {
+      selected_exercise: selectedLevel,
+      exercise_changed: !!exerciseChanged,
+      preview_duration_ms: previewDurationMs
+    });
     const label = getDifficultyLabelElement("sender");
     setRoleDifficultyLabel("sender", selectedLevel);
     showRoleLevelExplanation("sender", selectedLevel);
@@ -13146,6 +13178,11 @@ ${calmPracticeMessage}`;
     await new Promise((resolve) => window.setTimeout(resolve, previewDurationMs));
     label?.classList.remove("is-guided-preview");
     setRoleDifficultyStatus("sender", "");
+    traceLauncherClient("sender_exercise_preview:complete", {
+      selected_exercise: selectedLevel,
+      exercise_changed: !!exerciseChanged,
+      preview_duration_ms: previewDurationMs
+    });
   }
 
   function markDifficultyAdjustment(role) {
@@ -22174,6 +22211,14 @@ ${calmPracticeMessage}`;
         return;
       }
       const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
+      if (role === "sender" || role === "receiver") {
+        try {
+          await syncPartnerConfirmationMethodForIdentifier(canonicalOwnName, role);
+        } catch (_) {
+          // The server fails closed for an unsynchronized partner preference.
+          // Do not block a valid session when this best-effort sync is transiently unavailable.
+        }
+      }
       const storedRoleDifficultyLevel = normalizeDifficultyLevel(
         readRoleSettings(role).difficultyLevel ||
         readRoleSettings(role === "receiver" ? "sender" : role === "sender" ? "receiver" : role).difficultyLevel ||
@@ -22449,6 +22494,7 @@ ${calmPracticeMessage}`;
       if (activeForm) {
         void refreshPartnerAliasHistory(String(card.dataset.roleCard || ""), activeForm);
       }
+      void syncPartnerConfirmationMethodForRole(role).catch(() => {});
       void refreshRoleMessaging(role);
       void refreshRoleEspLesson(role, {
         sessionId: beginRoleLessonSession(role),
@@ -22502,6 +22548,7 @@ ${calmPracticeMessage}`;
     if (activeForm) {
       void refreshPartnerAliasHistory(role, activeForm);
     }
+    void syncPartnerConfirmationMethodForRole(role).catch(() => {});
     void refreshRoleMessaging(role);
     void refreshRoleEspLesson(role, {
       sessionId: beginRoleLessonSession(role),
