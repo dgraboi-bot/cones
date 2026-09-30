@@ -14,6 +14,12 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+$powerShell7Command = Get-Command pwsh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+$powerShell7 = $powerShell7Command.Source
+if (-not $powerShell7) {
+  throw "PowerShell 7 (pwsh) is required for reliable release preparation. Install PowerShell 7, then rerun this helper."
+}
+
 if ($PrepareOnly -and $PushOnly) {
   throw "Use only one of -PrepareOnly or -PushOnly."
 }
@@ -23,6 +29,7 @@ $pushScript = Join-Path $PSScriptRoot "push-live.ps1"
 
 function Invoke-PrepareRelease {
   $arguments = @(
+    "-NoProfile",
     "-ExecutionPolicy",
     "Bypass",
     "-File",
@@ -37,7 +44,7 @@ function Invoke-PrepareRelease {
   }
   # Send child output to the host, not the function pipeline. The caller
   # must receive only the numeric process exit code.
-  & powershell @arguments | Out-Host
+  & $powerShell7 @arguments | Out-Host
   $exitCode = $LASTEXITCODE
   return $exitCode
 }
@@ -54,7 +61,7 @@ if ($PrepareOnly) {
 }
 
 if ($PushOnly) {
-  & powershell -ExecutionPolicy Bypass -File $pushScript -Version $Version
+  & $powerShell7 -NoProfile -ExecutionPolicy Bypass -File $pushScript -Version $Version
   exit $LASTEXITCODE
 }
 
@@ -63,5 +70,5 @@ if ($prepareExitCode -ne 0) {
   exit $prepareExitCode
 }
 
-& powershell -ExecutionPolicy Bypass -File $pushScript -Version $Version
+& $powerShell7 -NoProfile -ExecutionPolicy Bypass -File $pushScript -Version $Version
 exit $LASTEXITCODE

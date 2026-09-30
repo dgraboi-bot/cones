@@ -784,6 +784,8 @@ The deployment flow is now intentionally split into two concrete stages:
 2. run only `-PrepareOnly`
 3. run only `-PushOnly`
 
+The wrapper resolves PowerShell 7 (`pwsh`) explicitly and starts both child stages with `-NoProfile`. Do not change it back to Windows PowerShell or a profile-loaded session: release preparation depends on consistent SHA-256 support and must not inherit machine-specific profile state.
+
 `prepare-release.ps1` owns the fast local/preflight work:
 
 1. perform the release-boundary audit
