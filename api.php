@@ -8501,16 +8501,6 @@ function prune_expired_temp_identity_state(
 
     foreach (array_keys($candidateKeys) as $lookupKey) {
         if (isset($protectedKeys[$lookupKey])) {
-            if ($debugEnabled && $debugLogFile !== '') {
-                append_debug_log(
-                    $debugLogFile,
-                    true,
-                    sprintf(
-                        '[temp-prune] keeping "%s": still protected by active session/session_registry.',
-                        $lookupKey
-                    )
-                );
-            }
             continue;
         }
 
@@ -8520,18 +8510,6 @@ function prune_expired_temp_identity_state(
 
         $updatedMs = get_temp_identifier_last_updated_ms($state, $lookupKey);
         if ($updatedMs > 0 && ($nowMs - $updatedMs) <= $retentionMs) {
-            if ($debugEnabled && $debugLogFile !== '') {
-                append_debug_log(
-                    $debugLogFile,
-                    true,
-                    sprintf(
-                        '[temp-prune] keeping "%s": updated %.1f minutes ago, retention %.1f minutes.',
-                        $lookupKey,
-                        (($nowMs - $updatedMs) / 60000),
-                        ($retentionMs / 60000)
-                    )
-                );
-            }
             continue;
         }
 
@@ -8553,18 +8531,6 @@ function prune_expired_temp_identity_state(
         unset($state['user_preferences'][$lookupKey]);
     }
 
-    if ($debugEnabled && $debugLogFile !== '') {
-        append_debug_log(
-            $debugLogFile,
-            true,
-            sprintf(
-                '[temp-prune] scan complete: candidates=%d protected=%d retention_minutes=%.1f.',
-                count($candidateKeys),
-                count($protectedKeys),
-                ($retentionMs / 60000)
-            )
-        );
-    }
 }
 
 function prune_expiring_temp_simulation_records(
@@ -8642,7 +8608,7 @@ function prune_expiring_temp_simulation_records(
         }
     }
 
-    if ($debugEnabled && $debugLogFile !== '') {
+    if ($debugEnabled && $debugLogFile !== '' && $prunedCount > 0) {
         append_debug_log(
             $debugLogFile,
             true,
@@ -12820,12 +12786,19 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             clear_partner_confirmation_state($session);
         }
         $session['updated_ms'] = $nowMs;
-        $response = ['ok' => true, 'partner_confirmation' => partner_confirmation_payload(
+        $partnerConfirmationPayload = partner_confirmation_payload(
             $session,
             $confirmationRole,
             $nowMs,
             (string) ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1')
-        ), 'server_now_ms' => $nowMs];
+        );
+        // An email-verified pair never needs a visual confirmation panel. The
+        // first participant can enter the normal waiting screen before the
+        // second participant joins and completes the session.
+        $partnerConfirmationPayload['email_verified_pair'] =
+            get_identifier_recovery_email($state, $senderIdentifier) !== '' &&
+            get_identifier_recovery_email($state, $receiverIdentifier) !== '';
+        $response = ['ok' => true, 'partner_confirmation' => $partnerConfirmationPayload, 'server_now_ms' => $nowMs];
         rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);

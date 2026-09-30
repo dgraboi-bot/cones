@@ -1617,3 +1617,7 @@ This section records release-process friction that did not fully break a deploym
 3. Successful version verification printed raw `grep` output in some cases and silent `Out-Null` behavior in others, which made the normal path noisy in one place and opaque in another.
    Hardening applied:
    the helper now logs concise success messages for normal release phases and keeps detailed command output in the release log artifact for later inspection.
+
+4. Large command output could obscure an actionable failure in a constrained terminal display.
+   Hardening applied:
+   the helper retains complete stdout and stderr in its release log, while a failure reported to the terminal includes only a bounded head-and-tail excerpt and the log path.

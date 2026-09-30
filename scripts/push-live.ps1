@@ -33,14 +33,26 @@ function Write-ReleaseLog([string]$Message, [string]$Color = "Gray") {
   Add-Content -LiteralPath $releaseLogPath -Value $timestamped -Encoding UTF8
 }
 
+function Get-TerminalOutputSummary([string]$Output, [int]$MaximumCharacters = 1600) {
+  $trimmed = $Output.Trim()
+  if ($trimmed.Length -le $MaximumCharacters) {
+    return $trimmed
+  }
+
+  $headLength = [Math]::Floor($MaximumCharacters / 2)
+  $tailLength = $MaximumCharacters - $headLength
+  return "{0}`n... output shortened for the terminal; see release log: {1} ...`n{2}" -f `
+    $trimmed.Substring(0, $headLength), $releaseLogPath, $trimmed.Substring($trimmed.Length - $tailLength)
+}
+
 function Format-ExternalFailureMessage([string]$ToolName, [string]$StepLabel, [int]$ExitCode, [string]$StdErr, [string]$StdOut) {
   $parts = New-Object System.Collections.Generic.List[string]
   $parts.Add("$ToolName failed during $StepLabel with exit code $ExitCode.")
   if ($StdErr.Trim()) {
-    $parts.Add("stderr: $($StdErr.Trim())")
+    $parts.Add("stderr: $(Get-TerminalOutputSummary $StdErr)")
   }
   if ($StdOut.Trim()) {
-    $parts.Add("stdout: $($StdOut.Trim())")
+    $parts.Add("stdout: $(Get-TerminalOutputSummary $StdOut)")
   }
   return ($parts -join " ")
 }
