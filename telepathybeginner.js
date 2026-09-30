@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260929n";
+  const launcherBuildVersion = "20260930a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -19602,7 +19602,7 @@ ${calmPracticeMessage}`;
       });
       const title = createSvgElement("title");
       const localDateTime = [String(point.localDate || "").trim(), String(point.localTime || "").trim()].filter(Boolean).join(" ");
-      title.textContent = `Session ${point.sessionNumber} | ${localDateTime || "Unknown time"} | Level ${point.level} | Score ${point.scoreLabel}`;
+      title.textContent = `Session ${point.sessionNumber} | ${localDateTime || "Unknown time"} | Exercise ${point.level} | Score ${point.scoreLabel}`;
       circle.appendChild(title);
       visualizationChart.appendChild(circle);
     });
