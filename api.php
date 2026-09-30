@@ -1071,7 +1071,7 @@ function delete_user_identity_record(array &$state, string $identifier): array
     $deletedPairFiles = delete_identity_pair_storage($pairsDir, $identityKeys) + delete_identity_pair_storage($simulationPairsDir, $identityKeys);
     $deletedQuestionnaires = delete_identity_questionnaire_records($questionnaireResponsesDir, $identityKeys);
 
-    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
+    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'partner_confirmation_preferences', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
         if (!is_array($state[$bucket] ?? null)) {
             continue;
         }
@@ -10259,6 +10259,40 @@ function normalize_partner_confirmation_method($value): string
     return trim(strtolower((string) $value)) === 'camera' ? 'camera' : 'verified';
 }
 
+function get_partner_confirmation_preference(array $state, string $identifier): string
+{
+    $key = normalize_identifier_for_lookup($identifier);
+    $preferences = is_array($state['partner_confirmation_preferences'] ?? null)
+        ? $state['partner_confirmation_preferences']
+        : [];
+    $entry = is_array($preferences[$key] ?? null) ? $preferences[$key] : [];
+    return normalize_partner_confirmation_method($entry['method'] ?? 'verified');
+}
+
+function set_partner_confirmation_preference(array &$state, string $identifier, string $method, int $nowMs): void
+{
+    $key = normalize_identifier_for_lookup($identifier);
+    if ($key === '') {
+        return;
+    }
+    if (!is_array($state['partner_confirmation_preferences'] ?? null)) {
+        $state['partner_confirmation_preferences'] = [];
+    }
+    $state['partner_confirmation_preferences'][$key] = [
+        'method' => normalize_partner_confirmation_method($method),
+        'updated_ms' => $nowMs
+    ];
+}
+
+function is_pair_exercise_locked(array $session): bool
+{
+    $confirmation = is_array($session['partner_confirmation'] ?? null)
+        ? $session['partner_confirmation']
+        : [];
+    return (int) ($confirmation['created_ms'] ?? 0) > 0
+        && (!empty($confirmation['sender']['joined']) || !empty($confirmation['receiver']['joined']));
+}
+
 function normalize_partner_confirmation_snapshot($value): string
 {
     $snapshot = trim((string) $value);
@@ -11298,6 +11332,7 @@ if (!is_array($state)) {
         'session_registry' => [],
         'pair_difficulties' => [],
         'launcher_profiles' => [],
+        'partner_confirmation_preferences' => [],
         'unique_handles' => [],
         'identifier_aliases' => [],
         'user_types' => [],
@@ -11345,6 +11380,7 @@ if (!array_key_exists('sessions', $state)) {
         'session_registry' => [],
         'pair_difficulties' => [],
         'launcher_profiles' => [],
+        'partner_confirmation_preferences' => [],
         'unique_handles' => [],
         'identifier_aliases' => [],
         'user_types' => [],
@@ -11394,6 +11430,9 @@ if (!is_array($state['pair_difficulties'] ?? null)) {
 }
 if (!is_array($state['launcher_profiles'] ?? null)) {
     $state['launcher_profiles'] = [];
+}
+if (!is_array($state['partner_confirmation_preferences'] ?? null)) {
+    $state['partner_confirmation_preferences'] = [];
 }
 if (!array_key_exists('admin_lock', $state)) {
     $state['admin_lock'] = null;
@@ -12676,6 +12715,32 @@ if ($action === 'get_identifier_status') {
     respond_json_and_close($handle, $response);
 }
 
+if ($action === 'set_partner_confirmation_preference') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'method'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        if (!formal_identifier_exists($state, $identifier)) {
+            throw new RuntimeException('First claim an accepted unique name before choosing partner confirmation.');
+        }
+        $status = get_identifier_status($state, $identifier);
+        $canonicalIdentifier = trim((string) ($status['preferred_identifier'] ?? $identifier));
+        $method = normalize_partner_confirmation_method($input['method'] ?? 'verified');
+        if ($method === 'verified' && get_identifier_recovery_email($state, $canonicalIdentifier) === '') {
+            throw new RuntimeException('Verify this unique name by email before selecting email verification.');
+        }
+        set_partner_confirmation_preference($state, $canonicalIdentifier, $method, $nowMs);
+        $response = [
+            'ok' => true,
+            'identifier' => $canonicalIdentifier,
+            'partner_confirmation_method' => $method,
+            'server_now_ms' => $nowMs
+        ];
+        rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+}
+
 if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation', 'submit_partner_confirmation_snapshot', 'clear_partner_confirmation_snapshot', 'approve_partner_confirmation', 'cancel_partner_confirmation'], true)) {
     try {
         $allowedKeys = ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier', 'method'];
@@ -12730,6 +12795,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
                 clear_partner_confirmation_state($session);
                 $confirmation =& $session['partner_confirmation'];
             }
+            set_partner_confirmation_preference($state, $canonicalOwn, $selectedMethod, $nowMs);
             if ((int) ($confirmation['created_ms'] ?? 0) === 0) {
                 $confirmation['sender_identifier'] = $senderIdentifier;
                 $confirmation['receiver_identifier'] = $receiverIdentifier;
@@ -12807,9 +12873,14 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
         );
         // Tell a participant using email verification that the normal waiting
         // screen may be used while the other email-verified participant joins.
+        $partnerPreferredMethod = get_partner_confirmation_preference($state, $canonicalPartner);
         $partnerConfirmationPayload['email_verified_pair'] =
+            normalize_partner_confirmation_method($input['method'] ?? 'verified') === 'verified'
+            && $partnerPreferredMethod === 'verified'
+            &&
             get_identifier_recovery_email($state, $senderIdentifier) !== '' &&
             get_identifier_recovery_email($state, $receiverIdentifier) !== '';
+        $partnerConfirmationPayload['partner_preferred_method'] = $partnerPreferredMethod;
         $response = ['ok' => true, 'partner_confirmation' => $partnerConfirmationPayload, 'server_now_ms' => $nowMs];
         rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
     } catch (Throwable $exception) {
@@ -14645,6 +14716,9 @@ if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
             : ($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1')
     );
     if ($action === 'set_pair_difficulty') {
+        if (is_pair_exercise_locked($session)) {
+            fail_request($handle, $nowMs, 'Exercise is locked after a participant presses GO. Press BACK on both devices before choosing another exercise.', 409);
+        }
         $pairDifficultyAccess = validate_pair_difficulty_access(
             $state,
             $pairParticipants['receiver_name'] ?? '',
@@ -14715,7 +14789,8 @@ if (($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') && 
         'sender_type' => $senderNameForDifficulty !== '' ? get_effective_difficulty_user_type_for_identifier($state, $senderNameForDifficulty) : 'standard',
         'max_allowed_difficulty_level' => ($receiverNameForDifficulty !== '' && $senderNameForDifficulty !== '')
             ? get_pair_max_difficulty_level($state, $receiverNameForDifficulty, $senderNameForDifficulty)
-            : '3'
+            : '3',
+        'exercise_locked' => is_pair_exercise_locked($session)
     ];
 }
 

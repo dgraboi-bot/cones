@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260930g";
+  const launcherBuildVersion = "20260930h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -10018,6 +10018,23 @@ ${calmPracticeMessage}`;
     const state = readLauncherState();
     state.partnerConfirmationMethod = String(method || "").trim().toLowerCase() === "camera" ? "camera" : "verified";
     writeLauncherState(state);
+  }
+
+  async function savePartnerConfirmationMethod(identifier, method) {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier) {
+      return;
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "set_partner_confirmation_preference",
+        identifier: cleanIdentifier,
+        method: String(method || "").trim().toLowerCase() === "camera" ? "camera" : "verified"
+      })
+    });
+    await parseApiResponse(response, "Unable to save the partner confirmation method right now.");
   }
 
   function tracePartnerConfirmationMethod(label, details = {}) {
@@ -26895,6 +26912,16 @@ ${calmPracticeMessage}`;
         activeDifficultyRole: pairContext.role
       }, pairParticipants);
       const currentLevel = Number(normalizeDifficultyLevel(currentData?.pair_difficulty));
+      if ((role === "sender" || role === "receiver") && currentData?.pair_difficulty_meta?.exercise_locked) {
+        setRoleDifficultyStatus(
+          role,
+          "Exercise is locked after a participant presses GO. Press BACK on both devices before choosing another exercise.",
+          { prominent: false }
+        );
+        setRoleDifficultyLabel(role, String(currentLevel));
+        scheduleGuidedLevelExplanation(role, String(currentLevel));
+        return;
+      }
       const maxAllowedLevel = getRoleMaxDifficultyLevel(role, currentData);
       const nextLevel = getNextExerciseLevel(role, currentLevel, delta, maxAllowedLevel);
 
@@ -34650,6 +34677,19 @@ ${calmPracticeMessage}`;
           }
           return;
         }
+      }
+      const currentIdentifier = String(
+        featureSetupOwnIdentifier || getCanonicalRecognizedIdentity(readLauncherState()) || ""
+      ).trim();
+      try {
+        await savePartnerConfirmationMethod(currentIdentifier, method);
+      } catch (error) {
+        if (partnerConfirmationMethodStatus) {
+          partnerConfirmationMethodStatus.textContent = error instanceof Error
+            ? error.message
+            : "Unable to save the partner confirmation method right now.";
+        }
+        return;
       }
       setPartnerConfirmationMethod(method);
       tracePartnerConfirmationMethod("method_selected", {
