@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001f";
+  const launcherBuildVersion = "20261001g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -13063,6 +13063,10 @@ ${calmPracticeMessage}`;
   }
 
   function clearRoleLevelExplanation(role) {
+    // Clairvoyance keeps the selected exercise explanation visible while its panel is open.
+    if (String(role || "").trim() === "remote-viewer") {
+      return;
+    }
     if (isRoleMessageAreaVisible(role)) {
       return;
     }
@@ -32922,7 +32926,7 @@ ${calmPracticeMessage}`;
 
     const okButton = document.createElement("button");
     okButton.type = "button";
-    okButton.className = "confidence-button";
+    okButton.className = "confidence-button covered-screen-instruction-ok";
     okButton.textContent = "OK";
 
     actions.append(okButton);

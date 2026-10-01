@@ -157,6 +157,7 @@ body[data-guided-tour-active="1"] .settings-gear {
   place-items: center;
   padding: 20px;
   background: rgba(0, 0, 0, 0.62);
+  pointer-events: auto;
 }
 
 .covered-screen-runtime-instruction-backdrop.hidden {
@@ -164,12 +165,15 @@ body[data-guided-tour-active="1"] .settings-gear {
 }
 
 .covered-screen-runtime-instruction-modal {
+  position: relative;
+  z-index: 1;
   width: min(620px, 100%);
   padding: 24px 24px 22px;
   border-radius: 24px;
   border: 1px solid rgba(118, 171, 255, 0.45);
   background: linear-gradient(180deg, rgba(18, 28, 52, 0.98), rgba(13, 20, 37, 0.98));
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+  pointer-events: auto;
 }
 
 .covered-screen-runtime-instruction-title {
@@ -195,6 +199,8 @@ body[data-guided-tour-active="1"] .settings-gear {
   gap: 10px;
   margin-top: 18px;
   color: rgba(246, 243, 239, 0.95);
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .covered-screen-runtime-instruction-actions {
@@ -203,6 +209,32 @@ body[data-guided-tour-active="1"] .settings-gear {
   gap: 16px;
   margin-top: 22px;
   flex-wrap: wrap;
+}
+
+/* Match the launcher acknowledgement with the runtime's blue primary action controls. */
+.covered-screen-runtime-instruction-actions .covered-screen-runtime-instruction-ok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 160px);
+  min-height: 48px;
+  margin: 0;
+  padding: 10px 20px;
+  border: 1px solid rgba(118, 171, 255, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(64, 123, 230, 0.95), rgba(30, 86, 186, 0.95));
+  box-shadow: 0 8px 18px rgba(24, 66, 140, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.covered-screen-runtime-instruction-actions .covered-screen-runtime-instruction-ok:hover,
+.covered-screen-runtime-instruction-actions .covered-screen-runtime-instruction-ok:focus-visible {
+  outline: none;
+  background: linear-gradient(180deg, rgba(79, 139, 245, 0.98), rgba(39, 97, 201, 0.98));
 }
 
 .guided-tour-runtime-exit-row {

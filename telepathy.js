@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001f";
+  const runtimeBuildVersion = "20261001g";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -100,7 +100,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001f";
+  const launcherBuildVersion = "20261001g";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -619,6 +619,10 @@
     const viewportHeight = stage?.closest(".screen")?.clientHeight || window.innerHeight || 720;
     const stageRect = stage?.getBoundingClientRect();
     const countdownRect = countdownBox?.getBoundingClientRect();
+    const activeChoiceGrid = step?.target instanceof Element
+      ? step.target.closest(".image-pair-grid, .choice-grid, .level-one-choice-grid")
+      : null;
+    const activeChoiceGridRect = activeChoiceGrid?.getBoundingClientRect();
 
     let width = 320;
     let left = 20;
@@ -645,6 +649,13 @@
         left = Math.max(16, Math.round(((stageRect?.left || 0) + ((stageRect?.width || viewportWidth) - width) / 2)));
         top = Math.max(16, Math.round((stageRect?.top || 0) + 8));
         break;
+      case "stage-below-choice-grid":
+        width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.5), 320), 500);
+        left = Math.max(16, Math.round(((stageRect?.left || 0) + ((stageRect?.width || viewportWidth) - width) / 2)));
+        top = activeChoiceGridRect
+          ? Math.round(activeChoiceGridRect.bottom + 16)
+          : Math.max(16, Math.round((stageRect?.top || 0) + ((stageRect?.height || viewportHeight) * 0.7)));
+        break;
       case "result-right-inline":
         width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.3), 220), 360);
         left = Math.max(16, Math.round((stageRect?.left || 0) + ((stageRect?.width || viewportWidth) * 0.56) - 60));
@@ -668,9 +679,10 @@
         break;
     }
 
+    const balloonHeight = Math.max(140, guidedTourBalloon.offsetHeight || 0);
     guidedTourBalloon.style.width = `${width}px`;
     guidedTourBalloon.style.left = `${Math.min(Math.max(16, left), Math.max(16, viewportWidth - width - 16))}px`;
-    guidedTourBalloon.style.top = `${Math.min(Math.max(16, top), Math.max(16, viewportHeight - 140))}px`;
+    guidedTourBalloon.style.top = `${Math.min(Math.max(16, top), Math.max(16, viewportHeight - balloonHeight - 16))}px`;
     guidedTourBalloon.style.right = "auto";
     guidedTourBalloon.style.bottom = "auto";
   }
@@ -845,6 +857,14 @@
     }
 
     if (phase === "waiting-online") {
+      // Covered Screen has no human sender to wait for; its brief preparation state is not a tour step.
+      if (isRemoteViewerCoveredMode) {
+        guidedReceiverTourState.waitingOnlineAcknowledged = true;
+        guidedReceiverTourState.step = null;
+        guidedTourOverlay?.classList.add("hidden");
+        setGuidedReceiverTourHint("");
+        return;
+      }
       if (guidedReceiverTourState.waitingOnlineAcknowledged) {
         return;
       }
@@ -870,7 +890,9 @@
       }
       setGuidedReceiverTourStep({
         id: "ready",
-        text: "When the sender is ready, this prompt appears. Tap it when you are ready to begin receiving.",
+        text: isRemoteViewerCoveredMode
+          ? "Tap the message below when you are ready to begin receiving."
+          : "When the sender is ready, this prompt appears. Tap it when you are ready to begin receiving.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: false,
@@ -884,7 +906,7 @@
       setGuidedReceiverTourStep({
         id: "receiving-intro",
         text: isRemoteViewerCoveredMode
-          ? "At the end of the countdown, a short beep marks the start of the period at which an image is displayed on the screen. This is the time to be clairvoyantly viewing new visual information in your mind's eye."
+          ? "At the end of the countdown, a short beep marks the start of the period at which an image is displayed on the screen. You are assumed to have covered the screen with a piece of cloth or cardboard so as to hide this image. When the beep is heard, this is a good time to be clairvoyantly viewing visual information in your mind's eye. But because time does not always work the way one might expect, that information might have appeared to you before the image actually displayed!"
           : "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind's eye at this time. The beep marks the time that an image appears before the sender's eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is a good time to start looking for new visual information in your mind's eye.",
         target: countdownBox,
         keepTargetBright: true,
@@ -917,7 +939,7 @@
         showNext: false,
         allowed: () => getGuidedReceiverTourCorrectChoiceNodes(),
         allowTargetByDefault: false,
-        placement: "stage-top-center"
+        placement: "stage-below-choice-grid"
       });
       return;
     }
@@ -1120,6 +1142,7 @@
   });
 
   let guidedReceiverTourBalloonDrag = null;
+  let guidedReceiverTourBalloonDragSuppressClickUntil = 0;
 
   guidedTourBalloon?.addEventListener("pointerdown", (event) => {
     if (!guidedReceiverTourState) {
@@ -1133,7 +1156,10 @@
     guidedReceiverTourBalloonDrag = {
       pointerId: event.pointerId,
       offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top
+      offsetY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false
     };
     guidedTourBalloon.setPointerCapture?.(event.pointerId);
     event.preventDefault();
@@ -1142,6 +1168,12 @@
   guidedTourBalloon?.addEventListener("pointermove", (event) => {
     if (!guidedReceiverTourBalloonDrag || !guidedReceiverTourState || guidedReceiverTourBalloonDrag.pointerId !== event.pointerId) {
       return;
+    }
+    if (Math.hypot(
+      event.clientX - guidedReceiverTourBalloonDrag.startX,
+      event.clientY - guidedReceiverTourBalloonDrag.startY
+    ) > 3) {
+      guidedReceiverTourBalloonDrag.moved = true;
     }
     const rect = guidedTourBalloon.getBoundingClientRect();
     const viewportWidth = stage?.closest(".screen")?.clientWidth || window.innerWidth || 1280;
@@ -1168,12 +1200,23 @@
     guidedTourBalloon.style.bottom = "auto";
   });
 
-  const clearGuidedReceiverTourBalloonDrag = () => {
+  const clearGuidedReceiverTourBalloonDrag = (event) => {
+    if (event?.type === "pointerup" && guidedReceiverTourBalloonDrag?.moved) {
+      // Browsers can synthesize a click after dragging; do not let that activate a tour control.
+      guidedReceiverTourBalloonDragSuppressClickUntil = Date.now() + 350;
+    }
     guidedReceiverTourBalloonDrag = null;
   };
 
   guidedTourBalloon?.addEventListener("pointerup", clearGuidedReceiverTourBalloonDrag);
   guidedTourBalloon?.addEventListener("pointercancel", clearGuidedReceiverTourBalloonDrag);
+  guidedTourBalloon?.addEventListener("click", (event) => {
+    if (Date.now() >= guidedReceiverTourBalloonDragSuppressClickUntil) {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
   document.addEventListener("click", (event) => {
     if (!guidedReceiverTourState) {
       return;
@@ -1219,11 +1262,11 @@
       return;
     }
 
-    if (target.closest("button, [role=\"button\"], a, input, select, textarea")) {
-      event.preventDefault();
-      event.stopPropagation();
-      setGuidedReceiverTourHint(getGuidedReceiverTourBlockedHint(currentStep));
-    }
+    // During a guided step, only the highlighted control may receive input.
+    // This also blocks Covered Screen's underlying "tap anywhere" completion handler.
+    event.preventDefault();
+    event.stopPropagation();
+    setGuidedReceiverTourHint(getGuidedReceiverTourBlockedHint(currentStep));
   }, true);
 
   function readLauncherVisitorDisplayName(preferredRole = role) {
@@ -3725,6 +3768,7 @@
 
     const overlay = document.createElement("div");
     overlay.className = "covered-screen-runtime-instruction-backdrop hidden";
+    overlay.setAttribute("data-covered-screen-runtime-instruction-overlay", "");
 
     const dialog = document.createElement("section");
     dialog.className = "covered-screen-runtime-instruction-modal";
@@ -3758,7 +3802,7 @@
 
     const okButton = document.createElement("button");
     okButton.type = "button";
-    okButton.className = "confidence-button";
+    okButton.className = "confidence-button covered-screen-runtime-instruction-ok";
     okButton.textContent = "OK";
 
     actions.append(okButton);
@@ -3783,6 +3827,13 @@
     };
 
     okButton.addEventListener("click", () => closeOverlay(true));
+    // Keep the in-session confirmation isolated from the covered-screen tap-to-clear input.
+    overlay.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    overlay.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
     dialog.addEventListener("click", (event) => {
       event.stopPropagation();
     });
@@ -8174,7 +8225,7 @@
         (currentUiMode === "receiver-done" || currentUiMode === "receiver-reveal")
       ) {
         const target = event.target instanceof Element ? event.target : null;
-        if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon")) {
+        if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon, .guided-tour-runtime-balloon, [data-covered-screen-runtime-instruction-overlay]")) {
           return;
         }
         noteUserInteraction();
@@ -8192,7 +8243,7 @@
         return;
       }
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon")) {
+      if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon, .guided-tour-runtime-balloon, [data-covered-screen-runtime-instruction-overlay]")) {
         return;
       }
       if (event.defaultPrevented) {

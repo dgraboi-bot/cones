@@ -4311,6 +4311,31 @@ body.lesson-image-overlay-open {
   flex-wrap: wrap;
 }
 
+/* Keep the Covered Screen acknowledgement consistent with the app's primary action buttons. */
+.covered-screen-instruction-actions .covered-screen-instruction-ok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 160px);
+  min-height: 48px;
+  margin: 0;
+  padding: 10px 20px;
+  border: 1px solid var(--brand-border);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--brand-top), var(--brand-bottom));
+  box-shadow: 0 8px 18px var(--brand-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.covered-screen-instruction-actions .covered-screen-instruction-ok:hover,
+.covered-screen-instruction-actions .covered-screen-instruction-ok:focus-visible {
+  outline: none;
+  background: linear-gradient(180deg, var(--brand-top-hover), var(--brand-bottom-hover));
+}
+
 .named-report-modal-summary {
   margin-top: 12px;
   padding: 14px 16px;
@@ -5618,7 +5643,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261001f") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261001g") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
