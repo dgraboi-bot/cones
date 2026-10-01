@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001e";
+  const launcherBuildVersion = "20261001f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -40,8 +40,9 @@
   const robotSimulationIdentifier = "Robot";
   const anonymousVisitorDisplayName = "Anonymous Visitor";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
-  const defaultHandleDialogTitle = "Choose Unique Name For Use In This Browser";
-  const defaultHandleDialogIntro = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of Telepathy Beginner or ESP PRO.";
+  const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
+  const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
+  const defaultHandleDialogIntroAfterPrivacyLink = ").";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore other exercises by changing the exercise and pressing GO.";
@@ -748,6 +749,7 @@
   let aboutReturnView = "help";
   let aboutReturnScrollY = 0;
   let aboutOpenSection = "";
+  let handlePrivacyReturnView = "launcher";
   let researchParticipationReturnView = "options";
   let researchParticipationReturnScrollY = 0;
   let researchProposalReturnView = "research-participation";
@@ -9071,9 +9073,7 @@ ${calmPracticeMessage}`;
     if (handleDialogTitle) {
       handleDialogTitle.textContent = defaultHandleDialogTitle;
     }
-    if (handleIntro) {
-      handleIntro.textContent = defaultHandleDialogIntro;
-    }
+    renderDefaultHandleDialogIntro();
     if (submitHandleButton) {
       submitHandleButton.textContent = "SUBMIT";
     }
@@ -9085,6 +9085,42 @@ ${calmPracticeMessage}`;
       handleInput.value = "";
     }
     setFeatureSetupBackButtonTemporarilyHidden(true);
+    handleOverlay?.classList.remove("beginner-view-hidden");
+    handleInput?.focus();
+  }
+
+  function renderDefaultHandleDialogIntro() {
+    if (!handleIntro) {
+      return;
+    }
+    handleIntro.textContent = defaultHandleDialogIntroBeforePrivacyLink;
+    const privacyLink = document.createElement("a");
+    privacyLink.className = "about-section-link";
+    privacyLink.href = "#";
+    privacyLink.dataset.openHandlePrivacy = "";
+    privacyLink.textContent = "privacy policy";
+    handleIntro.append(privacyLink, document.createTextNode(defaultHandleDialogIntroAfterPrivacyLink));
+  }
+
+  function openHandlePrivacyPolicy() {
+    handlePrivacyReturnView = isBeginnerViewVisible(featureSetupView) ? "feature-setup" : "launcher";
+    handleOverlay?.classList.add("beginner-view-hidden");
+    showAboutView({
+      returnView: "handle-overlay",
+      section: "privacy"
+    });
+  }
+
+  function returnToHandleOverlayFromPrivacy() {
+    if (handlePrivacyReturnView === "feature-setup") {
+      showFeatureSetupView({
+        role: featureSetupReturnRole || activeLauncherRole || "sender",
+        returnView: featureSetupReturnView || "card",
+        scrollY: featureSetupReturnScrollY
+      });
+    } else {
+      showLauncherView();
+    }
     handleOverlay?.classList.remove("beginner-view-hidden");
     handleInput?.focus();
   }
@@ -13092,8 +13128,8 @@ ${calmPracticeMessage}`;
       return;
     }
     previewLevelExplanationFromCurrentLabel(normalizedRole);
-    // The Sender's selected exercise explanation stays visible while open.
-    if (normalizedRole === "sender") {
+    // Sender and Clairvoyance exercise explanations stay visible while open.
+    if (normalizedRole === "sender" || normalizedRole === "remote-viewer") {
       return;
     }
     scheduleRoleLevelExplanationClear(normalizedRole);
@@ -13126,7 +13162,7 @@ ${calmPracticeMessage}`;
 
   function scheduleRoleLevelExplanationClear(role, delayMs = roleLevelPreviewGraceMs) {
     const normalizedRole = String(role || "").trim();
-    if (!normalizedRole) {
+    if (!normalizedRole || normalizedRole === "sender" || normalizedRole === "remote-viewer") {
       return;
     }
     clearRoleLevelPreviewClearTimer(normalizedRole);
@@ -32250,6 +32286,10 @@ ${calmPracticeMessage}`;
   }
 
   function closeAboutViewToOrigin() {
+    if (aboutReturnView === "handle-overlay") {
+      returnToHandleOverlayFromPrivacy();
+      return;
+    }
     if (aboutReturnView === "temporary-home-page") {
       returnToTemporaryHomePage(aboutReturnScrollY);
       return;
@@ -33616,7 +33656,7 @@ ${calmPracticeMessage}`;
       guidedTour: anonymousCoveredScreenTour ? guidedReceiverTourMode : ""
     });
     showLocalLauncherDebugAlert(2, `target=${targetUrl}`);
-    if (coveredScreenMode && !anonymousCoveredScreenTour) {
+    if (coveredScreenMode) {
       const confirmed = await confirmCoveredScreenInstructionBeforeLaunch();
       if (!confirmed) {
         return;
@@ -34587,6 +34627,11 @@ ${calmPracticeMessage}`;
   });
   closeHandleButton?.addEventListener("click", closeHandleOverlay);
   handleDialog?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("[data-open-handle-privacy]")) {
+      event.preventDefault();
+      openHandlePrivacyPolicy();
+    }
     event.stopPropagation();
   });
   handleOverlay?.addEventListener("click", (event) => {

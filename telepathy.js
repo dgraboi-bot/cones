@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001e";
+  const runtimeBuildVersion = "20261001f";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -100,7 +100,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001e";
+  const launcherBuildVersion = "20261001f";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -883,7 +883,9 @@
     if (phase === "receiving") {
       setGuidedReceiverTourStep({
         id: "receiving-intro",
-        text: "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind's eye at this time. The beep marks the time that an image appears before the sender's eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is a good time to start looking for new visual information in your mind's eye.",
+        text: isRemoteViewerCoveredMode
+          ? "At the end of the countdown, a short beep marks the start of the period at which an image is displayed on the screen. This is the time to be clairvoyantly viewing new visual information in your mind's eye."
+          : "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind's eye at this time. The beep marks the time that an image appears before the sender's eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is a good time to start looking for new visual information in your mind's eye.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: true,
@@ -923,7 +925,9 @@
     if (phase === "result") {
       setGuidedReceiverTourStep({
         id: "result",
-        text: "This is the last screen of a trial. To do another trial, you would tap the word, \"Another?\" below. The sender will then decide whether the sender is also ready for another trial. (Robot is always ready.)",
+        text: isRemoteViewerCoveredMode
+          ? "This is the last screen of a trial. To do another trial, tap the words, \"Continue Session\" below. tap \"End Session\" to end this session."
+          : "This is the last screen of a trial. To do another trial, you would tap the word, \"Another?\" below. The sender will then decide whether the sender is also ready for another trial. (Robot is always ready.)",
         target: decisionPanel || messagePanel || stage,
         showNext: false,
         allowed: [enoughButton, anotherButton].filter(Boolean),
@@ -1178,10 +1182,11 @@
     if (!(target instanceof Element)) {
       return;
     }
-    if (guidedTourProbeScreen?.contains(target)) {
-      return;
-    }
-    if (guidedTourOverlay?.contains(target)) {
+    if (
+      guidedTourProbeScreen?.contains(target) ||
+      guidedTourOverlay?.contains(target) ||
+      coveredScreenInstructionOverlay?.contains(target)
+    ) {
       return;
     }
 
