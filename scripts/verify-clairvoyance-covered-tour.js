@@ -74,7 +74,7 @@ async function verifyCoveredScreenLaunch() {
     await page.waitForURL(/receiver\.html/);
     await page.locator("#guidedTourOverlay").waitFor({ state: "visible" });
     assert(
-      (await page.locator("#guidedTourCopy").textContent()).includes("Tap the message below when you are ready to begin receiving."),
+      (await page.locator("#guidedTourCopy").textContent()).includes("Tap the message below when you are ready to cover the screen during the countdown before something will be displayed on it."),
       "Anonymous Covered Screen tour did not begin at the ready prompt."
     );
     assert(await page.locator("#countdownNumber").textContent() === "Press when ready.", "Covered Screen tour did not reach the ready prompt.");
@@ -94,7 +94,7 @@ function verifyRuntimeGuards() {
     "Guided-tour click guard must allow the Covered Screen instruction controls to receive input."
   );
   assert(
-    runtimeSource.includes("You are assumed to have covered the screen with a piece of cloth or cardboard so as to hide this image.") &&
+    runtimeSource.includes("You are assumed to have covered the screen with a piece of cloth or cardboard to hide this image.") &&
       runtimeSource.includes("that information might have appeared to you before the image actually displayed!"),
     "Covered Screen guided-tour wording is missing."
   );
@@ -113,7 +113,24 @@ function verifyRuntimeGuards() {
     "Guided-tour choice instructions must be positioned below the active choice grid."
   );
   assert(
-    runtimeSource.includes("Tap the message below when you are ready to begin receiving."),
+    runtimeSource.includes("keepSelectionNodesBright: true") &&
+      runtimeSource.includes("step?.keepSelectionNodesBright && selectionNodes.has(node)"),
+    "Guided-tour answer choices must remain visible while input stays locked."
+  );
+  assert(
+    launcherSource.includes('document.documentElement.classList.add("launcher-direct-open-pending")'),
+    "Covered Screen acknowledgement must hide the launcher before navigating to the trial."
+  );
+  assert(
+    launcherSource.includes("coveredScreenInstructionOverlay?.contains(target)"),
+    "The completed-tour click guard must allow the next Covered Screen acknowledgement."
+  );
+  assert(
+    runtimeSource.includes('postRound.resolved === "end" && isGuidedExperienceTour'),
+    "Completed guided tours must return without briefly redrawing the choice stage."
+  );
+  assert(
+    runtimeSource.includes("Tap the message below when you are ready to cover the screen during the countdown before something will be displayed on it."),
     "Covered Screen tour must begin at the ready prompt."
   );
   assert(

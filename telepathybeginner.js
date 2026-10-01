@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001g";
+  const launcherBuildVersion = "20261001h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -23474,6 +23474,9 @@ ${calmPracticeMessage}`;
     if (!(target instanceof Element)) {
       return;
     }
+    if (coveredScreenInstructionOverlay?.contains(target)) {
+      return;
+    }
     if (guidedTourOverlay?.contains(target)) {
       return;
     }
@@ -23510,6 +23513,9 @@ ${calmPracticeMessage}`;
     }
     const target = event.target;
     if (!(target instanceof Element)) {
+      return;
+    }
+    if (coveredScreenInstructionOverlay?.contains(target)) {
       return;
     }
     if (guidedTourOverlay?.contains(target)) {
@@ -33668,6 +33674,10 @@ ${calmPracticeMessage}`;
     }
     if (!anonymousCoveredScreenTour && !(await prepareLocationForGo("remote-viewer", { targetUrl }))) {
       return;
+    }
+    // Avoid briefly exposing the launcher after the Covered Screen acknowledgement.
+    if (coveredScreenMode) {
+      document.documentElement.classList.add("launcher-direct-open-pending");
     }
     window.location.href = targetUrl;
   });

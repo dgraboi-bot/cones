@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001g";
+  const runtimeBuildVersion = "20261001h";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -100,7 +100,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001g";
+  const launcherBuildVersion = "20261001h";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -715,15 +715,21 @@
       }
     }
 
+    const selectionNodes = new Set();
     const interactiveNodes = [countdownBox, settingsGear, waitingBackButton, homeLink, enoughButton, anotherButton]
       .filter(Boolean);
     getActiveSelectionNodesMap().forEach((node) => {
       if (node) {
         interactiveNodes.push(node);
+        selectionNodes.add(node);
       }
     });
     interactiveNodes.forEach((node) => {
       if (step?.keepTargetBright && step.target instanceof HTMLElement && node === step.target) {
+        return;
+      }
+      // Keep every answer visible while the tour still limits which answer can be selected.
+      if (step?.keepSelectionNodesBright && selectionNodes.has(node)) {
         return;
       }
       if (!allowedNodes.has(node)) {
@@ -891,7 +897,7 @@
       setGuidedReceiverTourStep({
         id: "ready",
         text: isRemoteViewerCoveredMode
-          ? "Tap the message below when you are ready to begin receiving."
+          ? "Tap the message below when you are ready to cover the screen during the countdown before something will be displayed on it."
           : "When the sender is ready, this prompt appears. Tap it when you are ready to begin receiving.",
         target: countdownBox,
         keepTargetBright: true,
@@ -906,7 +912,7 @@
       setGuidedReceiverTourStep({
         id: "receiving-intro",
         text: isRemoteViewerCoveredMode
-          ? "At the end of the countdown, a short beep marks the start of the period at which an image is displayed on the screen. You are assumed to have covered the screen with a piece of cloth or cardboard so as to hide this image. When the beep is heard, this is a good time to be clairvoyantly viewing visual information in your mind's eye. But because time does not always work the way one might expect, that information might have appeared to you before the image actually displayed!"
+          ? "At the end of the countdown, a short beep marks the start of the period at which an image is displayed on the screen. You are assumed to have covered the screen with a piece of cloth or cardboard to hide this image. When the beep is heard, this is a good time to be clairvoyantly viewing visual information in your mind's eye. But because time does not always work the way one might expect, that information might have appeared to you before the image actually displayed!"
           : "At the end of the countdown, a short beep marks the start of the receiving interval. Your eyes could be closed and you should inspect what appears in your mind's eye at this time. The beep marks the time that an image appears before the sender's eyes. When a person views a change in their visual field, a flurry of brain activity occurs as they grasp what new information appears before them. You, the receiver, know exactly when this is happening for the sender, and so, the fast traveling information will be new for you, too. This is a good time to start looking for new visual information in your mind's eye.",
         target: countdownBox,
         keepTargetBright: true,
@@ -939,6 +945,7 @@
         showNext: false,
         allowed: () => getGuidedReceiverTourCorrectChoiceNodes(),
         allowTargetByDefault: false,
+        keepSelectionNodesBright: true,
         placement: "stage-below-choice-grid"
       });
       return;
@@ -954,6 +961,7 @@
         showNext: false,
         allowed: [enoughButton, anotherButton].filter(Boolean),
         allowTargetByDefault: false,
+        keepSelectionNodesBright: true,
         placement: isLevelOneDifficulty() ? "result-right-inline" : "result-lower-center"
       });
     }
@@ -7181,6 +7189,17 @@
         hideMessagePanel();
       }
       return false;
+    }
+
+    // A completed guided tour returns directly to its launcher card. Do not
+    // redraw the choice stage during that short handoff.
+    if (postRound.resolved === "end" && isGuidedExperienceTour) {
+      void clearPostRound("end", { preserveExited: true })
+        .catch(() => null)
+        .finally(() => {
+          showExitedState();
+        });
+      return true;
     }
 
     showStage();
