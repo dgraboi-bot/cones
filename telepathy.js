@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001d";
+  const runtimeBuildVersion = "20261001e";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -100,7 +100,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001d";
+  const launcherBuildVersion = "20261001e";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -6129,7 +6129,7 @@
       return;
     }
 
-    if (isGuidedReceiverTour) {
+    if (isGuidedExperienceTour) {
       return;
     }
 
@@ -6162,7 +6162,7 @@
       });
       const appendResult = response?.trial_record_append || null;
 
-      if (appendResult?.appended || appendResult?.duplicate) {
+      if (appendResult?.appended || appendResult?.duplicate || appendResult?.skipped) {
         if (isRobotSimulationMode) {
           const visitorDisplayName = getPreferredVisitorDisplayName(role);
           if (visitorDisplayName) {

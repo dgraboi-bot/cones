@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001d";
+  const launcherBuildVersion = "20261001e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -12892,7 +12892,7 @@ ${calmPracticeMessage}`;
       return "";
     }
     const partnerRole = normalizedRole === "receiver" ? "sender" : "receiver";
-    return `To take a guided tour to experience what it's like to be a telepathic receiver using this tool, click here. To experience actually using this tool when your ${partnerRole} name is "Robot," it will simulate a human ${partnerRole}. To practice telepathy with a real human partner, click here to first create a unique identification name for yourself. Then give this name to others to identify you when practicing telepathy with them.`;
+    return `To take a guided tour to experience what it's like to be a telepathic receiver using this tool, click here. The tour uses "Robot" to simulate a human ${partnerRole}. To save Robot simulation results or practice telepathy with a real human partner, create a unique identification name for yourself. Then give this name to others to identify you when practicing telepathy with them.`;
   }
 
   function buildVisitorRoleNoteHtml(role) {
@@ -12901,7 +12901,7 @@ ${calmPracticeMessage}`;
       return "";
     }
     const partnerRole = normalizedRole === "receiver" ? "sender" : "receiver";
-    return 'To take a guided tour to experience what it\'s like to be a telepathic receiver using this tool, click <button class="role-note-link role-note-inline-link" type="button" data-inline-start-receiver-tour="1">here</button>. To experience actually using this tool when your ' + partnerRole + ' name is "Robot," it will <em>simulate</em> a human ' + partnerRole + '. To practice telepathy with a real human partner, click <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">here</button> to first create a unique identification name for yourself. Then give this name to others to identify you when practicing telepathy with them.';
+    return 'To take a guided tour to experience what it\'s like to be a telepathic receiver using this tool, click <button class="role-note-link role-note-inline-link" type="button" data-inline-start-receiver-tour="1">here</button>. The tour uses "Robot" to <em>simulate</em> a human ' + partnerRole + '. To save Robot simulation results or practice telepathy with a real human partner, <button class="role-note-link role-note-inline-link" type="button" data-inline-open-handle="' + normalizedRole + '">Create a unique identification name for yourself</button>. Then give this name to others to identify you when practicing telepathy with them.';
   }
 
   function getHandleExplanation(role) {
@@ -14928,16 +14928,29 @@ ${calmPracticeMessage}`;
 
     if (mode === "covered-screen") {
       remoteViewerOwnInput.value = automaticIdentifier;
+      remoteViewerOwnInput.readOnly = isVisitorLauncherEntry(state);
+      remoteViewerOwnInput.setAttribute("aria-readonly", isVisitorLauncherEntry(state) ? "true" : "false");
+      remoteViewerOwnInput.title = isVisitorLauncherEntry(state)
+        ? "Anonymous visitors take guided tours. Create a unique identification name to save practice data."
+        : "";
       return;
     }
 
     if (isDisplayDevice) {
       remoteViewerOwnInput.value = robotSimulationIdentifier;
       remoteViewerPartnerInput.value = automaticIdentifier;
+      remoteViewerOwnInput.readOnly = isVisitorLauncherEntry(state);
+      remoteViewerOwnInput.setAttribute("aria-readonly", isVisitorLauncherEntry(state) ? "true" : "false");
+      remoteViewerOwnInput.title = isVisitorLauncherEntry(state) ? 'Visitors work only with "Robot".' : "";
       return;
     }
 
     remoteViewerOwnInput.value = automaticIdentifier;
+    remoteViewerOwnInput.readOnly = isVisitorLauncherEntry(state);
+    remoteViewerOwnInput.setAttribute("aria-readonly", isVisitorLauncherEntry(state) ? "true" : "false");
+    remoteViewerOwnInput.title = isVisitorLauncherEntry(state)
+      ? "Anonymous visitors take guided tours. Create a unique identification name to save practice data."
+      : "";
     if (!isQualifiedRemoteViewerIdentifier(remoteViewerPartnerInput.value, state)) {
       remoteViewerPartnerInput.value = robotSimulationIdentifier;
     }
@@ -15441,18 +15454,6 @@ ${calmPracticeMessage}`;
         authoritativeSelfIdentities.has(currentSenderIdentity)
       ) {
         addCandidate(currentParticipants.receiverName, currentParticipants.senderName);
-      }
-    }
-
-    if (visitorMode) {
-      const visitorAlias = String(state.visitorAlias || "").trim();
-      if (visitorAlias) {
-        if (receiverForm.ownName && isRobotSimulationIdentifier(receiverForm.partnerName)) {
-          addCandidate(visitorAlias, "Robot");
-        }
-        if (senderForm.ownName && isRobotSimulationIdentifier(senderForm.partnerName)) {
-          addCandidate("Robot", visitorAlias);
-        }
       }
     }
 
@@ -21968,13 +21969,15 @@ ${calmPracticeMessage}`;
       ownInput.title = "";
       return;
     }
-    const isLocked = visitorMode && String(lockedName || "").trim() !== "";
+    const isLocked = !!visitorMode;
     if (isLocked) {
-      ownInput.value = formatGuestDisplayName(lockedName);
+      ownInput.value = anonymousVisitorDisplayName;
     }
     ownInput.readOnly = isLocked;
     ownInput.setAttribute("aria-readonly", isLocked ? "true" : "false");
-    ownInput.title = isLocked ? "Please continue to use the current name for this visit." : "";
+    ownInput.title = isLocked
+      ? "Anonymous visitors take guided tours. Create a unique identification name to save practice data."
+      : "";
   }
 
   function applyVisitorPartnerInputLock(partnerInput, visitorMode) {
@@ -23274,12 +23277,18 @@ ${calmPracticeMessage}`;
       const previousOwnValue = elements.ownInput.value;
       const previousOwnTitle = elements.ownInput.title;
       const claimedIdentifier = getCanonicalRecognizedIdentity(readLauncherState());
-      const requiresNameEntry = !claimedIdentifier;
+      const visitorTour = isVisitorLauncherEntry();
+      const requiresNameEntry = !claimedIdentifier && !visitorTour;
       if (requiresNameEntry) {
         elements.ownInput.readOnly = false;
         elements.ownInput.setAttribute("aria-readonly", "false");
         elements.ownInput.title = "";
         elements.ownInput.value = "";
+      } else if (visitorTour) {
+        elements.ownInput.value = anonymousVisitorDisplayName;
+        elements.ownInput.readOnly = true;
+        elements.ownInput.setAttribute("aria-readonly", "true");
+        elements.ownInput.title = "Anonymous visitors take guided tours. Create a unique identification name to save practice data.";
       } else if (!String(elements.ownInput.value || "").trim()) {
         elements.ownInput.value = claimedIdentifier;
       }
@@ -34173,11 +34182,7 @@ ${calmPracticeMessage}`;
       event.preventDefault();
       event.stopPropagation();
       const role = String(inlineHandle.dataset.inlineOpenHandle || activeLauncherRole || "sender").trim() || "sender";
-      showFeatureSetupView({
-        role,
-        returnView: role === "remote-viewer" ? "remote-viewer" : "card",
-        scrollY: Math.max(0, Number(window.scrollY || window.pageYOffset || 0) || 0)
-      });
+      openHandleOverlay(role);
       return;
     }
     const inlineReceiverTour = target.closest("[data-inline-start-receiver-tour]");

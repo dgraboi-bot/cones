@@ -8314,6 +8314,18 @@ function append_pair_trial_record(string $pairsDir, array $record, string $sessi
         ];
     }
 
+    // Visitor tours are intentionally non-persistent. This server-side guard
+    // also protects against stale pages that still carry a visitor alias.
+    if (is_anonymous_visitor_simulation_trial_record($record)) {
+        return [
+            'ok' => true,
+            'appended' => false,
+            'duplicate' => false,
+            'skipped' => true,
+            'message' => 'Anonymous visitor trial data is not stored.'
+        ];
+    }
+
     $headers = get_trial_csv_headers();
     $targetPairsDir = ($simulationMode === 'robot' || ($simulationMode !== 'real' && is_robot_simulation_trial_record($record)))
         ? ($GLOBALS['simulationPairsDir'] ?? $pairsDir)
