@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20260930i";
+  const launcherBuildVersion = "20261001a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1509,6 +1509,9 @@ The best use of this material is not to read it once and forget it, but to let i
   const calmPracticeMessage = `Quiet your mind.
 Let go of expectation.
 When the countdown ends, notice whatever appears.`;
+  const receiverCalmPracticeMessage = `Quiet your mind.
+Let go of expectation.
+When the countdown ends, notice what appears in your mind's eye.`;
   const defaultEspLessonsText = `[*] Practice Reminder
 ----------------
 ${calmPracticeMessage}`;
@@ -1528,6 +1531,7 @@ ${calmPracticeMessage}`;
   let inviteeAdminReturnView = "admin";
   let onlineCourseReturnTarget = { view: "options", role: "", scrollY: 0 };
   let learningCenterReturnTarget = { view: "options", role: "", scrollY: 0 };
+  let learningCenterLandingVisitOrigin = null;
   let baselineQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let activeEspLessonMode = "role";
@@ -8954,7 +8958,7 @@ ${calmPracticeMessage}`;
     } else if (isVisitorRole) {
       setRoleDefaultNoteHtml(role, buildVisitorRoleNoteHtml(role), buildVisitorRoleNote(role));
     } else if (ownUsesHandle) {
-      setRoleDefaultNoteText(role, calmPracticeMessage);
+      setRoleDefaultNoteText(role, role === "receiver" ? receiverCalmPracticeMessage : calmPracticeMessage);
     } else {
       setRoleDefaultNoteText(role, buildRoleGuidanceFallback(role));
     }
@@ -23680,6 +23684,7 @@ ${calmPracticeMessage}`;
   }
 
   function showOptionsView() {
+    clearLearningCenterLandingVisitOrigin();
     activeDifficultyContext = null;
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
@@ -25421,6 +25426,7 @@ ${calmPracticeMessage}`;
   function handleLearningCenterAction(action, triggerButton = null) {
     switch (action) {
       case "telepathy-practice":
+        clearLearningCenterLandingVisitOrigin();
         showLauncherView();
         return;
       case "concept-telepathy":
@@ -25498,12 +25504,15 @@ ${calmPracticeMessage}`;
         void openPartnerMessagingFromNavigation("learning-center");
         return;
       case "receiver-role":
+        clearLearningCenterLandingVisitOrigin();
         showRoleCourseTarget("receiver");
         return;
       case "sender-role":
+        clearLearningCenterLandingVisitOrigin();
         showRoleCourseTarget("sender");
         return;
       case "remote-viewing":
+        clearLearningCenterLandingVisitOrigin();
         showClairvoyanceViewingView();
         return;
       case "performance-reports":
@@ -25945,6 +25954,16 @@ ${calmPracticeMessage}`;
     showOptionsView();
   }
 
+  function clearLearningCenterLandingVisitOrigin() {
+    learningCenterLandingVisitOrigin = null;
+  }
+
+  function beginLearningCenterLandingVisit(scrollY = 0) {
+    learningCenterLandingVisitOrigin = {
+      scrollY: Math.max(0, Number(scrollY || 0) || 0)
+    };
+  }
+
   function showLearningCenterView(options = {}) {
     clearReportPanelOffset();
     const requestedScrollY = Number(options.scrollY);
@@ -26067,6 +26086,15 @@ ${calmPracticeMessage}`;
   }
 
   function closeLearningCenterView() {
+    const landingVisitOrigin = learningCenterLandingVisitOrigin;
+    if (landingVisitOrigin) {
+      clearLearningCenterLandingVisitOrigin();
+      showTemporaryHomePageView();
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: landingVisitOrigin.scrollY, left: 0, behavior: "auto" });
+      });
+      return;
+    }
     const targetView = String(learningCenterReturnTarget?.view || "options").trim();
     const targetRole = String(learningCenterReturnTarget?.role || "").trim();
     const targetScrollY = Math.max(0, Number(learningCenterReturnTarget?.scrollY || 0) || 0);
@@ -34071,8 +34099,14 @@ ${calmPracticeMessage}`;
   closeOnlineCourseButton?.addEventListener("click", closeOnlineCourseView);
   closeLearningCenterButton?.addEventListener("click", closeLearningCenterView);
   closeLearningCenterConceptDetailButton?.addEventListener("click", closeLearningCenterConceptDetailView);
-  openLearningCenterPracticeButton?.addEventListener("click", showLauncherView);
-  openOnlineCoursePracticeButton?.addEventListener("click", showLauncherView);
+  openLearningCenterPracticeButton?.addEventListener("click", () => {
+    clearLearningCenterLandingVisitOrigin();
+    showLauncherView();
+  });
+  openOnlineCoursePracticeButton?.addEventListener("click", () => {
+    clearLearningCenterLandingVisitOrigin();
+    showLauncherView();
+  });
   closeBaselineQuestionsButton?.addEventListener("click", closeBaselineQuestionsView);
   closeAfterFirstSessionQuestionsButton?.addEventListener("click", closeAfterFirstSessionQuestionsView);
   closeGoProButton?.addEventListener("click", closeGoProViewToOrigin);
@@ -34314,6 +34348,7 @@ ${calmPracticeMessage}`;
     void handleLandingExploreClick();
   });
   temporaryHomePageLearningCenterButton?.addEventListener("click", () => {
+    clearLearningCenterLandingVisitOrigin();
     showLearningCenterView({
       view: "temporary-home-page",
       scrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
@@ -34321,9 +34356,11 @@ ${calmPracticeMessage}`;
     });
   });
   temporaryHomePageRichCoursewareButton?.addEventListener("click", () => {
+    const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+    beginLearningCenterLandingVisit(returnScrollY);
     showLearningCenterView({
       view: "temporary-home-page",
-      returnScrollY: Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0),
+      returnScrollY,
       tab: "course"
     });
     renderLearningCenterCoursePage(4);
