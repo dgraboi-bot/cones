@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001c";
+  const launcherBuildVersion = "20261001d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1165,6 +1165,8 @@
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
   const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
   const remoteViewerDisplayDeviceCheckbox = document.querySelector("[data-remote-viewer-display-device]");
+  const remoteViewerCoveredSimulationCheckbox = document.querySelector("[data-remote-viewer-covered-simulation]");
+  const remoteViewerCoveredSimulationWrap = document.querySelector("[data-remote-viewer-covered-simulation-wrap]");
   const remoteViewModeOverlay = document.querySelector("[data-remote-view-mode-overlay]");
   const remoteViewModeDialog = document.querySelector("[data-remote-view-mode-dialog]");
   const remoteViewModeStatus = document.querySelector("[data-remote-view-mode-status]");
@@ -2004,6 +2006,7 @@ ${calmPracticeMessage}`;
         clairvoyanceLearnMoreDraftText: typeof parsed?.clairvoyanceLearnMoreDraftText === "string" ? parsed.clairvoyanceLearnMoreDraftText : null,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
         remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
+        remoteViewerCoveredScreenSimulation: parsed?.remoteViewerCoveredScreenSimulation !== false,
         remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(parsed?.remoteViewerSimulationMode),
         blinkSenderImage: !!parsed?.blinkSenderImage,
         blinkImageOnSeconds: typeof parsed?.blinkImageOnSeconds === "string" ? parsed.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
@@ -2072,6 +2075,7 @@ ${calmPracticeMessage}`;
         clairvoyanceLearnMoreDraftText: null,
         difficultyLevel: "1",
         remoteViewerDisplayDevice: false,
+        remoteViewerCoveredScreenSimulation: true,
         remoteViewerSimulationMode: remoteViewSimulationModeDefault,
         blinkSenderImage: defaultBlinkSettings.enabled,
         blinkImageOnSeconds: defaultBlinkSettings.onSeconds,
@@ -2515,6 +2519,7 @@ ${calmPracticeMessage}`;
       clairvoyanceLearnMoreDraftText: typeof baseState?.clairvoyanceLearnMoreDraftText === "string" ? baseState.clairvoyanceLearnMoreDraftText : null,
       difficultyLevel: "1",
       remoteViewerDisplayDevice: false,
+      remoteViewerCoveredScreenSimulation: baseState?.remoteViewerCoveredScreenSimulation !== false,
       remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(baseState?.remoteViewerSimulationMode),
       blinkSenderImage: typeof baseState?.blinkSenderImage === "boolean" ? baseState.blinkSenderImage : defaultBlinkSettings.enabled,
       blinkImageOnSeconds: typeof baseState?.blinkImageOnSeconds === "string" ? baseState.blinkImageOnSeconds : defaultBlinkSettings.onSeconds,
@@ -3942,6 +3947,7 @@ ${calmPracticeMessage}`;
       exploreTrial: cloneJsonValue(state?.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(state?.temporaryIdentity || null, null),
       remoteViewerDisplayDevice: !!state?.remoteViewerDisplayDevice,
+      remoteViewerCoveredScreenSimulation: state?.remoteViewerCoveredScreenSimulation !== false,
       difficultyLevel: normalizeDifficultyLevel(state?.difficultyLevel || "1"),
       includeConfidence: typeof state?.includeConfidence === "boolean" ? state.includeConfidence : defaultConfidenceSettings.include,
       includePositiveReinforcement: typeof state?.includePositiveReinforcement === "boolean"
@@ -3979,6 +3985,7 @@ ${calmPracticeMessage}`;
       exploreTrial: cloneJsonValue(source.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(source.temporaryIdentity || null, null),
       remoteViewerDisplayDevice: !!source.remoteViewerDisplayDevice,
+      remoteViewerCoveredScreenSimulation: source?.remoteViewerCoveredScreenSimulation !== false,
       difficultyLevel: normalizeDifficultyLevel(source.difficultyLevel || "1"),
       includeConfidence: typeof source?.includeConfidence === "boolean" ? source.includeConfidence : defaultConfidenceSettings.include,
       includePositiveReinforcement: typeof source?.includePositiveReinforcement === "boolean"
@@ -14753,6 +14760,10 @@ ${calmPracticeMessage}`;
     if (remoteViewerDisplayDeviceCheckbox) {
       remoteViewerDisplayDeviceCheckbox.checked = !!state.remoteViewerDisplayDevice;
     }
+    if (remoteViewerCoveredSimulationCheckbox) {
+      remoteViewerCoveredSimulationCheckbox.checked = state.remoteViewerCoveredScreenSimulation !== false;
+    }
+    applyRemoteViewerIdentityDefaults(state);
     refreshRemoteViewModeUi(state);
     renderRemoteViewerLabels(!!state.remoteViewerDisplayDevice);
   }
@@ -14767,6 +14778,7 @@ ${calmPracticeMessage}`;
     latest.ownNames["remote-viewer"] = String(remoteViewerOwnInput.value || "").trim();
     latest.currentPartners["remote-viewer"] = String(remoteViewerPartnerInput.value || "").trim();
     latest.remoteViewerDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
+    latest.remoteViewerCoveredScreenSimulation = remoteViewerCoveredSimulationCheckbox?.checked !== false;
     latest.remoteViewerSimulationMode = readRemoteViewSimulationMode(latest);
     writeLauncherState(latest);
   }
@@ -14890,6 +14902,47 @@ ${calmPracticeMessage}`;
     return readRemoteViewSimulationMode(state) === "covered-screen";
   }
 
+  function getRemoteViewerAutomaticIdentifier(state = readLauncherState()) {
+    if (isAnonymousLauncherEntry(state)) {
+      return anonymousVisitorDisplayName;
+    }
+    return String(
+      getCanonicalRecognizedIdentity(state) ||
+      getLoadedInviteeIdentity(state)?.identifier ||
+      ""
+    ).trim() || anonymousVisitorDisplayName;
+  }
+
+  function isQualifiedRemoteViewerIdentifier(identifier, state = readLauncherState()) {
+    const status = getCachedIdentifierStatus(identifier, state);
+    return !!status?.formal_identity_exists;
+  }
+
+  function applyRemoteViewerIdentityDefaults(state = readLauncherState()) {
+    if (!remoteViewerOwnInput || !remoteViewerPartnerInput) {
+      return;
+    }
+    const mode = readRemoteViewSimulationMode(state);
+    const isDisplayDevice = mode === "remote-device" && !!remoteViewerDisplayDeviceCheckbox?.checked;
+    const automaticIdentifier = getRemoteViewerAutomaticIdentifier(state);
+
+    if (mode === "covered-screen") {
+      remoteViewerOwnInput.value = automaticIdentifier;
+      return;
+    }
+
+    if (isDisplayDevice) {
+      remoteViewerOwnInput.value = robotSimulationIdentifier;
+      remoteViewerPartnerInput.value = automaticIdentifier;
+      return;
+    }
+
+    remoteViewerOwnInput.value = automaticIdentifier;
+    if (!isQualifiedRemoteViewerIdentifier(remoteViewerPartnerInput.value, state)) {
+      remoteViewerPartnerInput.value = robotSimulationIdentifier;
+    }
+  }
+
   function getRemoteViewSimulationModeCopy(mode) {
     return normalizeRemoteViewSimulationMode(mode) === "covered-screen"
       ? "Mode: Covered Screen"
@@ -14932,6 +14985,7 @@ ${calmPracticeMessage}`;
     }
     if (remoteViewerPartnerInput) {
       remoteViewerPartnerInput.disabled = coveredScreen;
+      remoteViewerPartnerInput.readOnly = !coveredScreen && isDisplayDevice;
       if (coveredScreen) {
         remoteViewerPartnerInput.value = "";
         remoteViewerPartnerInput.placeholder = "";
@@ -14939,7 +14993,6 @@ ${calmPracticeMessage}`;
         remoteViewerPartnerInput.style.display = "none";
       } else {
         if (isDisplayDevice) {
-          remoteViewerPartnerInput.value = "";
           remoteViewerPartnerInput.placeholder = "";
         } else {
           remoteViewerPartnerInput.placeholder = "remote device unique name";
@@ -14958,6 +15011,10 @@ ${calmPracticeMessage}`;
       if (coveredScreen) {
         remoteViewerDisplayDeviceCheckbox.checked = false;
       }
+    }
+    if (remoteViewerCoveredSimulationWrap) {
+      remoteViewerCoveredSimulationWrap.hidden = !coveredScreen;
+      remoteViewerCoveredSimulationWrap.toggleAttribute("hidden", !coveredScreen);
     }
     logRemoteViewModeDebug("apply_presentation", {
       mode: normalizeRemoteViewSimulationMode(mode),
@@ -15364,7 +15421,9 @@ ${calmPracticeMessage}`;
       authoritativeSelfIdentities.has(normalizeIdentifierForStorage(normalizePotentialSelfIdentityValue(remoteViewerForm.ownName, state)))
     ) {
       addCandidate(remoteViewerForm.ownName, remoteViewerPartner, {
-        source: isRobotSimulationIdentifier(remoteViewerPartner) ? "simulation" : "real",
+        source: remoteViewMode === "covered-screen" && state.remoteViewerCoveredScreenSimulation === false
+          ? "real"
+          : (isRobotSimulationIdentifier(remoteViewerPartner) ? "simulation" : "real"),
         sessionMode: "remote_viewing",
         remoteViewingSubmode,
         sessionLevel: remoteViewerLevel
@@ -16163,7 +16222,7 @@ ${calmPracticeMessage}`;
       const canDelete = isNamedReportTarget(selectedReportTarget) || isRobotSimulationReportTarget(selectedReportTarget);
       reportDeleteButton.hidden = !canDelete;
       reportDeleteButton.title = isRobotSimulationReportTarget(selectedReportTarget)
-        ? "Delete this Robot simulation report and its underlying trials."
+        ? "Delete this Robot simulation report and its raw data."
         : "Delete this saved named report.";
       reportDeleteButton.setAttribute("aria-label", reportDeleteButton.title);
     }
@@ -16360,9 +16419,12 @@ ${calmPracticeMessage}`;
     if (sessionMode === "remote_viewing") {
       if (remoteViewingSubmode === "covered_screen") {
         const coveredScreenLabel = receiverLabel;
+        const sourceLabel = String(pairInfo?.source || "real").trim().toLowerCase() === "simulation"
+          ? "Simulation"
+          : "Practice";
         return sessionLevel
-          ? `${coveredScreenLabel} (Clairvoyance) Exercise ${sessionLevel} covered screen data`
-          : `${coveredScreenLabel} (Clairvoyance) covered screen Multi-exercise data`;
+          ? `${coveredScreenLabel} (Clairvoyance ${sourceLabel}) Exercise ${sessionLevel} covered screen data`
+          : `${coveredScreenLabel} (Clairvoyance ${sourceLabel}) covered screen Multi-exercise data`;
       }
       const remoteScreenSubject = normalizedSenderName === "robot"
         ? receiverLabel
@@ -20528,6 +20590,9 @@ ${calmPracticeMessage}`;
     }
     if (options.remoteDisplayDevice === true) {
       params.set("remote_display_device", "1");
+    }
+    if (options.coveredScreenSimulation === true) {
+      params.set("covered_screen_simulation", "1");
     }
     const deviceLocation = getSavedDeviceLocation(state);
     if (
@@ -33065,9 +33130,7 @@ ${calmPracticeMessage}`;
       if (remoteViewerDisplayDeviceCheckbox) {
         remoteViewerDisplayDeviceCheckbox.checked = false;
       }
-      if (mode === "remote-device" && remoteViewerPartnerInput && !String(remoteViewerPartnerInput.value || "").trim()) {
-        remoteViewerPartnerInput.value = robotSimulationIdentifier;
-      }
+      applyRemoteViewerIdentityDefaults(readLauncherState());
       refreshRemoteViewModeUi(readLauncherState());
       persistRemoteViewerCardState();
       renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
@@ -33348,14 +33411,17 @@ ${calmPracticeMessage}`;
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   });
   remoteViewerDisplayDeviceCheckbox?.addEventListener("change", () => {
+    applyRemoteViewerIdentityDefaults(readLauncherState());
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox.checked);
     persistRemoteViewerCardState();
   });
+  remoteViewerCoveredSimulationCheckbox?.addEventListener("change", persistRemoteViewerCardState);
   renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();
     const coveredScreenMode = remoteViewSimulationMode === "covered-screen";
+    const coveredScreenSimulation = coveredScreenMode && remoteViewerCoveredSimulationCheckbox?.checked !== false;
     let ownName = String(remoteViewerOwnInput?.value || "").trim();
     let partnerName = coveredScreenMode ? robotSimulationIdentifier : String(remoteViewerPartnerInput?.value || "").trim();
     const isDisplayDevice = !coveredScreenMode && !!remoteViewerDisplayDeviceCheckbox?.checked;
@@ -33448,6 +33514,7 @@ ${calmPracticeMessage}`;
     latest.ownNames["remote-viewer"] = anonymousCoveredScreenTour ? submittedOwnDisplayName : ownName;
     latest.currentPartners["remote-viewer"] = coveredScreenMode ? "" : partnerName;
     latest.remoteViewerDisplayDevice = isDisplayDevice;
+    latest.remoteViewerCoveredScreenSimulation = coveredScreenSimulation;
     latest.remoteViewerSimulationMode = remoteViewSimulationMode;
     writeLauncherState(latest);
 
@@ -33534,6 +33601,7 @@ ${calmPracticeMessage}`;
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
       remoteDisplayDevice: isDisplayDevice,
+      coveredScreenSimulation: coveredScreenSimulation || anonymousCoveredScreenTour,
       difficultyLevel: requestedRemoteViewerDifficulty,
       visitorDisplayName: anonymousCoveredScreenTour ? submittedOwnDisplayName : "",
       guidedTour: anonymousCoveredScreenTour ? guidedReceiverTourMode : ""

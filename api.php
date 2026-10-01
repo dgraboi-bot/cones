@@ -8293,6 +8293,12 @@ function is_robot_simulation_trial_record(array $record): bool
     return is_robot_simulation_identifier($receiverName) || is_robot_simulation_identifier($senderName);
 }
 
+function is_real_covered_screen_practice_trial_record(array $record): bool
+{
+    return trim((string) ($record['session_mode'] ?? '')) === 'remote_viewing'
+        && trim((string) ($record['remote_viewing_submode'] ?? '')) === 'covered_screen';
+}
+
 function append_pair_trial_record(string $pairsDir, array $record, string $sessionCode = '', string $simulationMode = ''): array
 {
     $roundId = trim((string) ($record['round_id'] ?? ''));
@@ -8309,7 +8315,7 @@ function append_pair_trial_record(string $pairsDir, array $record, string $sessi
     }
 
     $headers = get_trial_csv_headers();
-    $targetPairsDir = ($simulationMode === 'robot' || is_robot_simulation_trial_record($record))
+    $targetPairsDir = ($simulationMode === 'robot' || ($simulationMode !== 'real' && is_robot_simulation_trial_record($record)))
         ? ($GLOBALS['simulationPairsDir'] ?? $pairsDir)
         : $pairsDir;
     $path = get_pair_trial_csv_path($targetPairsDir, $receiverName, $senderName, $sessionCode);
@@ -8841,7 +8847,7 @@ function read_all_pair_trial_records(string $pairsDir, bool $includeRobotSimulat
             if (!is_array($record)) {
                 continue;
             }
-            if (!$includeRobotSimulation && is_robot_simulation_trial_record($record)) {
+            if (!$includeRobotSimulation && is_robot_simulation_trial_record($record) && !is_real_covered_screen_practice_trial_record($record)) {
                 continue;
             }
             $records[] = $record;

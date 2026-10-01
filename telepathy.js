@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001c";
+  const runtimeBuildVersion = "20261001d";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -87,6 +87,9 @@
   const isRobotSenderMode = runtimeMode === "robot-sender";
   const isRobotReceiverMode = runtimeMode === "robot-receiver";
   const isRobotSimulationMode = isRobotSenderMode || isRobotReceiverMode;
+  const isCoveredScreenSimulationMode = isRemoteViewerCoveredMode
+    && String(runtimeQuery.get("covered_screen_simulation") || "").trim() === "1";
+  const isReportSimulationMode = isRobotSimulationMode || isCoveredScreenSimulationMode;
   const isRemoteViewerLikeMode = isRemoteViewerMode || isRemoteViewerCoveredMode;
   const isRobotSenderLikeMode = isRobotSenderMode || isRemoteViewerCoveredMode;
   const isLocalSimulationMode = isRobotSimulationMode || isRemoteViewerCoveredMode;
@@ -97,7 +100,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001c";
+  const launcherBuildVersion = "20261001d";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1848,7 +1851,7 @@
     const sessionMode = getCurrentSessionMode();
     const remoteViewingSubmode = getCurrentRemoteViewingSubmode();
     const sessionLevel = getStableRoundDifficultyLevel(round);
-    const source = isRobotSimulationMode ? "simulation" : "real";
+    const source = isReportSimulationMode ? "simulation" : "real";
     const signature = buildReportSessionSignature(
       receiverName,
       senderName,
@@ -6155,7 +6158,7 @@
       });
       const response = await api("append_trial_record", {
         trial_record: trialRecord,
-        simulation_mode: isRobotSimulationMode ? "robot" : ""
+        simulation_mode: isReportSimulationMode ? "robot" : "real"
       });
       const appendResult = response?.trial_record_append || null;
 
