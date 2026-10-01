@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001h";
+  const launcherBuildVersion = "20261001k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1167,8 +1167,11 @@
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
   const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
   const remoteViewerDisplayDeviceCheckbox = document.querySelector("[data-remote-viewer-display-device]");
-  const remoteViewerCoveredSimulationCheckbox = document.querySelector("[data-remote-viewer-covered-simulation]");
-  const remoteViewerCoveredSimulationWrap = document.querySelector("[data-remote-viewer-covered-simulation-wrap]");
+  const remoteViewerExperienceInputs = Array.from(document.querySelectorAll("[data-remote-viewer-experience]"));
+  const remoteViewerExperienceWrap = document.querySelector("[data-remote-viewer-experience-wrap]");
+  const remoteViewerSaveOption = document.querySelector("[data-remote-viewer-save-option]");
+  const remoteViewerSaveResultsHint = document.querySelector("[data-remote-viewer-save-results-hint]");
+  const remoteViewerSaveResultsCancelButton = document.querySelector("[data-remote-viewer-save-results-cancel]");
   const remoteViewModeOverlay = document.querySelector("[data-remote-view-mode-overlay]");
   const remoteViewModeDialog = document.querySelector("[data-remote-view-mode-dialog]");
   const remoteViewModeStatus = document.querySelector("[data-remote-view-mode-status]");
@@ -2008,6 +2011,7 @@ ${calmPracticeMessage}`;
         clairvoyanceLearnMoreDraftText: typeof parsed?.clairvoyanceLearnMoreDraftText === "string" ? parsed.clairvoyanceLearnMoreDraftText : null,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
         remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
+        remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(parsed?.remoteViewerExperienceMode),
         remoteViewerCoveredScreenSimulation: parsed?.remoteViewerCoveredScreenSimulation !== false,
         remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(parsed?.remoteViewerSimulationMode),
         blinkSenderImage: !!parsed?.blinkSenderImage,
@@ -2077,6 +2081,7 @@ ${calmPracticeMessage}`;
         clairvoyanceLearnMoreDraftText: null,
         difficultyLevel: "1",
         remoteViewerDisplayDevice: false,
+        remoteViewerExperienceMode: "",
         remoteViewerCoveredScreenSimulation: true,
         remoteViewerSimulationMode: remoteViewSimulationModeDefault,
         blinkSenderImage: defaultBlinkSettings.enabled,
@@ -2521,6 +2526,7 @@ ${calmPracticeMessage}`;
       clairvoyanceLearnMoreDraftText: typeof baseState?.clairvoyanceLearnMoreDraftText === "string" ? baseState.clairvoyanceLearnMoreDraftText : null,
       difficultyLevel: "1",
       remoteViewerDisplayDevice: false,
+      remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(baseState?.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: baseState?.remoteViewerCoveredScreenSimulation !== false,
       remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(baseState?.remoteViewerSimulationMode),
       blinkSenderImage: typeof baseState?.blinkSenderImage === "boolean" ? baseState.blinkSenderImage : defaultBlinkSettings.enabled,
@@ -3949,6 +3955,7 @@ ${calmPracticeMessage}`;
       exploreTrial: cloneJsonValue(state?.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(state?.temporaryIdentity || null, null),
       remoteViewerDisplayDevice: !!state?.remoteViewerDisplayDevice,
+      remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(state?.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: state?.remoteViewerCoveredScreenSimulation !== false,
       difficultyLevel: normalizeDifficultyLevel(state?.difficultyLevel || "1"),
       includeConfidence: typeof state?.includeConfidence === "boolean" ? state.includeConfidence : defaultConfidenceSettings.include,
@@ -3987,6 +3994,7 @@ ${calmPracticeMessage}`;
       exploreTrial: cloneJsonValue(source.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(source.temporaryIdentity || null, null),
       remoteViewerDisplayDevice: !!source.remoteViewerDisplayDevice,
+      remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(source.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: source?.remoteViewerCoveredScreenSimulation !== false,
       difficultyLevel: normalizeDifficultyLevel(source.difficultyLevel || "1"),
       includeConfidence: typeof source?.includeConfidence === "boolean" ? source.includeConfidence : defaultConfidenceSettings.include,
@@ -9138,6 +9146,22 @@ ${calmPracticeMessage}`;
     uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "true");
   }
 
+  function showRemoteViewerSaveResultsHint() {
+    if (!remoteViewerSaveResultsHint) {
+      return;
+    }
+    remoteViewerSaveResultsHint.hidden = false;
+    remoteViewerSaveResultsHint.setAttribute("aria-hidden", "false");
+  }
+
+  function closeRemoteViewerSaveResultsHint() {
+    if (!remoteViewerSaveResultsHint) {
+      return;
+    }
+    remoteViewerSaveResultsHint.hidden = true;
+    remoteViewerSaveResultsHint.setAttribute("aria-hidden", "true");
+  }
+
   function closeHandleOverlay() {
     const returnRole = handleOverlayReturnRole;
     activeHandleRole = "";
@@ -9343,10 +9367,12 @@ ${calmPracticeMessage}`;
           recognizedIdentity: acceptedHandle,
           entryMode: ""
         });
+        nextIdentityState.remoteViewerExperienceMode = "practice-saved";
         writeLauncherState(nextIdentityState);
         setLauncherProfileSaveSuppression(false, true);
         setLauncherGuestEntryActive(false);
         applyIdentityStateToLauncherInputs();
+        syncRemoteViewerExperienceControls(nextIdentityState);
       }
       void refreshMainUserType();
       if (handleStatus) {
@@ -14800,9 +14826,7 @@ ${calmPracticeMessage}`;
     if (remoteViewerDisplayDeviceCheckbox) {
       remoteViewerDisplayDeviceCheckbox.checked = !!state.remoteViewerDisplayDevice;
     }
-    if (remoteViewerCoveredSimulationCheckbox) {
-      remoteViewerCoveredSimulationCheckbox.checked = state.remoteViewerCoveredScreenSimulation !== false;
-    }
+    syncRemoteViewerExperienceControls(state);
     applyRemoteViewerIdentityDefaults(state);
     refreshRemoteViewModeUi(state);
     renderRemoteViewerLabels(!!state.remoteViewerDisplayDevice);
@@ -14818,7 +14842,7 @@ ${calmPracticeMessage}`;
     latest.ownNames["remote-viewer"] = String(remoteViewerOwnInput.value || "").trim();
     latest.currentPartners["remote-viewer"] = String(remoteViewerPartnerInput.value || "").trim();
     latest.remoteViewerDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
-    latest.remoteViewerCoveredScreenSimulation = remoteViewerCoveredSimulationCheckbox?.checked !== false;
+    latest.remoteViewerExperienceMode = getSelectedRemoteViewerExperienceMode(latest);
     latest.remoteViewerSimulationMode = readRemoteViewSimulationMode(latest);
     writeLauncherState(latest);
   }
@@ -14921,6 +14945,45 @@ ${calmPracticeMessage}`;
       return normalized;
     }
     return remoteViewSimulationModeDefault;
+  }
+
+  function normalizeRemoteViewerExperienceMode(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    return ["tour", "practice-unsaved", "practice-saved"].includes(normalized) ? normalized : "";
+  }
+
+  function isRecognizedRemoteViewerUser(state = readLauncherState()) {
+    if (isAnonymousLauncherEntry(state)) {
+      return false;
+    }
+    return !!getCanonicalRecognizedIdentity(state);
+  }
+
+  function getRemoteViewerExperienceMode(state = readLauncherState()) {
+    const stored = normalizeRemoteViewerExperienceMode(state?.remoteViewerExperienceMode);
+    if (stored) {
+      return !isRecognizedRemoteViewerUser(state) && stored === "practice-saved"
+        ? "tour"
+        : stored;
+    }
+    return isRecognizedRemoteViewerUser(state) ? "practice-saved" : "tour";
+  }
+
+  function getSelectedRemoteViewerExperienceMode(state = readLauncherState()) {
+    const selected = remoteViewerExperienceInputs.find((input) => input.checked);
+    return normalizeRemoteViewerExperienceMode(selected?.dataset.remoteViewerExperience)
+      || getRemoteViewerExperienceMode(state);
+  }
+
+  function syncRemoteViewerExperienceControls(state = readLauncherState()) {
+    const recognized = isRecognizedRemoteViewerUser(state);
+    const mode = getRemoteViewerExperienceMode(state);
+    remoteViewerExperienceInputs.forEach((input) => {
+      const inputMode = normalizeRemoteViewerExperienceMode(input.dataset.remoteViewerExperience);
+      input.checked = inputMode === mode;
+      input.disabled = !recognized && inputMode === "practice-saved";
+    });
+    remoteViewerSaveOption?.classList.toggle("is-unavailable", !recognized);
   }
 
   function readRemoteViewSimulationMode(state = readLauncherState()) {
@@ -15065,10 +15128,11 @@ ${calmPracticeMessage}`;
         remoteViewerDisplayDeviceCheckbox.checked = false;
       }
     }
-    if (remoteViewerCoveredSimulationWrap) {
-      remoteViewerCoveredSimulationWrap.hidden = !coveredScreen;
-      remoteViewerCoveredSimulationWrap.toggleAttribute("hidden", !coveredScreen);
+    if (remoteViewerExperienceWrap) {
+      remoteViewerExperienceWrap.hidden = !coveredScreen;
+      remoteViewerExperienceWrap.toggleAttribute("hidden", !coveredScreen);
     }
+    syncRemoteViewerExperienceControls(readLauncherState());
     logRemoteViewModeDebug("apply_presentation", {
       mode: normalizeRemoteViewSimulationMode(mode),
       is_display_device: !!isDisplayDevice,
@@ -15132,7 +15196,7 @@ ${calmPracticeMessage}`;
           ? calmPracticeMessage
           : "This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being."
     );
-    setRoleFeatureSetupPrompt("remote-viewer", !usesTemporaryIdentity && !ownUsesHandle && setupPromptVisible);
+    setRoleFeatureSetupPrompt("remote-viewer", !usesTemporaryIdentity && setupPromptVisible);
     if (shouldShowEspLessonForRole("remote-viewer")) {
       void refreshRoleEspLesson("remote-viewer");
     } else {
@@ -20635,6 +20699,9 @@ ${calmPracticeMessage}`;
     if (options.coveredScreenSimulation === true) {
       params.set("covered_screen_simulation", "1");
     }
+    if (options.saveResults === false) {
+      params.set("save_results", "0");
+    }
     const deviceLocation = getSavedDeviceLocation(state);
     if (
       deviceLocation &&
@@ -21693,9 +21760,17 @@ ${calmPracticeMessage}`;
     if (!remoteViewerGoButton) {
       return;
     }
-    const tooltip = isAnonymousCoveredScreenGuidedTourLaunch(ownName, mode, isDisplayDevice)
-      ? "Press the GO button to start a tour of this condition."
-      : "Press the GO button to start a practice or demonstration session.";
+    const state = readLauncherState();
+    const coveredScreen = !isDisplayDevice && normalizeRemoteViewSimulationMode(mode) === "covered-screen";
+    const experienceMode = getSelectedRemoteViewerExperienceMode(state);
+    const recognized = isRecognizedRemoteViewerUser(state);
+    const tooltip = coveredScreen && experienceMode === "tour"
+      ? "Press the GO button to start a tour of this exercise."
+      : coveredScreen && experienceMode === "practice-unsaved"
+        ? "Press the GO button to start practicing this exercise without saving results."
+        : recognized
+          ? "Press the GO button to start practicing this exercise and saving your results."
+          : "Press the GO button to start a practice or demonstration session.";
     remoteViewerGoButton.dataset.tooltip = tooltip;
     remoteViewerGoButton.title = tooltip;
   }
@@ -33474,22 +33549,62 @@ ${calmPracticeMessage}`;
     renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox.checked);
     persistRemoteViewerCardState();
   });
-  remoteViewerCoveredSimulationCheckbox?.addEventListener("change", persistRemoteViewerCardState);
+  remoteViewerExperienceInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      if (!input.checked) {
+        return;
+      }
+      persistRemoteViewerCardState();
+      renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+    });
+  });
+  remoteViewerSaveOption?.addEventListener("pointerenter", () => {
+    if (!isRecognizedRemoteViewerUser()) {
+      showRemoteViewerSaveResultsHint();
+    }
+  });
+  remoteViewerSaveOption?.addEventListener("click", (event) => {
+    if (!isRecognizedRemoteViewerUser()) {
+      event.preventDefault();
+      event.stopPropagation();
+      showRemoteViewerSaveResultsHint();
+    }
+  });
+  remoteViewerSaveResultsCancelButton?.addEventListener("click", closeRemoteViewerSaveResultsHint);
+  remoteViewerSaveResultsHint?.addEventListener("click", (event) => {
+    const claimLink = event.target instanceof Element
+      ? event.target.closest("[data-remote-viewer-save-results-claim]")
+      : null;
+    if (!claimLink) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    closeRemoteViewerSaveResultsHint();
+    openHandleOverlay("remote-viewer");
+  });
   renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();
     const coveredScreenMode = remoteViewSimulationMode === "covered-screen";
-    const coveredScreenSimulation = coveredScreenMode && remoteViewerCoveredSimulationCheckbox?.checked !== false;
+    const experienceMode = getSelectedRemoteViewerExperienceMode();
     let ownName = String(remoteViewerOwnInput?.value || "").trim();
     let partnerName = coveredScreenMode ? robotSimulationIdentifier : String(remoteViewerPartnerInput?.value || "").trim();
     const isDisplayDevice = !coveredScreenMode && !!remoteViewerDisplayDeviceCheckbox?.checked;
-    const anonymousCoveredScreenTour = isAnonymousCoveredScreenGuidedTourLaunch(
-      ownName,
-      remoteViewSimulationMode,
-      isDisplayDevice
-    );
+    const anonymousCoveredScreenVisitorRun = !isDisplayDevice
+      && coveredScreenMode
+      && isAnonymousVisitorDisplayName(ownName);
+    const anonymousCoveredScreenTour = anonymousCoveredScreenVisitorRun && experienceMode === "tour";
+    const anonymousCoveredScreenUnsavedPractice = anonymousCoveredScreenVisitorRun && experienceMode === "practice-unsaved";
+    const usesVisitorSimulationIdentity = anonymousCoveredScreenTour || anonymousCoveredScreenUnsavedPractice;
+    const savesResults = !coveredScreenMode || experienceMode === "practice-saved";
     const submittedOwnDisplayName = stripGuestDisplaySuffix(ownName);
+
+    if (anonymousCoveredScreenVisitorRun && experienceMode === "practice-saved") {
+      showRemoteViewerSaveResultsHint();
+      return;
+    }
 
     if (!ownName || (!coveredScreenMode && !partnerName)) {
       if (!ownName) {
@@ -33500,7 +33615,7 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    if (anonymousCoveredScreenTour) {
+    if (usesVisitorSimulationIdentity) {
       ownName = getOrCreateVisitorSimulationIdentifier();
       partnerName = "Robot";
     } else {
@@ -33519,7 +33634,7 @@ ${calmPracticeMessage}`;
 
     let ownStatus = null;
     let partnerStatus = null;
-    if (!anonymousCoveredScreenTour) {
+    if (!usesVisitorSimulationIdentity) {
       try {
         [ownStatus, partnerStatus] = coveredScreenMode
           ? [await fetchIdentifierStatus(ownName), null]
@@ -33540,7 +33655,7 @@ ${calmPracticeMessage}`;
       latest = rememberIdentifierStatus(partnerName, partnerStatus, latest);
     }
 
-    if (!anonymousCoveredScreenTour) {
+    if (!usesVisitorSimulationIdentity) {
       try {
         ownName = assertAcceptedLauncherIdentifier(
           ownName,
@@ -33570,10 +33685,11 @@ ${calmPracticeMessage}`;
 
     latest.ownNames = latest.ownNames || {};
     latest.currentPartners = latest.currentPartners || {};
-    latest.ownNames["remote-viewer"] = anonymousCoveredScreenTour ? submittedOwnDisplayName : ownName;
+    latest.ownNames["remote-viewer"] = usesVisitorSimulationIdentity ? submittedOwnDisplayName : ownName;
     latest.currentPartners["remote-viewer"] = coveredScreenMode ? "" : partnerName;
     latest.remoteViewerDisplayDevice = isDisplayDevice;
-    latest.remoteViewerCoveredScreenSimulation = coveredScreenSimulation;
+    latest.remoteViewerExperienceMode = experienceMode;
+    latest.remoteViewerCoveredScreenSimulation = false;
     latest.remoteViewerSimulationMode = remoteViewSimulationMode;
     writeLauncherState(latest);
 
@@ -33660,9 +33776,9 @@ ${calmPracticeMessage}`;
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
       remoteDisplayDevice: isDisplayDevice,
-      coveredScreenSimulation: coveredScreenSimulation || anonymousCoveredScreenTour,
+      saveResults: savesResults,
       difficultyLevel: requestedRemoteViewerDifficulty,
-      visitorDisplayName: anonymousCoveredScreenTour ? submittedOwnDisplayName : "",
+      visitorDisplayName: usesVisitorSimulationIdentity ? submittedOwnDisplayName : "",
       guidedTour: anonymousCoveredScreenTour ? guidedReceiverTourMode : ""
     });
     showLocalLauncherDebugAlert(2, `target=${targetUrl}`);
@@ -33672,7 +33788,7 @@ ${calmPracticeMessage}`;
         return;
       }
     }
-    if (!anonymousCoveredScreenTour && !(await prepareLocationForGo("remote-viewer", { targetUrl }))) {
+    if (!usesVisitorSimulationIdentity && !(await prepareLocationForGo("remote-viewer", { targetUrl }))) {
       return;
     }
     // Avoid briefly exposing the launcher after the Covered Screen acknowledgement.

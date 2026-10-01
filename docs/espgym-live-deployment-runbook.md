@@ -1429,6 +1429,18 @@ Stable wrapper command:
 - `powershell -ExecutionPolicy Bypass -File scripts\run-playwright-check.ps1 -CheckOnly`
 - `powershell -ExecutionPolicy Bypass -File scripts\run-playwright-check.ps1 -ScriptPath <node-script.js>`
 
+### Public HTTPS Verification
+
+The final live-shell verification in `scripts\push-live.ps1` uses Node's HTTPS client rather than PowerShell's `Invoke-WebRequest`. This avoids Windows Schannel credential-context failures such as `SEC_E_NO_CREDENTIALS`, which can occur in an automated PowerShell host even while the public site and its certificate are healthy.
+
+If a release stops at the public verification step, first confirm the exact build with:
+
+```powershell
+node -e "fetch('https://espgym.com/telepathybeginner.html?v=BUILD&open=launcher').then(async response => { const text = await response.text(); console.log('HTTP=' + response.status, 'hasBuild=' + text.includes('BUILD')); }).catch(error => { console.error(error); process.exit(1); });"
+```
+
+Replace both `BUILD` values with the prepared release version. Do not bypass the verifier or mark the release ready manually; repair the verifier and rerun the existing prepared release instead.
+
 ### Preferred Local UI Micro-Change Workflow
 
 When the user wants to inspect a small browser UI revision locally without a full live release:

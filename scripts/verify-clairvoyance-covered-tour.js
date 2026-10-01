@@ -14,8 +14,8 @@ function assert(condition, message) {
 async function verifyCoveredScreenLaunch() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  page.setDefaultTimeout(10000);
-  page.setDefaultNavigationTimeout(10000);
+  page.setDefaultTimeout(20000);
+  page.setDefaultNavigationTimeout(20000);
 
   try {
     await page.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
@@ -38,6 +38,56 @@ async function verifyCoveredScreenLaunch() {
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     const ownInput = page.locator('[data-remote-viewer-own]');
     assert(await ownInput.inputValue() === "Anonymous Visitor", "Clairvoyance visitor name was not populated.");
+    const tourOption = page.locator('[data-remote-viewer-experience="tour"]');
+    const unsavedOption = page.locator('[data-remote-viewer-experience="practice-unsaved"]');
+    const saveOption = page.locator('[data-remote-viewer-experience="practice-saved"]');
+    const goButton = page.locator('[data-remote-viewer-go]');
+    assert(await tourOption.isChecked(), "Anonymous Covered Screen use must default to a tour.");
+    assert(await saveOption.isDisabled(), "Anonymous visitors must not be able to select saved results.");
+    assert(
+      (await goButton.getAttribute("title")) === "Press the GO button to start a tour of this exercise.",
+      "Anonymous tour tooltip is incorrect."
+    );
+    await unsavedOption.evaluate((input) => input.click());
+    assert(
+      (await goButton.getAttribute("title")) === "Press the GO button to start practicing this exercise without saving results.",
+      "Unsaved-practice tooltip is incorrect."
+    );
+    await page.locator('[data-remote-viewer-save-option]').dispatchEvent("pointerenter");
+    const saveResultsHint = page.locator('[data-remote-viewer-save-results-hint]');
+    await saveResultsHint.waitFor({ state: "visible" });
+    assert(
+      (await saveResultsHint.textContent()).includes("Results are saved after you claim a unique name for yourself."),
+      "Anonymous saved-results explanation is missing."
+    );
+    assert(
+      !(await saveResultsHint.evaluate((hint) => hint.closest('[aria-modal="true"]'))),
+      "Anonymous saved-results hint must not be modal."
+    );
+    const radioSizes = await page.locator('[data-remote-viewer-experience]').evaluateAll((inputs) =>
+      inputs.map((input) => {
+        const rect = input.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      })
+    );
+    assert(
+      radioSizes.every((size) => size.width === radioSizes[0].width && size.height === radioSizes[0].height),
+      "All Clairvoyance experience radio controls must have the same size."
+    );
+    await page.waitForTimeout(250);
+    assert(!(await saveResultsHint.evaluate((hint) => hint.hidden)), "Anonymous saved-results hint should remain until dismissed.");
+    await saveResultsHint.locator('[data-remote-viewer-save-results-cancel]').evaluate((button) => button.click());
+    assert(await saveResultsHint.isHidden(), "Cancel must dismiss the anonymous saved-results hint.");
+    await page.locator('[data-remote-viewer-save-option]').dispatchEvent("pointerenter");
+    await saveResultsHint.locator('[data-remote-viewer-save-results-claim]').evaluate((button) => button.click());
+    const handleOverlay = page.locator('[data-handle-overlay]');
+    await handleOverlay.waitFor({ state: "visible" });
+    await handleOverlay.locator('[data-close-handle]').click();
+    assert(
+      await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => card.classList.contains("active")),
+      "Cancelling the unique-name claim must return to the expanded Clairvoyance panel."
+    );
+    await tourOption.evaluate((input) => input.click());
     const explanation = page.locator('[data-role-identifier-note="remote-viewer"]');
     await page.waitForFunction(() => {
       const note = document.querySelector('[data-role-identifier-note="remote-viewer"]');
@@ -80,6 +130,88 @@ async function verifyCoveredScreenLaunch() {
     assert(await page.locator("#countdownNumber").textContent() === "Press when ready.", "Covered Screen tour did not reach the ready prompt.");
     assert(await page.locator("#guidedTourNextButton").isHidden(), "Covered Screen preparation should not require a NEXT acknowledgement.");
 
+    await page.locator("#countdownBox").click();
+    await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("At the end of the countdown"));
+    await page.locator("#guidedTourNextButton").click();
+    await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("Look into your mind's eye carefully"));
+    await page.locator("#guidedTourProbeButton").click();
+    const probeScreen = page.locator("#guidedTourProbeScreen");
+    await probeScreen.waitFor({ state: "visible" });
+    await probeScreen.locator("[data-probe-topic-open]").first().click();
+    assert(await probeScreen.locator("h3").first().textContent() === "A Peaceful Environment", "Probe Deeper OPEN did not show its selected topic.");
+    assert(
+      (await page.locator("#guidedTourCopy").textContent()).startsWith("Look into your mind's eye carefully"),
+      "Probe Deeper OPEN incorrectly advanced the underlying guided tour."
+    );
+
+    const unsavedPage = await browser.newPage();
+    unsavedPage.setDefaultTimeout(20000);
+    unsavedPage.setDefaultNavigationTimeout(20000);
+    await unsavedPage.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
+    await unsavedPage.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({
+        entryMode: "visitor",
+        remoteViewerSimulationMode: "covered-screen"
+      }));
+      sessionStorage.setItem("cones-covered-screen-instruction-dismiss-v1", "1");
+    }, { key: launcherStorageKey });
+    await unsavedPage.reload({ waitUntil: "domcontentloaded" });
+    await unsavedPage.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => {
+      view.classList.remove("beginner-view-hidden");
+    });
+    await unsavedPage.locator('[data-role-card="remote-viewer"]').evaluate((card) => {
+      card.hidden = false;
+    });
+    await unsavedPage.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await unsavedPage.locator('[data-remote-viewer-experience="practice-unsaved"]').evaluate((input) => input.click());
+    const unsavedLaunchUrls = [];
+    unsavedPage.on("framenavigated", (frame) => {
+      if (frame === unsavedPage.mainFrame()) {
+        unsavedLaunchUrls.push(frame.url());
+      }
+    });
+    await unsavedPage.locator('[data-remote-viewer-go]').evaluate((button) => button.click());
+    await unsavedPage.waitForURL(/receiver\.html/);
+    const unsavedLaunchUrl = unsavedLaunchUrls.find((url) => url.includes("receiver.html?")) || "";
+    assert(unsavedLaunchUrl.includes("save_results=0"), `Unsaved practice must explicitly disable result storage at launch: ${unsavedLaunchUrl}`);
+    assert(!unsavedLaunchUrl.includes("guided_tour="), "Unsaved practice must not be converted into a guided tour.");
+    await unsavedPage.close();
+
+    const recognizedPage = await browser.newPage();
+    recognizedPage.setDefaultTimeout(20000);
+    await recognizedPage.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await recognizedPage.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({
+        recognizedIdentity: "Local Test User",
+        ownNames: { "remote-viewer": "Local Test User" },
+        remoteViewerSimulationMode: "covered-screen"
+      }));
+    }, { key: launcherStorageKey });
+    await recognizedPage.reload({ waitUntil: "domcontentloaded" });
+    await recognizedPage.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => {
+      view.classList.remove("beginner-view-hidden");
+    });
+    await recognizedPage.locator('[data-role-card="remote-viewer"]').evaluate((card) => {
+      card.hidden = false;
+    });
+    await recognizedPage.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    const recognizedSaveOption = recognizedPage.locator('[data-remote-viewer-experience="practice-saved"]');
+    assert(await recognizedSaveOption.isChecked(), "Recognized users must default to saved Clairvoyance practice.");
+    assert(!(await recognizedSaveOption.isDisabled()), "Recognized users must be able to choose saved Clairvoyance practice.");
+    assert(
+      (await recognizedPage.locator('[data-remote-viewer-go]').getAttribute("title")) === "Press the GO button to start practicing this exercise and saving your results.",
+      "Recognized saved-practice tooltip is incorrect."
+    );
+    const recognizedSetupPrompt = recognizedPage.locator('[data-role-setup-wrap="remote-viewer"]');
+    await recognizedSetupPrompt.waitFor({ state: "visible" });
+    await recognizedPage.locator('[data-remote-viewer-experience="practice-unsaved"]').evaluate((input) => input.click());
+    assert(await recognizedSetupPrompt.isVisible(), "Changing a Clairvoyance experience must not hide the optional setup link.");
+    await recognizedPage.close();
+
   } finally {
     await browser.close();
   }
@@ -88,7 +220,23 @@ async function verifyCoveredScreenLaunch() {
 function verifyRuntimeGuards() {
   const runtimeSource = fs.readFileSync(path.join(__dirname, "..", "telepathy.js"), "utf8");
   const runtimeStyles = fs.readFileSync(path.join(__dirname, "..", "telepathy.css"), "utf8");
+  const receiverMarkup = fs.readFileSync(path.join(__dirname, "..", "receiver.html"), "utf8");
+
+  assert(
+    receiverMarkup.includes('<div class="countdown-box hidden" id="countdownBox"'),
+    "Receiver startup must keep its generic waiting placeholder hidden until the runtime selects a meaningful prompt."
+  );
   const launcherSource = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.js"), "utf8");
+  assert(
+    launcherSource.includes('"practice-unsaved"') &&
+      launcherSource.includes('"practice-saved"'),
+    "Clairvoyance must offer distinct tour, unsaved-practice, and saved-practice choices."
+  );
+  assert(
+    runtimeSource.includes('const shouldSaveResults = String(runtimeQuery.get("save_results") || "1").trim() !== "0"') &&
+      runtimeSource.includes("!shouldSaveResults || isGuidedExperienceTour"),
+    "Unsaved Clairvoyance practice must be blocked at both trial-record storage paths."
+  );
   assert(
     runtimeSource.includes("coveredScreenInstructionOverlay?.contains(target)"),
     "Guided-tour click guard must allow the Covered Screen instruction controls to receive input."
@@ -134,8 +282,38 @@ function verifyRuntimeGuards() {
     "Covered Screen tour must begin at the ready prompt."
   );
   assert(
+    runtimeSource.includes("isRemoteViewerCoveredMode && isGuidedReceiverTour") &&
+      runtimeSource.includes("hideCountdown();"),
+    "Covered Screen guided tours must hide the transient preparation prompt."
+  );
+  assert(
     runtimeSource.includes("Continue Session") && runtimeSource.includes("End Session"),
     "Covered Screen result guidance is missing."
+  );
+  assert(
+    runtimeSource.includes("whatever manifested in your mind's eye about the time that the beep occurred.\""),
+    "Clairvoyance observation guidance must end at the beep-time instruction."
+  );
+  assert(
+    !runtimeSource.includes("This is your task."),
+    "Clairvoyance observation guidance must not include the redundant task sentence."
+  );
+  assert(
+    runtimeSource.includes("tap anywhere on the screen or press a key to say you are done viewing clairvoyantly") &&
+      runtimeSource.includes("allowed: isRemoteViewerCoveredMode ? [document.body] : [countdownBox]"),
+    "Covered Screen tours must allow a click anywhere on the available screen to finish viewing."
+  );
+  assert(
+    runtimeSource.includes("Tap an available space on the screen or press a key to continue."),
+    "Covered Screen's viewing prompt must explain both available completion actions."
+  );
+  assert(
+    runtimeSource.includes("guidedTourProbeScreen?.contains(target)"),
+    "Probe Deeper interactions must not reach Covered Screen's underlying completion handler."
+  );
+  assert(
+    runtimeSource.includes("event.stopPropagation();") && runtimeSource.includes("Rendering a selected topic replaces this button"),
+    "Probe Deeper topic navigation must stop its click before the runtime redraws the selected topic."
   );
   assert(
     runtimeSource.includes("covered-screen-runtime-instruction-ok"),

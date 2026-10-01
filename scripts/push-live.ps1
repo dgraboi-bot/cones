@@ -239,6 +239,28 @@ function Convert-ToPosixPath([string]$Path) {
 
 function Assert-LiveShellVersion([string]$ExpectedVersion) {
   Write-ReleaseLog ("Verifying live shell HTTP surfaces for build {0}" -f $ExpectedVersion) "DarkCyan"
+  $nodeExecutable = (Get-Command node -ErrorAction Stop).Source
+  $nodeVerificationScript = @'
+const url = process.argv[1];
+const expectedSnippets = Buffer.from(process.argv[2], "base64").toString("utf8").split("\n");
+
+fetch(url)
+  .then(async (response) => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const content = await response.text();
+    const missingSnippet = expectedSnippets.find((snippet) => !content.includes(snippet));
+    if (missingSnippet) {
+      throw new Error(`Missing expected snippet: ${missingSnippet}`);
+    }
+    console.log(`Verified ${url} with HTTP ${response.status}.`);
+  })
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+'@
   $targets = @(
     @{
       Url = "https://espgym.com/telepathybeginner.html?v=$ExpectedVersion&open=launcher"
@@ -259,12 +281,19 @@ function Assert-LiveShellVersion([string]$ExpectedVersion) {
   )
 
   foreach ($target in $targets) {
-    $content = $null
     $lastError = ""
     for ($attempt = 1; $attempt -le 4; $attempt++) {
       try {
-        $response = Invoke-WebRequest -Uri ([string]$target.Url) -UseBasicParsing -TimeoutSec 20
-        $content = [string]$response.Content
+        $expectedSnippetsEncoded = [Convert]::ToBase64String(
+          [System.Text.Encoding]::UTF8.GetBytes((@($target.Contains) -join "`n"))
+        )
+        [void](Invoke-ExternalCommand -FilePath $nodeExecutable -ArgumentList @(
+          "-e",
+          $nodeVerificationScript,
+          [string]$target.Url,
+          $expectedSnippetsEncoded
+        ) -StepLabel ("verify public HTTP surface attempt {0}: {1}" -f $attempt, $target.Url) -TimeoutSeconds 30 -AllowEmptyOutput)
+        $lastError = ""
         break
       } catch {
         $lastError = $_.Exception.Message
@@ -273,13 +302,8 @@ function Assert-LiveShellVersion([string]$ExpectedVersion) {
         }
       }
     }
-    if ($null -eq $content) {
+    if ($lastError) {
       throw "Live shell verification could not fetch $($target.Url): $lastError"
-    }
-    foreach ($snippet in @($target.Contains)) {
-      if ($content -notlike "*$snippet*") {
-        throw "Live shell verification failed for $($target.Url). Missing expected snippet: $snippet"
-      }
     }
   }
 }

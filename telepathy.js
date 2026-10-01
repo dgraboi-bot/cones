@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001h";
+  const runtimeBuildVersion = "20261001k";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -89,6 +89,7 @@
   const isRobotSimulationMode = isRobotSenderMode || isRobotReceiverMode;
   const isCoveredScreenSimulationMode = isRemoteViewerCoveredMode
     && String(runtimeQuery.get("covered_screen_simulation") || "").trim() === "1";
+  const shouldSaveResults = String(runtimeQuery.get("save_results") || "1").trim() !== "0";
   const isReportSimulationMode = isRobotSimulationMode || isCoveredScreenSimulationMode;
   const isRemoteViewerLikeMode = isRemoteViewerMode || isRemoteViewerCoveredMode;
   const isRobotSenderLikeMode = isRobotSenderMode || isRemoteViewerCoveredMode;
@@ -100,7 +101,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001h";
+  const launcherBuildVersion = "20261001k";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -927,11 +928,13 @@
     if (phase === "done") {
       setGuidedReceiverTourStep({
         id: "done",
-        text: "After you have had enough time to inspect and remember the contents of your mind's eye, tap \"Press here...\" below to say you are done receiving.",
+        text: isRemoteViewerCoveredMode
+          ? "After you have had enough time to inspect and remember the contents of your mind's eye, tap anywhere on the screen or press a key to say you are done viewing clairvoyantly. Then remove the cloth/cardboard that hides the screen to be shown two alternatives. Select the one that matches closest to what you have viewed clairvoyantly."
+          : "After you have had enough time to inspect and remember the contents of your mind's eye, tap \"Press here...\" below to say you are done receiving.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: false,
-        allowed: [countdownBox],
+        allowed: isRemoteViewerCoveredMode ? [document.body] : [countdownBox],
         placement: "top-center"
       });
       return;
@@ -1058,7 +1061,7 @@
       guidedReceiverTourState.manualBalloonPosition = null;
       setGuidedReceiverTourStep({
         id: "receiving-observe",
-        text: "Look into your mind's eye carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mind's eye about the time that the beep occurred. This is your task.",
+        text: "Look into your mind's eye carefully. Do you see a single dim, blurry, blob, perhaps with some color, or can you make out more than one blurry blob? After just a few seconds, the impression may fade, so use these first few seconds to inspect - and also remember - whatever manifested in your mind's eye about the time that the beep occurred.",
         target: countdownBox,
         keepTargetBright: true,
         showNext: true,
@@ -1130,6 +1133,9 @@
       return;
     }
     event.preventDefault();
+    // Rendering a selected topic replaces this button, so do not let the same
+    // click fall through to Covered Screen's document-level completion handler.
+    event.stopPropagation();
     if (button.dataset.probeTopicBack === "1") {
       if (guidedReceiverTourState) {
         guidedReceiverTourState.probeTopicId = "";
@@ -1614,7 +1620,7 @@
   function getReceiverDonePrompt() {
     return isRemoteViewerLikeMode
       ? (isRemoteViewerCoveredMode
-          ? "Tap anywhere on the screen when done remote viewing."
+          ? "Tap an available space on the screen or press a key to continue."
           : "Press here when done remote viewing.")
       : "Press here when done receiving.";
   }
@@ -6141,7 +6147,7 @@
   }
 
   function appendTrialToBrowserStorage(remoteState, options = {}) {
-    if (role !== "receiver") {
+    if (role !== "receiver" || !shouldSaveResults || isGuidedExperienceTour) {
       return;
     }
 
@@ -6193,7 +6199,7 @@
       return;
     }
 
-    if (isGuidedExperienceTour) {
+    if (!shouldSaveResults || isGuidedExperienceTour) {
       return;
     }
 
@@ -7907,6 +7913,14 @@
     }
 
     if (mode === "receiver-waiting-online") {
+      if (isRemoteViewerCoveredMode && isGuidedReceiverTour) {
+        // This is only the local Covered Screen tour's setup transition.
+        // Keep it off-screen until the ready prompt is actionable.
+        hideCountdown();
+        updateSettingsGearVisibility();
+        notifyGuidedReceiverTourPhase("waiting-online");
+        return;
+      }
       setPrompt(getWaitingOnlinePrompt(), false);
       updateSettingsGearVisibility();
       notifyGuidedReceiverTourPhase("waiting-online");
@@ -8244,7 +8258,7 @@
         (currentUiMode === "receiver-done" || currentUiMode === "receiver-reveal")
       ) {
         const target = event.target instanceof Element ? event.target : null;
-        if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon, .guided-tour-runtime-balloon, [data-covered-screen-runtime-instruction-overlay]")) {
+        if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon, .guided-tour-runtime-balloon, [data-covered-screen-runtime-instruction-overlay]") || guidedTourProbeScreen?.contains(target)) {
           return;
         }
         noteUserInteraction();
@@ -8262,7 +8276,7 @@
         return;
       }
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon, .guided-tour-runtime-balloon, [data-covered-screen-runtime-instruction-overlay]")) {
+      if (target?.closest("#settingsScreen, #settingsGear, .guided-tour-balloon, .guided-tour-runtime-balloon, [data-covered-screen-runtime-instruction-overlay]") || guidedTourProbeScreen?.contains(target)) {
         return;
       }
       if (event.defaultPrevented) {
