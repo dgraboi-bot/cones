@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001a";
+  const launcherBuildVersion = "20261001b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -4494,6 +4494,22 @@ ${calmPracticeMessage}`;
     });
     const data = await parseApiResponse(response, `Delete named report request failed with status ${response.status}`);
     return !!data?.deleted;
+  }
+
+  async function deleteRobotSimulationReport(pairInfo) {
+    const selectedPair = sanitizePairInfoForServer(pairInfo);
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(applyLauncherAdminContext({
+        action: "delete_robot_simulation_report",
+        selected_pair: selectedPair
+      }))
+    });
+    const data = await parseApiResponse(response, `Delete Robot simulation request failed with status ${response.status}`);
+    return Math.max(0, Number(data?.deleted_trial_count || 0) || 0);
   }
 
   function getCurrentReportPairForGlobe() {
@@ -15488,6 +15504,12 @@ ${calmPracticeMessage}`;
     return String(target?.reportTargetType || "").trim().toLowerCase() === "named-report";
   }
 
+  function isRobotSimulationReportTarget(target) {
+    return !isNamedReportTarget(target) &&
+      String(target?.source || "").trim().toLowerCase() === "simulation" &&
+      (isRobotSimulationIdentifier(target?.receiverName) || isRobotSimulationIdentifier(target?.senderName));
+  }
+
   function buildNamedReportTarget(record) {
     const selectedPair = record?.selected_pair && typeof record.selected_pair === "object"
       ? record.selected_pair
@@ -15938,7 +15960,34 @@ ${calmPracticeMessage}`;
       }
     });
     reportDeleteButton?.addEventListener("click", () => {
-      if (!isNamedReportTarget(selectedReportTarget)) {
+      const isNamedReport = isNamedReportTarget(selectedReportTarget);
+      const isRobotSimulation = isRobotSimulationReportTarget(selectedReportTarget);
+      if (!isNamedReport && !isRobotSimulation) {
+        return;
+      }
+      if (isRobotSimulation) {
+        const label = getReportTargetDisplayLabel(selectedReportTarget);
+        const confirmed = window.confirm(`DELETE - Are you sure?\n\nDeleting this Robot simulation report permanently removes its underlying trials:\n${label}`);
+        if (!confirmed) {
+          return;
+        }
+        void (async () => {
+          try {
+            const deletedTrialCount = await deleteRobotSimulationReport(selectedReportTarget);
+            selectedReportTarget = null;
+            selectedReportPair = null;
+            await renderReportDefinition();
+            if (reportDefinitionStatus) {
+              reportDefinitionStatus.textContent = deletedTrialCount > 0
+                ? `Deleted Robot simulation report and ${deletedTrialCount} underlying ${deletedTrialCount === 1 ? "trial" : "trials"}.`
+                : "No Robot simulation trials remained in that report.";
+            }
+          } catch (error) {
+            if (reportDefinitionStatus) {
+              reportDefinitionStatus.textContent = error instanceof Error ? error.message : "Unable to delete the Robot simulation report right now.";
+            }
+          }
+        })();
         return;
       }
       const title = String(selectedReportTarget?.reportTitle || "").trim() || "this named file";
@@ -16111,9 +16160,17 @@ ${calmPracticeMessage}`;
         : "Select Receiver-Sender pair or named file:";
     }
     if (reportDeleteButton) {
-      reportDeleteButton.hidden = !isNamedReportTarget(selectedReportTarget);
+      const canDelete = isNamedReportTarget(selectedReportTarget) || isRobotSimulationReportTarget(selectedReportTarget);
+      reportDeleteButton.hidden = !canDelete;
+      reportDeleteButton.title = isRobotSimulationReportTarget(selectedReportTarget)
+        ? "Delete this Robot simulation report and its underlying trials."
+        : "Delete this saved named report.";
+      reportDeleteButton.setAttribute("aria-label", reportDeleteButton.title);
     }
-    reportPairPicker?.classList.toggle("has-inline-delete", isNamedReportTarget(selectedReportTarget));
+    reportPairPicker?.classList.toggle(
+      "has-inline-delete",
+      isNamedReportTarget(selectedReportTarget) || isRobotSimulationReportTarget(selectedReportTarget)
+    );
     if (reportGoButton) {
       reportGoButton.hidden = !selectedReportTarget;
     }

@@ -8902,6 +8902,45 @@ function read_pair_trial_records_for_pair(string $pairsDir, array $pairInfo): ar
     return $records;
 }
 
+function delete_robot_simulation_pair_records(array $pairInfo): array
+{
+    $source = trim((string) ($pairInfo['source'] ?? ''));
+    $receiverName = trim((string) ($pairInfo['receiver_name'] ?? ''));
+    $senderName = trim((string) ($pairInfo['sender_name'] ?? ''));
+
+    if ($source !== 'simulation' || (!is_robot_simulation_identifier($receiverName) && !is_robot_simulation_identifier($senderName))) {
+        throw new RuntimeException('Only Robot simulation reports can be deleted here.');
+    }
+
+    $simulationPairsDir = $GLOBALS['simulationPairsDir'] ?? '';
+    if ($simulationPairsDir === '') {
+        throw new RuntimeException('Robot simulation storage is unavailable.');
+    }
+
+    // Simulation reports are stored per exact Receiver/Sender pair. Do not use
+    // display aliases here, which keeps deletion limited to the chosen report.
+    $csvPath = get_pair_trial_csv_path($simulationPairsDir, $receiverName, $senderName);
+    $records = is_file($csvPath) ? read_csv_records($csvPath) : [];
+    foreach ($records as $record) {
+        if (!is_robot_simulation_trial_record($record)) {
+            throw new RuntimeException('The selected simulation report contains non-Robot trial data and was not deleted.');
+        }
+    }
+
+    $deletedTrialCount = count($records);
+    write_pair_trial_records($csvPath, []);
+
+    $analysisPath = get_pair_analysis_json_path($simulationPairsDir, $receiverName, $senderName);
+    if (is_file($analysisPath)) {
+        @unlink($analysisPath);
+    }
+
+    return [
+        'deleted_trial_count' => $deletedTrialCount,
+        'deleted' => $deletedTrialCount > 0
+    ];
+}
+
 function parse_location_visualization_value($rawValue): ?array
 {
     $text = trim((string) $rawValue);
@@ -15486,6 +15525,19 @@ if ($action === 'delete_named_report') {
 
     $response['deleted'] = $deleted;
     $response['report_id'] = $reportId;
+}
+
+if ($action === 'delete_robot_simulation_report') {
+    try {
+        require_allowed_keys($input, ['action', 'selected_pair', 'secret_candidate', 'admin_client_id'], 'request');
+        $selectedPair = validate_selected_pair_payload($input['selected_pair'] ?? []);
+        $deletedSimulation = delete_robot_simulation_pair_records($selectedPair);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response['deleted'] = $deletedSimulation['deleted'];
+    $response['deleted_trial_count'] = $deletedSimulation['deleted_trial_count'];
 }
 
 if ($action === 'get_location_visualization') {
