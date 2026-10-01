@@ -25,6 +25,9 @@ $releaseLogRoot = "C:\xampp\telepathyexperiment_private\cones\release-logs"
 $releaseLogRetentionCount = 30
 $releaseLogStamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $releaseLogPath = Join-Path $releaseLogRoot ("push-live-{0}-{1}.log" -f $Version, $releaseLogStamp)
+$deploymentStatusPath = "$liveRoot/.espgym-deployment-status.json"
+$script:deploymentStatusPublished = $false
+$script:releaseVerified = $false
 
 New-Item -ItemType Directory -Force -Path $releaseLogRoot | Out-Null
 
@@ -171,6 +174,32 @@ function Invoke-PlinkStep([string]$Command, [string]$StepLabel, [int]$TimeoutSec
 
 function Invoke-PscpUpload([string]$LocalPath, [string]$RemotePath, [string]$StepLabel) {
   [void](Invoke-ExternalCommand -FilePath $pscpPath -ArgumentList @("-q", "-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $LocalPath, "$remoteUploadTarget`:$RemotePath") -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput)
+}
+
+function Set-LiveDeploymentStatus([ValidateSet("deploying", "ready", "failed")][string]$State, [string]$Message) {
+  $payload = [ordered]@{
+    state = $State
+    version = $Version
+    message = $Message
+    updated_at_utc = (Get-Date).ToUniversalTime().ToString("o")
+  } | ConvertTo-Json -Compress
+  $encodedPayload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($payload))
+  $temporaryPath = "$liveRoot/.espgym-deployment-status.next-$Version"
+  Invoke-PlinkStep "echo '$encodedPayload' | base64 -d > '$temporaryPath' && mv -f '$temporaryPath' '$deploymentStatusPath'" ("publish deployment status: {0}" -f $State) -AllowEmptyOutput
+  $script:deploymentStatusPublished = $true
+  Write-ReleaseLog ("Published deployment status: {0}" -f $State) "DarkCyan"
+}
+
+trap {
+  $releaseError = $_
+  if ($script:deploymentStatusPublished -and -not $script:releaseVerified) {
+    try {
+      Set-LiveDeploymentStatus -State "failed" -Message "ESP GYM is temporarily unavailable while an update is checked. Please try again shortly."
+    } catch {
+      Write-ReleaseLog ("WARNING: Unable to publish failed deployment status: {0}" -f $_.Exception.Message) "Yellow"
+    }
+  }
+  throw $releaseError
 }
 
 function Prune-RemoteReleaseSnapshots {
@@ -515,6 +544,7 @@ foreach ($dir in $relativeDirs) {
 }
 
 $mkdirTargets = @($remoteDirs | Sort-Object -Unique)
+Set-LiveDeploymentStatus -State "deploying" -Message "Please wait. An ESP GYM update is in progress. Loading will begin shortly."
 Write-ReleaseLog "Phase 1/6: preparing remote staging directories" "Yellow"
 Invoke-PlinkStep "rm -rf '$stageRoot'" "clear remote stage root" -AllowEmptyOutput
 for ($offset = 0; $offset -lt $mkdirTargets.Count; $offset += 75) {
@@ -631,6 +661,8 @@ for ($index = 0; $index -lt $privateContentAuditCount; $index++) {
 
 Assert-RemoteManagedLessonSetConsistent -RepoRootForCheck $manifestRepoRoot
 Assert-LiveShellVersion -ExpectedVersion $Version
+Set-LiveDeploymentStatus -State "ready" -Message "ESP GYM is ready."
+$script:releaseVerified = $true
 Write-ReleaseLog "Phase 6/6: final live shell verification and cleanup" "Yellow"
 Invoke-PlinkStep "rm -rf '$stageRoot'" "remove remote stage root after successful deploy" -AllowEmptyOutput
 if ($vendorArchive) {

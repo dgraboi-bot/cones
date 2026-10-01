@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>ESP GYM Update Check</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Georgia, "Times New Roman", serif;
+      background: #050910;
+      color: #f7f2e9;
+    }
+
+    body {
+      align-items: center;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(72, 122, 211, 0.34), transparent 36rem),
+        radial-gradient(circle at 82% 76%, rgba(126, 70, 194, 0.24), transparent 34rem),
+        #050910;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      min-height: 100vh;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+
+    main {
+      background: rgba(13, 24, 45, 0.88);
+      border: 1px solid #6e9bd8;
+      border-radius: 1.5rem;
+      box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.45);
+      max-width: 34rem;
+      padding: 2.5rem;
+      text-align: center;
+    }
+
+    h1 { font-size: clamp(2rem, 7vw, 3.25rem); letter-spacing: 0.12em; margin: 0 0 1.4rem; }
+    p { font-family: "Trebuchet MS", sans-serif; font-size: 1.12rem; line-height: 1.55; margin: 0; }
+    .indicator { animation: pulse 1.4s ease-in-out infinite; color: #9ec7ff; font-size: 2rem; margin-bottom: 1rem; }
+    button { background: #2858a4; border: 1px solid #79a7e7; border-radius: 999px; color: #fff; cursor: pointer; font: inherit; margin-top: 1.5rem; padding: 0.7rem 1.25rem; }
+    button[hidden] { display: none; }
+    @keyframes pulse { 50% { opacity: 0.42; transform: scale(0.9); } }
+  </style>
+</head>
+<body>
+  <main aria-live="polite">
+    <div class="indicator" aria-hidden="true">&#8226; &#8226; &#8226;</div>
+    <h1>ESP GYM</h1>
+    <p data-wait-message>Checking whether ESP GYM is ready to load.</p>
+    <button type="button" data-wait-retry hidden>Check again</button>
+  </main>
+  <script>
+    (() => {
+      const message = document.querySelector("[data-wait-message]");
+      const retryButton = document.querySelector("[data-wait-retry]");
+      let redirecting = false;
+
+      async function checkStatus() {
+        if (redirecting) return;
+        try {
+          const response = await fetch(`wait-status.php?check=${Date.now()}`, { cache: "no-store" });
+          if (!response.ok) throw new Error("Status request failed");
+          const status = await response.json();
+          const state = String(status?.state || "deploying");
+          message.textContent = String(status?.message || "Please wait. An ESP GYM update is in progress. Loading will begin shortly.");
+          retryButton.hidden = state !== "failed";
+          if (state === "ready") {
+            redirecting = true;
+            message.textContent = "ESP GYM is ready. Loading now.";
+            window.setTimeout(() => window.location.replace("/telepathybeginner.html?open=landing"), 250);
+            return;
+          }
+        } catch (_) {
+          message.textContent = "Please wait while ESP GYM checks for a completed update.";
+          retryButton.hidden = true;
+        }
+        window.setTimeout(checkStatus, 3000);
+      }
+
+      retryButton.addEventListener("click", checkStatus);
+      checkStatus();
+    })();
+  </script>
+</body>
+</html>

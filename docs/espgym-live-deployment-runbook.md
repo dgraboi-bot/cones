@@ -58,6 +58,12 @@ Practical meaning:
 - runtime validation protects the user from one-load cache races and stale service-worker transitions
 - a release is not "clean" until both protections are in place and the live shell verifies correctly
 
+## Public Waiting Page
+
+Visitors may use `https://espgym.com/wait` when an update could be in progress. This is a stable, non-versioned page that does not load the ESP GYM app shell until the release-status endpoint reports `ready`.
+
+`push-live.ps1` writes an atomically replaced status file before live promotion begins. It reports `ready` only after the full live hash and version checks pass. If promotion fails after the status is published, the helper reports `failed`; a status that remains `deploying` for more than 30 minutes is also treated as failed by the endpoint. The status file is runtime state and is intentionally excluded from the release manifest.
+
 Authoritative runbook path:
 
 - `C:\xampp\htdocs\telepathyexperiment\cones\docs\espgym-live-deployment-runbook.md`

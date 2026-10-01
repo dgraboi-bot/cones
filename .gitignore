@@ -5,3 +5,5 @@ validation-reports/
 *.bak
 .DS_Store
 Thumbs.db
+/.espgym-deployment-status.json
+/.espgym-deployment-status.next-*

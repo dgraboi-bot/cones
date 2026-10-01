@@ -17,7 +17,9 @@ $mirrorVerifyFiles = @(
   "target-selection.js",
   "telepathy.js",
   "receiver.html",
-  "sender.html"
+  "sender.html",
+  "wait.html",
+  "wait-status.php"
 )
 
 $versionConsistencyChecks = @(
