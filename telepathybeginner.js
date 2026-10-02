@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002c";
+  const launcherBuildVersion = "20261002d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -39,11 +39,11 @@
   const maxBuildRecoveryAttempts = 2;
   const robotSimulationIdentifier = "Robot";
   const anonymousVisitorDisplayName = "Anonymous Visitor";
-  const anonymousRemoteDeviceDisplayName = "Anonymous Remote Device";
   const remoteViewerNameRequiredDisplay = "Recognized Unique Name required. Click GO.";
   const remoteDeviceNameRequiredDisplay = "Recognized Remote Device name needed. Click GO.";
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   let remoteViewerDeviceDiscoveryToken = 0;
+  let remoteViewerDeviceAvailabilityToken = 0;
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
   const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
@@ -267,6 +267,7 @@
   const openVisitorProFeatureButtons = Array.from(document.querySelectorAll("[data-open-visitor-pro-features]"));
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openPartnerMessagingButton = document.querySelector("[data-open-partner-messaging]");
+  const resetThisDeviceButton = document.querySelector("[data-reset-this-device]");
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openResearchParticipationProButton = document.querySelector("[data-open-research-participation-pro]");
@@ -1183,7 +1184,6 @@
   const remoteViewerGoButton = document.querySelector("[data-remote-viewer-go]");
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
   const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
-  const remoteViewerDisplayDeviceCheckbox = document.querySelector("[data-remote-viewer-display-device]");
   const remoteViewerExperienceInputs = Array.from(document.querySelectorAll("[data-remote-viewer-experience]"));
   const remoteViewerExperienceWrap = document.querySelector("[data-remote-viewer-experience-wrap]");
   const remoteViewerSaveOption = document.querySelector("[data-remote-viewer-save-option]");
@@ -1193,9 +1193,7 @@
   const remoteViewModeDialog = document.querySelector("[data-remote-view-mode-dialog]");
   const remoteViewModeStatus = document.querySelector("[data-remote-view-mode-status]");
   const remoteViewModeCards = Array.from(document.querySelectorAll("[data-remote-view-mode-card]"));
-  const remoteViewModeDeviceCopy = document.querySelector("[data-remote-view-mode-device-copy]");
   const remoteViewModeCancelButton = document.querySelector("[data-remote-view-mode-cancel]");
-  const remoteViewerDisplayToggleWrap = document.querySelector("[data-remote-viewer-display-toggle-wrap]");
   const remoteViewerPartnerField = document.querySelector("[data-remote-viewer-partner-field]");
   const remoteViewSimulationModeDefault = "covered-screen";
   const coveredScreenInstructionDismissKey = "cones-covered-screen-instruction-dismiss-v1";
@@ -2027,7 +2025,6 @@ ${calmPracticeMessage}`;
         learnMoreDraftText: typeof parsed?.learnMoreDraftText === "string" ? parsed.learnMoreDraftText : null,
         clairvoyanceLearnMoreDraftText: typeof parsed?.clairvoyanceLearnMoreDraftText === "string" ? parsed.clairvoyanceLearnMoreDraftText : null,
         difficultyLevel: ["1", "2", "3", "4", "5"].includes(String(parsed?.difficultyLevel || "")) ? String(parsed.difficultyLevel) : "1",
-        remoteViewerDisplayDevice: !!parsed?.remoteViewerDisplayDevice,
         remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(parsed?.remoteViewerExperienceMode),
         remoteViewerCoveredScreenSimulation: parsed?.remoteViewerCoveredScreenSimulation !== false,
         remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(parsed?.remoteViewerSimulationMode),
@@ -2097,7 +2094,6 @@ ${calmPracticeMessage}`;
         learnMoreDraftText: null,
         clairvoyanceLearnMoreDraftText: null,
         difficultyLevel: "1",
-        remoteViewerDisplayDevice: false,
         remoteViewerExperienceMode: "",
         remoteViewerCoveredScreenSimulation: true,
         remoteViewerSimulationMode: remoteViewSimulationModeDefault,
@@ -2543,7 +2539,6 @@ ${calmPracticeMessage}`;
       learnMoreDraftText: typeof baseState?.learnMoreDraftText === "string" ? baseState.learnMoreDraftText : null,
       clairvoyanceLearnMoreDraftText: typeof baseState?.clairvoyanceLearnMoreDraftText === "string" ? baseState.clairvoyanceLearnMoreDraftText : null,
       difficultyLevel: "1",
-      remoteViewerDisplayDevice: false,
       remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(baseState?.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: baseState?.remoteViewerCoveredScreenSimulation !== false,
       remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(baseState?.remoteViewerSimulationMode),
@@ -3972,7 +3967,6 @@ ${calmPracticeMessage}`;
       pendingInviteeOnboarding: cloneJsonValue(state?.pendingInviteeOnboarding || null, null),
       exploreTrial: cloneJsonValue(state?.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(state?.temporaryIdentity || null, null),
-      remoteViewerDisplayDevice: !!state?.remoteViewerDisplayDevice,
       remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(state?.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: state?.remoteViewerCoveredScreenSimulation !== false,
       difficultyLevel: normalizeDifficultyLevel(state?.difficultyLevel || "1"),
@@ -4011,7 +4005,6 @@ ${calmPracticeMessage}`;
       pendingInviteeOnboarding: cloneJsonValue(source.pendingInviteeOnboarding || null, null),
       exploreTrial: cloneJsonValue(source.exploreTrial || null, null),
       temporaryIdentity: cloneJsonValue(source.temporaryIdentity || null, null),
-      remoteViewerDisplayDevice: !!source.remoteViewerDisplayDevice,
       remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(source.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: source?.remoteViewerCoveredScreenSimulation !== false,
       difficultyLevel: normalizeDifficultyLevel(source.difficultyLevel || "1"),
@@ -5447,10 +5440,21 @@ ${calmPracticeMessage}`;
       }
       return {
         ...data.identifier_status,
-        identifier_exists: !!data?.identifier_exists,
-        formal_identity_exists: !!data?.formal_identity_exists,
-        auth_email_on_file: !!data?.auth_email_on_file,
-        passkey_registered: !!data?.passkey_registered
+        // Some status attributes belong to identifier_status while older
+        // responses expose them at the top level. Preserve a supplied inner
+        // value when the optional top-level compatibility field is absent.
+        identifier_exists: data?.identifier_exists !== undefined
+          ? !!data.identifier_exists
+          : !!data.identifier_status.identifier_exists,
+        formal_identity_exists: data?.formal_identity_exists !== undefined
+          ? !!data.formal_identity_exists
+          : !!data.identifier_status.formal_identity_exists,
+        auth_email_on_file: data?.auth_email_on_file !== undefined
+          ? !!data.auth_email_on_file
+          : !!data.identifier_status.auth_email_on_file,
+        passkey_registered: data?.passkey_registered !== undefined
+          ? !!data.passkey_registered
+          : !!data.identifier_status.passkey_registered
       };
     } catch (error) {
       if (timedOut) {
@@ -9188,13 +9192,10 @@ ${calmPracticeMessage}`;
     if (!activeHandleRole) {
       return;
     }
-    const remoteDisplayNameClaim = activeHandleRole === "remote-viewer" && !!remoteViewerDisplayDeviceCheckbox?.checked;
     if (handleDialogTitle) {
-      handleDialogTitle.textContent = remoteDisplayNameClaim
-        ? "Choose Unique Name for Use with This Remote Device and Browser"
-        : defaultHandleDialogTitle;
+      handleDialogTitle.textContent = defaultHandleDialogTitle;
     }
-    renderDefaultHandleDialogIntro(remoteDisplayNameClaim);
+    renderDefaultHandleDialogIntro();
     if (handleInput) {
       handleInput.placeholder = "your-handle";
     }
@@ -9213,13 +9214,11 @@ ${calmPracticeMessage}`;
     handleInput?.focus();
   }
 
-  function renderDefaultHandleDialogIntro(remoteDisplayNameClaim = false) {
+  function renderDefaultHandleDialogIntro() {
     if (!handleIntro) {
       return;
     }
-    handleIntro.textContent = remoteDisplayNameClaim
-      ? "Choose a unique name for this remote display device. This name identifies this browser/device for Remote Screen Clairvoyance practice. Using email for confirmation is optional and is never sold or shared (see "
-      : defaultHandleDialogIntroBeforePrivacyLink;
+    handleIntro.textContent = defaultHandleDialogIntroBeforePrivacyLink;
     const privacyLink = document.createElement("a");
     privacyLink.className = "about-section-link";
     privacyLink.href = "#";
@@ -9364,8 +9363,11 @@ ${calmPracticeMessage}`;
         } else {
           rememberIdentifierStatus(ownerName, status);
         }
-      } catch (_) {
-        renderRemoteDeviceSetupControls("", deviceName);
+      } catch (error) {
+        // A transient lookup problem must not erase this device's saved setup.
+        if (remoteDeviceSetupStatus) {
+          remoteDeviceSetupStatus.textContent = "Unable to verify the recognized name right now. Your saved remote-device setup is still available.";
+        }
       }
     }
     if (deviceName && remoteDeviceNameInput) {
@@ -9389,10 +9391,9 @@ ${calmPracticeMessage}`;
         if (remoteDeviceSetupStatus) {
           remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to verify this remote device.";
         }
-        deviceName = "";
-        controlToken = "";
-        writeRemoteDisplaySetup(String(remoteDeviceUserInput?.value || "").trim(), "", "");
-        renderRemoteDeviceSetupControls(String(remoteDeviceUserInput?.value || "").trim(), "", false);
+        // Preserve the local registration through a temporary network or server
+        // failure. Only a successful null lookup proves the device was released.
+        renderRemoteDeviceSetupControls(ownerName, deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
       }
     }
     const firstInput = remoteDeviceUserInput?.readOnly ? remoteDeviceNameInput : remoteDeviceUserInput;
@@ -9469,7 +9470,7 @@ ${calmPracticeMessage}`;
     if (!ownerName || !deviceName || !local.controlToken) {
       return;
     }
-    if (!window.confirm("Are you sure? This removes this browser's remote-device setup and releases the remote-device name. The owner and saved data will not be deleted.")) {
+    if (!window.confirm("Are you sure? This removes this browser's remote device and releases the remote device name. The owner of this remote device and previously saved data while using it will not be deleted.")) {
       return;
     }
     if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Resetting remote device...";
@@ -13743,10 +13744,7 @@ ${calmPracticeMessage}`;
     if (role === "receiver") {
       return `Difficulty for Sender ${pairContext.partnerName} and Receiver ${pairContext.ownName}`;
     }
-    const isDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
-    return isDisplayDevice
-      ? `Difficulty for Remote Viewer ${pairContext.partnerName} and Remote Display ${pairContext.ownName}`
-      : `Difficulty for Remote Viewer ${pairContext.ownName} and Remote Display ${pairContext.partnerName}`;
+    return `Difficulty for Remote Viewer ${pairContext.ownName} and Remote Display ${pairContext.partnerName}`;
   }
 
   function getMaxDifficultyLevel() {
@@ -15237,13 +15235,11 @@ ${calmPracticeMessage}`;
     const profileState = getRemoteViewerProfileState(state, savedOwn);
     remoteViewerOwnInput.value = savedOwn;
     remoteViewerPartnerInput.value = profileState.currentPartner || String(state.currentPartners?.["remote-viewer"] || "").trim() || readRoleSettings("remote-viewer").partnerName || "";
-    if (remoteViewerDisplayDeviceCheckbox) {
-      remoteViewerDisplayDeviceCheckbox.checked = !!state.remoteViewerDisplayDevice;
-    }
     syncRemoteViewerExperienceControls(state);
     applyRemoteViewerIdentityDefaults(state);
     refreshRemoteViewModeUi(state);
-    renderRemoteViewerLabels(!!state.remoteViewerDisplayDevice);
+    renderRemoteViewerLabels();
+    void refreshRemoteViewerRemoteDeviceAvailability(state);
   }
 
   function persistRemoteViewerCardState() {
@@ -15255,7 +15251,7 @@ ${calmPracticeMessage}`;
     latest.currentPartners = latest.currentPartners || {};
     latest.ownNames["remote-viewer"] = String(remoteViewerOwnInput.value || "").trim();
     latest.currentPartners["remote-viewer"] = String(remoteViewerPartnerInput.value || "").trim();
-    latest.remoteViewerDisplayDevice = !!remoteViewerDisplayDeviceCheckbox?.checked;
+    delete latest.remoteViewerDisplayDevice;
     latest.remoteViewerExperienceMode = getSelectedRemoteViewerExperienceMode(latest);
     latest.remoteViewerSimulationMode = readRemoteViewSimulationMode(latest);
     writeLauncherState(latest);
@@ -15440,18 +15436,15 @@ ${calmPracticeMessage}`;
 
   async function populateKnownRemoteDisplayDevice(state = readLauncherState()) {
     const mode = readRemoteViewSimulationMode(state);
-    const isDisplayDevice = mode === "remote-device" && !!remoteViewerDisplayDeviceCheckbox?.checked;
     const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
     const currentDeviceName = String(remoteViewerPartnerInput?.value || "").trim();
     if (
       mode !== "remote-device" ||
-      isDisplayDevice ||
       !isRecognizedRemoteViewerUser(state) ||
       !ownerName ||
       (
         currentDeviceName &&
-        !isRemoteDeviceNameRequiredDisplay(currentDeviceName) &&
-        normalizeIdentifierForStorage(currentDeviceName) !== normalizeIdentifierForStorage(anonymousRemoteDeviceDisplayName)
+        !isRemoteDeviceNameRequiredDisplay(currentDeviceName)
       )
     ) {
       return;
@@ -15466,7 +15459,6 @@ ${calmPracticeMessage}`;
       const latest = readLauncherState();
       if (
         readRemoteViewSimulationMode(latest) !== "remote-device" ||
-        !!remoteViewerDisplayDeviceCheckbox?.checked ||
         !isRecognizedRemoteViewerUser(latest)
       ) {
         return;
@@ -15482,12 +15474,35 @@ ${calmPracticeMessage}`;
     }
   }
 
+  async function refreshRemoteViewerRemoteDeviceAvailability(state = readLauncherState()) {
+    if (!remoteViewerPartnerInput || readRemoteViewSimulationMode(state) !== "remote-device") {
+      return;
+    }
+    const deviceName = String(remoteViewerPartnerInput.value || "").trim();
+    if (!deviceName || isRemoteDeviceNameRequiredDisplay(deviceName)) {
+      return;
+    }
+
+    const token = ++remoteViewerDeviceAvailabilityToken;
+    try {
+      const device = await fetchRemoteDisplayDeviceStatus(deviceName);
+      if (token !== remoteViewerDeviceAvailabilityToken || !remoteViewerPartnerInput) {
+        return;
+      }
+      if (!device && readRemoteViewSimulationMode(readLauncherState()) === "remote-device") {
+        remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
+        persistRemoteViewerCardState();
+      }
+    } catch (_) {
+      // Keep the current device name during a temporary availability failure.
+    }
+  }
+
   function applyRemoteViewerIdentityDefaults(state = readLauncherState()) {
     if (!remoteViewerOwnInput || !remoteViewerPartnerInput) {
       return;
     }
     const mode = readRemoteViewSimulationMode(state);
-    const isDisplayDevice = mode === "remote-device" && !!remoteViewerDisplayDeviceCheckbox?.checked;
     const automaticIdentifier = getRemoteViewerAutomaticIdentifier(state);
 
     if (mode === "covered-screen") {
@@ -15497,17 +15512,6 @@ ${calmPracticeMessage}`;
       remoteViewerOwnInput.title = isVisitorLauncherEntry(state)
         ? "Anonymous visitors take guided tours. Create a unique identification name to save practice data."
         : "";
-      return;
-    }
-
-    if (isDisplayDevice) {
-      remoteViewerOwnInput.value = isAnonymousLauncherEntry(state)
-        ? anonymousRemoteDeviceDisplayName
-        : automaticIdentifier;
-      remoteViewerPartnerInput.value = automaticIdentifier;
-      remoteViewerOwnInput.readOnly = isVisitorLauncherEntry(state);
-      remoteViewerOwnInput.setAttribute("aria-readonly", isVisitorLauncherEntry(state) ? "true" : "false");
-      remoteViewerOwnInput.title = isVisitorLauncherEntry(state) ? "Anonymous display-device name." : "";
       return;
     }
 
@@ -15522,7 +15526,6 @@ ${calmPracticeMessage}`;
     const remoteDeviceName = String(remoteViewerPartnerInput.value || "").trim();
     if (
       !remoteDeviceName ||
-      normalizeIdentifierForStorage(remoteDeviceName) === normalizeIdentifierForStorage(anonymousRemoteDeviceDisplayName) ||
       isRemoteDeviceNameRequiredDisplay(remoteDeviceName)
     ) {
       remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
@@ -15534,12 +15537,6 @@ ${calmPracticeMessage}`;
     return normalizeRemoteViewSimulationMode(mode) === "covered-screen"
       ? "Mode: Covered Screen"
       : "Mode: Remote Screen";
-  }
-
-  function buildRemoteViewModeDeviceCopy() {
-    const currentIdentifier = String(getCurrentTelepathyProIdentifier() || "").trim();
-    const identifierText = currentIdentifier || "no unique name currently recognized in this browser";
-    return `A target image will appear on a remote device running ESP PRO with any registered unique name, including ${identifierText}. Check the "remote viewing display device" checkbox and then fill the "Remote Viewer" field with ${identifierText} and press GO. After the receiving period, you will be shown two images and asked to choose the one that best matches what you perceived.`;
   }
 
   function showRemoteViewModeOverlay() {
@@ -15558,7 +15555,7 @@ ${calmPracticeMessage}`;
     remoteViewModeOverlay.setAttribute("aria-hidden", "true");
   }
 
-  function applyRemoteViewerModePresentation(mode, isDisplayDevice = false) {
+  function applyRemoteViewerModePresentation(mode) {
     const coveredScreen = normalizeRemoteViewSimulationMode(mode) === "covered-screen";
     const remoteScreen = !coveredScreen;
     if (remoteViewerForm) {
@@ -15567,7 +15564,7 @@ ${calmPracticeMessage}`;
     if (remoteViewerPartnerLabel) {
       remoteViewerPartnerLabel.textContent = coveredScreen
         ? "Covered Screen"
-        : (isDisplayDevice ? "Remote Viewer" : "Remote Screen");
+        : "Remote Screen";
     }
     if (remoteViewerPartnerField) {
       remoteViewerPartnerField.hidden = false;
@@ -15576,31 +15573,16 @@ ${calmPracticeMessage}`;
     }
     if (remoteViewerPartnerInput) {
       remoteViewerPartnerInput.disabled = coveredScreen;
-      remoteViewerPartnerInput.readOnly = !coveredScreen && isDisplayDevice;
+      remoteViewerPartnerInput.readOnly = false;
       if (coveredScreen) {
         remoteViewerPartnerInput.value = "";
         remoteViewerPartnerInput.placeholder = "";
         remoteViewerPartnerInput.hidden = true;
         remoteViewerPartnerInput.style.display = "none";
       } else {
-        if (isDisplayDevice) {
-          remoteViewerPartnerInput.placeholder = "";
-        } else {
-          remoteViewerPartnerInput.placeholder = "remote device unique name";
-        }
+        remoteViewerPartnerInput.placeholder = "remote device unique name";
         remoteViewerPartnerInput.hidden = false;
         remoteViewerPartnerInput.style.display = "";
-      }
-    }
-    if (remoteViewerDisplayToggleWrap) {
-      remoteViewerDisplayToggleWrap.hidden = coveredScreen;
-      remoteViewerDisplayToggleWrap.toggleAttribute("hidden", coveredScreen);
-      remoteViewerDisplayToggleWrap.style.display = coveredScreen ? "none" : "";
-    }
-    if (remoteViewerDisplayDeviceCheckbox) {
-      remoteViewerDisplayDeviceCheckbox.disabled = coveredScreen;
-      if (coveredScreen) {
-        remoteViewerDisplayDeviceCheckbox.checked = false;
       }
     }
     if (remoteViewerExperienceWrap) {
@@ -15615,7 +15597,6 @@ ${calmPracticeMessage}`;
     syncRemoteViewerExperienceControls(readLauncherState());
     logRemoteViewModeDebug("apply_presentation", {
       mode: normalizeRemoteViewSimulationMode(mode),
-      is_display_device: !!isDisplayDevice,
       label_text: String(remoteViewerPartnerLabel?.textContent || ""),
       field_hidden_property: !!remoteViewerPartnerField?.hidden,
       field_hidden_attr: remoteViewerPartnerField?.hasAttribute("hidden") || false,
@@ -15634,13 +15615,10 @@ ${calmPracticeMessage}`;
       remoteViewModeStatus.textContent = getRemoteViewSimulationModeCopy(mode);
       remoteViewModeStatus.hidden = false;
     }
-    if (remoteViewModeDeviceCopy) {
-      remoteViewModeDeviceCopy.textContent = buildRemoteViewModeDeviceCopy();
-    }
-    applyRemoteViewerModePresentation(mode, !!remoteViewerDisplayDeviceCheckbox?.checked);
+    applyRemoteViewerModePresentation(mode);
   }
 
-  function renderRemoteViewerLabels(isDisplayDevice = false) {
+  function renderRemoteViewerLabels() {
     const mode = readRemoteViewSimulationMode();
     const ownIdentifier = String(remoteViewerOwnInput?.value || "").trim();
     const ownStatus = getCachedIdentifierStatus(ownIdentifier);
@@ -15651,10 +15629,10 @@ ${calmPracticeMessage}`;
       && temporaryIdentity.source === "landing-explore-pro"
       && normalizeIdentifierForStorage(ownIdentifier) === normalizeIdentifierForStorage(temporaryIdentity.identifier);
     if (remoteViewerOwnLabel) {
-      remoteViewerOwnLabel.textContent = isDisplayDevice ? "This Device" : "You";
+      remoteViewerOwnLabel.textContent = "You";
     }
-    updateRemoteViewerGoTooltip(ownIdentifier, mode, isDisplayDevice);
-    applyRemoteViewerModePresentation(mode, isDisplayDevice);
+    updateRemoteViewerGoTooltip(ownIdentifier, mode);
+    applyRemoteViewerModePresentation(mode);
     refreshRemoteViewModeUi(readLauncherState());
     setRoleMessagePresentation("remote-viewer", "default");
     const handleWrap = getRoleHandleWrap("remote-viewer");
@@ -22230,18 +22208,17 @@ ${calmPracticeMessage}`;
     );
   }
 
-  function isAnonymousCoveredScreenGuidedTourLaunch(ownName, mode = readRemoteViewSimulationMode(), isDisplayDevice = false) {
-    return !isDisplayDevice
-      && normalizeRemoteViewSimulationMode(mode) === "covered-screen"
+  function isAnonymousCoveredScreenGuidedTourLaunch(ownName, mode = readRemoteViewSimulationMode()) {
+    return normalizeRemoteViewSimulationMode(mode) === "covered-screen"
       && isAnonymousVisitorDisplayName(ownName);
   }
 
-  function updateRemoteViewerGoTooltip(ownName, mode, isDisplayDevice = false) {
+  function updateRemoteViewerGoTooltip(ownName, mode) {
     if (!remoteViewerGoButton) {
       return;
     }
     const state = readLauncherState();
-    const coveredScreen = !isDisplayDevice && normalizeRemoteViewSimulationMode(mode) === "covered-screen";
+    const coveredScreen = normalizeRemoteViewSimulationMode(mode) === "covered-screen";
     const experienceMode = getSelectedRemoteViewerExperienceMode(state);
     const recognized = isRecognizedRemoteViewerUser(state);
     const tooltip = coveredScreen && experienceMode === "tour"
@@ -24233,10 +24210,10 @@ ${calmPracticeMessage}`;
       remoteViewerPartnerInput.value = "";
       remoteViewerPartnerInput.placeholder = "remote device handle";
     }
-    if (remoteViewerDisplayDeviceCheckbox) {
-      remoteViewerDisplayDeviceCheckbox.checked = false;
-    }
-    renderRemoteViewerLabels(false);
+    applyRemoteViewerIdentityDefaults(state);
+    refreshRemoteViewModeUi(state);
+    renderRemoteViewerLabels();
+    void refreshRemoteViewerRemoteDeviceAvailability(state);
     setRoleDifficultyLabel(
       "remote-viewer",
       normalizeDifficultyLevel(
@@ -28710,6 +28687,28 @@ ${calmPracticeMessage}`;
       // Ignore session cleanup failures.
     }
     await clearAppCacheArtifacts();
+  }
+
+  async function resetThisDeviceToAnonymousVisitor() {
+    const remoteSetup = readRemoteDisplaySetup();
+    if (remoteSetup.ownerName || remoteSetup.deviceName || remoteSetup.controlToken) {
+      const openRemoteSetup = window.confirm(
+        "This browser is configured as a remote display device. Use its Remote Device Setup RESET button first so its remote-device name can be released safely. Open Remote Device Setup now?"
+      );
+      if (openRemoteSetup) {
+        window.location.href = buildCanonicalLauncherUrl({ open: "remote-device" });
+      }
+      return;
+    }
+
+    if (!window.confirm(
+      "Are you sure? This removes ESP GYM information stored in this browser and resets it to an anonymous device. Your unique name, saved reports, and other server data will not be deleted."
+    )) {
+      return;
+    }
+
+    await clearAppLocalStorageArtifacts();
+    window.location.href = buildCanonicalLauncherUrl({ open: "landing" });
   }
 
   function showAdminView() {
@@ -33782,18 +33781,16 @@ ${calmPracticeMessage}`;
         current_partner_before: String(remoteViewerPartnerInput?.value || "")
       });
       writeRemoteViewSimulationMode(mode);
-      if (remoteViewerDisplayDeviceCheckbox) {
-        remoteViewerDisplayDeviceCheckbox.checked = false;
-      }
       applyRemoteViewerIdentityDefaults(readLauncherState());
       refreshRemoteViewModeUi(readLauncherState());
       persistRemoteViewerCardState();
-      renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+      renderRemoteViewerLabels();
+      void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
       hideRemoteViewModeOverlay();
       previewCurrentRoleExerciseOnEntry("remote-viewer");
       window.setTimeout(() => {
         const latestState = readLauncherState();
-        applyRemoteViewerModePresentation(readRemoteViewSimulationMode(latestState), !!remoteViewerDisplayDeviceCheckbox?.checked);
+        applyRemoteViewerModePresentation(readRemoteViewSimulationMode(latestState));
         logRemoteViewModeDebug("post_select_tick", {
           stored_mode_after_tick: readRemoteViewSimulationMode(latestState),
           label_text: String(remoteViewerPartnerLabel?.textContent || ""),
@@ -34037,38 +34034,34 @@ ${calmPracticeMessage}`;
   };
   remoteViewerOwnInput?.addEventListener("input", persistRemoteViewerCardState);
   remoteViewerOwnInput?.addEventListener("input", () => {
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+    renderRemoteViewerLabels();
   });
   remoteViewerOwnInput?.addEventListener("keydown", suppressIdentifierEnter);
   remoteViewerOwnInput?.addEventListener("change", () => {
     persistRemoteViewerCardState();
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+    renderRemoteViewerLabels();
   });
   remoteViewerOwnInput?.addEventListener("blur", () => {
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+    renderRemoteViewerLabels();
   });
   remoteViewerPartnerInput?.addEventListener("input", persistRemoteViewerCardState);
   remoteViewerPartnerInput?.addEventListener("input", () => {
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+    renderRemoteViewerLabels();
   });
   remoteViewerPartnerInput?.addEventListener("keydown", suppressIdentifierEnter);
   remoteViewerPartnerInput?.addEventListener("change", () => {
     persistRemoteViewerCardState();
     void persistRemoteViewerLauncherProfile();
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+    renderRemoteViewerLabels();
   });
   remoteViewerPartnerInput?.addEventListener("blur", () => {
     void persistRemoteViewerLauncherProfile();
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
-  });
-  remoteViewerDisplayDeviceCheckbox?.addEventListener("change", () => {
-    applyRemoteViewerIdentityDefaults(readLauncherState());
-    renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox.checked);
-    persistRemoteViewerCardState();
+    renderRemoteViewerLabels();
+    void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
   remoteViewerExperienceInputs.forEach((input) => {
     input.addEventListener("change", () => {
@@ -34076,7 +34069,7 @@ ${calmPracticeMessage}`;
         return;
       }
       persistRemoteViewerCardState();
-      renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+      renderRemoteViewerLabels();
     });
   });
   remoteViewerSaveOption?.addEventListener("pointerenter", () => {
@@ -34104,7 +34097,10 @@ ${calmPracticeMessage}`;
     closeRemoteViewerSaveResultsHint();
     openHandleOverlay("remote-viewer");
   });
-  renderRemoteViewerLabels(!!remoteViewerDisplayDeviceCheckbox?.checked);
+  renderRemoteViewerLabels();
+  window.addEventListener("focus", () => {
+    void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
+  });
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();
@@ -34112,9 +34108,7 @@ ${calmPracticeMessage}`;
     const experienceMode = getSelectedRemoteViewerExperienceMode();
     let ownName = String(remoteViewerOwnInput?.value || "").trim();
     let partnerName = coveredScreenMode ? robotSimulationIdentifier : String(remoteViewerPartnerInput?.value || "").trim();
-    const isDisplayDevice = !coveredScreenMode && !!remoteViewerDisplayDeviceCheckbox?.checked;
-    const anonymousCoveredScreenVisitorRun = !isDisplayDevice
-      && coveredScreenMode
+    const anonymousCoveredScreenVisitorRun = coveredScreenMode
       && isAnonymousVisitorDisplayName(ownName);
     const anonymousCoveredScreenTour = anonymousCoveredScreenVisitorRun && experienceMode === "tour";
     const anonymousCoveredScreenUnsavedPractice = anonymousCoveredScreenVisitorRun && experienceMode === "practice-unsaved";
@@ -34124,7 +34118,6 @@ ${calmPracticeMessage}`;
 
     if (
       !coveredScreenMode &&
-      !isDisplayDevice &&
       (
         isAnonymousVisitorDisplayName(ownName) ||
         isRemoteViewerNameRequiredDisplay(ownName) ||
@@ -34137,10 +34130,8 @@ ${calmPracticeMessage}`;
 
     if (
       !coveredScreenMode &&
-      !isDisplayDevice &&
       (
         !partnerName ||
-        normalizeIdentifierForStorage(partnerName) === normalizeIdentifierForStorage(anonymousRemoteDeviceDisplayName) ||
         isRemoteDeviceNameRequiredDisplay(partnerName)
       )
     ) {
@@ -34167,9 +34158,9 @@ ${calmPracticeMessage}`;
       partnerName = "Robot";
     } else {
       try {
-        ownName = assertValidParticipantIdentifier(ownName, isDisplayDevice ? "Device identifier" : "Your identifier");
+        ownName = assertValidParticipantIdentifier(ownName, "Your identifier");
         if (!coveredScreenMode) {
-          partnerName = assertValidParticipantIdentifier(partnerName, isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier");
+          partnerName = assertValidParticipantIdentifier(partnerName, "Remote display identifier");
         }
       } catch (error) {
         if (error instanceof Error) {
@@ -34207,28 +34198,23 @@ ${calmPracticeMessage}`;
         ownName = assertAcceptedLauncherIdentifier(
           ownName,
           ownStatus,
-          isDisplayDevice ? "Device identifier" : "Your identifier",
+          "Your identifier",
           { allowClaimPrompt: true }
         );
         if (!coveredScreenMode) {
-          if (!isDisplayDevice) {
-            if (
-              normalizeIdentifierForStorage(partnerName) === normalizeIdentifierForStorage(anonymousRemoteDeviceDisplayName) ||
-              isRemoteDeviceNameRequiredDisplay(partnerName)
-            ) {
-              showRemoteDeviceNeededOverlay(partnerName);
-              return;
-            }
-            const remoteDevice = await fetchRemoteDisplayDeviceStatus(partnerName);
-            if (!remoteDevice) {
-              showRemoteDeviceNeededOverlay(partnerName);
-              return;
-            }
+          if (isRemoteDeviceNameRequiredDisplay(partnerName)) {
+            showRemoteDeviceNeededOverlay(partnerName);
+            return;
+          }
+          const remoteDevice = await fetchRemoteDisplayDeviceStatus(partnerName);
+          if (!remoteDevice) {
+            showRemoteDeviceNeededOverlay(partnerName);
+            return;
           }
           partnerName = assertAcceptedLauncherIdentifier(
             partnerName,
             partnerStatus,
-            isDisplayDevice ? "Remote viewer identifier" : "Remote display identifier",
+            "Remote display identifier",
             { allowClaimPrompt: false }
           );
         }
@@ -34238,7 +34224,7 @@ ${calmPracticeMessage}`;
             openClairvoyanceUniqueNameClaim();
             return;
           }
-          if (!coveredScreenMode && !isDisplayDevice && /Remote Device identifier is not an accepted unique name/.test(error.message)) {
+          if (!coveredScreenMode && /Remote Device identifier is not an accepted unique name/.test(error.message)) {
             showRemoteDeviceNeededOverlay(partnerName);
             return;
           }
@@ -34252,7 +34238,7 @@ ${calmPracticeMessage}`;
     latest.currentPartners = latest.currentPartners || {};
     latest.ownNames["remote-viewer"] = usesVisitorSimulationIdentity ? submittedOwnDisplayName : ownName;
     latest.currentPartners["remote-viewer"] = coveredScreenMode ? "" : partnerName;
-    latest.remoteViewerDisplayDevice = isDisplayDevice;
+    delete latest.remoteViewerDisplayDevice;
     latest.remoteViewerExperienceMode = experienceMode;
     latest.remoteViewerCoveredScreenSimulation = false;
     latest.remoteViewerSimulationMode = remoteViewSimulationMode;
@@ -34263,7 +34249,7 @@ ${calmPracticeMessage}`;
       ? robotSimulationIdentifier
       : getPreferredIdentifier(partnerName, latest);
     const pairSessionCode = buildSessionCodeFromNames(canonicalOwnName, canonicalPartnerName);
-    const targetRole = isDisplayDevice ? "sender" : "receiver";
+    const targetRole = "receiver";
 
     if (!coveredScreenMode) {
       try {
@@ -34303,7 +34289,7 @@ ${calmPracticeMessage}`;
     });
     const runtimeMode = coveredScreenMode
       ? "remote-viewer-covered"
-      : (isDisplayDevice ? "remote-display" : "remote-viewer");
+      : "remote-viewer";
     const requestedRemoteViewerDifficulty = normalizeDifficultyLevel(
       getDifficultyLocalLevel("remote-viewer")
     );
@@ -34340,7 +34326,6 @@ ${calmPracticeMessage}`;
     showLocalLauncherDebugAlert(1, `mode=${remoteViewSimulationMode} covered=${coveredScreenMode ? 1 : 0} runtime=${runtimeMode}`);
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
       runtimeMode,
-      remoteDisplayDevice: isDisplayDevice,
       saveResults: savesResults,
       difficultyLevel: requestedRemoteViewerDifficulty,
       visitorDisplayName: usesVisitorSimulationIdentity ? submittedOwnDisplayName : "",
@@ -34758,6 +34743,9 @@ ${calmPracticeMessage}`;
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
   openPartnerMessagingButton?.addEventListener("click", () => {
     void openPartnerMessagingFromNavigation("other-settings");
+  });
+  resetThisDeviceButton?.addEventListener("click", () => {
+    void resetThisDeviceToAnonymousVisitor();
   });
   openClairvoyanceViewingButton?.addEventListener("click", () => {
     if (isProLockedButton(openClairvoyanceViewingButton) && !isAdminProLockOverrideAllowed(openClairvoyanceViewingButton)) {

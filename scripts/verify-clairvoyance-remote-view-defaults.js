@@ -47,7 +47,6 @@ async function verify() {
     const qualifiedState = {
       recognizedIdentity: "graboi",
       remoteViewerSimulationMode: "remote-device",
-      remoteViewerDisplayDevice: false,
       identifierStatusMap: {
         graboi: {
           formal_identity_exists: true,
@@ -55,6 +54,7 @@ async function verify() {
         }
       }
     };
+    let remoteDeviceAvailable = true;
     await page.route("**/api.php", async (route) => {
       let request = {};
       try {
@@ -72,6 +72,18 @@ async function verify() {
         });
         return;
       }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: remoteDeviceAvailable
+              ? { device_name: "my remote", owner_identifier: "graboi" }
+              : null
+          })
+        });
+        return;
+      }
       await route.continue();
     });
     await setLauncherState(page, qualifiedState);
@@ -80,25 +92,15 @@ async function verify() {
       document.querySelector('[data-remote-viewer-partner]')?.value === "my remote"
     ));
     assertEqual(await page.locator('[data-remote-viewer-partner]').inputValue(), "my remote", "remote-screen discovered device");
-    assertEqual(await page.locator('[data-remote-viewer-display-device]').isChecked(), false, "remote-screen display checkbox default");
-
-    await page.locator('[data-remote-viewer-display-device]').evaluate((input) => {
-      input.checked = true;
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    assertEqual(await page.locator('[data-remote-viewer-own-label]').textContent(), "This Device", "display-device own label");
-    assertEqual(await page.locator('[data-remote-viewer-partner-label]').textContent(), "Remote Viewer", "display-device partner label");
-    assertEqual(await page.locator('[data-remote-viewer-own]').inputValue(), "graboi", "display-device default name");
-    assertEqual(await page.locator('[data-remote-viewer-partner]').inputValue(), "graboi", "display-device remote viewer");
-    assertEqual(await page.locator('[data-remote-viewer-partner]').evaluate((input) => input.readOnly), true, "display-device remote viewer read-only");
-
-    await page.locator('[data-remote-viewer-display-device]').evaluate((input) => {
-      input.checked = false;
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    assertEqual(await page.locator('[data-remote-viewer-own-label]').textContent(), "You", "restored own label");
-    assertEqual(await page.locator('[data-remote-viewer-partner-label]').textContent(), "Remote Screen", "restored partner label");
-    assertEqual(await page.locator('[data-remote-viewer-own]').inputValue(), "graboi", "restored You");
+    assertEqual(await page.locator('[data-remote-viewer-display-device]').count(), 0, "display-device checkbox removed");
+    assertEqual(await page.locator('[data-remote-viewer-own-label]').textContent(), "You", "remote-screen own label");
+    assertEqual(await page.locator('[data-remote-viewer-partner-label]').textContent(), "Remote Screen", "remote-screen partner label");
+    assertEqual(await page.locator('[data-remote-viewer-partner]').evaluate((input) => input.readOnly), false, "remote-screen device field editable");
+    remoteDeviceAvailable = false;
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await page.waitForFunction(() => (
+      document.querySelector('[data-remote-viewer-partner]')?.value === "Recognized Remote Device name needed. Click GO."
+    ));
 
     console.log("Clairvoyance Remote View defaults verified.");
   } finally {

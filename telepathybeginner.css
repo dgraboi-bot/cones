@@ -2504,25 +2504,6 @@ body.lesson-image-overlay-open {
   min-height: 48px;
 }
 
-.remote-viewer-label-row {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
-.remote-viewer-display-toggle {
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  align-items: center;
-  font-size: 0.92rem;
-}
-
-.remote-viewer-display-toggle input {
-  margin-top: 0;
-}
-
 .remote-viewer-experience-options {
   position: relative;
   display: flex;
@@ -2571,7 +2552,8 @@ body.lesson-image-overlay-open {
   max-inline-size: 18px;
   max-block-size: 18px;
   margin: 0;
-  accent-color: var(--brand-base);
+  /* A selected Clairvoyance practice choice must remain obvious at a glance. */
+  accent-color: #39ff6a;
 }
 
 .remote-viewer-experience-option.is-unavailable,
@@ -3091,7 +3073,7 @@ button.remote-viewer-save-results-cancel {
 }
 
 .role-field-own > [data-own-identifier-label],
-.role-field-own .remote-viewer-label-row > [data-remote-viewer-own-label] {
+.role-field-own > [data-remote-viewer-own-label] {
   display: block;
   margin-bottom: 0;
 }
@@ -5802,7 +5784,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261002c") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261002d") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

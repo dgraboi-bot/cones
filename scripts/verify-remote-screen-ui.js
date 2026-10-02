@@ -48,8 +48,16 @@ async function verifyRemoteScreenUi() {
       "Covered Screen experience controls must remain hidden in Remote Screen mode."
     );
     assert(
+      await page.locator('[data-remote-viewer-own]').inputValue() === "Recognized Unique Name required. Click GO.",
+      "A Remote Screen must initially guide the viewer to claim a unique name."
+    );
+    assert(
       await page.locator('[data-remote-viewer-partner]').inputValue() === "Recognized Remote Device name needed. Click GO.",
       "A Remote Screen must initially guide the viewer to set up a remote device."
+    );
+    assert(
+      await page.locator('[data-remote-viewer-display-device]').count() === 0,
+      "The viewer-only Clairvoyance panel must not offer a display-device checkbox."
     );
     await page.locator('[data-remote-viewer-go]').evaluate((button) => button.click());
     const claimDialog = page.locator('[data-handle-overlay]');
@@ -65,13 +73,9 @@ async function verifyRemoteScreenUi() {
     assert(await claimDialog.locator('[data-handle-input]').getAttribute("placeholder") === "Your handle.", "The claim input must use the requested hint.");
     await claimDialog.locator('[data-close-handle]').click();
 
-    await page.locator('[data-remote-viewer-display-device]').evaluate((input) => input.click());
-    await page.waitForFunction(() => (
-      document.querySelector('[data-remote-viewer-own]')?.value === "Anonymous Remote Device"
-    ));
     assert(
       await page.locator('[data-remote-viewer-go]').evaluate((button) => getComputedStyle(button).gridColumn === "2"),
-      "Remote Screen GO must use the compact lower-right grid position."
+      "Remote Screen GO must use the compact lower-right viewer position."
     );
 
     // Exercise selection remains device-local until a remote device is ready.
@@ -124,8 +128,78 @@ async function verifyRemoteDeviceRoute() {
   }
 }
 
+async function verifyRemoteDevicePersistence() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "molly",
+              preferred_identifier: "molly",
+              preferred_handle: "molly",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "dan's remote", owner_identifier: "molly" }
+          })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "molly" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "molly",
+        deviceName: "dan's remote",
+        controlToken: "a".repeat(64)
+      }));
+    }, { key: launcherStorageKey });
+    const setupBeforeReload = await page.evaluate(() => localStorage.getItem("cones-remote-display-setup-v1"));
+    assert(setupBeforeReload !== null, "Test setup must save the remote-device registration before reload.");
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    await dialog.waitFor({ state: "visible" });
+    const restoredOwner = await dialog.locator('[data-remote-device-user-input]').inputValue();
+    const restoredDevice = await dialog.locator('[data-remote-device-name-input]').inputValue();
+    const persistedSetup = await page.evaluate(() => localStorage.getItem("cones-remote-display-setup-v1"));
+    assert(restoredOwner === "molly", `Remote setup must restore its saved owner on reload; received ${JSON.stringify(restoredOwner)} with setup ${JSON.stringify(persistedSetup)}.`);
+    assert(restoredDevice === "dan's remote", `Remote setup must restore its saved device name on reload; received ${JSON.stringify(restoredDevice)}.`);
+    assert(await dialog.locator('[data-remote-device-reset]').isEnabled(), "A restored remote setup must remain resettable by this browser.");
+  } finally {
+    await browser.close();
+  }
+}
+
 function verifyPersistentRemoteDisplayImplementation() {
   const launcherSource = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.js"), "utf8");
+  const launcherMarkup = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.html"), "utf8");
+  const launcherStyles = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.css"), "utf8");
   const runtimeSource = fs.readFileSync(path.join(__dirname, "..", "telepathy.js"), "utf8");
 
   assert(
@@ -137,6 +211,18 @@ function verifyPersistentRemoteDisplayImplementation() {
     "CONFIRM must immediately enter remote-display standby."
   );
   assert(
+    !launcherMarkup.includes("data-remote-viewer-display-device"),
+    "The display-device checkbox markup must be removed from the viewer panel."
+  );
+  assert(
+    launcherStyles.includes('accent-color: #39ff6a;'),
+    "Selected Clairvoyance practice choices must use the high-visibility green indicator."
+  );
+  assert(
+    launcherSource.includes("This removes this browser's remote device and releases the remote device name."),
+    "Remote-device RESET must use the approved confirmation wording."
+  );
+  assert(
     runtimeSource.includes("function showRemoteDisplayStandbyState()"),
     "Remote display standby state is missing."
   );
@@ -144,9 +230,13 @@ function verifyPersistentRemoteDisplayImplementation() {
     runtimeSource.includes("if (isRemoteDisplayMode) {\n      showRemoteDisplayStandbyState();\n      return;"),
     "A completed remote session must return the display to standby instead of the launcher."
   );
+  assert(
+    runtimeSource.includes("const finalShouldShowWaitingBack = !isRemoteDisplayMode && ("),
+    "Remote-display standby must not expose the generic BACK button."
+  );
 }
 
-Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute()])
+Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence()])
   .then(() => {
     verifyPersistentRemoteDisplayImplementation();
     console.log("Remote Screen and remote-device setup UI verified.");
