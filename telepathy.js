@@ -47,8 +47,10 @@
   const receiverSkipInstructionKey = "cones-receiver-skip-two-choice-instructions";
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
+  const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
+  const remoteDisplayReadyHeartbeatMs = 10000;
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002i";
+  const runtimeBuildVersion = "20261002j";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -81,6 +83,7 @@
   const probeReturnTarget = String(runtimeQuery.get("probe_return") || "").trim().toLowerCase();
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   let runtimePrefillSettingsOverride = null;
+  let remoteDisplayReadyHeartbeatTimer = 0;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteViewerCoveredMode = runtimeMode === "remote-viewer-covered";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
@@ -101,7 +104,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002i";
+  const launcherBuildVersion = "20261002j";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4026,6 +4029,7 @@
     hideMessagePanel();
     currentUiMode = "";
     setUiMode("sender-waiting-online");
+    startRemoteDisplayReadyHeartbeat();
     void syncState();
   }
 
@@ -4535,6 +4539,53 @@
     }
 
     return data;
+  }
+
+  function readRemoteDisplaySetup() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(remoteDisplaySetupKey) || "{}");
+      return {
+        ownerName: String(parsed?.ownerName || "").trim(),
+        deviceName: String(parsed?.deviceName || "").trim(),
+        controlToken: String(parsed?.controlToken || "").trim()
+      };
+    } catch (_) {
+      return { ownerName: "", deviceName: "", controlToken: "" };
+    }
+  }
+
+  async function markRemoteDisplayReady() {
+    if (!isRemoteDisplayMode) {
+      return;
+    }
+    const setup = readRemoteDisplaySetup();
+    if (!setup.ownerName || !setup.deviceName || !/^[a-f0-9]{64}$/i.test(setup.controlToken)) {
+      return;
+    }
+    try {
+      await fetch("api.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "mark_remote_display_device_ready",
+          owner_identifier: setup.ownerName,
+          device_name: setup.deviceName,
+          device_control_token: setup.controlToken
+        })
+      });
+    } catch (_) {
+      // The next scheduled heartbeat will retry a transient network failure.
+    }
+  }
+
+  function startRemoteDisplayReadyHeartbeat() {
+    if (!isRemoteDisplayMode || remoteDisplayReadyHeartbeatTimer) {
+      return;
+    }
+    void markRemoteDisplayReady();
+    remoteDisplayReadyHeartbeatTimer = window.setInterval(() => {
+      void markRemoteDisplayReady();
+    }, remoteDisplayReadyHeartbeatMs);
   }
 
   async function abortTrialAndReturnHome(options = {}) {

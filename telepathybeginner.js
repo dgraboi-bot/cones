@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002i";
+  const launcherBuildVersion = "20261002j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9359,7 +9359,7 @@ ${calmPracticeMessage}`;
     }
   }
 
-  async function openRemoteDeviceSetupOverlay({ forceClean = false } = {}) {
+  async function openRemoteDeviceSetupOverlay({ forceClean = false, showOpeningMessage = false } = {}) {
     const local = forceClean
       ? { ownerName: "", deviceName: "", controlToken: "" }
       : readRemoteDisplaySetup();
@@ -9372,9 +9372,11 @@ ${calmPracticeMessage}`;
     let controlToken = local.controlToken;
     renderRemoteDeviceSetupControls(ownerName, deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
     if (remoteDeviceSetupStatus) {
-      remoteDeviceSetupStatus.textContent = ownerName && !hasCompleteRemoteDisplaySetup({ ownerName, deviceName, controlToken })
-        ? "This browser is not currently configured as a remote display device. Choose a unique remote device name to set it up."
-        : "";
+      remoteDeviceSetupStatus.textContent = showOpeningMessage
+        ? "Opening Remote Device Setup. Please Wait..."
+        : ownerName && !hasCompleteRemoteDisplaySetup({ ownerName, deviceName, controlToken })
+          ? "This browser is not currently configured as a remote display device. Choose a unique remote device name to set it up."
+          : "";
     }
     remoteDeviceSetupOverlay?.classList.remove("beginner-view-hidden");
     remoteDeviceSetupOverlay?.setAttribute("aria-hidden", "false");
@@ -9422,6 +9424,11 @@ ${calmPracticeMessage}`;
         // failure. Only a successful null lookup proves the device was released.
         renderRemoteDeviceSetupControls(ownerName, deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
       }
+    }
+    if (showOpeningMessage && remoteDeviceSetupStatus?.textContent === "Opening Remote Device Setup. Please Wait...") {
+      remoteDeviceSetupStatus.textContent = ownerName && !hasCompleteRemoteDisplaySetup({ ownerName, deviceName, controlToken })
+        ? "This browser is not currently configured as a remote display device. Choose a unique remote device name to set it up."
+        : "";
     }
     const firstInput = remoteDeviceUserInput?.readOnly ? remoteDeviceNameInput : remoteDeviceUserInput;
     firstInput?.focus();
@@ -15529,11 +15536,7 @@ ${calmPracticeMessage}`;
     if (
       mode !== "remote-device" ||
       !isRecognizedRemoteViewerUser(state) ||
-      !ownerName ||
-      (
-        currentDeviceName &&
-        !isRemoteDeviceNameRequiredDisplay(currentDeviceName)
-      )
+      !ownerName
     ) {
       return;
     }
@@ -15541,7 +15544,7 @@ ${calmPracticeMessage}`;
     const token = ++remoteViewerDeviceDiscoveryToken;
     try {
       const devices = await fetchRemoteDisplayDevicesForOwner(ownerName);
-      if (token !== remoteViewerDeviceDiscoveryToken || devices.length !== 1 || !remoteViewerPartnerInput) {
+      if (token !== remoteViewerDeviceDiscoveryToken || !remoteViewerPartnerInput) {
         return;
       }
       const latest = readLauncherState();
@@ -15551,8 +15554,24 @@ ${calmPracticeMessage}`;
       ) {
         return;
       }
-      const deviceName = String(devices[0]?.device_name || "").trim();
-      if (!deviceName) {
+      const readyDevices = devices.filter((device) => device?.is_ready === true);
+      const readyDeviceName = readyDevices.length === 1
+        ? String(readyDevices[0]?.device_name || "").trim()
+        : "";
+      const currentDevice = devices.find((device) => (
+        normalizeIdentifierForStorage(String(device?.device_name || "")) === normalizeIdentifierForStorage(currentDeviceName)
+      ));
+      const currentDeviceIsReady = currentDevice?.is_ready === true;
+      const missingDeviceName = !currentDeviceName || isRemoteDeviceNameRequiredDisplay(currentDeviceName);
+      const soleRegisteredDeviceName = devices.length === 1
+        ? String(devices[0]?.device_name || "").trim()
+        : "";
+      const deviceName = readyDeviceName && !currentDeviceIsReady
+        ? readyDeviceName
+        : missingDeviceName
+          ? (readyDeviceName || soleRegisteredDeviceName)
+          : "";
+      if (!deviceName || normalizeIdentifierForStorage(deviceName) === normalizeIdentifierForStorage(currentDeviceName)) {
         return;
       }
       remoteViewerPartnerInput.value = deviceName;
@@ -15569,8 +15588,7 @@ ${calmPracticeMessage}`;
       remoteViewerCard?.classList.contains("active") &&
       !clairvoyanceViewingView?.classList.contains("beginner-view-hidden") &&
       readRemoteViewSimulationMode(state) === "remote-device" &&
-      isRecognizedRemoteViewerUser(state) &&
-      (!currentDeviceName || isRemoteDeviceNameRequiredDisplay(currentDeviceName))
+      isRecognizedRemoteViewerUser(state)
     );
   }
 
@@ -32396,7 +32414,7 @@ ${calmPracticeMessage}`;
       }
       if (requestedView === "remote-device") {
         showLauncherView();
-        void openRemoteDeviceSetupOverlay();
+        void openRemoteDeviceSetupOverlay({ showOpeningMessage: true });
         return;
       }
       if (requestedView === "baseline-questions") {
@@ -34288,6 +34306,11 @@ ${calmPracticeMessage}`;
     ) {
       openClairvoyanceUniqueNameClaim();
       return;
+    }
+
+    if (!coveredScreenMode) {
+      await populateKnownRemoteDisplayDevice(readLauncherState());
+      partnerName = String(remoteViewerPartnerInput?.value || "").trim();
     }
 
     if (
