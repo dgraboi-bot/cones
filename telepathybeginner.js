@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001n";
+  const launcherBuildVersion = "20261002a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -2196,6 +2196,7 @@ ${calmPracticeMessage}`;
       localStorage.removeItem(recognizedIdentityKey);
       localStorage.removeItem(deviceTestRestoreSnapshotKey);
       localStorage.removeItem(stripeReturnIdentifierStorageKey);
+      localStorage.removeItem(remoteDisplaySetupKey);
       localStorage.removeItem("cones-settings-v2-sender");
       localStorage.removeItem("cones-settings-v2-receiver");
       localStorage.removeItem("cones-settings-v2-remote-viewer");
@@ -28393,6 +28394,7 @@ ${calmPracticeMessage}`;
     const preservePairs = options?.preserve_pairs !== false;
     const preserveInvitees = options?.preserve_invitees !== false;
     const preserveQuestionnaires = options?.preserve_questionnaires !== false;
+    const clearAllAppStorage = options?.clear_all_app_storage === true;
     const preservedAdminDevicePrefs = {
       ...launcherAdminDevicePrefs
     };
@@ -28409,10 +28411,17 @@ ${calmPracticeMessage}`;
       preservePairs,
       preserveInvitees,
       preserveQuestionnaires,
+      clearAllAppStorage,
       deviceTestModeBefore: cloneJsonValue(readLauncherState()?.deviceTestMode || null, null),
       hasRestoreSnapshotKeyBefore: hasDeviceTestRestoreSnapshot()
     });
     try {
+      if (clearAllAppStorage) {
+        // This ADMIN action is meant to make ESP GYM behave like a first visit.
+        // The browser owns installation and notification permission separately.
+        localStorage.clear();
+        sessionStorage.clear();
+      }
       writeDeviceTestNotice("");
       clearDeviceTestRestoreSnapshot();
       setLauncherProfileSaveSuppression(!preserveUsers, true);
@@ -28447,8 +28456,10 @@ ${calmPracticeMessage}`;
         } catch (error) {
           // Ignore last-ditch launcher reset failures.
         }
-        writeLocalFreshStartEpoch(Date.now());
-        setPendingFreshStartAnonymousReset(true);
+        if (!clearAllAppStorage) {
+          writeLocalFreshStartEpoch(Date.now());
+          setPendingFreshStartAnonymousReset(true);
+        }
       }
       if (!preservePairs) {
         localStorage.removeItem("cones-settings-v2-sender");
@@ -28487,21 +28498,24 @@ ${calmPracticeMessage}`;
     }
     logLauncherUserTypeDebug("fresh_start_local_clear_end", {
       preserveUsers,
+      clearAllAppStorage,
       deviceTestModeAfter: cloneJsonValue(readLauncherState()?.deviceTestMode || null, null),
       hasRestoreSnapshotKeyAfter: hasDeviceTestRestoreSnapshot(),
       recognizedIdentityAfter: String(readLauncherState()?.recognizedIdentity || "").trim(),
       entryModeAfter: String(readLauncherState()?.entryMode || "").trim()
     });
-    writeLauncherAdminDevicePrefs(preservedAdminDevicePrefs);
-    syncLauncherAdminStateFromDevicePrefs();
-    traceAdminDevicePrefsChange("fresh_start_restore_prefs", {
-      restored: {
-        debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
-        easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
-        learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
-        has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim()
-      }
-    });
+    if (!clearAllAppStorage) {
+      writeLauncherAdminDevicePrefs(preservedAdminDevicePrefs);
+      syncLauncherAdminStateFromDevicePrefs();
+      traceAdminDevicePrefsChange("fresh_start_restore_prefs", {
+        restored: {
+          debug_enabled: !!launcherAdminDevicePrefs.debug_enabled,
+          easy_admin_enabled: !!launcherAdminDevicePrefs.easy_admin_enabled,
+          learn_more_save_enabled: !!launcherAdminDevicePrefs.learn_more_save_enabled,
+          has_cached_secret: !!String(launcherAdminDevicePrefs.cached_secret || "").trim()
+        }
+      });
+    }
     if (!preserveUsers) {
       await deleteIndexedDbDatabase("cones-folder-handles");
     }
@@ -28511,7 +28525,8 @@ ${calmPracticeMessage}`;
     await clearLocalFreshStartState({
       preserve_users: false,
       preserve_pairs: false,
-      preserve_questionnaires: false
+      preserve_questionnaires: false,
+      clear_all_app_storage: true
     });
     try {
       sessionStorage.removeItem(launcherKey);

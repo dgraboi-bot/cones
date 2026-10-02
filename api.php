@@ -1068,8 +1068,35 @@ function delete_user_identity_record(array &$state, string $identifier): array
         $identityKeys[$ownerKey] = true;
     }
 
+    // Remote displays have their own reserved handles, but belong to a person.
+    // Delete both sides together so neither an orphaned device nor a reserved
+    // device name survives removal of its owner.
+    $remoteDisplayDeviceKeys = [];
+    foreach ((array) ($state['remote_display_devices'] ?? []) as $deviceKey => $deviceRecord) {
+        if (!is_array($deviceRecord)) {
+            continue;
+        }
+        $deviceName = trim((string) ($deviceRecord['device_name'] ?? $deviceKey));
+        $deviceOwner = trim((string) ($deviceRecord['owner_identifier'] ?? ''));
+        if (!identity_value_matches_any_key($deviceName, $identityKeys)
+            && !identity_value_matches_any_key($deviceOwner, $identityKeys)) {
+            continue;
+        }
+        $remoteDisplayDeviceKeys[(string) $deviceKey] = true;
+        foreach ([$deviceName, (string) $deviceKey] as $candidate) {
+            $key = normalize_identifier_for_lookup($candidate);
+            if ($key !== '') {
+                $identityKeys[$key] = true;
+            }
+        }
+    }
+
     $deletedPairFiles = delete_identity_pair_storage($pairsDir, $identityKeys) + delete_identity_pair_storage($simulationPairsDir, $identityKeys);
     $deletedQuestionnaires = delete_identity_questionnaire_records($questionnaireResponsesDir, $identityKeys);
+
+    foreach (array_keys($remoteDisplayDeviceKeys) as $deviceKey) {
+        unset($state['remote_display_devices'][$deviceKey]);
+    }
 
     foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'partner_confirmation_preferences', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
         if (!is_array($state[$bucket] ?? null)) {
@@ -1137,7 +1164,8 @@ function delete_user_identity_record(array &$state, string $identifier): array
         'identifier' => $cleanIdentifier,
         'residual_cleanup' => $isResidualOnly,
         'deleted_pair_files' => $deletedPairFiles,
-        'deleted_questionnaires' => $deletedQuestionnaires
+        'deleted_questionnaires' => $deletedQuestionnaires,
+        'deleted_remote_display_devices' => count($remoteDisplayDeviceKeys)
     ];
 }
 
@@ -14820,6 +14848,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
         $state['passkey_enrollment_grants'] = [];
         $state['explore_pro_verifications'] = [];
         $state['explore_pro_trials'] = [];
+        $state['remote_display_devices'] = [];
         $state['stripe_users'] = [];
         $state['stripe_customer_index'] = [];
         $state['stripe_subscription_index'] = [];

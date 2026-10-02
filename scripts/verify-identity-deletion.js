@@ -62,7 +62,10 @@ async function main() {
   const statePath = path.join(stateDir, "session-state.json");
   await writeFile(statePath, JSON.stringify({
     sessions: {}, session_registry: {}, pair_difficulties: {},
-    unique_handles: { "road dog": { handle, canonical_handle: "road dog", owner_identifier: owner, created_ms: 1, updated_ms: 1 } },
+    unique_handles: {
+      "road dog": { handle, canonical_handle: "road dog", owner_identifier: owner, created_ms: 1, updated_ms: 1 },
+      "road display": { handle: "Road Display", canonical_handle: "road display", owner_identifier: "", created_ms: 1, updated_ms: 1 }
+    },
     identifier_aliases: { [owner]: handle },
     handle_owners: { [owner]: { owner_identifier: owner, current_handle: handle, current_canonical_handle: "road dog", auth_email: owner } },
     user_types: { "road dog": "pro" }, user_preferences: { "road dog": { updated_ms: 1 } },
@@ -74,7 +77,10 @@ async function main() {
     named_reports: [{ id: "report-1", title: "Road Dog report", selected_pair: { receiver_name: handle, sender_name: "Big Bopper" }, start_trial: 1, end_trial: 1, completed_trial_count: 1, created_ms: 1 }],
     partner_message_threads: { thread: { participants: [handle, "Big Bopper"], messages: [] } },
     partner_message_reads: {}, push_subscriptions: [], level_four_receiver_pools: { "road dog": { receiver_identifier: handle } },
-    identifier_recovery_verifications: {}, unique_name_claim_verifications: {}, invitees: []
+    identifier_recovery_verifications: {}, unique_name_claim_verifications: {}, invitees: [],
+    remote_display_devices: {
+      "road display": { device_name: "Road Display", owner_identifier: handle, created_ms: 1, updated_ms: 1 }
+    }
   }));
   const csv = path.join(pairsDir, "rx-road-dog__tx-big-bopper.csv");
   // The Admin list renders an unclaimed historical name with this suffix.
@@ -95,7 +101,8 @@ async function main() {
     await mustNotExist(csv, "Pair trial history");
     await mustNotExist(path.join(questionnaireDir, "baseline__road-dog.json"), "Questionnaire response");
     const state = JSON.parse(await readFile(statePath, "utf8"));
-    if (state.unique_handles?.["road dog"] || state.passkey_credentials?.credential || state.named_reports?.length) throw new Error("Identity state artifacts remain after deletion.");
+    if (state.unique_handles?.["road dog"] || state.unique_handles?.["road display"] || state.passkey_credentials?.credential || state.named_reports?.length) throw new Error("Identity state artifacts remain after deletion.");
+    if (Object.keys(state.remote_display_devices || {}).length !== 0) throw new Error("Remote display devices remain after deletion of their owner.");
     const partnerProfile = state.launcher_profiles?.["big bopper"]?.sender || {};
     if (partnerProfile.current_partner || partnerProfile.partner_history?.length || partnerProfile.deleted_partners?.length) throw new Error("Partner profile still references the deleted identity.");
 
@@ -125,6 +132,9 @@ async function main() {
     freshStartState.passkey_enrollment_grants = { grant: { identifier: handle, expires_ms: Date.now() + 60000 } };
     freshStartState.identifier_recovery_verifications = { recovery: { identifier: handle, expires_ms: Date.now() + 60000 } };
     freshStartState.unique_name_claim_verifications = { claim: { identifier: handle, expires_ms: Date.now() + 60000 } };
+    freshStartState.remote_display_devices = {
+      "road display": { device_name: "Road Display", owner_identifier: handle, created_ms: 1, updated_ms: 1 }
+    };
     await writeFile(statePath, JSON.stringify(freshStartState));
     const freshStart = await request(port, {
       action: "fresh_start",
@@ -147,13 +157,14 @@ async function main() {
       "passkey_ceremonies",
       "passkey_enrollment_grants",
       "identifier_recovery_verifications",
-      "unique_name_claim_verifications"
+      "unique_name_claim_verifications",
+      "remote_display_devices"
     ]) {
       if (Object.keys(resetState[bucket] || {}).length !== 0) {
         throw new Error(`Fresh Start retained ${bucket} after users were cleared.`);
       }
     }
-    console.log("PASS: controlled identity deletion and Fresh Start remove server identities, passkeys, recovery records, reports, questionnaires, pair history, and partner references.");
+    console.log("PASS: controlled identity deletion and Fresh Start remove server identities, remote devices, passkeys, recovery records, reports, questionnaires, pair history, and partner references.");
   } finally {
     php.kill();
     await rm(privateRoot, { recursive: true, force: true });
