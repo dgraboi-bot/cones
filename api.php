@@ -6698,7 +6698,7 @@ function validate_handle_change_allowed(array $ownerRecord, string $oldCanonical
 function is_valid_handle_identifier(string $value): bool
 {
     $text = trim(preg_replace('/\s+/', ' ', $value) ?? '');
-    return (bool) preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._ -]{1,22}[A-Za-z0-9])?$/', $text);
+    return (bool) preg_match("/^[A-Za-z0-9](?:[A-Za-z0-9._ '-]{1,22}[A-Za-z0-9])?$/", $text);
 }
 
 function validate_participant_identifier_string($value, string $field, bool $required = true): string
@@ -6820,6 +6820,28 @@ function get_remote_display_device_record(array $state, string $identifier): ?ar
     return $key !== '' && is_array($records[$key] ?? null) ? $records[$key] : null;
 }
 
+function get_public_remote_display_device_record(?array $record): ?array
+{
+    if ($record === null) {
+        return null;
+    }
+    return [
+        'device_name' => trim((string) ($record['device_name'] ?? '')),
+        'owner_identifier' => trim((string) ($record['owner_identifier'] ?? '')),
+        'created_ms' => (int) ($record['created_ms'] ?? 0),
+        'updated_ms' => (int) ($record['updated_ms'] ?? 0)
+    ];
+}
+
+function validate_remote_display_device_control_token($value): string
+{
+    $token = strtolower(trim((string) $value));
+    if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+        throw new RuntimeException('This browser cannot securely register a remote device. Please reload and try again.');
+    }
+    return $token;
+}
+
 function get_remote_display_devices_for_owner(array $state, string $ownerIdentifier): array
 {
     $ownerKey = normalize_identifier_for_lookup($ownerIdentifier);
@@ -6848,7 +6870,7 @@ function get_remote_display_devices_for_owner(array $state, string $ownerIdentif
     return $matches;
 }
 
-function claim_remote_display_device(array &$state, string $ownerIdentifier, string $proposedDeviceName, int $nowMs): array
+function claim_remote_display_device(array &$state, string $ownerIdentifier, string $proposedDeviceName, string $deviceControlToken, int $nowMs): array
 {
     $ownerStatus = get_identifier_status($state, $ownerIdentifier);
     $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
@@ -6858,18 +6880,26 @@ function claim_remote_display_device(array &$state, string $ownerIdentifier, str
 
     $deviceName = trim(preg_replace('/\s+/', ' ', $proposedDeviceName) ?? '');
     if (!is_valid_handle_identifier($deviceName)) {
-        throw new RuntimeException('Remote Device must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.');
+        throw new RuntimeException('Remote Device must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, apostrophe, or hyphen.');
     }
 
     if (!is_array($state['remote_display_devices'] ?? null)) {
         $state['remote_display_devices'] = [];
     }
     $deviceKey = canonicalize_handle($deviceName);
+    $controlTokenHash = hash('sha256', validate_remote_display_device_control_token($deviceControlToken));
     $existing = get_remote_display_device_record($state, $deviceName);
     if ($existing !== null) {
         if (normalize_identifier_for_lookup((string) ($existing['owner_identifier'] ?? '')) !== normalize_identifier_for_lookup($owner)) {
             throw new RuntimeException('That remote device unique name is already in use.');
         }
+        $existingControlTokenHash = trim((string) ($existing['control_token_hash'] ?? ''));
+        if ($existingControlTokenHash !== '' && !hash_equals($existingControlTokenHash, $controlTokenHash)) {
+            throw new RuntimeException('That remote device unique name is already assigned to another browser or device.');
+        }
+        // Existing registrations made before device binding are adopted once by
+        // the browser that already holds their local setup.
+        $existing['control_token_hash'] = $controlTokenHash;
         $existing['updated_ms'] = $nowMs;
         $state['remote_display_devices'][$deviceKey] = $existing;
         return $existing;
@@ -6884,11 +6914,81 @@ function claim_remote_display_device(array &$state, string $ownerIdentifier, str
     $record = [
         'device_name' => (string) ($claim['handle'] ?? $deviceName),
         'owner_identifier' => $owner,
+        'control_token_hash' => $controlTokenHash,
         'created_ms' => $nowMs,
         'updated_ms' => $nowMs
     ];
     $state['remote_display_devices'][$deviceKey] = $record;
     return $record;
+}
+
+function reset_remote_display_device(array &$state, string $ownerIdentifier, string $deviceName, string $deviceControlToken): array
+{
+    $ownerStatus = get_identifier_status($state, $ownerIdentifier);
+    $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
+    $device = trim(preg_replace('/\s+/', ' ', $deviceName) ?? '');
+    $deviceKey = canonicalize_handle($device);
+    $record = get_remote_display_device_record($state, $device);
+    if ($deviceKey === '' || $record === null) {
+        throw new RuntimeException('This remote device registration was not found.');
+    }
+    if (normalize_identifier_for_lookup((string) ($record['owner_identifier'] ?? '')) !== normalize_identifier_for_lookup($owner)) {
+        throw new RuntimeException('This remote device belongs to a different recognized user.');
+    }
+    $expectedHash = trim((string) ($record['control_token_hash'] ?? ''));
+    $providedHash = hash('sha256', validate_remote_display_device_control_token($deviceControlToken));
+    if ($expectedHash === '' || !hash_equals($expectedHash, $providedHash)) {
+        throw new RuntimeException('This remote device is registered to another browser or device.');
+    }
+
+    // A remote device has a self-owned reserved handle. Remove only that
+    // temporary identity and any active sessions involving it, never its owner.
+    $identityKeys = [$deviceKey => true];
+    unset($state['remote_display_devices'][$deviceKey]);
+    foreach (['unique_handles', 'retired_handles', 'handle_owners', 'user_types', 'user_preferences', 'partner_confirmation_preferences', 'launcher_profiles'] as $bucket) {
+        if (is_array($state[$bucket] ?? null)) {
+            unset($state[$bucket][$deviceKey]);
+        }
+    }
+    if (is_array($state['identifier_aliases'] ?? null)) {
+        foreach (array_keys($state['identifier_aliases']) as $key) {
+            $value = (string) ($state['identifier_aliases'][$key] ?? '');
+            if (normalize_identifier_for_lookup((string) $key) === $deviceKey
+                || normalize_identifier_for_lookup($value) === $deviceKey) {
+                unset($state['identifier_aliases'][$key]);
+            }
+        }
+    }
+    foreach (['sessions', 'session_registry', 'pair_difficulties'] as $bucket) {
+        foreach (array_keys((array) ($state[$bucket] ?? [])) as $key) {
+            if (identity_payload_references_any_key($state[$bucket][$key], $identityKeys)) {
+                unset($state[$bucket][$key]);
+            }
+        }
+    }
+    foreach ((array) ($state['launcher_profiles'] ?? []) as $profileKey => $profiles) {
+        if (!is_array($profiles)) {
+            continue;
+        }
+        foreach ($profiles as $role => $profile) {
+            if (!is_array($profile)) {
+                continue;
+            }
+            if (identity_value_matches_any_key($profile['current_partner'] ?? '', $identityKeys)) {
+                $profile['current_partner'] = '';
+            }
+            foreach (['partner_history', 'deleted_partners'] as $listKey) {
+                $profile[$listKey] = array_values(array_filter((array) ($profile[$listKey] ?? []), static fn($value): bool => !identity_value_matches_any_key($value, $identityKeys)));
+            }
+            $state['launcher_profiles'][$profileKey][$role] = $profile;
+        }
+    }
+
+    return [
+        'device_name' => $device,
+        'owner_identifier' => $owner,
+        'reset' => true
+    ];
 }
 
 function identifier_has_passkey_credential(array $state, string $identifier): bool
@@ -7263,7 +7363,7 @@ function claim_unique_handle(array &$state, string $ownerIdentifier, string $pro
 {
     $handle = trim(preg_replace('/\s+/', ' ', $proposedHandle) ?? '');
     if (!is_valid_handle_identifier($handle)) {
-        throw new RuntimeException('Unique handle must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.');
+        throw new RuntimeException('Unique handle must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, apostrophe, or hyphen.');
     }
 
     if (!is_array($state['unique_handles'] ?? null)) {
@@ -7854,7 +7954,7 @@ function validate_report_participant_identifier_string($value, string $field, bo
     }
 
     $normalized = trim(preg_replace('/\s+/', ' ', $text) ?? '');
-    if (preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._ -]{0,252}[A-Za-z0-9])?$/', $normalized)) {
+    if (preg_match("/^[A-Za-z0-9](?:[A-Za-z0-9._ '-]{0,252}[A-Za-z0-9])?$/", $normalized)) {
         return $normalized;
     }
 
@@ -13483,7 +13583,7 @@ if ($action === 'get_remote_display_device_status') {
 
     respond_json_and_close($handle, [
         'ok' => true,
-        'remote_display_device' => $record,
+        'remote_display_device' => get_public_remote_display_device_record($record),
         'server_now_ms' => $nowMs
     ]);
 }
@@ -13511,18 +13611,46 @@ if ($action === 'get_remote_display_devices_for_owner') {
 
 if ($action === 'claim_remote_display_device') {
     try {
-        require_allowed_keys($input, ['action', 'owner_identifier', 'proposed_device_name'], 'request');
+        require_allowed_keys($input, ['action', 'owner_identifier', 'proposed_device_name', 'device_control_token'], 'request');
         $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
         $deviceName = trim((string) ($input['proposed_device_name'] ?? ''));
-        $record = claim_remote_display_device($state, $ownerIdentifier, $deviceName, $nowMs);
+        $deviceControlToken = validate_remote_display_device_control_token($input['device_control_token'] ?? '');
+        $record = claim_remote_display_device($state, $ownerIdentifier, $deviceName, $deviceControlToken, $nowMs);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
     $response = [
         'ok' => true,
-        'remote_display_device' => $record,
+        'remote_display_device' => get_public_remote_display_device_record($record),
         'identifier_status' => get_identifier_status($state, (string) ($record['device_name'] ?? '')),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'reset_remote_display_device') {
+    try {
+        require_allowed_keys($input, ['action', 'owner_identifier', 'device_name', 'device_control_token'], 'request');
+        $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
+        $deviceName = validate_participant_identifier_string($input['device_name'] ?? '', 'device_name', true);
+        $deviceControlToken = validate_remote_display_device_control_token($input['device_control_token'] ?? '');
+        $reset = reset_remote_display_device($state, $ownerIdentifier, $deviceName, $deviceControlToken);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'remote_display_device_reset' => $reset,
         'server_now_ms' => $nowMs
     ];
 

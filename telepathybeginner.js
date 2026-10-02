@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002b";
+  const launcherBuildVersion = "20261002c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -46,7 +46,7 @@
   let remoteViewerDeviceDiscoveryToken = 0;
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
-  const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
+  const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
   const defaultHandleDialogIntroAfterPrivacyLink = ").";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
@@ -845,7 +845,7 @@
   const remoteDeviceNameSubmitButton = document.querySelector("[data-remote-device-name-submit]");
   const remoteDeviceSetupStatus = document.querySelector("[data-remote-device-setup-status]");
   const remoteDeviceConfirmButton = document.querySelector("[data-remote-device-confirm]");
-  const remoteDeviceCloseButton = document.querySelector("[data-remote-device-close]");
+  const remoteDeviceResetButton = document.querySelector("[data-remote-device-reset]");
   const pushSetupOverlay = document.querySelector("[data-push-setup-overlay]");
   const pushSetupDialog = pushSetupOverlay?.querySelector(".push-setup-dialog") || null;
   const pushSetupStatus = document.querySelector("[data-push-setup-status]");
@@ -5469,17 +5469,28 @@ ${calmPracticeMessage}`;
       const parsed = JSON.parse(localStorage.getItem(remoteDisplaySetupKey) || "{}");
       return {
         ownerName: String(parsed?.ownerName || "").trim(),
-        deviceName: String(parsed?.deviceName || "").trim()
+        deviceName: String(parsed?.deviceName || "").trim(),
+        controlToken: String(parsed?.controlToken || "").trim()
       };
     } catch (_) {
-      return { ownerName: "", deviceName: "" };
+      return { ownerName: "", deviceName: "", controlToken: "" };
     }
   }
 
-  function writeRemoteDisplaySetup(ownerName, deviceName) {
+  function createRemoteDisplayControlToken() {
+    if (!window.crypto?.getRandomValues) {
+      throw new Error("This browser cannot securely register a remote device.");
+    }
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+  }
+
+  function writeRemoteDisplaySetup(ownerName, deviceName, controlToken = "") {
     localStorage.setItem(remoteDisplaySetupKey, JSON.stringify({
       ownerName: String(ownerName || "").trim(),
-      deviceName: String(deviceName || "").trim()
+      deviceName: String(deviceName || "").trim(),
+      controlToken: String(controlToken || "").trim()
     }));
   }
 
@@ -5507,11 +5518,15 @@ ${calmPracticeMessage}`;
     return Array.isArray(data?.remote_display_devices) ? data.remote_display_devices : [];
   }
 
-  async function claimRemoteDisplayDevice(ownerName, deviceName) {
+  async function claimRemoteDisplayDevice(ownerName, deviceName, controlToken) {
     const cleanOwner = assertValidParticipantIdentifier(ownerName, "You", { required: true });
     const cleanDevice = String(deviceName || "").replace(/\s+/g, " ").trim();
+    const cleanControlToken = String(controlToken || "").trim();
     if (!isValidUniqueHandle(cleanDevice)) {
-      throw new Error("Remote Device must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.");
+      throw new Error("Remote Device must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, apostrophe, or hyphen.");
+    }
+    if (!/^[a-f0-9]{64}$/i.test(cleanControlToken)) {
+      throw new Error("This browser cannot securely register a remote device. Please reload and try again.");
     }
     const response = await fetch("api.php", {
       method: "POST",
@@ -5519,11 +5534,26 @@ ${calmPracticeMessage}`;
       body: JSON.stringify({
         action: "claim_remote_display_device",
         owner_identifier: cleanOwner,
-        proposed_device_name: cleanDevice
+        proposed_device_name: cleanDevice,
+        device_control_token: cleanControlToken
       })
     });
     const data = await parseApiResponse(response, `Remote-device name request failed with status ${response.status}`);
     return data?.remote_display_device || null;
+  }
+
+  async function resetRemoteDisplayDevice(ownerName, deviceName, controlToken) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "reset_remote_display_device",
+        owner_identifier: assertValidParticipantIdentifier(ownerName, "You", { required: true }),
+        device_name: assertValidParticipantIdentifier(deviceName, "Remote Device", { required: true }),
+        device_control_token: String(controlToken || "").trim()
+      })
+    });
+    return parseApiResponse(response, `Remote-device reset failed with status ${response.status}`);
   }
 
   async function fetchUserType(identifier) {
@@ -5818,7 +5848,7 @@ ${calmPracticeMessage}`;
     const cleanCurrentIdentifier = assertValidParticipantIdentifier(currentIdentifier, "current identifier", { required: false });
     const cleanHandle = String(proposedHandle || "").replace(/\s+/g, " ").trim();
     if (!isValidUniqueHandle(cleanHandle)) {
-      throw new Error("Unique handle must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.");
+      throw new Error("Unique handle must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, apostrophe, or hyphen.");
     }
 
     const response = await fetch("api.php", {
@@ -7048,7 +7078,7 @@ ${calmPracticeMessage}`;
 
   function isValidUniqueHandle(value) {
     const text = String(value || "").replace(/\s+/g, " ").trim();
-    return /^[A-Za-z0-9](?:[A-Za-z0-9._ -]{1,22}[A-Za-z0-9])?$/.test(text);
+    return /^[A-Za-z0-9](?:[A-Za-z0-9._ '-]{1,22}[A-Za-z0-9])?$/.test(text);
   }
 
   function isValidParticipantIdentifier(value) {
@@ -7108,7 +7138,7 @@ ${calmPracticeMessage}`;
       return isValidEmailAddress(text) ? text : text.replace(/\s+/g, " ").trim();
     }
     const normalized = text.replace(/\s+/g, " ").trim();
-    if (!/^[A-Za-z0-9](?:[A-Za-z0-9._ -]{0,252}[A-Za-z0-9])?$/.test(normalized)) {
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9._ '-]{0,252}[A-Za-z0-9])?$/.test(normalized)) {
       throw new Error(`${fieldName} must be a valid report identifier.`);
     }
     return normalized;
@@ -9275,19 +9305,19 @@ ${calmPracticeMessage}`;
       handleDialogTitle.textContent = "Choose Unique Name For Use With This Browser";
     }
     if (handleIntro) {
-      handleIntro.textContent = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name you become a recognized user for all Clairvoyance / Remote Viewing exercises. Being recognized allows your data to be saved along with performance reporting.";
+      handleIntro.textContent = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name you become a recognized user for all Clairvoyance / Remote Viewing exercises. Being recognized allows your data to be saved along with performance reporting.";
     }
     if (handleInput) {
       handleInput.placeholder = "Your handle.";
     }
   }
 
-  function closeRemoteDeviceSetupOverlay() {
-    remoteDeviceSetupOverlay?.classList.add("beginner-view-hidden");
-    remoteDeviceSetupOverlay?.setAttribute("aria-hidden", "true");
+  function setRemoteDeviceSetupScrollLock(locked) {
+    document.documentElement.classList.toggle("remote-device-setup-open", locked);
+    document.body?.classList.toggle("remote-device-setup-open", locked);
   }
 
-  function renderRemoteDeviceSetupControls(ownerName = "", deviceName = "") {
+  function renderRemoteDeviceSetupControls(ownerName = "", deviceName = "", hasDeviceControlToken = false) {
     const hasOwner = !!String(ownerName || "").trim();
     const hasDevice = !!String(deviceName || "").trim();
     if (remoteDeviceUserInput) {
@@ -9305,25 +9335,32 @@ ${calmPracticeMessage}`;
       remoteDeviceConfirmButton.textContent = "CONFIRM";
       remoteDeviceConfirmButton.dataset.ready = "false";
     }
+    if (remoteDeviceResetButton) {
+      remoteDeviceResetButton.disabled = !(hasOwner && hasDevice && hasDeviceControlToken);
+    }
   }
 
-  async function openRemoteDeviceSetupOverlay() {
-    const local = readRemoteDisplaySetup();
+  async function openRemoteDeviceSetupOverlay({ forceClean = false } = {}) {
+    const local = forceClean
+      ? { ownerName: "", deviceName: "", controlToken: "" }
+      : readRemoteDisplaySetup();
     const state = readLauncherState();
-    const recognizedOwner = isVisitorLauncherEntry(state)
+    const recognizedOwner = forceClean || isVisitorLauncherEntry(state)
       ? ""
       : String(getCanonicalRecognizedIdentity(state) || "").trim();
     const ownerName = recognizedOwner || local.ownerName;
-    const deviceName = local.deviceName;
-    renderRemoteDeviceSetupControls(ownerName, deviceName);
+    let deviceName = local.deviceName;
+    let controlToken = local.controlToken;
+    renderRemoteDeviceSetupControls(ownerName, deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
     if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "";
     remoteDeviceSetupOverlay?.classList.remove("beginner-view-hidden");
     remoteDeviceSetupOverlay?.setAttribute("aria-hidden", "false");
+    setRemoteDeviceSetupScrollLock(true);
     if (ownerName && remoteDeviceUserInput) {
       try {
         const status = await fetchIdentifierStatus(ownerName);
         if (!isAcceptedUniqueHandleIdentifier(ownerName, status)) {
-          renderRemoteDeviceSetupControls("", deviceName);
+          renderRemoteDeviceSetupControls("", deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
         } else {
           rememberIdentifierStatus(ownerName, status);
         }
@@ -9334,9 +9371,28 @@ ${calmPracticeMessage}`;
     if (deviceName && remoteDeviceNameInput) {
       try {
         const device = await fetchRemoteDisplayDeviceStatus(deviceName);
-        if (!device) renderRemoteDeviceSetupControls(String(remoteDeviceUserInput?.value || "").trim(), "");
-      } catch (_) {
-        renderRemoteDeviceSetupControls(String(remoteDeviceUserInput?.value || "").trim(), "");
+        if (!device) {
+          deviceName = "";
+          controlToken = "";
+          writeRemoteDisplaySetup(String(remoteDeviceUserInput?.value || "").trim(), "", "");
+          renderRemoteDeviceSetupControls(String(remoteDeviceUserInput?.value || "").trim(), "", false);
+        } else if (ownerName && !controlToken) {
+          // Pre-token registrations are adopted once by the browser that already
+          // holds the setup. Future claims require this browser's private token.
+          controlToken = createRemoteDisplayControlToken();
+          const adopted = await claimRemoteDisplayDevice(ownerName, deviceName, controlToken);
+          writeRemoteDisplaySetup(ownerName, String(adopted?.device_name || deviceName).trim(), controlToken);
+          renderRemoteDeviceSetupControls(ownerName, deviceName, true);
+          if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Remote device secured for this browser.";
+        }
+      } catch (error) {
+        if (remoteDeviceSetupStatus) {
+          remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to verify this remote device.";
+        }
+        deviceName = "";
+        controlToken = "";
+        writeRemoteDisplaySetup(String(remoteDeviceUserInput?.value || "").trim(), "", "");
+        renderRemoteDeviceSetupControls(String(remoteDeviceUserInput?.value || "").trim(), "", false);
       }
     }
     const firstInput = remoteDeviceUserInput?.readOnly ? remoteDeviceNameInput : remoteDeviceUserInput;
@@ -9352,8 +9408,12 @@ ${calmPracticeMessage}`;
       }
       const canonicalOwner = String(status?.preferred_identifier || ownerName).trim();
       rememberIdentifierStatus(ownerName, status);
-      writeRemoteDisplaySetup(canonicalOwner, String(remoteDeviceNameInput?.value || "").trim());
-      renderRemoteDeviceSetupControls(canonicalOwner, String(remoteDeviceNameInput?.value || "").trim());
+      writeRemoteDisplaySetup(canonicalOwner, String(remoteDeviceNameInput?.value || "").trim(), readRemoteDisplaySetup().controlToken);
+      renderRemoteDeviceSetupControls(
+        canonicalOwner,
+        String(remoteDeviceNameInput?.value || "").trim(),
+        /^[a-f0-9]{64}$/i.test(readRemoteDisplaySetup().controlToken)
+      );
       if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Recognized ESP GYM name accepted.";
     } catch (error) {
       if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to verify that name.";
@@ -9368,10 +9428,11 @@ ${calmPracticeMessage}`;
       return;
     }
     try {
-      const record = await claimRemoteDisplayDevice(ownerName, deviceName);
+      const controlToken = readRemoteDisplaySetup().controlToken || createRemoteDisplayControlToken();
+      const record = await claimRemoteDisplayDevice(ownerName, deviceName, controlToken);
       const canonicalDevice = String(record?.device_name || deviceName).trim();
-      writeRemoteDisplaySetup(ownerName, canonicalDevice);
-      renderRemoteDeviceSetupControls(ownerName, canonicalDevice);
+      writeRemoteDisplaySetup(ownerName, canonicalDevice, controlToken);
+      renderRemoteDeviceSetupControls(ownerName, canonicalDevice, true);
       if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Remote device unique name accepted.";
     } catch (error) {
       if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to claim that remote device name.";
@@ -9399,6 +9460,33 @@ ${calmPracticeMessage}`;
       remoteDisplayDevice: true,
       difficultyLevel: getDifficultyLocalLevel("remote-viewer")
     });
+  }
+
+  async function resetRemoteDeviceSetup() {
+    const local = readRemoteDisplaySetup();
+    const ownerName = String(remoteDeviceUserInput?.value || local.ownerName || "").trim();
+    const deviceName = String(remoteDeviceNameInput?.value || local.deviceName || "").trim();
+    if (!ownerName || !deviceName || !local.controlToken) {
+      return;
+    }
+    if (!window.confirm("Are you sure? This removes this browser's remote-device setup and releases the remote-device name. The owner and saved data will not be deleted.")) {
+      return;
+    }
+    if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Resetting remote device...";
+    if (remoteDeviceResetButton) remoteDeviceResetButton.disabled = true;
+    try {
+      await resetRemoteDisplayDevice(ownerName, deviceName, local.controlToken);
+      // A /remote browser should return to a truly fresh remote-device setup,
+      // without retaining the former owner or display identity locally.
+      clearLauncherIdentityArtifacts();
+      await openRemoteDeviceSetupOverlay({ forceClean: true });
+      if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Remote device setup has been reset.";
+    } catch (error) {
+      if (remoteDeviceSetupStatus) {
+        remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to reset this remote device.";
+      }
+      if (remoteDeviceResetButton) remoteDeviceResetButton.disabled = false;
+    }
   }
 
   function showRemoteViewerSaveResultsHint() {
@@ -35272,11 +35360,10 @@ ${calmPracticeMessage}`;
   remoteDeviceConfirmButton?.addEventListener("click", () => {
     void confirmRemoteDeviceSetup();
   });
-  remoteDeviceCloseButton?.addEventListener("click", closeRemoteDeviceSetupOverlay);
-  remoteDeviceSetupDialog?.addEventListener("click", (event) => event.stopPropagation());
-  remoteDeviceSetupOverlay?.addEventListener("click", (event) => {
-    if (event.target === remoteDeviceSetupOverlay) closeRemoteDeviceSetupOverlay();
+  remoteDeviceResetButton?.addEventListener("click", () => {
+    void resetRemoteDeviceSetup();
   });
+  remoteDeviceSetupDialog?.addEventListener("click", (event) => event.stopPropagation());
   pushSetupInstallButton?.addEventListener("click", () => {
     showInstallGuideView({ returnView: "push-setup" });
   });

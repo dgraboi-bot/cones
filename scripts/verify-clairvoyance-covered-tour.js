@@ -53,7 +53,7 @@ async function verifyCoveredScreenLaunch() {
       (await goButton.getAttribute("title")) === "Press the GO button to start practicing this exercise without saving results.",
       "Unsaved-practice tooltip is incorrect."
     );
-    await page.locator('[data-remote-viewer-save-option]').hover({ force: true });
+    await page.locator('[data-remote-viewer-save-option]').dispatchEvent("pointerenter");
     const saveResultsHint = page.locator('[data-remote-viewer-save-results-hint]');
     await saveResultsHint.waitFor({ state: "visible" });
     assert(

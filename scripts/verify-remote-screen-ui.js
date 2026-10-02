@@ -115,7 +115,7 @@ async function verifyRemoteDeviceRoute() {
       "The /remote route must explain the required recognized user name."
     );
     assert(
-      (await dialog.locator('[data-remote-device-name-copy]').textContent()).includes("Choose a unique name for this browser and device combination"),
+      (await dialog.locator('[data-remote-device-name-copy]').textContent()).includes("Choose a unique remote device name for this browser and device combination"),
       "The /remote route must explain remote-device name creation."
     );
     assert(await dialog.locator('[data-remote-device-confirm]').isDisabled(), "Remote setup must require both names before confirmation.");

@@ -81,7 +81,7 @@ async function verify() {
     assertEqual(await page.locator('#handleDialogTitle').textContent(), "Choose Unique Name For Use With This Browser", "claim dialog title");
     assertEqual(
       (await page.locator('[data-handle-intro]').textContent()).replace(/\s+/g, " ").trim(),
-      "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see privacy policy).",
+      "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see privacy policy).",
       "claim dialog privacy copy"
     );
     await page.locator('[data-handle-input]').fill("draft-name");
