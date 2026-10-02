@@ -79,15 +79,18 @@ async function verifyRemoteScreenUi() {
       "Remote Screen GO must use the compact lower-right viewer position."
     );
 
-    // Exercise selection remains device-local until a remote device is ready.
+    // Exercise selection remains device-local for a Robot simulation.
     // Verify the circular Exercise 1 <-> Exercise 4 behavior directly.
     await page.locator('[data-remote-viewer-partner]').evaluate((input) => {
-      input.value = "";
+      input.value = "Robot";
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await page.locator('[data-role-difficulty-bump="remote-viewer"][data-direction="down"]').evaluate((button) => button.click());
     await page.waitForFunction(() => (
       document.querySelector('[data-pair-difficulty-label="remote-viewer"]')?.textContent.trim() === "Exercise 4"
+    ));
+    await page.waitForFunction(() => (
+      !document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("role-card-level-adjusting")
     ));
     await page.locator('[data-role-difficulty-bump="remote-viewer"][data-direction="up"]').evaluate((button) => button.click());
     await page.waitForFunction(() => (
@@ -768,6 +771,77 @@ async function verifyRemoteScreenSettingsPersistAcrossReload() {
   }
 }
 
+async function verifyRemoteDisplayExerciseTwoRendersTarget() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  const targetUrl = new URL("cone-lowglow-transparent.png", baseUrl).href;
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Respond with a safe idle state if a malformed test request occurs.
+      }
+      const idleState = {
+        sender_online: true,
+        receiver_online: true,
+        receiver_ready: true,
+        receiver_view: { phase: "idle" },
+        post_round: null,
+        timeout_notice: null,
+        timeout_exit: null,
+        abort_notice: null,
+        partner_finished_notice: null,
+        session_limit_notice: null,
+        authorization_notice: null,
+        round: null
+      };
+      if (request.action === "start_round") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            server_now_ms: Date.now(),
+            round: {
+              id: "remote-image-pair-round",
+              sender_client_id: request.client_id,
+              start_server_ms: Date.now() - 8000,
+              difficulty_level: "2",
+              stimulus_kind: "image_pair",
+              image_pair_id: "test-pair",
+              image_sent_index: 1,
+              image_sent: targetUrl,
+              image_choice_a: targetUrl,
+              image_choice_b: targetUrl
+            }
+          })
+        });
+        return;
+      }
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, server_now_ms: Date.now(), state: idleState })
+      });
+    });
+
+    await page.goto(
+      `${baseUrl.replace("telepathybeginner.html", "sender.html")}?runtime_mode=remote-display&prefill=1&own_email=molly&partner_email=dansremote3&difficulty_level=2`,
+      { waitUntil: "domcontentloaded" }
+    );
+    const targetPanel = page.locator("#senderImageDisplayPanel");
+    await targetPanel.waitFor({ state: "visible" });
+    assert(
+      await targetPanel.locator("img").getAttribute("src") === targetUrl,
+      "Remote Screen Exercise 2 must render its assigned target image on the remote display."
+    );
+  } finally {
+    await browser.close();
+  }
+}
+
 function verifyPersistentRemoteDisplayImplementation() {
   const launcherSource = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.js"), "utf8");
   const launcherMarkup = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.html"), "utf8");
@@ -823,6 +897,16 @@ function verifyPersistentRemoteDisplayImplementation() {
     "Remote-display sessions must have a direct completion-to-standby path."
   );
   assert(
+    runtimeSource.includes('if (String(round?.stimulus_kind || "") === "image_pair") {')
+      && runtimeSource.includes("Remote display intentionally does not satisfy the legacy level-four helper."),
+    "Remote Screen Exercise 2 image-pair rounds must render an image target instead of a cone layout."
+  );
+  assert(
+    runtimeSource.includes('void api("clear_timeout_notice")')
+      && runtimeSource.includes("The remote display is an appliance: acknowledge a stale session"),
+    "A timed-out remote display must clear the session and return directly to standby."
+  );
+  assert(
     runtimeSource.includes("returnRemoteDisplayToStandbyAfterSession();\n      return;"),
     "A remote display must not render the normal sender completion prompt after End Session."
   );
@@ -852,6 +936,7 @@ async function run() {
   await verifyViewerSelectsTheSingleReadyRemoteDevice();
   await verifyViewerClearsReleasedRemoteDevice();
   await verifyRemoteScreenSettingsPersistAcrossReload();
+  await verifyRemoteDisplayExerciseTwoRendersTarget();
   verifyPersistentRemoteDisplayImplementation();
 }
 

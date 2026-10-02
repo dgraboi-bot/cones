@@ -50,7 +50,7 @@
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002n";
+  const runtimeBuildVersion = "20261002o";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -108,7 +108,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002n";
+  const launcherBuildVersion = "20261002o";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -7829,7 +7829,9 @@
         senderHoldingResult = true;
         updateSettingsGearVisibility();
 
-        if (isLevelFourDifficulty() && String(round?.stimulus_kind || "") === "image_pair") {
+        // Exercise 2 uses an image-pair round in both local and remote-display modes.
+        // Remote display intentionally does not satisfy the legacy level-four helper.
+        if (String(round?.stimulus_kind || "") === "image_pair") {
           const imageUrl = getLevelFourSentImageUrl(round);
           void logDebugEvent("sender_picked_level_four_target", {
             round_id: activeRound?.id ?? "",
@@ -8266,6 +8268,18 @@
         round_id: remoteState.timeout_notice.round_snapshot?.id || remoteState.round?.id || ""
       });
       void appendTrialServerRecord(remoteState, { timedOut: true });
+      if (isRemoteDisplayMode) {
+        if (postRoundClearPending) {
+          return;
+        }
+        // The remote display is an appliance: acknowledge a stale session and
+        // return to its persistent standby state without requiring a tap.
+        postRoundClearPending = true;
+        void api("clear_timeout_notice")
+          .catch(() => null)
+          .finally(showRemoteDisplayStandbyState);
+        return;
+      }
       showTimeoutState(remoteState.timeout_notice.message);
       return;
     }
