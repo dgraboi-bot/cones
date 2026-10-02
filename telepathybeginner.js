@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002f";
+  const launcherBuildVersion = "20261002g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -15264,7 +15264,7 @@ ${calmPracticeMessage}`;
     latest.ownNames = latest.ownNames || {};
     latest.currentPartners = latest.currentPartners || {};
     latest.ownNames["remote-viewer"] = String(remoteViewerOwnInput.value || "").trim();
-    latest.currentPartners["remote-viewer"] = String(remoteViewerPartnerInput.value || "").trim();
+    latest.currentPartners["remote-viewer"] = getPersistedRemoteViewerPartnerName();
     delete latest.remoteViewerDisplayDevice;
     latest.remoteViewerExperienceMode = getSelectedRemoteViewerExperienceMode(latest);
     latest.remoteViewerSimulationMode = readRemoteViewSimulationMode(latest);
@@ -15284,7 +15284,9 @@ ${calmPracticeMessage}`;
     const sourceState = overrideState || readLauncherState();
     const ownIdentifier = getPreferredIdentifier(ownIdentifierRaw, sourceState);
     const profileState = getRemoteViewerProfileState(sourceState, ownIdentifier);
-    const currentPartnerRaw = String(remoteViewerPartnerInput.value || profileState.currentPartner || "").trim();
+    const currentPartnerRaw = getPersistedRemoteViewerPartnerName(
+      remoteViewerPartnerInput.value || profileState.currentPartner || ""
+    );
     const currentPartner = getPreferredIdentifier(currentPartnerRaw, sourceState);
     const storedProfile = await saveLauncherProfile("remote-viewer", ownIdentifier, {
       currentPartner,
@@ -15448,6 +15450,37 @@ ${calmPracticeMessage}`;
     return normalizeIdentifierForStorage(value) === normalizeIdentifierForStorage(remoteDeviceNameRequiredDisplay);
   }
 
+  function getPersistedRemoteViewerPartnerName(value = remoteViewerPartnerInput?.value || "") {
+    const partnerName = String(value || "").trim();
+    return isRemoteDeviceNameRequiredDisplay(partnerName) ? "" : partnerName;
+  }
+
+  function clearUnavailableRemoteViewerDevice(deviceName) {
+    if (!remoteViewerPartnerInput) {
+      return;
+    }
+    const displayedDeviceName = String(remoteViewerPartnerInput.value || "").trim();
+    if (
+      normalizeIdentifierForStorage(displayedDeviceName) !== normalizeIdentifierForStorage(deviceName) ||
+      readRemoteViewSimulationMode(readLauncherState()) !== "remote-device"
+    ) {
+      return;
+    }
+
+    remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
+    const latest = readLauncherState();
+    const ownIdentifier = getPreferredIdentifier(String(remoteViewerOwnInput?.value || "").trim(), latest);
+    const existingProfile = getRemoteViewerProfileState(latest, ownIdentifier);
+    const nextState = writeLauncherProfileState("remote-viewer", ownIdentifier, {
+      currentPartner: "",
+      difficultyLevel: existingProfile.difficultyLevel,
+      partnerHistory: existingProfile.partnerHistory,
+      deletedPartners: existingProfile.deletedPartners
+    });
+    writeRuntimeSettings("remote-viewer", { partner_email: "" });
+    return nextState;
+  }
+
   async function populateKnownRemoteDisplayDevice(state = readLauncherState()) {
     const mode = readRemoteViewSimulationMode(state);
     const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
@@ -15503,9 +15536,11 @@ ${calmPracticeMessage}`;
       if (token !== remoteViewerDeviceAvailabilityToken || !remoteViewerPartnerInput) {
         return;
       }
-      if (!device && readRemoteViewSimulationMode(readLauncherState()) === "remote-device") {
-        remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
-        persistRemoteViewerCardState();
+      if (!device) {
+        const nextState = clearUnavailableRemoteViewerDevice(deviceName);
+        if (nextState) {
+          void persistRemoteViewerLauncherProfile(nextState);
+        }
       }
     } catch (_) {
       // Keep the current device name during a temporary availability failure.

@@ -282,6 +282,98 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
   }
 }
 
+async function verifyViewerClearsReleasedRemoteDevice() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_launcher_profile") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            launcher_profile: {
+              own_email: "molly",
+              current_partner: "",
+              difficulty_level: "1",
+              partner_history: [],
+              deleted_partners: []
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, remote_display_device: null })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({
+        recognizedIdentity: "molly",
+        ownNames: { "remote-viewer": "molly" },
+        currentPartners: { "remote-viewer": "dan's remote" },
+        launcherProfiles: {
+          "remote-viewer::molly": {
+            currentPartner: "dan's remote",
+            difficultyLevel: "1",
+            partnerHistory: ["dan's remote"],
+            deletedPartners: []
+          }
+        },
+        remoteViewerSimulationMode: "remote-device"
+      }));
+      localStorage.setItem("cones-settings-v2-remote-viewer", JSON.stringify({
+        own_email: "molly",
+        partner_email: "dan's remote"
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
+    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+
+    const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-remote-viewer-partner]')?.value === "Recognized Remote Device name needed. Click GO."
+    ));
+    assert(
+      await remoteScreenInput.inputValue() === "Recognized Remote Device name needed. Click GO.",
+      "A viewer must clear a remote device that was released by reset."
+    );
+    const stored = await page.evaluate(({ key }) => {
+      const launcher = JSON.parse(localStorage.getItem(key) || "{}");
+      const settings = JSON.parse(localStorage.getItem("cones-settings-v2-remote-viewer") || "{}");
+      return {
+        currentPartner: launcher.currentPartners?.["remote-viewer"] || "",
+        profilePartner: launcher.launcherProfiles?.["remote-viewer::molly"]?.currentPartner || "",
+        runtimePartner: settings.partner_email || ""
+      };
+    }, { key: launcherStorageKey });
+    assert(
+      JSON.stringify(stored) === JSON.stringify({ currentPartner: "", profilePartner: "", runtimePartner: "" }),
+      `A released remote device must be removed from every viewer-side current-partner store; received ${JSON.stringify(stored)}.`
+    );
+  } finally {
+    await browser.close();
+  }
+}
+
 function verifyPersistentRemoteDisplayImplementation() {
   const launcherSource = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.js"), "utf8");
   const launcherMarkup = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.html"), "utf8");
@@ -334,7 +426,7 @@ function verifyPersistentRemoteDisplayImplementation() {
   );
 }
 
-Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyViewerDiscoversRemoteDeviceAfterModal()])
+Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyViewerDiscoversRemoteDeviceAfterModal(), verifyViewerClearsReleasedRemoteDevice()])
   .then(() => {
     verifyPersistentRemoteDisplayImplementation();
     console.log("Remote Screen and remote-device setup UI verified.");
