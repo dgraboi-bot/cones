@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002e";
+  const launcherBuildVersion = "20261002f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9274,6 +9274,8 @@ ${calmPracticeMessage}`;
   }
 
   function closeUniqueNameRequiredOverlay() {
+    const shouldRefreshRemoteDevice = uniqueNameRequiredRole === "remote-viewer"
+      && String(uniqueNameRequiredTitle?.textContent || "").trim() === "Remote Device Name Needed";
     uniqueNameRequiredRole = "";
     if (uniqueNameRequiredTitle) {
       uniqueNameRequiredTitle.textContent = "Choose a Unique Name";
@@ -9289,6 +9291,9 @@ ${calmPracticeMessage}`;
     }
     uniqueNameRequiredOverlay?.classList.add("beginner-view-hidden");
     uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "true");
+    if (shouldRefreshRemoteDevice) {
+      void populateKnownRemoteDisplayDevice(readLauncherState());
+    }
   }
 
   function showRemoteDeviceNeededOverlay(deviceName) {
@@ -34136,6 +34141,7 @@ ${calmPracticeMessage}`;
   });
   renderRemoteViewerLabels();
   window.addEventListener("focus", () => {
+    void populateKnownRemoteDisplayDevice(readLauncherState());
     void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
   remoteViewerGoButton?.addEventListener("click", async () => {

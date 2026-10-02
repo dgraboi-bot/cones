@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002e";
+  const runtimeBuildVersion = "20261002f";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -101,7 +101,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002e";
+  const launcherBuildVersion = "20261002f";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4260,6 +4260,10 @@
   }
 
   function showPartnerFinishedState(message) {
+    if (isRemoteDisplayMode) {
+      returnRemoteDisplayToStandbyAfterSession();
+      return;
+    }
     senderHoldingResult = false;
     senderTrialBackSuppressed = false;
     receiverReady = false;
@@ -4283,6 +4287,21 @@
       "The receiver has had enough. Press here to return."
     );
     updateSettingsGearVisibility();
+  }
+
+  function returnRemoteDisplayToStandbyAfterSession() {
+    if (!isRemoteDisplayMode || postRoundClearPending) {
+      return;
+    }
+    // A remote display is a persistent appliance. It must never wait for a
+    // person to dismiss the normal sender's end-of-session prompt.
+    void clearPostRound("end", { preserveExited: true })
+      .catch(() => null)
+      .finally(() => {
+        void api("clear_partner_finished_notice")
+          .catch(() => null)
+          .finally(showRemoteDisplayStandbyState);
+      });
   }
 
   function handleAuthorizationFailure(message) {
