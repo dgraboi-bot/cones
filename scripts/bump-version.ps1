@@ -91,7 +91,8 @@ foreach ($file in $files) {
 $replacements = @{
   (Join-Path $root ".htaccess") = @(
     @{ Pattern = 'https://espgym\.com/telepathybeginner\.html\?(?:v=[^&\s]+&)?open=landing'; Replacement = "https://espgym.com/telepathybeginner.html?v=$Version&open=landing" },
-    @{ Pattern = 'https://espgym\.com/telepathybeginner\.html\?v=[^&\s]+&open=landing'; Replacement = "https://espgym.com/telepathybeginner.html?v=$Version&open=landing" }
+    @{ Pattern = 'https://espgym\.com/telepathybeginner\.html\?v=[^&\s]+&open=landing'; Replacement = "https://espgym.com/telepathybeginner.html?v=$Version&open=landing" },
+    @{ Pattern = 'https://espgym\.com/telepathybeginner\.html\?v=[^&\s]+&open=remote-device'; Replacement = "https://espgym.com/telepathybeginner.html?v=$Version&open=remote-device" }
   )
   (Join-Path $root "index.html") = @(
     @{ Pattern = 'telepathybeginner\.html\?v=[^&"''\s]+(?:&amp;|&)open=landing'; Replacement = "telepathybeginner.html?v=$Version&open=landing" },

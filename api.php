@@ -6778,10 +6778,61 @@ function get_identifier_status(array $state, string $identifier): array
         'owner_identifier' => $ownerIdentifier,
         'uses_handle' => $usesHandle,
         'is_handle' => $preferredHandle !== '' && normalize_handle_lookup($input) === normalize_handle_lookup($preferredHandle),
+        'is_remote_display_device' => get_remote_display_device_record($state, $preferredIdentifier) !== null,
         // A claimed name is sufficient for Clairvoyance and saved practice.
         // Human telepathy additionally requires an explicit confirmation choice.
         'partner_confirmation_configured' => get_partner_confirmation_preference($state, $preferredIdentifier) !== ''
     ];
+}
+
+function get_remote_display_device_record(array $state, string $identifier): ?array
+{
+    $key = canonicalize_handle($identifier);
+    $records = is_array($state['remote_display_devices'] ?? null) ? $state['remote_display_devices'] : [];
+    return $key !== '' && is_array($records[$key] ?? null) ? $records[$key] : null;
+}
+
+function claim_remote_display_device(array &$state, string $ownerIdentifier, string $proposedDeviceName, int $nowMs): array
+{
+    $ownerStatus = get_identifier_status($state, $ownerIdentifier);
+    $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
+    if (!formal_identifier_exists($state, $owner) || empty($ownerStatus['uses_handle'])) {
+        throw new RuntimeException('Please fill in your unique recognized ESP GYM name.');
+    }
+
+    $deviceName = trim(preg_replace('/\s+/', ' ', $proposedDeviceName) ?? '');
+    if (!is_valid_handle_identifier($deviceName)) {
+        throw new RuntimeException('Remote Device must be 3 to 24 characters long and use only letters, numbers, spaces, period, underscore, or hyphen.');
+    }
+
+    if (!is_array($state['remote_display_devices'] ?? null)) {
+        $state['remote_display_devices'] = [];
+    }
+    $deviceKey = canonicalize_handle($deviceName);
+    $existing = get_remote_display_device_record($state, $deviceName);
+    if ($existing !== null) {
+        if (normalize_identifier_for_lookup((string) ($existing['owner_identifier'] ?? '')) !== normalize_identifier_for_lookup($owner)) {
+            throw new RuntimeException('That remote device unique name is already in use.');
+        }
+        $existing['updated_ms'] = $nowMs;
+        $state['remote_display_devices'][$deviceKey] = $existing;
+        return $existing;
+    }
+    if (formal_identifier_exists($state, $deviceName)) {
+        throw new RuntimeException('That remote device unique name is already in use.');
+    }
+
+    // The device has its own handle for the established session runtime, while
+    // this registry preserves its separate device-only relationship to owner.
+    $claim = claim_unique_handle($state, '', $deviceName, $nowMs);
+    $record = [
+        'device_name' => (string) ($claim['handle'] ?? $deviceName),
+        'owner_identifier' => $owner,
+        'created_ms' => $nowMs,
+        'updated_ms' => $nowMs
+    ];
+    $state['remote_display_devices'][$deviceKey] = $record;
+    return $record;
 }
 
 function identifier_has_passkey_credential(array $state, string $identifier): bool
@@ -11417,6 +11468,7 @@ if (!is_array($state)) {
         'handle_owners' => [],
         'explore_pro_verifications' => [],
         'explore_pro_trials' => [],
+        'remote_display_devices' => [],
         'admin_lock' => null,
         'stripe_users' => [],
         'stripe_customer_index' => [],
@@ -11465,6 +11517,7 @@ if (!array_key_exists('sessions', $state)) {
         'handle_owners' => [],
         'explore_pro_verifications' => [],
         'explore_pro_trials' => [],
+        'remote_display_devices' => [],
         'admin_lock' => null,
         'stripe_users' => [],
         'stripe_customer_index' => [],
@@ -11558,6 +11611,9 @@ if (!is_array($state['retired_handles'] ?? null)) {
 }
 if (!is_array($state['handle_owners'] ?? null)) {
     $state['handle_owners'] = [];
+}
+if (!is_array($state['remote_display_devices'] ?? null)) {
+    $state['remote_display_devices'] = [];
 }
 ensure_explore_pro_state($state);
 ensure_stripe_state_sections($state);
@@ -12788,6 +12844,9 @@ if ($action === 'set_partner_confirmation_preference') {
             throw new RuntimeException('First claim an accepted unique name before choosing partner confirmation.');
         }
         $status = get_identifier_status($state, $identifier);
+        if (!empty($status['is_remote_display_device'])) {
+            throw new RuntimeException('A remote display device name cannot be used for human telepathy confirmation.');
+        }
         $canonicalIdentifier = trim((string) ($status['preferred_identifier'] ?? $identifier));
         $method = normalize_partner_confirmation_method($input['method'] ?? 'verified');
         if ($method === 'verified' && get_identifier_recovery_email($state, $canonicalIdentifier) === '') {
@@ -13344,6 +13403,49 @@ if ($action === 'claim_unique_handle') {
         'unique_handle' => $claimResult,
         'identifier_status' => get_identifier_status($state, (string) ($claimResult['handle'] ?? '')),
         'user_type' => get_user_type_for_identifier($state, (string) ($claimResult['handle'] ?? '')),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'get_remote_display_device_status') {
+    try {
+        require_allowed_keys($input, ['action', 'device_name'], 'request');
+        $deviceName = validate_participant_identifier_string($input['device_name'] ?? '', 'device_name', true);
+        $record = get_remote_display_device_record($state, $deviceName);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    respond_json_and_close($handle, [
+        'ok' => true,
+        'remote_display_device' => $record,
+        'server_now_ms' => $nowMs
+    ]);
+}
+
+if ($action === 'claim_remote_display_device') {
+    try {
+        require_allowed_keys($input, ['action', 'owner_identifier', 'proposed_device_name'], 'request');
+        $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
+        $deviceName = trim((string) ($input['proposed_device_name'] ?? ''));
+        $record = claim_remote_display_device($state, $ownerIdentifier, $deviceName, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'remote_display_device' => $record,
+        'identifier_status' => get_identifier_status($state, (string) ($record['device_name'] ?? '')),
         'server_now_ms' => $nowMs
     ];
 
