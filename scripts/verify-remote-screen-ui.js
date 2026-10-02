@@ -842,6 +842,76 @@ async function verifyRemoteDisplayExerciseTwoRendersTarget() {
   }
 }
 
+async function verifyRemoteDisplayAbortReturnsToStandby() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  let abortDelivered = false;
+  let remoteAbortClearRequested = false;
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Respond with a safe idle state if a malformed test request occurs.
+      }
+      const idleState = {
+        sender_online: true,
+        receiver_online: false,
+        receiver_ready: false,
+        receiver_view: { phase: "idle" },
+        post_round: null,
+        timeout_notice: null,
+        timeout_exit: null,
+        abort_notice: null,
+        partner_finished_notice: null,
+        session_limit_notice: null,
+        authorization_notice: null,
+        round: null
+      };
+      if (request.action === "heartbeat" && !abortDelivered) {
+        abortDelivered = true;
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            server_now_ms: Date.now(),
+            state: {
+              ...idleState,
+              abort_notice: {
+                message: "Your partner has quit this trial and returned to the home screen.",
+                by_role: "receiver"
+              }
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "clear_abort_notice" && abortDelivered) {
+        remoteAbortClearRequested = true;
+      }
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, server_now_ms: Date.now(), state: idleState })
+      });
+    });
+
+    await page.goto(
+      `${baseUrl.replace("telepathybeginner.html", "sender.html")}?runtime_mode=remote-display&prefill=1&own_email=molly&partner_email=dansremote3&difficulty_level=2`,
+      { waitUntil: "domcontentloaded" }
+    );
+    for (let attempt = 0; attempt < 20 && !remoteAbortClearRequested; attempt += 1) {
+      await page.waitForTimeout(50);
+    }
+    await page.waitForFunction(() => document.querySelector("#countdownNumber")?.textContent.includes("Waiting for remote viewer to be online"));
+    assert(remoteAbortClearRequested, "A remote display must clear a viewer abort instead of presenting a home-screen prompt.");
+  } finally {
+    await browser.close();
+  }
+}
+
 function verifyPersistentRemoteDisplayImplementation() {
   const launcherSource = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.js"), "utf8");
   const launcherMarkup = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.html"), "utf8");
@@ -907,6 +977,11 @@ function verifyPersistentRemoteDisplayImplementation() {
     "A timed-out remote display must clear the session and return directly to standby."
   );
   assert(
+    runtimeSource.includes('void api("clear_abort_notice")')
+      && runtimeSource.includes("The remote display remains ready for the next viewer after the"),
+    "A remote display must return to standby after its viewer aborts a session."
+  );
+  assert(
     runtimeSource.includes("returnRemoteDisplayToStandbyAfterSession();\n      return;"),
     "A remote display must not render the normal sender completion prompt after End Session."
   );
@@ -937,6 +1012,7 @@ async function run() {
   await verifyViewerClearsReleasedRemoteDevice();
   await verifyRemoteScreenSettingsPersistAcrossReload();
   await verifyRemoteDisplayExerciseTwoRendersTarget();
+  await verifyRemoteDisplayAbortReturnsToStandby();
   verifyPersistentRemoteDisplayImplementation();
 }
 

@@ -50,7 +50,7 @@
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002o";
+  const runtimeBuildVersion = "20261002p";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -108,7 +108,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002o";
+  const launcherBuildVersion = "20261002p";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -8242,6 +8242,18 @@
         by_role: remoteState.abort_notice.by_role || ""
       });
       void appendTrialServerRecord(remoteState, { aborted: true });
+      if (isRemoteDisplayMode) {
+        if (postRoundClearPending) {
+          return;
+        }
+        // The remote display remains ready for the next viewer after the
+        // viewer exits a session; it must not expose a home-screen prompt.
+        postRoundClearPending = true;
+        void api("clear_abort_notice")
+          .catch(() => null)
+          .finally(showRemoteDisplayStandbyState);
+        return;
+      }
       showPartnerAbortState(remoteState.abort_notice.message);
       return;
     }
