@@ -50,7 +50,7 @@
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002j";
+  const runtimeBuildVersion = "20261002n";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -84,6 +84,10 @@
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   let runtimePrefillSettingsOverride = null;
   let remoteDisplayReadyHeartbeatTimer = 0;
+  let remoteDisplayWakeLock = null;
+  let remoteDisplayWakeLockRequestPending = false;
+  let remoteDisplayReadyAnnounced = false;
+  let remoteDisplayLastReadyError = "";
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteViewerCoveredMode = runtimeMode === "remote-viewer-covered";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
@@ -104,7 +108,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002j";
+  const launcherBuildVersion = "20261002n";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4563,7 +4567,7 @@
       return;
     }
     try {
-      await fetch("api.php", {
+      const response = await fetch("api.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -4573,9 +4577,95 @@
           device_control_token: setup.controlToken
         })
       });
-    } catch (_) {
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(String(data?.error || `Remote-display readiness request failed with status ${response.status}`));
+      }
+      remoteDisplayLastReadyError = "";
+      if (!remoteDisplayReadyAnnounced) {
+        remoteDisplayReadyAnnounced = true;
+        void logDebugEvent("remote_display_ready_accepted", {
+          owner_name: setup.ownerName,
+          device_name: setup.deviceName,
+          visibility: document.visibilityState
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Remote-display readiness request failed.";
+      if (message !== remoteDisplayLastReadyError) {
+        remoteDisplayLastReadyError = message;
+        void logDebugEvent("remote_display_ready_failed", {
+          owner_name: setup.ownerName,
+          device_name: setup.deviceName,
+          visibility: document.visibilityState,
+          message
+        });
+      }
       // The next scheduled heartbeat will retry a transient network failure.
     }
+  }
+
+  async function requestRemoteDisplayWakeLock() {
+    if (
+      !isRemoteDisplayMode ||
+      document.visibilityState !== "visible" ||
+      remoteDisplayWakeLock ||
+      remoteDisplayWakeLockRequestPending ||
+      !navigator.wakeLock?.request
+    ) {
+      return;
+    }
+
+    remoteDisplayWakeLockRequestPending = true;
+    try {
+      const sentinel = await navigator.wakeLock.request("screen");
+      remoteDisplayWakeLock = sentinel;
+      void logDebugEvent("remote_display_wake_lock_acquired", {
+        visibility: document.visibilityState
+      });
+      sentinel.addEventListener("release", () => {
+        if (remoteDisplayWakeLock !== sentinel) {
+          return;
+        }
+        remoteDisplayWakeLock = null;
+        void logDebugEvent("remote_display_wake_lock_released", {
+          visibility: document.visibilityState
+        });
+        if (document.visibilityState === "visible") {
+          void requestRemoteDisplayWakeLock();
+        }
+      }, { once: true });
+    } catch (error) {
+      void logDebugEvent("remote_display_wake_lock_unavailable", {
+        visibility: document.visibilityState,
+        message: error instanceof Error ? error.message : "Wake lock request failed."
+      });
+    } finally {
+      remoteDisplayWakeLockRequestPending = false;
+    }
+  }
+
+  function releaseRemoteDisplayWakeLock() {
+    const sentinel = remoteDisplayWakeLock;
+    remoteDisplayWakeLock = null;
+    if (sentinel) {
+      void sentinel.release().catch(() => null);
+    }
+  }
+
+  function handleRemoteDisplayVisibilityChange() {
+    if (!isRemoteDisplayMode) {
+      return;
+    }
+    void logDebugEvent("remote_display_visibility_changed", {
+      visibility: document.visibilityState
+    });
+    if (document.visibilityState === "visible") {
+      void markRemoteDisplayReady();
+      void requestRemoteDisplayWakeLock();
+      return;
+    }
+    releaseRemoteDisplayWakeLock();
   }
 
   function startRemoteDisplayReadyHeartbeat() {
@@ -4583,10 +4673,13 @@
       return;
     }
     void markRemoteDisplayReady();
+    void requestRemoteDisplayWakeLock();
     remoteDisplayReadyHeartbeatTimer = window.setInterval(() => {
       void markRemoteDisplayReady();
     }, remoteDisplayReadyHeartbeatMs);
   }
+
+  document.addEventListener("visibilitychange", handleRemoteDisplayVisibilityChange);
 
   async function abortTrialAndReturnHome(options = {}) {
     clearRobotSimulationTimers();

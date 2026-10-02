@@ -31,6 +31,7 @@ async function verifyRemoteScreenUi() {
       card.hidden = false;
     });
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
     await page.locator('[data-remote-view-mode-open]').evaluate((button) => button.click());
     await page.locator('[data-remote-view-mode-card="remote-device"]').evaluate((button) => button.click());
 
@@ -191,6 +192,85 @@ async function verifyRemoteDevicePersistence() {
     assert(restoredOwner === "molly", `Remote setup must restore its saved owner on reload; received ${JSON.stringify(restoredOwner)} with setup ${JSON.stringify(persistedSetup)}.`);
     assert(restoredDevice === "dan's remote", `Remote setup must restore its saved device name on reload; received ${JSON.stringify(restoredDevice)}.`);
     assert(await dialog.locator('[data-remote-device-reset]').isEnabled(), "A restored remote setup must remain resettable by this browser.");
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyRemoteDeviceContinueMarksReady() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  let readyRequest = null;
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "molly",
+              preferred_identifier: "molly",
+              preferred_handle: "molly",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "dan's remote 2", owner_identifier: "molly" }
+          })
+        });
+        return;
+      }
+      if (request.action === "mark_remote_display_device_ready") {
+        readyRequest = request;
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "dan's remote 2", owner_identifier: "molly", is_ready: true }
+          })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "molly" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "molly",
+        deviceName: "dan's remote 2",
+        controlToken: "a".repeat(64)
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    await dialog.waitFor({ state: "visible" });
+    await dialog.locator('[data-remote-device-confirm]').click();
+    await page.waitForURL(/sender\.html/);
+    assert(
+      readyRequest?.owner_identifier === "molly" &&
+        readyRequest?.device_name === "dan's remote 2" &&
+        readyRequest?.device_control_token === "a".repeat(64),
+      "CONTINUE must confirm the registered remote device is ready before opening standby."
+    );
   } finally {
     await browser.close();
   }
@@ -379,6 +459,7 @@ async function verifyViewerSelectsTheSingleReadyRemoteDevice() {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
   let secondDeviceReady = false;
+  let activeDeviceExerciseRequest = null;
 
   try {
     await page.route("**/api.php", async (route) => {
@@ -410,10 +491,18 @@ async function verifyViewerSelectsTheSingleReadyRemoteDevice() {
           body: JSON.stringify({
             ok: true,
             remote_display_devices: [
-              { device_name: "dan's remote", owner_identifier: "molly", is_ready: false },
-              { device_name: "dan's remote 2", owner_identifier: "molly", is_ready: secondDeviceReady }
+              { device_name: "dan's remote", owner_identifier: "molly", is_ready: true, is_active: !secondDeviceReady },
+              { device_name: "dan's remote 2", owner_identifier: "molly", is_ready: secondDeviceReady, is_active: secondDeviceReady }
             ]
           })
+        });
+        return;
+      }
+      if (request.action === "set_pair_difficulty" && request.session_code === "dansremote2__molly") {
+        activeDeviceExerciseRequest = request;
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, pair_difficulty: request.difficulty_level })
         });
         return;
       }
@@ -444,12 +533,19 @@ async function verifyViewerSelectsTheSingleReadyRemoteDevice() {
     await remoteScreenInput.evaluate((input) => { input.value = "dan's remote"; });
 
     secondDeviceReady = true;
+    // Returning to the viewer after preparing a remote display must perform an
+    // immediate availability refresh, not wait for the next polling interval.
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
     await page.waitForFunction(() => (
       document.querySelector('[data-remote-viewer-partner]')?.value === "dan's remote 2"
     ));
     assert(
       await remoteScreenInput.inputValue() === "dan's remote 2",
-      "A viewer must replace an idle saved remote with the single ready remote display."
+      "A viewer must select the newly active remote display even when an older device remains ready."
+    );
+    assert(
+      activeDeviceExerciseRequest?.difficulty_level === "1",
+      "An automatically selected active remote display must inherit the viewer's current Exercise."
     );
   } finally {
     await browser.close();
@@ -638,6 +734,7 @@ async function verifyRemoteScreenSettingsPersistAcrossReload() {
     await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
     await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
     await page.locator('[data-remote-view-mode-open]').evaluate((button) => button.click());
     await page.locator('[data-remote-view-mode-card="remote-device"]').evaluate((button) => button.click());
     await page.locator('[data-remote-viewer-remote-screen-options]').waitFor({ state: "visible" });
@@ -710,6 +807,10 @@ function verifyPersistentRemoteDisplayImplementation() {
     "A remote display must publish its ready status while it is in standby."
   );
   assert(
+    runtimeSource.includes("navigator.wakeLock?.request") && runtimeSource.includes("remote_display_visibility_changed"),
+    "A remote display must request a screen wake lock when available and trace foreground/background changes."
+  );
+  assert(
     runtimeSource.includes("if (isRemoteDisplayMode) {\n      showRemoteDisplayStandbyState();\n      return;"),
     "A completed remote session must return the display to standby instead of the launcher."
   );
@@ -739,9 +840,23 @@ function verifyPersistentRemoteDisplayImplementation() {
   );
 }
 
-Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyIncompleteRemoteDeviceSetup(), verifyViewerDiscoversRemoteDeviceAfterModal(), verifyViewerSelectsTheSingleReadyRemoteDevice(), verifyViewerClearsReleasedRemoteDevice(), verifyRemoteScreenSettingsPersistAcrossReload()])
+async function run() {
+  // Each case uses the same origin and local-storage keys, so run them in
+  // sequence to prevent one browser context from overwriting another's setup.
+  await verifyRemoteScreenUi();
+  await verifyRemoteDeviceRoute();
+  await verifyRemoteDevicePersistence();
+  await verifyRemoteDeviceContinueMarksReady();
+  await verifyIncompleteRemoteDeviceSetup();
+  await verifyViewerDiscoversRemoteDeviceAfterModal();
+  await verifyViewerSelectsTheSingleReadyRemoteDevice();
+  await verifyViewerClearsReleasedRemoteDevice();
+  await verifyRemoteScreenSettingsPersistAcrossReload();
+  verifyPersistentRemoteDisplayImplementation();
+}
+
+run()
   .then(() => {
-    verifyPersistentRemoteDisplayImplementation();
     console.log("Remote Screen and remote-device setup UI verified.");
   })
   .catch((error) => {

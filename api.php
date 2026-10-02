@@ -1097,6 +1097,14 @@ function delete_user_identity_record(array &$state, string $identifier): array
     foreach (array_keys($remoteDisplayDeviceKeys) as $deviceKey) {
         unset($state['remote_display_devices'][$deviceKey]);
     }
+    if (is_array($state['active_remote_display_devices'] ?? null)) {
+        foreach (array_keys($state['active_remote_display_devices']) as $activeOwnerKey) {
+            $activeDeviceKey = canonicalize_handle((string) ($state['active_remote_display_devices'][$activeOwnerKey] ?? ''));
+            if (isset($remoteDisplayDeviceKeys[$activeDeviceKey])) {
+                unset($state['active_remote_display_devices'][$activeOwnerKey]);
+            }
+        }
+    }
 
     foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'partner_confirmation_preferences', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
         if (!is_array($state[$bucket] ?? null)) {
@@ -6858,8 +6866,10 @@ function get_remote_display_devices_for_owner(array $state, string $ownerIdentif
         return [];
     }
     $records = is_array($state['remote_display_devices'] ?? null) ? $state['remote_display_devices'] : [];
+    $activeRecords = is_array($state['active_remote_display_devices'] ?? null) ? $state['active_remote_display_devices'] : [];
+    $activeDeviceKey = canonicalize_handle((string) ($activeRecords[$ownerKey] ?? ''));
     $matches = [];
-    foreach ($records as $record) {
+    foreach ($records as $recordKey => $record) {
         if (!is_array($record)) {
             continue;
         }
@@ -6873,7 +6883,8 @@ function get_remote_display_devices_for_owner(array $state, string $ownerIdentif
         $matches[] = [
             'device_name' => $deviceName,
             'owner_identifier' => trim((string) ($record['owner_identifier'] ?? '')),
-            'is_ready' => remote_display_device_is_ready($record, $nowMs)
+            'is_ready' => remote_display_device_is_ready($record, $nowMs),
+            'is_active' => $activeDeviceKey !== '' && canonicalize_handle((string) $recordKey) === $activeDeviceKey
         ];
     }
     usort($matches, static fn(array $left, array $right): int => strnatcasecmp($left['device_name'], $right['device_name']));
@@ -6955,6 +6966,13 @@ function reset_remote_display_device(array &$state, string $ownerIdentifier, str
     // temporary identity and any active sessions involving it, never its owner.
     $identityKeys = [$deviceKey => true];
     unset($state['remote_display_devices'][$deviceKey]);
+    $ownerKey = normalize_identifier_for_lookup($owner);
+    if (
+        $ownerKey !== '' &&
+        canonicalize_handle((string) ($state['active_remote_display_devices'][$ownerKey] ?? '')) === $deviceKey
+    ) {
+        unset($state['active_remote_display_devices'][$ownerKey]);
+    }
     foreach (['unique_handles', 'retired_handles', 'handle_owners', 'user_types', 'user_preferences', 'partner_confirmation_preferences', 'launcher_profiles'] as $bucket) {
         if (is_array($state[$bucket] ?? null)) {
             unset($state[$bucket][$deviceKey]);
@@ -7021,6 +7039,11 @@ function mark_remote_display_device_ready(array &$state, string $ownerIdentifier
     }
     $record['last_ready_ms'] = $nowMs;
     $state['remote_display_devices'][$deviceKey] = $record;
+    if (!is_array($state['active_remote_display_devices'] ?? null)) {
+        $state['active_remote_display_devices'] = [];
+    }
+    // CONTINUE explicitly selects this display for its recognized owner.
+    $state['active_remote_display_devices'][normalize_identifier_for_lookup($owner)] = $deviceKey;
     return $record;
 }
 
@@ -11658,6 +11681,7 @@ if (!is_array($state)) {
         'explore_pro_verifications' => [],
         'explore_pro_trials' => [],
         'remote_display_devices' => [],
+        'active_remote_display_devices' => [],
         'admin_lock' => null,
         'stripe_users' => [],
         'stripe_customer_index' => [],
@@ -11707,6 +11731,7 @@ if (!array_key_exists('sessions', $state)) {
         'explore_pro_verifications' => [],
         'explore_pro_trials' => [],
         'remote_display_devices' => [],
+        'active_remote_display_devices' => [],
         'admin_lock' => null,
         'stripe_users' => [],
         'stripe_customer_index' => [],
@@ -11803,6 +11828,9 @@ if (!is_array($state['handle_owners'] ?? null)) {
 }
 if (!is_array($state['remote_display_devices'] ?? null)) {
     $state['remote_display_devices'] = [];
+}
+if (!is_array($state['active_remote_display_devices'] ?? null)) {
+    $state['active_remote_display_devices'] = [];
 }
 ensure_explore_pro_state($state);
 ensure_stripe_state_sections($state);
@@ -15086,6 +15114,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
         $state['explore_pro_verifications'] = [];
         $state['explore_pro_trials'] = [];
         $state['remote_display_devices'] = [];
+        $state['active_remote_display_devices'] = [];
         $state['stripe_users'] = [];
         $state['stripe_customer_index'] = [];
         $state['stripe_subscription_index'] = [];

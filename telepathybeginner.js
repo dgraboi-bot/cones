@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002j";
+  const launcherBuildVersion = "20261002n";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5575,6 +5575,20 @@ ${calmPracticeMessage}`;
     return parseApiResponse(response, `Remote-device reset failed with status ${response.status}`);
   }
 
+  async function markRemoteDisplayDeviceReady(ownerName, deviceName, controlToken) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "mark_remote_display_device_ready",
+        owner_identifier: assertValidParticipantIdentifier(ownerName, "You", { required: true }),
+        device_name: assertValidParticipantIdentifier(deviceName, "Remote Device", { required: true }),
+        device_control_token: String(controlToken || "").trim()
+      })
+    });
+    return parseApiResponse(response, `Remote-display readiness check failed with status ${response.status}`);
+  }
+
   async function fetchUserType(identifier) {
     const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
     const response = await fetch("api.php", {
@@ -9488,6 +9502,17 @@ ${calmPracticeMessage}`;
     }
     if (remoteDeviceConfirmButton) {
       remoteDeviceConfirmButton.disabled = true;
+    }
+    try {
+      await markRemoteDisplayDeviceReady(ownerName, deviceName, readRemoteDisplaySetup().controlToken);
+    } catch (error) {
+      if (remoteDeviceSetupStatus) {
+        remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to prepare this remote display. Please try again.";
+      }
+      if (remoteDeviceConfirmButton) {
+        remoteDeviceConfirmButton.disabled = false;
+      }
+      return;
     }
     persistLauncherRuntimeIdentity("sender", deviceName, ownerName, {
       device_location: getLocationForRuntimeState(state)
@@ -15529,6 +15554,41 @@ ${calmPracticeMessage}`;
     return nextState;
   }
 
+  async function initializeActiveRemoteViewerDeviceExercise(selectedExercise) {
+    const context = getPairContextForRole("remote-viewer");
+    if (!context || isRobotSimulationIdentifier(context.partnerName)) {
+      return;
+    }
+
+    const requestedExercise = normalizeDifficultyLevel(selectedExercise);
+    const difficultyData = await fetchPairDifficulty(
+      context.sessionCode,
+      requestedExercise,
+      {
+        activeLauncherRole: "remote-viewer",
+        activePairDifficultyCode: context.sessionCode,
+        activeDifficultySessionCode: context.sessionCode,
+        activeDifficultyRole: context.role
+      }
+    );
+    const confirmedExercise = normalizeDifficultyLevel(difficultyData?.pair_difficulty || requestedExercise);
+    const visibleExercise = String(
+      Math.min(
+        Number(confirmedExercise),
+        getRoleMaxDifficultyLevel("remote-viewer", difficultyData)
+      )
+    );
+    rememberDifficultyLevel(visibleExercise);
+    persistRoleDifficultyPreference("remote-viewer", visibleExercise);
+    persistResolvedPairDifficultyForRole("remote-viewer", context, visibleExercise);
+    setRoleDifficultyLabel("remote-viewer", visibleExercise);
+    traceLauncherClient("remote_display:active_device_exercise_initialized", {
+      owner_identifier: context.ownName,
+      device_name: context.partnerName,
+      exercise: visibleExercise
+    });
+  }
+
   async function populateKnownRemoteDisplayDevice(state = readLauncherState()) {
     const mode = readRemoteViewSimulationMode(state);
     const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
@@ -15555,6 +15615,9 @@ ${calmPracticeMessage}`;
         return;
       }
       const readyDevices = devices.filter((device) => device?.is_ready === true);
+      const activeDeviceName = String(
+        devices.find((device) => device?.is_active === true)?.device_name || ""
+      ).trim();
       const readyDeviceName = readyDevices.length === 1
         ? String(readyDevices[0]?.device_name || "").trim()
         : "";
@@ -15566,16 +15629,29 @@ ${calmPracticeMessage}`;
       const soleRegisteredDeviceName = devices.length === 1
         ? String(devices[0]?.device_name || "").trim()
         : "";
-      const deviceName = readyDeviceName && !currentDeviceIsReady
-        ? readyDeviceName
+      const deviceName = activeDeviceName
+        ? activeDeviceName
+        : readyDeviceName && !currentDeviceIsReady
+          ? readyDeviceName
         : missingDeviceName
           ? (readyDeviceName || soleRegisteredDeviceName)
           : "";
       if (!deviceName || normalizeIdentifierForStorage(deviceName) === normalizeIdentifierForStorage(currentDeviceName)) {
         return;
       }
+      const selectedExercise = getDifficultyLocalLevel("remote-viewer");
       remoteViewerPartnerInput.value = deviceName;
       persistRemoteViewerCardState();
+      if (activeDeviceName) {
+        await initializeActiveRemoteViewerDeviceExercise(selectedExercise);
+      }
+      traceLauncherClient("remote_display:active_device_selected", {
+        owner_identifier: ownerName,
+        previous_device_name: currentDeviceName,
+        selected_device_name: deviceName,
+        selected_by_active_pointer: !!activeDeviceName,
+        exercise: selectedExercise
+      });
     } catch (_) {
       // Keep the clear manual-entry instruction when discovery is unavailable.
     }

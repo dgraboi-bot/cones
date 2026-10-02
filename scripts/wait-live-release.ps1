@@ -54,12 +54,18 @@ while ($true) {
   if ($releaseLog) {
     $content = Get-Content -LiteralPath $releaseLog.FullName -Raw -Encoding UTF8
     if ($content.Contains($successMarker)) {
-      if (-not $content.Contains($auditMarker)) {
+      if ($content.Contains($auditMarker)) {
+        Write-Output "SUCCESS: Release $Version completed and passed its live SHA-256 audit."
+        Write-Output "Release log: $($releaseLog.FullName)"
+        return
+      }
+
+      # The release writes its success marker immediately before the final
+      # audit line. Let the active worker finish flushing the log instead of
+      # reporting a false failure during that short interval.
+      if (-not (Test-ReleaseWorkerRunning) -and ((Get-Date) - $releaseLog.LastWriteTime).TotalSeconds -gt 10) {
         throw "Release $Version recorded its success marker without the required live SHA-256 audit. Inspect $($releaseLog.FullName)."
       }
-      Write-Output "SUCCESS: Release $Version completed and passed its live SHA-256 audit."
-      Write-Output "Release log: $($releaseLog.FullName)"
-      return
     }
 
     $latestLine = @($content -split "`r?`n" | Where-Object { $_.Trim() }) | Select-Object -Last 1

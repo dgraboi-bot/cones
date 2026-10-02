@@ -32,7 +32,7 @@
   }
 
   const query = dataApi.parseQueryParams();
-  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20261002j")}&open=launcher`;
+  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20261002n")}&open=launcher`;
   let globe = null;
   let renderedConnections = [];
   let renderedPoints = [];
