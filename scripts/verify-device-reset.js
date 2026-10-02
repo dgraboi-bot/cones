@@ -36,8 +36,9 @@ async function verifyDeviceReset() {
 
     await showOtherFunctionsForTest(page);
     const resetButton = page.locator('[data-reset-this-device]');
-    assert(await resetButton.isVisible(), "Other Functions must expose RESET THIS DEVICE.");
-    assert(await resetButton.getAttribute("data-tooltip"), "RESET THIS DEVICE must explain its effect.");
+    assert(await resetButton.isVisible(), "Other Functions must expose Reset This Device.");
+    assert((await resetButton.textContent()).trim() === "Reset This Device", "The device reset button must use the standard mixed-case menu label.");
+    assert(await resetButton.getAttribute("data-tooltip"), "Reset This Device must explain its effect.");
 
     page.once("dialog", (dialog) => dialog.accept());
     await Promise.all([
@@ -80,10 +81,27 @@ async function verifyRemoteDeviceSafeguard() {
     await showOtherFunctionsForTest(page);
 
     const resetButton = page.locator('[data-reset-this-device]');
-    page.once("dialog", (dialog) => dialog.dismiss());
     await resetButton.click();
+    const resetChoice = page.locator('[data-device-reset-choice-overlay]');
+    await resetChoice.waitFor({ state: "visible" });
+    assert(await resetChoice.locator('[data-device-reset-remote]').isVisible(), "A remote device must offer a safe remote reset path.");
+    assert(await resetChoice.locator('[data-device-reset-keep-remote]').isVisible(), "A remote device must allow its remote-display status to remain intentionally.");
+    await resetChoice.locator('[data-device-reset-cancel]').click();
     const remoteSetup = await page.evaluate((key) => localStorage.getItem(key), remoteSetupKey);
     assert(remoteSetup !== null, "Device reset must not clear a remote-device registration.");
+
+    await resetButton.click();
+    await Promise.all([
+      page.waitForURL((url) => new URL(url).searchParams.get("open") === "landing"),
+      resetChoice.locator('[data-device-reset-keep-remote]').click()
+    ]);
+    const retainedState = await page.evaluate(({ launcherKey, remoteSetupKey }) => ({
+      launcher: JSON.parse(localStorage.getItem(launcherKey) || "{}"),
+      remoteSetup: JSON.parse(localStorage.getItem(remoteSetupKey) || "null")
+    }), { launcherKey: launcherStorageKey, remoteSetupKey });
+    assert(retainedState.launcher.entryMode === "visitor", "Keeping the remote device must still reset the normal app to a visitor state.");
+    assert(retainedState.remoteSetup?.ownerName === "molly", "Keeping the remote device must preserve its owner registration.");
+    assert(retainedState.remoteSetup?.deviceName === "molly remote", "Keeping the remote device must preserve its remote-device name.");
   } finally {
     await browser.close();
   }

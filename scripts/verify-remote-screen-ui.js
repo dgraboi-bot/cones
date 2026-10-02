@@ -204,11 +204,15 @@ function verifyPersistentRemoteDisplayImplementation() {
 
   assert(
     !launcherSource.includes('remoteDeviceConfirmButton?.dataset.ready !== "true"'),
-    "Remote setup must not require a second OK click after CONFIRM."
+    "Remote setup must not require a second OK click after CONTINUE."
   );
   assert(
     launcherSource.includes('remoteDeviceSetupStatus.textContent = "Opening remote display standby..."'),
-    "CONFIRM must immediately enter remote-display standby."
+    "CONTINUE must immediately enter remote-display standby."
+  );
+  assert(
+    launcherMarkup.includes('data-remote-device-confirm disabled>CONTINUE</button>'),
+    "Remote setup must label its final action CONTINUE."
   );
   assert(
     !launcherMarkup.includes("data-remote-viewer-display-device"),

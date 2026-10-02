@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002d";
+  const launcherBuildVersion = "20261002e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -847,6 +847,10 @@
   const remoteDeviceSetupStatus = document.querySelector("[data-remote-device-setup-status]");
   const remoteDeviceConfirmButton = document.querySelector("[data-remote-device-confirm]");
   const remoteDeviceResetButton = document.querySelector("[data-remote-device-reset]");
+  const deviceResetChoiceOverlay = document.querySelector("[data-device-reset-choice-overlay]");
+  const deviceResetRemoteButton = document.querySelector("[data-device-reset-remote]");
+  const deviceResetKeepRemoteButton = document.querySelector("[data-device-reset-keep-remote]");
+  const deviceResetCancelButton = document.querySelector("[data-device-reset-cancel]");
   const pushSetupOverlay = document.querySelector("[data-push-setup-overlay]");
   const pushSetupDialog = pushSetupOverlay?.querySelector(".push-setup-dialog") || null;
   const pushSetupStatus = document.querySelector("[data-push-setup-status]");
@@ -9331,7 +9335,7 @@ ${calmPracticeMessage}`;
     if (remoteDeviceNameSubmitButton) remoteDeviceNameSubmitButton.hidden = hasDevice;
     if (remoteDeviceConfirmButton) {
       remoteDeviceConfirmButton.disabled = !(hasOwner && hasDevice);
-      remoteDeviceConfirmButton.textContent = "CONFIRM";
+      remoteDeviceConfirmButton.textContent = "CONTINUE";
       remoteDeviceConfirmButton.dataset.ready = "false";
     }
     if (remoteDeviceResetButton) {
@@ -9480,6 +9484,11 @@ ${calmPracticeMessage}`;
       // A /remote browser should return to a truly fresh remote-device setup,
       // without retaining the former owner or display identity locally.
       clearLauncherIdentityArtifacts();
+      if (isDeviceResetContinuationRequested()) {
+        window.alert("Remote Device successfully reset on this device.");
+        await completeDeviceResetToAnonymousVisitor();
+        return;
+      }
       await openRemoteDeviceSetupOverlay({ forceClean: true });
       if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Remote device setup has been reset.";
     } catch (error) {
@@ -28689,15 +28698,44 @@ ${calmPracticeMessage}`;
     await clearAppCacheArtifacts();
   }
 
+  function isDeviceResetContinuationRequested() {
+    try {
+      return new URLSearchParams(window.location.search).get("continue_device_reset") === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function openDeviceResetChoiceOverlay() {
+    deviceResetChoiceOverlay?.classList.remove("beginner-view-hidden");
+    deviceResetChoiceOverlay?.setAttribute("aria-hidden", "false");
+    deviceResetRemoteButton?.focus();
+  }
+
+  function closeDeviceResetChoiceOverlay() {
+    deviceResetChoiceOverlay?.classList.add("beginner-view-hidden");
+    deviceResetChoiceOverlay?.setAttribute("aria-hidden", "true");
+  }
+
+  function buildRemoteDeviceResetContinuationUrl() {
+    const url = new URL(buildCanonicalLauncherUrl({ open: "remote-device" }), window.location.href);
+    url.searchParams.set("continue_device_reset", "1");
+    return url.toString();
+  }
+
+  async function completeDeviceResetToAnonymousVisitor({ preserveRemoteSetup = false } = {}) {
+    const remoteSetup = preserveRemoteSetup ? { ...readRemoteDisplaySetup() } : null;
+    await clearAppLocalStorageArtifacts();
+    if (remoteSetup?.ownerName || remoteSetup?.deviceName || remoteSetup?.controlToken) {
+      writeRemoteDisplaySetup(remoteSetup.ownerName, remoteSetup.deviceName, remoteSetup.controlToken);
+    }
+    window.location.href = buildCanonicalLauncherUrl({ open: "landing" });
+  }
+
   async function resetThisDeviceToAnonymousVisitor() {
     const remoteSetup = readRemoteDisplaySetup();
     if (remoteSetup.ownerName || remoteSetup.deviceName || remoteSetup.controlToken) {
-      const openRemoteSetup = window.confirm(
-        "This browser is configured as a remote display device. Use its Remote Device Setup RESET button first so its remote-device name can be released safely. Open Remote Device Setup now?"
-      );
-      if (openRemoteSetup) {
-        window.location.href = buildCanonicalLauncherUrl({ open: "remote-device" });
-      }
+      openDeviceResetChoiceOverlay();
       return;
     }
 
@@ -28707,8 +28745,7 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    await clearAppLocalStorageArtifacts();
-    window.location.href = buildCanonicalLauncherUrl({ open: "landing" });
+    await completeDeviceResetToAnonymousVisitor();
   }
 
   function showAdminView() {
@@ -34747,6 +34784,14 @@ ${calmPracticeMessage}`;
   resetThisDeviceButton?.addEventListener("click", () => {
     void resetThisDeviceToAnonymousVisitor();
   });
+  deviceResetRemoteButton?.addEventListener("click", () => {
+    window.location.href = buildRemoteDeviceResetContinuationUrl();
+  });
+  deviceResetKeepRemoteButton?.addEventListener("click", () => {
+    closeDeviceResetChoiceOverlay();
+    void completeDeviceResetToAnonymousVisitor({ preserveRemoteSetup: true });
+  });
+  deviceResetCancelButton?.addEventListener("click", closeDeviceResetChoiceOverlay);
   openClairvoyanceViewingButton?.addEventListener("click", () => {
     if (isProLockedButton(openClairvoyanceViewingButton) && !isAdminProLockOverrideAllowed(openClairvoyanceViewingButton)) {
       return;
