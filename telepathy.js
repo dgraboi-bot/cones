@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002a";
+  const runtimeBuildVersion = "20261002b";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -101,7 +101,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002a";
+  const launcherBuildVersion = "20261002b";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4003,7 +4003,37 @@
     }
   }
 
+  function showRemoteDisplayStandbyState() {
+    appExited = false;
+    senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
+    receiverReady = false;
+    awaitingReceiverDone = false;
+    receiverChoiceOpen = false;
+    localRoundRunning = false;
+    roundScheduled = false;
+    confidenceScreenOpen = false;
+    instructionScreenOpen = false;
+    receiverMirrorPhase = "idle";
+    postRoundChoiceSubmitted = false;
+    postRoundClearPending = false;
+    activeRound = null;
+    hideStage();
+    hideChoiceGrid();
+    hideConfidencePanel();
+    hideInstructionPanel();
+    hideDecisionPanel();
+    hideMessagePanel();
+    currentUiMode = "";
+    setUiMode("sender-waiting-online");
+    void syncState();
+  }
+
   function showExitedState() {
+    if (isRemoteDisplayMode) {
+      showRemoteDisplayStandbyState();
+      return;
+    }
     const guidedReturnSnapshot = isGuidedExperienceTour ? readGuidedReceiverTourReturnSnapshot() : null;
     clearGuidedReceiverTour();
     appExited = true;
@@ -7792,6 +7822,14 @@
     }
 
     if (currentUiMode === "partner-finished") {
+      if (isRemoteDisplayMode) {
+        // A remote display is a persistent appliance, not a normal sender
+        // session. Acknowledge the finished notice and return it to standby.
+        void api("clear_partner_finished_notice")
+          .catch(() => null)
+          .finally(showRemoteDisplayStandbyState);
+        return;
+      }
       void api("clear_partner_finished_notice")
         .catch(() => null)
         .finally(() => {

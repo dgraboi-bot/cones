@@ -53,7 +53,7 @@ async function verifyCoveredScreenLaunch() {
       (await goButton.getAttribute("title")) === "Press the GO button to start practicing this exercise without saving results.",
       "Unsaved-practice tooltip is incorrect."
     );
-    await page.locator('[data-remote-viewer-save-option]').dispatchEvent("pointerenter");
+    await page.locator('[data-remote-viewer-save-option]').hover({ force: true });
     const saveResultsHint = page.locator('[data-remote-viewer-save-results-hint]');
     await saveResultsHint.waitFor({ state: "visible" });
     assert(
@@ -78,7 +78,10 @@ async function verifyCoveredScreenLaunch() {
     assert(!(await saveResultsHint.evaluate((hint) => hint.hidden)), "Anonymous saved-results hint should remain until dismissed.");
     await saveResultsHint.locator('[data-remote-viewer-save-results-cancel]').evaluate((button) => button.click());
     assert(await saveResultsHint.isHidden(), "Cancel must dismiss the anonymous saved-results hint.");
-    await page.locator('[data-remote-viewer-save-option]').dispatchEvent("pointerenter");
+    await saveResultsHint.evaluate((hint) => {
+      hint.hidden = false;
+      hint.setAttribute("aria-hidden", "false");
+    });
     await saveResultsHint.locator('[data-remote-viewer-save-results-claim]').evaluate((button) => button.click());
     const handleOverlay = page.locator('[data-handle-overlay]');
     await handleOverlay.waitFor({ state: "visible" });
@@ -223,6 +226,106 @@ async function verifyCoveredScreenLaunch() {
     assert(await recognizedSetupPrompt.isVisible(), "Changing a Clairvoyance experience must not hide the optional setup link.");
     await recognizedPage.close();
 
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyPostTourModeControl() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.setDefaultTimeout(20000);
+  page.setDefaultNavigationTimeout(20000);
+
+  try {
+    await page.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({
+        entryMode: "visitor",
+        remoteViewerSimulationMode: "covered-screen"
+      }));
+    }, { key: launcherStorageKey });
+    await page.goto(
+      `${baseUrl}?open=remote-viewer&direct_open=1&guided_tour_complete=1&guided_tour_continue=receiver-experience&own_email=Anonymous%20Visitor&partner_email=Robot&visitor_display_name=Anonymous%20Visitor&difficulty_level=2`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await page.waitForFunction(() => (
+      document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active")
+    ));
+    assert(
+      await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => card.classList.contains("active")),
+      "A completed Clairvoyance tour must return to the expanded Clairvoyance panel."
+    );
+    await page.locator("[data-remote-view-mode-open]").click();
+    assert(
+      await page.locator("[data-remote-view-mode-overlay]").evaluate((overlay) => !overlay.classList.contains("beginner-view-hidden")),
+      "Set Mode must remain usable while the post-tour completion notice is visible."
+    );
+    await page.locator('[data-remote-view-mode-card="remote-device"]').click();
+    assert(
+      (await page.locator("[data-remote-view-mode-status]").textContent()).includes("Remote Screen"),
+      "The post-tour completion notice must not block choosing Remote Screen."
+    );
+    await page.locator("[data-remote-viewer-go]").click();
+    const claimOverlay = page.locator("[data-handle-overlay]");
+    await claimOverlay.waitFor({ state: "visible" });
+    await claimOverlay.locator("[data-close-handle]").click();
+    await claimOverlay.waitFor({ state: "hidden" });
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyRemoteScreenRequiredNames() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.setDefaultTimeout(20000);
+  page.setDefaultNavigationTimeout(20000);
+
+  try {
+    await page.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ entryMode: "visitor" }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => {
+      view.classList.remove("beginner-view-hidden");
+    });
+    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => {
+      card.hidden = false;
+    });
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.locator("[data-remote-view-mode-open]").evaluate((button) => button.click());
+    await page.locator('[data-remote-view-mode-card="remote-device"]').evaluate((button) => button.click());
+
+    assert(
+      await page.locator("[data-remote-viewer-own]").inputValue() === "Recognized Unique Name required. Click GO.",
+      "An unrecognized Remote Screen viewer must be directed to claim a unique name."
+    );
+    assert(
+      await page.locator("[data-remote-viewer-partner]").inputValue() === "Recognized Remote Device name needed. Click GO.",
+      "An unknown Remote Screen device must be identified clearly."
+    );
+
+    await page.locator("[data-remote-viewer-go]").evaluate((button) => button.click());
+    const claimOverlay = page.locator("[data-handle-overlay]");
+    await claimOverlay.waitFor({ state: "visible" });
+    assert(
+      await claimOverlay.locator("#handleDialogTitle").textContent() === "Choose Unique Name For Use With This Browser",
+      "Remote Screen name claiming must use the Clairvoyance-specific claim title."
+    );
+    assert(
+      (await claimOverlay.locator("[data-handle-intro]").textContent()).includes("recognized user for all Clairvoyance / Remote Viewing exercises"),
+      "Remote Screen name claiming must explain its Clairvoyance purpose."
+    );
+    assert(
+      Number(await claimOverlay.evaluate((overlay) => getComputedStyle(overlay).zIndex)) > 90,
+      "The name-claim modal must remain above guided-tour content."
+    );
   } finally {
     await browser.close();
   }
@@ -373,6 +476,8 @@ function verifyRuntimeGuards() {
 Promise.resolve()
   .then(verifyRuntimeGuards)
   .then(verifyCoveredScreenLaunch)
+  .then(verifyPostTourModeControl)
+  .then(verifyRemoteScreenRequiredNames)
   .then(() => console.log("Clairvoyance Covered Screen guided-tour flow verified."))
   .catch((error) => {
     console.error(error.stack || error.message || String(error));

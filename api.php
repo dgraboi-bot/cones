@@ -6820,6 +6820,34 @@ function get_remote_display_device_record(array $state, string $identifier): ?ar
     return $key !== '' && is_array($records[$key] ?? null) ? $records[$key] : null;
 }
 
+function get_remote_display_devices_for_owner(array $state, string $ownerIdentifier): array
+{
+    $ownerKey = normalize_identifier_for_lookup($ownerIdentifier);
+    if ($ownerKey === '') {
+        return [];
+    }
+    $records = is_array($state['remote_display_devices'] ?? null) ? $state['remote_display_devices'] : [];
+    $matches = [];
+    foreach ($records as $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        if (normalize_identifier_for_lookup((string) ($record['owner_identifier'] ?? '')) !== $ownerKey) {
+            continue;
+        }
+        $deviceName = trim((string) ($record['device_name'] ?? ''));
+        if ($deviceName === '') {
+            continue;
+        }
+        $matches[] = [
+            'device_name' => $deviceName,
+            'owner_identifier' => trim((string) ($record['owner_identifier'] ?? ''))
+        ];
+    }
+    usort($matches, static fn(array $left, array $right): int => strnatcasecmp($left['device_name'], $right['device_name']));
+    return $matches;
+}
+
 function claim_remote_display_device(array &$state, string $ownerIdentifier, string $proposedDeviceName, int $nowMs): array
 {
     $ownerStatus = get_identifier_status($state, $ownerIdentifier);
@@ -13456,6 +13484,27 @@ if ($action === 'get_remote_display_device_status') {
     respond_json_and_close($handle, [
         'ok' => true,
         'remote_display_device' => $record,
+        'server_now_ms' => $nowMs
+    ]);
+}
+
+if ($action === 'get_remote_display_devices_for_owner') {
+    try {
+        require_allowed_keys($input, ['action', 'owner_identifier'], 'request');
+        $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
+        $ownerStatus = get_identifier_status($state, $ownerIdentifier);
+        $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
+        if (!formal_identifier_exists($state, $owner) || empty($ownerStatus['uses_handle'])) {
+            throw new RuntimeException('Please fill in your unique recognized ESP GYM name.');
+        }
+        $records = get_remote_display_devices_for_owner($state, $owner);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    respond_json_and_close($handle, [
+        'ok' => true,
+        'remote_display_devices' => $records,
         'server_now_ms' => $nowMs
     ]);
 }

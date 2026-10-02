@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const { chromium } = require("playwright");
 
 const baseUrl = process.argv[2] || "http://localhost/telepathyexperiment/cones/telepathybeginner.html";
@@ -46,7 +48,7 @@ async function verifyRemoteScreenUi() {
       "Covered Screen experience controls must remain hidden in Remote Screen mode."
     );
     assert(
-      await page.locator('[data-remote-viewer-partner]').inputValue() === "Anonymous Remote Device",
+      await page.locator('[data-remote-viewer-partner]').inputValue() === "Recognized Remote Device name needed. Click GO.",
       "A Remote Screen must initially guide the viewer to set up a remote device."
     );
     await page.locator('[data-remote-viewer-go]').evaluate((button) => button.click());
@@ -122,8 +124,33 @@ async function verifyRemoteDeviceRoute() {
   }
 }
 
+function verifyPersistentRemoteDisplayImplementation() {
+  const launcherSource = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.js"), "utf8");
+  const runtimeSource = fs.readFileSync(path.join(__dirname, "..", "telepathy.js"), "utf8");
+
+  assert(
+    !launcherSource.includes('remoteDeviceConfirmButton?.dataset.ready !== "true"'),
+    "Remote setup must not require a second OK click after CONFIRM."
+  );
+  assert(
+    launcherSource.includes('remoteDeviceSetupStatus.textContent = "Opening remote display standby..."'),
+    "CONFIRM must immediately enter remote-display standby."
+  );
+  assert(
+    runtimeSource.includes("function showRemoteDisplayStandbyState()"),
+    "Remote display standby state is missing."
+  );
+  assert(
+    runtimeSource.includes("if (isRemoteDisplayMode) {\n      showRemoteDisplayStandbyState();\n      return;"),
+    "A completed remote session must return the display to standby instead of the launcher."
+  );
+}
+
 Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute()])
-  .then(() => console.log("Remote Screen and remote-device setup UI verified."))
+  .then(() => {
+    verifyPersistentRemoteDisplayImplementation();
+    console.log("Remote Screen and remote-device setup UI verified.");
+  })
   .catch((error) => {
     console.error(error.stack || error.message || String(error));
     process.exitCode = 1;

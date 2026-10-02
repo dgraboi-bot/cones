@@ -42,7 +42,7 @@ async function verify() {
       remoteViewerSimulationMode: "covered-screen"
     });
     assertEqual(await page.locator('[data-remote-viewer-own]').inputValue(), "Anonymous Visitor", "anonymous covered-screen You");
-    assertEqual(await page.locator('[data-remote-viewer-covered-simulation]').isChecked(), true, "covered-screen simulation default");
+    assertEqual(await page.locator('[data-remote-viewer-experience="tour"]').isChecked(), true, "anonymous covered-screen tour default");
 
     const qualifiedState = {
       recognizedIdentity: "graboi",
@@ -55,9 +55,31 @@ async function verify() {
         }
       }
     };
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_remote_display_devices_for_owner") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_devices: [{ device_name: "my remote", owner_identifier: "graboi" }]
+          })
+        });
+        return;
+      }
+      await route.continue();
+    });
     await setLauncherState(page, qualifiedState);
     assertEqual(await page.locator('[data-remote-viewer-own]').inputValue(), "graboi", "remote-screen You");
-    assertEqual(await page.locator('[data-remote-viewer-partner]').inputValue(), "Robot", "remote-screen default device");
+    await page.waitForFunction(() => (
+      document.querySelector('[data-remote-viewer-partner]')?.value === "my remote"
+    ));
+    assertEqual(await page.locator('[data-remote-viewer-partner]').inputValue(), "my remote", "remote-screen discovered device");
     assertEqual(await page.locator('[data-remote-viewer-display-device]').isChecked(), false, "remote-screen display checkbox default");
 
     await page.locator('[data-remote-viewer-display-device]').evaluate((input) => {
@@ -66,7 +88,7 @@ async function verify() {
     });
     assertEqual(await page.locator('[data-remote-viewer-own-label]').textContent(), "This Device", "display-device own label");
     assertEqual(await page.locator('[data-remote-viewer-partner-label]').textContent(), "Remote Viewer", "display-device partner label");
-    assertEqual(await page.locator('[data-remote-viewer-own]').inputValue(), "Robot", "display-device default name");
+    assertEqual(await page.locator('[data-remote-viewer-own]').inputValue(), "graboi", "display-device default name");
     assertEqual(await page.locator('[data-remote-viewer-partner]').inputValue(), "graboi", "display-device remote viewer");
     assertEqual(await page.locator('[data-remote-viewer-partner]').evaluate((input) => input.readOnly), true, "display-device remote viewer read-only");
 
