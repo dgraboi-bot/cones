@@ -251,16 +251,29 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
       }));
     }, { key: launcherStorageKey });
     await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1000);
     await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
     await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
-
     const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
     await remoteScreenInput.waitFor({ state: "visible" });
     assert(
       await remoteScreenInput.inputValue() === "Recognized Remote Device name needed. Click GO.",
       "A viewer without a remote device must start with the clear setup instruction."
     );
+
+    // The remote laptop can be configured while this viewer remains open. The
+    // viewer must discover that one device without requiring a modal close,
+    // page reload, or manually typed device name.
+    remoteDeviceReady = true;
+    await page.waitForFunction(() => (
+      document.querySelector('[data-remote-viewer-partner]')?.value === "dan's remote"
+    ));
+    assert(await remoteScreenInput.inputValue() === "dan's remote", "An open viewer must discover a newly registered remote device automatically.");
+
+    await remoteScreenInput.evaluate((input) => {
+      input.value = "Recognized Remote Device name needed. Click GO.";
+    });
 
     await page.locator('[data-remote-viewer-go]').evaluate((button) => button.click());
     const instructionModal = page.locator('[data-unique-name-required-overlay]');
@@ -271,7 +284,6 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
     );
 
     // The other device completes setup while this viewer remains on the instruction modal.
-    remoteDeviceReady = true;
     await instructionModal.locator('[data-unique-name-required-close]').click();
     await page.waitForFunction(() => (
       document.querySelector('[data-remote-viewer-partner]')?.value === "dan's remote"
@@ -347,7 +359,6 @@ async function verifyViewerClearsReleasedRemoteDevice() {
     await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
     await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
-
     const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
     await page.waitForFunction(() => (
       document.querySelector('[data-remote-viewer-partner]')?.value === "Recognized Remote Device name needed. Click GO."
@@ -368,6 +379,130 @@ async function verifyViewerClearsReleasedRemoteDevice() {
     assert(
       JSON.stringify(stored) === JSON.stringify({ currentPartner: "", profilePartner: "", runtimePartner: "" }),
       `A released remote device must be removed from every viewer-side current-partner store; received ${JSON.stringify(stored)}.`
+    );
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyRemoteScreenSettingsPersistAcrossReload() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  let serverProfile = {
+    own_email: "molly",
+    current_partner: "dan's remote",
+    difficulty_level: "2",
+    partner_history: ["dan's remote"],
+    deleted_partners: []
+  };
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "molly",
+              preferred_identifier: "molly",
+              preferred_handle: "molly",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "dan's remote", owner_identifier: "molly" }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_launcher_profile") {
+        await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, launcher_profile: serverProfile }) });
+        return;
+      }
+      if (request.action === "save_launcher_profile") {
+        serverProfile = {
+          own_email: "molly",
+          current_partner: request.launcher_profile?.current_partner || "",
+          difficulty_level: request.launcher_profile?.difficulty_level || "1",
+          partner_history: request.launcher_profile?.partner_history || [],
+          deleted_partners: request.launcher_profile?.deleted_partners || []
+        };
+        await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, launcher_profile: serverProfile }) });
+        return;
+      }
+      if (request.action === "get_pair_difficulty" || request.action === "set_pair_difficulty") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            pair_difficulty: "2",
+            pair_difficulty_meta: { max_allowed_difficulty_level: 4 }
+          })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({
+        recognizedIdentity: "molly",
+        ownNames: { "remote-viewer": "molly" },
+        currentPartners: { "remote-viewer": "dan's remote" },
+        roleDifficultyLevels: { "remote-viewer": "2" },
+        remoteViewerExperienceMode: "practice-unsaved",
+        remoteViewerSimulationMode: "remote-device"
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
+    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.locator('[data-remote-view-mode-open]').evaluate((button) => button.click());
+    await page.locator('[data-remote-view-mode-card="remote-device"]').evaluate((button) => button.click());
+    await page.locator('[data-remote-viewer-remote-screen-options]').waitFor({ state: "visible" });
+    await page.locator('[data-remote-viewer-remote-screen-options] .remote-viewer-experience-option').filter({ hasText: "Practice and save results" }).evaluate((label) => label.click());
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem("cones-beginner-launcher-v2") || "{}").remoteViewerExperienceMode === "practice-saved");
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
+    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.locator('[data-remote-viewer-remote-screen-options]').waitFor({ state: "visible" });
+    await page.waitForTimeout(250);
+    const restored = await page.evaluate(({ key }) => {
+      const launcher = JSON.parse(localStorage.getItem(key) || "{}");
+      return {
+        label: document.querySelector('[data-pair-difficulty-label="remote-viewer"]')?.textContent.trim() || "",
+        localDifficulty: launcher.roleDifficultyLevels?.["remote-viewer"] || "",
+        profileDifficulty: launcher.launcherProfiles?.["remote-viewer::molly"]?.difficultyLevel || ""
+      };
+    }, { key: launcherStorageKey });
+    assert(
+      restored.label === "Exercise 2",
+      `Remote Screen must restore Exercise 2 after reload; received ${JSON.stringify(restored)}.`
+    );
+    assert(
+      await page.locator('[data-remote-viewer-remote-screen-experience="practice-saved"]').isChecked(),
+      "Remote Screen must restore the selected saved-results choice after reload."
     );
   } finally {
     await browser.close();
@@ -424,9 +559,17 @@ function verifyPersistentRemoteDisplayImplementation() {
     runtimeSource.includes("returnRemoteDisplayToStandbyAfterSession();\n      return;"),
     "A remote display must not render the normal sender completion prompt after End Session."
   );
+  assert(
+    launcherSource.includes("localStorage.clear();") && launcherSource.includes("clear_all_app_storage: true"),
+    "ADMIN local-storage clearing must remove Remote Screen state with all other device state."
+  );
+  assert(
+    launcherSource.includes("await completeDeviceResetToAnonymousVisitor();"),
+    "Reset This Device must use the same full device-state clearing path."
+  );
 }
 
-Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyViewerDiscoversRemoteDeviceAfterModal(), verifyViewerClearsReleasedRemoteDevice()])
+Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyViewerDiscoversRemoteDeviceAfterModal(), verifyViewerClearsReleasedRemoteDevice(), verifyRemoteScreenSettingsPersistAcrossReload()])
   .then(() => {
     verifyPersistentRemoteDisplayImplementation();
     console.log("Remote Screen and remote-device setup UI verified.");

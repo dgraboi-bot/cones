@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002g";
+  const launcherBuildVersion = "20261002h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -44,6 +44,8 @@
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   let remoteViewerDeviceDiscoveryToken = 0;
   let remoteViewerDeviceAvailabilityToken = 0;
+  let remoteViewerDeviceDiscoveryRetryTimer = 0;
+  const remoteViewerDeviceDiscoveryRetryMs = 3000;
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
   const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
@@ -1189,6 +1191,7 @@
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
   const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
   const remoteViewerExperienceInputs = Array.from(document.querySelectorAll("[data-remote-viewer-experience]"));
+  const remoteViewerRemoteScreenExperienceInputs = Array.from(document.querySelectorAll("[data-remote-viewer-remote-screen-experience]"));
   const remoteViewerExperienceWrap = document.querySelector("[data-remote-viewer-experience-wrap]");
   const remoteViewerSaveOption = document.querySelector("[data-remote-viewer-save-option]");
   const remoteViewerSaveResultsHint = document.querySelector("[data-remote-viewer-save-results-hint]");
@@ -9292,7 +9295,7 @@ ${calmPracticeMessage}`;
     uniqueNameRequiredOverlay?.classList.add("beginner-view-hidden");
     uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "true");
     if (shouldRefreshRemoteDevice) {
-      void populateKnownRemoteDisplayDevice(readLauncherState());
+      scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
     }
   }
 
@@ -15051,7 +15054,12 @@ ${calmPracticeMessage}`;
       if (ownIdentifier && isRobotSimulationIdentifier(partnerIdentifier)) {
         persistRobotSimulationDifficulty("remote-viewer", ownIdentifier, normalizedLevel);
       }
-      persistVisibleRoleDifficulty("remote-viewer", normalizedLevel);
+      const profileState = persistVisibleRoleDifficulty("remote-viewer", normalizedLevel);
+      if (profileState && isRecognizedRemoteViewerUser(latest)) {
+        void persistRemoteViewerLauncherProfile(profileState).catch(() => {
+          // The local exercise choice remains available if the profile write is temporarily unavailable.
+        });
+      }
     }
   }
 
@@ -15065,7 +15073,7 @@ ${calmPracticeMessage}`;
       return;
     }
     const profileState = readLauncherProfileState(normalizedRole, ownIdentifier, state);
-    writeLauncherProfileState(normalizedRole, ownIdentifier, {
+    return writeLauncherProfileState(normalizedRole, ownIdentifier, {
       currentPartner: profileState.currentPartner,
       difficultyLevel: normalizedLevel,
       partnerHistory: profileState.partnerHistory,
@@ -15395,17 +15403,33 @@ ${calmPracticeMessage}`;
     return isRecognizedRemoteViewerUser(state) ? "practice-saved" : "tour";
   }
 
+  function getRemoteViewerExperienceModeForCurrentScreen(state = readLauncherState()) {
+    const mode = getRemoteViewerExperienceMode(state);
+    return readRemoteViewSimulationMode(state) === "remote-device" && mode === "tour"
+      ? "practice-unsaved"
+      : mode;
+  }
+
+  function getVisibleRemoteViewerExperienceInputs(state = readLauncherState()) {
+    return readRemoteViewSimulationMode(state) === "remote-device"
+      ? remoteViewerRemoteScreenExperienceInputs
+      : remoteViewerExperienceInputs;
+  }
+
   function getSelectedRemoteViewerExperienceMode(state = readLauncherState()) {
-    const selected = remoteViewerExperienceInputs.find((input) => input.checked);
+    const selected = getVisibleRemoteViewerExperienceInputs(state).find((input) => input.checked);
     return normalizeRemoteViewerExperienceMode(selected?.dataset.remoteViewerExperience)
-      || getRemoteViewerExperienceMode(state);
+      || normalizeRemoteViewerExperienceMode(selected?.dataset.remoteViewerRemoteScreenExperience)
+      || getRemoteViewerExperienceModeForCurrentScreen(state);
   }
 
   function syncRemoteViewerExperienceControls(state = readLauncherState()) {
     const recognized = isRecognizedRemoteViewerUser(state);
-    const mode = getRemoteViewerExperienceMode(state);
-    remoteViewerExperienceInputs.forEach((input) => {
-      const inputMode = normalizeRemoteViewerExperienceMode(input.dataset.remoteViewerExperience);
+    const mode = getRemoteViewerExperienceModeForCurrentScreen(state);
+    [...remoteViewerExperienceInputs, ...remoteViewerRemoteScreenExperienceInputs].forEach((input) => {
+      const inputMode = normalizeRemoteViewerExperienceMode(
+        input.dataset.remoteViewerExperience || input.dataset.remoteViewerRemoteScreenExperience
+      );
       input.checked = inputMode === mode;
       input.disabled = !recognized && inputMode === "practice-saved";
     });
@@ -15521,6 +15545,39 @@ ${calmPracticeMessage}`;
     }
   }
 
+  function shouldRetryKnownRemoteDisplayDeviceDiscovery(state = readLauncherState()) {
+    const remoteViewerCard = roleCards.find((card) => card.dataset.roleCard === "remote-viewer");
+    const currentDeviceName = String(remoteViewerPartnerInput?.value || "").trim();
+    return !!(
+      remoteViewerCard?.classList.contains("active") &&
+      !clairvoyanceViewingView?.classList.contains("beginner-view-hidden") &&
+      readRemoteViewSimulationMode(state) === "remote-device" &&
+      isRecognizedRemoteViewerUser(state) &&
+      (!currentDeviceName || isRemoteDeviceNameRequiredDisplay(currentDeviceName))
+    );
+  }
+
+  function scheduleKnownRemoteDisplayDeviceDiscovery(state = readLauncherState()) {
+    if (!shouldRetryKnownRemoteDisplayDeviceDiscovery(state)) {
+      return;
+    }
+    if (remoteViewerDeviceDiscoveryRetryTimer) {
+      window.clearTimeout(remoteViewerDeviceDiscoveryRetryTimer);
+      remoteViewerDeviceDiscoveryRetryTimer = 0;
+    }
+
+    void populateKnownRemoteDisplayDevice(state).finally(() => {
+      const latest = readLauncherState();
+      if (!shouldRetryKnownRemoteDisplayDeviceDiscovery(latest)) {
+        return;
+      }
+      remoteViewerDeviceDiscoveryRetryTimer = window.setTimeout(() => {
+        remoteViewerDeviceDiscoveryRetryTimer = 0;
+        scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
+      }, remoteViewerDeviceDiscoveryRetryMs);
+    });
+  }
+
   async function refreshRemoteViewerRemoteDeviceAvailability(state = readLauncherState()) {
     if (!remoteViewerPartnerInput || readRemoteViewSimulationMode(state) !== "remote-device") {
       return;
@@ -15579,7 +15636,7 @@ ${calmPracticeMessage}`;
     ) {
       remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
     }
-    void populateKnownRemoteDisplayDevice(state);
+    scheduleKnownRemoteDisplayDeviceDiscovery(state);
   }
 
   function getRemoteViewSimulationModeCopy(mode) {
@@ -23212,6 +23269,9 @@ ${calmPracticeMessage}`;
 
     if (shouldActivate) {
       card.classList.add("active");
+      if (role === "remote-viewer") {
+        scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
+      }
       syncRoleCardTitle(card, true);
       activeLauncherRole = role;
       maybeAdvanceLauncherGuidedOpenCardStep(card, role);
@@ -23281,6 +23341,9 @@ ${calmPracticeMessage}`;
       }
     });
     card.classList.add("active");
+    if (role === "remote-viewer") {
+      scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
+    }
     syncRoleCardTitle(card, true);
     activeLauncherRole = role;
     void syncDifficultyLabelForRole(role).finally(() => {
@@ -23347,6 +23410,7 @@ ${calmPracticeMessage}`;
       }
     });
     if (changed) {
+      scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
       rolePanels?.classList.remove("role-panels-single");
       scrollLauncherToTop();
     }
@@ -34140,7 +34204,7 @@ ${calmPracticeMessage}`;
     renderRemoteViewerLabels();
     void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
-  remoteViewerExperienceInputs.forEach((input) => {
+  [...remoteViewerExperienceInputs, ...remoteViewerRemoteScreenExperienceInputs].forEach((input) => {
     input.addEventListener("change", () => {
       if (!input.checked) {
         return;
@@ -34176,7 +34240,7 @@ ${calmPracticeMessage}`;
   });
   renderRemoteViewerLabels();
   window.addEventListener("focus", () => {
-    void populateKnownRemoteDisplayDevice(readLauncherState());
+    scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
     void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
   remoteViewerGoButton?.addEventListener("click", async () => {
