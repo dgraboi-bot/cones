@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261001k";
+  const launcherBuildVersion = "20261001m";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -39,6 +39,7 @@
   const maxBuildRecoveryAttempts = 2;
   const robotSimulationIdentifier = "Robot";
   const anonymousVisitorDisplayName = "Anonymous Visitor";
+  const anonymousRemoteDeviceDisplayName = "Anonymous Remote Device";
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
   const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
@@ -828,6 +829,8 @@
   const submitHandleButton = document.querySelector("[data-submit-handle]");
   const closeHandleButton = document.querySelector("[data-close-handle]");
   const uniqueNameRequiredOverlay = document.querySelector("[data-unique-name-required-overlay]");
+  const uniqueNameRequiredTitle = document.querySelector("[data-unique-name-required-title]");
+  const uniqueNameRequiredCopy = document.querySelector("[data-unique-name-required-copy]");
   const uniqueNameRequiredClaimButton = document.querySelector("[data-unique-name-required-claim]");
   const uniqueNameRequiredCloseButton = document.querySelector("[data-unique-name-required-close]");
   const pushSetupOverlay = document.querySelector("[data-push-setup-overlay]");
@@ -951,6 +954,7 @@
   // A direct camera-based claim keeps its choice overlay up until the
   // destination is ready, preventing the underlying setup view from flashing.
   let partnerConfirmationMethodClaimInFlight = false;
+  let pendingPartnerConfirmationMethodIdentifier = "";
   const uniqueNameChangeView = document.querySelector('[data-view="unique-name-change"]');
   const closeUniqueNameChangeButton = document.querySelector("[data-close-unique-name-change]");
   const uniqueNameChangeCurrent = document.querySelector("[data-unique-name-change-current]");
@@ -9078,10 +9082,13 @@ ${calmPracticeMessage}`;
     if (!activeHandleRole) {
       return;
     }
+    const remoteDisplayNameClaim = activeHandleRole === "remote-viewer" && !!remoteViewerDisplayDeviceCheckbox?.checked;
     if (handleDialogTitle) {
-      handleDialogTitle.textContent = defaultHandleDialogTitle;
+      handleDialogTitle.textContent = remoteDisplayNameClaim
+        ? "Choose Unique Name for Use with This Remote Device and Browser"
+        : defaultHandleDialogTitle;
     }
-    renderDefaultHandleDialogIntro();
+    renderDefaultHandleDialogIntro(remoteDisplayNameClaim);
     if (submitHandleButton) {
       submitHandleButton.textContent = "SUBMIT";
     }
@@ -9097,11 +9104,13 @@ ${calmPracticeMessage}`;
     handleInput?.focus();
   }
 
-  function renderDefaultHandleDialogIntro() {
+  function renderDefaultHandleDialogIntro(remoteDisplayNameClaim = false) {
     if (!handleIntro) {
       return;
     }
-    handleIntro.textContent = defaultHandleDialogIntroBeforePrivacyLink;
+    handleIntro.textContent = remoteDisplayNameClaim
+      ? "Choose a unique name for this remote display device. This name identifies this browser/device for Remote Screen Clairvoyance practice. Using email for confirmation is optional and is never sold or shared (see "
+      : defaultHandleDialogIntroBeforePrivacyLink;
     const privacyLink = document.createElement("a");
     privacyLink.className = "about-section-link";
     privacyLink.href = "#";
@@ -9133,8 +9142,20 @@ ${calmPracticeMessage}`;
     handleInput?.focus();
   }
 
-  function openUniqueNameRequiredOverlay(role) {
+  function openUniqueNameRequiredOverlay(role, options = {}) {
     uniqueNameRequiredRole = role === "sender" || role === "receiver" || role === "remote-viewer" ? role : "";
+    if (uniqueNameRequiredTitle) {
+      uniqueNameRequiredTitle.textContent = String(options.title || "Choose a Unique Name");
+    }
+    if (uniqueNameRequiredCopy) {
+      uniqueNameRequiredCopy.textContent = String(options.copy || "Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.");
+    }
+    if (uniqueNameRequiredClaimButton) {
+      uniqueNameRequiredClaimButton.hidden = options.claimAvailable === false;
+    }
+    if (uniqueNameRequiredCloseButton) {
+      uniqueNameRequiredCloseButton.textContent = options.claimAvailable === false ? "OK" : "NOT NOW";
+    }
     uniqueNameRequiredOverlay?.classList.remove("beginner-view-hidden");
     uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "false");
     uniqueNameRequiredClaimButton?.focus();
@@ -9142,6 +9163,18 @@ ${calmPracticeMessage}`;
 
   function closeUniqueNameRequiredOverlay() {
     uniqueNameRequiredRole = "";
+    if (uniqueNameRequiredTitle) {
+      uniqueNameRequiredTitle.textContent = "Choose a Unique Name";
+    }
+    if (uniqueNameRequiredCopy) {
+      uniqueNameRequiredCopy.textContent = "Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.";
+    }
+    if (uniqueNameRequiredClaimButton) {
+      uniqueNameRequiredClaimButton.hidden = false;
+    }
+    if (uniqueNameRequiredCloseButton) {
+      uniqueNameRequiredCloseButton.textContent = "NOT NOW";
+    }
     uniqueNameRequiredOverlay?.classList.add("beginner-view-hidden");
     uniqueNameRequiredOverlay?.setAttribute("aria-hidden", "true");
   }
@@ -9266,9 +9299,12 @@ ${calmPracticeMessage}`;
           return;
         }
       }
-      // A first claim selects its partner-verification method before the
-      // identity is created. Existing names continue through email recovery.
-      if (firstClaimMode || detectMobileBrowser().isIOS) {
+      // A Clairvoyance-originated claim creates a recognized practice name
+      // without asking an irrelevant partner-confirmation question. The
+      // method is chosen later, only when the person starts human telepathy.
+      const needsImmediatePartnerConfirmation = !isRemoteViewerRole && (firstClaimMode || detectMobileBrowser().isIOS);
+      // Existing names continue through email recovery.
+      if (needsImmediatePartnerConfirmation) {
         let proposedStatus = null;
         try {
           proposedStatus = await fetchIdentifierStatus(proposedHandle);
@@ -9367,6 +9403,14 @@ ${calmPracticeMessage}`;
           recognizedIdentity: acceptedHandle,
           entryMode: ""
         });
+        if (isRemoteViewerRole) {
+          nextIdentityState.identifierStatusMap = nextIdentityState.identifierStatusMap || {};
+          nextIdentityState.identifierStatusMap[normalizeIdentifierForStorage(acceptedHandle)] = {
+            ...(result?.status && typeof result.status === "object" ? result.status : {}),
+            formal_identity_exists: true,
+            partner_confirmation_configured: false
+          };
+        }
         nextIdentityState.remoteViewerExperienceMode = "practice-saved";
         writeLauncherState(nextIdentityState);
         setLauncherProfileSaveSuppression(false, true);
@@ -10103,6 +10147,28 @@ ${calmPracticeMessage}`;
       : "verified";
   }
 
+  function hasPartnerConfirmationConfiguration(status) {
+    // Older cached records did not include this capability. Treat only an
+    // explicit false as unconfigured so an offline/stale cache never blocks
+    // an established participant from continuing.
+    return status?.partner_confirmation_configured !== false;
+  }
+
+  function markPartnerConfirmationConfigured(identifier) {
+    const key = normalizeIdentifierForStorage(identifier);
+    if (!key) {
+      return;
+    }
+    const state = readLauncherState();
+    const current = state.identifierStatusMap?.[key] || {};
+    state.identifierStatusMap = state.identifierStatusMap || {};
+    state.identifierStatusMap[key] = {
+      ...current,
+      partner_confirmation_configured: true
+    };
+    writeLauncherState(state);
+  }
+
   function setPartnerConfirmationMethod(method) {
     const state = readLauncherState();
     state.partnerConfirmationMethod = String(method || "").trim().toLowerCase() === "camera" ? "camera" : "verified";
@@ -10123,7 +10189,9 @@ ${calmPracticeMessage}`;
         method: String(method || "").trim().toLowerCase() === "camera" ? "camera" : "verified"
       })
     });
-    await parseApiResponse(response, "Unable to save the partner confirmation method right now.");
+    const data = await parseApiResponse(response, "Unable to save the partner confirmation method right now.");
+    markPartnerConfirmationConfigured(cleanIdentifier);
+    return data;
   }
 
   async function syncPartnerConfirmationMethodForIdentifier(identifier, role = "") {
@@ -10135,11 +10203,14 @@ ${calmPracticeMessage}`;
     if (!status?.formal_identity_exists) {
       return false;
     }
-    const canonicalIdentifier = String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier;
-    await savePartnerConfirmationMethod(canonicalIdentifier, getPartnerConfirmationMethod());
+    if (!hasPartnerConfirmationConfiguration(status)) {
+      // Opening a role card must never turn a Clairvoyance-only name into a
+      // telepathy-confirmed identity merely by applying a default method.
+      return false;
+    }
     tracePartnerConfirmationMethod("method_synchronized", {
       role: String(role || "").trim(),
-      identifier: canonicalIdentifier
+      identifier: String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier
     });
     return true;
   }
@@ -10151,6 +10222,31 @@ ${calmPracticeMessage}`;
     }
     const identifiers = readVisibleRoleIdentifiers(normalizedRole);
     return syncPartnerConfirmationMethodForIdentifier(identifiers?.ownName, normalizedRole);
+  }
+
+  async function ensureHumanTelepathyConfirmationIsConfigured(identifier, knownStatus = null) {
+    const cleanIdentifier = String(identifier || "").trim();
+    if (!cleanIdentifier) {
+      return false;
+    }
+    let status = knownStatus;
+    if (!status || typeof status !== "object") {
+      try {
+        status = await fetchIdentifierStatus(cleanIdentifier);
+      } catch (_) {
+        // Let the existing session endpoint provide its normal connection
+        // feedback if the status read is temporarily unavailable.
+        return true;
+      }
+    }
+    if (hasPartnerConfirmationConfiguration(status)) {
+      return true;
+    }
+    openPartnerConfirmationMethodOverlay({
+      telepathyActivation: true,
+      identifier: String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier
+    });
+    return false;
   }
 
   function tracePartnerConfirmationMethod(label, details = {}) {
@@ -10200,27 +10296,32 @@ ${calmPracticeMessage}`;
 
   function openPartnerConfirmationMethodOverlay(options = {}) {
     const isNewClaim = !!options.isNewClaim;
+    const telepathyActivation = !!options.telepathyActivation;
+    const identifier = String(options.identifier || featureSetupOwnIdentifier || getCanonicalRecognizedIdentity(readLauncherState()) || "").trim();
     const cameraAvailable = typeof options.cameraAvailable === "boolean"
       ? options.cameraAvailable
       : hasPartnerConfirmationCameraCapability();
-    if (!featureSetupOwnIdentifier && !isNewClaim) {
+    if (!identifier && !isNewClaim) {
       window.alert("First load or claim an accepted unique name, then choose a partner-confirmation method.");
       return;
     }
+    pendingPartnerConfirmationMethodIdentifier = telepathyActivation ? identifier : "";
     if (partnerConfirmationMethodStatus) {
       partnerConfirmationMethodStatus.textContent = cameraAvailable
-        ? (isNewClaim
+        ? (telepathyActivation
+          ? "Choose how this browser/device will be identified during human telepathy. Then press GO again to begin the session."
+          : isNewClaim
           ? "Choose the method for this device before continuing."
           : "Choose the method for this browser or installed app.")
         : "This browser does not offer a camera for live confirmation. Verified-name confirmation remains available.";
     }
     if (partnerConfirmationMethodTitle) {
-      partnerConfirmationMethodTitle.textContent = isNewClaim ? "Choose Partner Verification Method" : "Partner Confirmation Method";
+      partnerConfirmationMethodTitle.textContent = (isNewClaim || telepathyActivation) ? "Choose Partner Verification Method" : "Partner Confirmation Method";
     }
     if (partnerConfirmationMethodCopy) {
-      partnerConfirmationMethodCopy.textContent = isNewClaim
+      partnerConfirmationMethodCopy.textContent = (isNewClaim || telepathyActivation)
         ? (cameraAvailable
-          ? "When you practice telepathy with a real person, choose whether your identity is verified by a snapshot of your face at that time, or by you verifying who you are now by entering a 5-character authorization code sent to your email. You can change this later in the Setup Website Features menu selection."
+          ? "When you practice telepathy with a real person, choose whether your identity is verified by a temporary snapshot of your face at that time, or by you verifying who you are now by entering a 5-character authorization code sent to your email. You can change this later in the Setup Website Features menu selection."
           : "When you practice telepathy with a real person, choose whether your identity will be verified by you verifying your identity now by entering a 5-character authorization code sent to your email. Please enter your email, used only for this verification process, and then complete the process by pressing SEND CODE and entering the 5-character code emailed to you from ESP GYM.")
         : "Choose how this device is identified to a human telepathy partner. An email-verified name shows a check mark.\n\nLive camera confirmation uses a temporary snapshot taken before a session.\n\nWhen both Sender and Receiver have authenticated themselves via email confirmation, no additional confirmation is needed before a session starts, saving time but not showing partner snapshots.\n\n";
     }
@@ -10254,6 +10355,7 @@ ${calmPracticeMessage}`;
       button.hidden = false;
       button.disabled = false;
     });
+    pendingPartnerConfirmationMethodIdentifier = "";
     setFeatureSetupBackButtonTemporarilyHidden(false);
   }
 
@@ -10734,10 +10836,15 @@ ${calmPracticeMessage}`;
     }
 
     const partnerConfirmationMethod = getPartnerConfirmationMethod();
+    const partnerConfirmationConfigured = hasPartnerConfirmationConfiguration(
+      getCachedIdentifierStatus(featureSetupOwnIdentifier)
+    );
     const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     if (featureSetupPartnerConfirmationStatus) {
       featureSetupPartnerConfirmationStatus.textContent = !featureSetupOwnIdentifier
         ? "The confirmation method for your identity on this browser is selected after you claim a unique user name."
+        : !partnerConfirmationConfigured
+          ? "This unique name is ready for Clairvoyance and saved practice. Choose a confirmation method before practicing telepathy with another person."
         : partnerConfirmationMethod === "camera"
           ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
           : cameraAvailable
@@ -13305,10 +13412,7 @@ ${calmPracticeMessage}`;
     const current = Number(currentLevel);
     const maximum = Number(maxLevel);
     const step = Number(delta);
-    if (
-      (normalizedRole === "sender" || normalizedRole === "receiver") &&
-      maximum >= 4
-    ) {
+    if (maximum >= 4) {
       if (step > 0 && current >= 4) {
         return 1;
       }
@@ -15040,11 +15144,13 @@ ${calmPracticeMessage}`;
     }
 
     if (isDisplayDevice) {
-      remoteViewerOwnInput.value = robotSimulationIdentifier;
+      remoteViewerOwnInput.value = isAnonymousLauncherEntry(state)
+        ? anonymousRemoteDeviceDisplayName
+        : automaticIdentifier;
       remoteViewerPartnerInput.value = automaticIdentifier;
       remoteViewerOwnInput.readOnly = isVisitorLauncherEntry(state);
       remoteViewerOwnInput.setAttribute("aria-readonly", isVisitorLauncherEntry(state) ? "true" : "false");
-      remoteViewerOwnInput.title = isVisitorLauncherEntry(state) ? 'Visitors work only with "Robot".' : "";
+      remoteViewerOwnInput.title = isVisitorLauncherEntry(state) ? "Anonymous display-device name." : "";
       return;
     }
 
@@ -15089,6 +15195,10 @@ ${calmPracticeMessage}`;
 
   function applyRemoteViewerModePresentation(mode, isDisplayDevice = false) {
     const coveredScreen = normalizeRemoteViewSimulationMode(mode) === "covered-screen";
+    const remoteScreen = !coveredScreen;
+    if (remoteViewerForm) {
+      remoteViewerForm.dataset.remoteViewMode = remoteScreen ? "remote-device" : "covered-screen";
+    }
     if (remoteViewerPartnerLabel) {
       remoteViewerPartnerLabel.textContent = coveredScreen
         ? "Covered Screen"
@@ -15131,6 +15241,11 @@ ${calmPracticeMessage}`;
     if (remoteViewerExperienceWrap) {
       remoteViewerExperienceWrap.hidden = !coveredScreen;
       remoteViewerExperienceWrap.toggleAttribute("hidden", !coveredScreen);
+    }
+    const remoteScreenOptions = document.querySelector("[data-remote-viewer-remote-screen-options]");
+    if (remoteScreenOptions) {
+      remoteScreenOptions.hidden = !remoteScreen;
+      remoteScreenOptions.toggleAttribute("hidden", !remoteScreen);
     }
     syncRemoteViewerExperienceControls(readLauncherState());
     logRemoteViewModeDebug("apply_presentation", {
@@ -22628,6 +22743,9 @@ ${calmPracticeMessage}`;
         !guidedTourLaunch
       ) {
         try {
+          if (!(await ensureHumanTelepathyConfirmationIsConfigured(canonicalOwnName, ownStatus))) {
+            return;
+          }
           await requirePartnerConfirmation({
             role,
             ownIdentifier: canonicalOwnName,
@@ -29726,6 +29844,12 @@ ${calmPracticeMessage}`;
     applyIdentityStateToLauncherInputs();
     if (String(claimContext?.postClaimFlow || "").trim() === "partner-confirmation-verified") {
       setPartnerConfirmationMethod("verified");
+      try {
+        await savePartnerConfirmationMethod(acceptedHandle, "verified");
+      } catch (error) {
+        setExploreProStatus(error instanceof Error ? error.message : "Email verification succeeded, but the telepathy confirmation setting could not be saved yet.");
+        return;
+      }
       if (exploreProTitle) {
         exploreProTitle.textContent = "Email Verification Complete";
       }
@@ -33677,6 +33801,14 @@ ${calmPracticeMessage}`;
             openUniqueNameRequiredOverlay("remote-viewer");
             return;
           }
+          if (!coveredScreenMode && !isDisplayDevice && /Remote Device identifier is not an accepted unique name/.test(error.message)) {
+            openUniqueNameRequiredOverlay("remote-viewer", {
+              title: "Remote Device Name Needed",
+              copy: `\"${partnerName}\" is not a recognized unique name. Open ESP GYM on that remote display device and claim a unique name there before using it for Remote Screen Clairvoyance.`,
+              claimAvailable: false
+            });
+            return;
+          }
           alert(error.message);
         }
         return;
@@ -35031,7 +35163,9 @@ ${calmPracticeMessage}`;
       const completeSelection = pendingPartnerConfirmationMethodSelection;
       if (method === "verified" && !completeSelection) {
         try {
-          const currentIdentifier = String(featureSetupOwnIdentifier || "").trim();
+          const currentIdentifier = String(
+            pendingPartnerConfirmationMethodIdentifier || featureSetupOwnIdentifier || getCanonicalRecognizedIdentity(readLauncherState()) || ""
+          ).trim();
           const status = currentIdentifier ? await fetchIdentifierStatus(currentIdentifier) : null;
           tracePartnerConfirmationMethod("email_status_checked", {
             current_identifier: currentIdentifier,
@@ -35068,7 +35202,7 @@ ${calmPracticeMessage}`;
         }
       }
       const currentIdentifier = String(
-        featureSetupOwnIdentifier || getCanonicalRecognizedIdentity(readLauncherState()) || ""
+        pendingPartnerConfirmationMethodIdentifier || featureSetupOwnIdentifier || getCanonicalRecognizedIdentity(readLauncherState()) || ""
       ).trim();
       try {
         await savePartnerConfirmationMethod(currentIdentifier, method);
@@ -35081,6 +35215,7 @@ ${calmPracticeMessage}`;
         return;
       }
       setPartnerConfirmationMethod(method);
+      markPartnerConfirmationConfigured(currentIdentifier);
       tracePartnerConfirmationMethod("method_selected", {
         selected_method: method,
         claim_selection_pending: !!completeSelection

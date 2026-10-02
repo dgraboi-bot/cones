@@ -6777,7 +6777,10 @@ function get_identifier_status(array $state, string $identifier): array
         'preferred_handle' => $preferredHandle,
         'owner_identifier' => $ownerIdentifier,
         'uses_handle' => $usesHandle,
-        'is_handle' => $preferredHandle !== '' && normalize_handle_lookup($input) === normalize_handle_lookup($preferredHandle)
+        'is_handle' => $preferredHandle !== '' && normalize_handle_lookup($input) === normalize_handle_lookup($preferredHandle),
+        // A claimed name is sufficient for Clairvoyance and saved practice.
+        // Human telepathy additionally requires an explicit confirmation choice.
+        'partner_confirmation_configured' => get_partner_confirmation_preference($state, $preferredIdentifier) !== ''
     ];
 }
 

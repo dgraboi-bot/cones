@@ -144,6 +144,17 @@ async function verifyCoveredScreenLaunch() {
       "Probe Deeper OPEN incorrectly advanced the underlying guided tour."
     );
 
+    await page.locator("#guidedTourProbeBackButton").click();
+    await page.locator("#guidedTourProbeBackButton").click();
+    await probeScreen.waitFor({ state: "hidden" });
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator("#guidedTourExitButton").click();
+    await page.waitForURL(/telepathybeginner\.html/);
+    assert(
+      await page.evaluate(() => sessionStorage.getItem("cones-covered-screen-instruction-dismiss-v1") === null),
+      "Exiting a Covered Screen tour must reset its session-only instruction dismissal."
+    );
+
     const unsavedPage = await browser.newPage();
     unsavedPage.setDefaultTimeout(20000);
     unsavedPage.setDefaultNavigationTimeout(20000);
@@ -345,6 +356,17 @@ function verifyRuntimeGuards() {
   assert(
     /if \(coveredScreenMode\) \{\s+const confirmed = await confirmCoveredScreenInstructionBeforeLaunch\(\);/.test(launcherSource),
     "Anonymous Covered Screen tours must display the instruction modal before launch."
+  );
+  const coveredContinueStart = runtimeSource.indexOf('if (mode === "continue") {\n        if (isRemoteViewerCoveredMode) {');
+  const coveredContinueEnd = runtimeSource.indexOf("        } else if (isRobotSenderLikeMode)", coveredContinueStart);
+  const coveredContinueBlock = runtimeSource.slice(coveredContinueStart, coveredContinueEnd);
+  assert(
+    coveredContinueStart >= 0 &&
+      coveredContinueEnd > coveredContinueStart &&
+      coveredContinueBlock.includes("await confirmCoveredScreenInstructionBeforeCoveredRestart()") &&
+      coveredContinueBlock.includes("setPrompt(prompt, true, prompt)") &&
+      !coveredContinueBlock.includes("startCoveredScreenRoundNow()"),
+    "Continuing a Covered Screen session must return to Press when ready instead of starting the countdown."
   );
 }
 

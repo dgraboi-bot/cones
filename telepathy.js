@@ -48,7 +48,7 @@
   const settingsStorageKey = `cones-settings-v2-${role}`;
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261001k";
+  const runtimeBuildVersion = "20261001m";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -101,7 +101,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261001k";
+  const launcherBuildVersion = "20261001m";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4050,6 +4050,14 @@
     if (!confirmed) {
       return;
     }
+    if (isRemoteViewerCoveredMode) {
+      try {
+        // "This session" ends when a covered-screen tour is explicitly exited.
+        window.sessionStorage.removeItem(coveredScreenInstructionDismissKey);
+      } catch (_) {
+        // Ignore transient session-storage failures.
+      }
+    }
     const guidedReturnSnapshot = isGuidedExperienceTour ? readGuidedReceiverTourReturnSnapshot() : null;
     clearGuidedReceiverTour();
     appExited = true;
@@ -7099,17 +7107,13 @@
           countdownBox.classList.add("hidden");
           updateSettingsGearVisibility();
           void (async () => {
-            const confirmed = await confirmCoveredScreenInstructionBeforeCoveredRestart();
-            if (!confirmed) {
-              currentUiMode = "receiver-ready";
-              setPrompt(getReceiverPressReadyPrompt(), true, getReceiverPressReadyPrompt());
-              updateSettingsGearVisibility();
-              return;
-            }
-            currentUiMode = "receiver-waiting-start";
-            countdownBox.classList.add("hidden");
+            await confirmCoveredScreenInstructionBeforeCoveredRestart();
+            // A continued covered-screen session still waits for the viewer's
+            // deliberate ready action before beginning its next countdown.
+            const prompt = getReceiverPressReadyPrompt();
+            currentUiMode = "receiver-ready";
+            setPrompt(prompt, true, prompt);
             updateSettingsGearVisibility();
-            void startCoveredScreenRoundNow();
           })();
         } else if (isRobotSenderLikeMode) {
           receiverReady = true;
