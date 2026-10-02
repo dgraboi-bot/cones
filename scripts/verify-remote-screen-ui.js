@@ -196,6 +196,86 @@ async function verifyRemoteDevicePersistence() {
   }
 }
 
+async function verifyIncompleteRemoteDeviceSetup() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "molly",
+              preferred_identifier: "molly",
+              preferred_handle: "molly",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "molly" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "molly",
+        deviceName: "",
+        controlToken: ""
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    await dialog.waitFor({ state: "visible" });
+    assert(await dialog.locator('[data-remote-device-user-input]').inputValue() === "molly", "An incomplete setup must retain the accepted owner name.");
+    assert(await dialog.locator('[data-remote-device-name-input]').inputValue() === "", "An incomplete setup must keep the remote device field ready for a new name.");
+    assert(await dialog.locator('[data-remote-device-reset]').isDisabled(), "RESET must remain unavailable until a remote device is fully registered.");
+    assert(
+      (await dialog.locator('[data-remote-device-setup-status]').textContent()).includes("not currently configured as a remote display device"),
+      "An incomplete setup must explain that a new remote device name is needed."
+    );
+
+    await page.goto(`${baseUrl}?open=launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "molly" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "molly",
+        deviceName: "",
+        controlToken: ""
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.evaluate(() => {
+      window.confirm = () => true;
+      document.querySelector('[data-reset-this-device]')?.click();
+    });
+    await page.waitForURL(/open=landing/);
+    assert(
+      await page.evaluate(() => localStorage.getItem("cones-remote-display-setup-v1") === null),
+      "Reset This Device must clear an owner-only remote setup directly."
+    );
+  } finally {
+    await browser.close();
+  }
+}
+
 async function verifyViewerDiscoversRemoteDeviceAfterModal() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -567,9 +647,13 @@ function verifyPersistentRemoteDisplayImplementation() {
     launcherSource.includes("await completeDeviceResetToAnonymousVisitor();"),
     "Reset This Device must use the same full device-state clearing path."
   );
+  assert(
+    launcherSource.includes("if (hasCompleteRemoteDisplaySetup(remoteSetup))"),
+    "Only a complete remote-device registration may divert Reset This Device to remote setup."
+  );
 }
 
-Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyViewerDiscoversRemoteDeviceAfterModal(), verifyViewerClearsReleasedRemoteDevice(), verifyRemoteScreenSettingsPersistAcrossReload()])
+Promise.all([verifyRemoteScreenUi(), verifyRemoteDeviceRoute(), verifyRemoteDevicePersistence(), verifyIncompleteRemoteDeviceSetup(), verifyViewerDiscoversRemoteDeviceAfterModal(), verifyViewerClearsReleasedRemoteDevice(), verifyRemoteScreenSettingsPersistAcrossReload()])
   .then(() => {
     verifyPersistentRemoteDisplayImplementation();
     console.log("Remote Screen and remote-device setup UI verified.");

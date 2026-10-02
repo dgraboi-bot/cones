@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002h";
+  const launcherBuildVersion = "20261002i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5505,6 +5505,14 @@ ${calmPracticeMessage}`;
     }));
   }
 
+  function hasCompleteRemoteDisplaySetup(setup = readRemoteDisplaySetup()) {
+    return !!(
+      String(setup?.ownerName || "").trim() &&
+      String(setup?.deviceName || "").trim() &&
+      /^[a-f0-9]{64}$/i.test(String(setup?.controlToken || "").trim())
+    );
+  }
+
   async function fetchRemoteDisplayDeviceStatus(deviceName) {
     const cleanName = assertValidParticipantIdentifier(deviceName, "Remote Device", { required: true });
     const response = await fetch("api.php", {
@@ -9363,7 +9371,11 @@ ${calmPracticeMessage}`;
     let deviceName = local.deviceName;
     let controlToken = local.controlToken;
     renderRemoteDeviceSetupControls(ownerName, deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
-    if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "";
+    if (remoteDeviceSetupStatus) {
+      remoteDeviceSetupStatus.textContent = ownerName && !hasCompleteRemoteDisplaySetup({ ownerName, deviceName, controlToken })
+        ? "This browser is not currently configured as a remote display device. Choose a unique remote device name to set it up."
+        : "";
+    }
     remoteDeviceSetupOverlay?.classList.remove("beginner-view-hidden");
     remoteDeviceSetupOverlay?.setAttribute("aria-hidden", "false");
     setRemoteDeviceSetupScrollLock(true);
@@ -9390,6 +9402,9 @@ ${calmPracticeMessage}`;
           controlToken = "";
           writeRemoteDisplaySetup(String(remoteDeviceUserInput?.value || "").trim(), "", "");
           renderRemoteDeviceSetupControls(String(remoteDeviceUserInput?.value || "").trim(), "", false);
+          if (remoteDeviceSetupStatus) {
+            remoteDeviceSetupStatus.textContent = "This browser is not currently configured as a remote display device. Choose a unique remote device name to set it up.";
+          }
         } else if (ownerName && !controlToken) {
           // Pre-token registrations are adopted once by the browser that already
           // holds the setup. Future claims require this browser's private token.
@@ -9427,7 +9442,9 @@ ${calmPracticeMessage}`;
         String(remoteDeviceNameInput?.value || "").trim(),
         /^[a-f0-9]{64}$/i.test(readRemoteDisplaySetup().controlToken)
       );
-      if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Recognized ESP GYM name accepted.";
+      if (remoteDeviceSetupStatus) {
+        remoteDeviceSetupStatus.textContent = "Recognized ESP GYM name accepted. Choose a remote device unique name to complete setup.";
+      }
     } catch (error) {
       if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to verify that name.";
     }
@@ -28828,7 +28845,10 @@ ${calmPracticeMessage}`;
   }
 
   async function completeDeviceResetToAnonymousVisitor({ preserveRemoteSetup = false } = {}) {
-    const remoteSetup = preserveRemoteSetup ? { ...readRemoteDisplaySetup() } : null;
+    const savedRemoteSetup = readRemoteDisplaySetup();
+    const remoteSetup = preserveRemoteSetup && hasCompleteRemoteDisplaySetup(savedRemoteSetup)
+      ? { ...savedRemoteSetup }
+      : null;
     await clearAppLocalStorageArtifacts();
     if (remoteSetup?.ownerName || remoteSetup?.deviceName || remoteSetup?.controlToken) {
       writeRemoteDisplaySetup(remoteSetup.ownerName, remoteSetup.deviceName, remoteSetup.controlToken);
@@ -28838,7 +28858,7 @@ ${calmPracticeMessage}`;
 
   async function resetThisDeviceToAnonymousVisitor() {
     const remoteSetup = readRemoteDisplaySetup();
-    if (remoteSetup.ownerName || remoteSetup.deviceName || remoteSetup.controlToken) {
+    if (hasCompleteRemoteDisplaySetup(remoteSetup)) {
       openDeviceResetChoiceOverlay();
       return;
     }
