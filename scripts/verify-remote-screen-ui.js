@@ -205,6 +205,110 @@ async function verifyMobileReceiverTourLauncher() {
   }
 }
 
+async function verifyClairvoyanceCoveredScreenTourLaunch() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ entryMode: "visitor" }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(700);
+    await page.locator("[data-open-clairvoyance-viewing]").evaluate((button) => button.click());
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
+    await page.locator('[data-remote-viewer-experience][value="tour"]').check();
+
+    await page.locator("[data-remote-viewer-go]").evaluate((button) => button.click());
+    const coveredScreenDialog = page.locator("[data-covered-screen-instruction-overlay]");
+    await coveredScreenDialog.waitFor({ state: "visible" });
+    const runtimeRequestPromise = page.waitForRequest((request) => (
+      request.isNavigationRequest() && request.url().includes("/receiver.html")
+    ));
+    await coveredScreenDialog.locator("button").click();
+    const runtimeRequest = await runtimeRequestPromise;
+    await page.waitForURL(/receiver\.html/);
+
+    const runtimeUrl = new URL(runtimeRequest.url());
+    assert(
+      runtimeUrl.searchParams.get("guided_tour") === "receiver-experience",
+      `Covered Screen Tour must launch the Receiver runtime with its guided-tour flag; received ${runtimeUrl.href}.`
+    );
+    await page.locator("#guidedTourOverlay").waitFor({ state: "visible" });
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyLandingExploreOpensKeyConcepts() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.goto(`${baseUrl}?open=landing`, { waitUntil: "domcontentloaded" });
+    await page.locator("[data-temporary-home-explore]").evaluate((button) => button.click());
+    const keyConceptsTab = page.locator('[data-learning-center-tab="key-concepts"]');
+    await keyConceptsTab.waitFor({ state: "visible" });
+    assert(
+      await keyConceptsTab.getAttribute("aria-selected") === "true",
+      "The ESP PRO Landing Page Explore button must open the Key Concepts tab."
+    );
+    assert(
+      await page.locator('[data-learning-center-concept-card]:visible').count() > 0,
+      "The ESP PRO Landing Page Explore button must display the first Key Concepts page."
+    );
+    await page.locator("[data-close-learning-center]").evaluate((button) => button.click());
+    await page.waitForFunction(() => !document.querySelector('[data-view="temporary-home-page"]')?.classList.contains("beginner-view-hidden"));
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyHelpProFeatureSummaryNavigation() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.goto(`${baseUrl}?open=launcher`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-view="help"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
+    await page.locator("[data-open-help-pro-feature-summary]").evaluate((button) => button.click());
+    await page.locator('[data-view="go-pro-includes"]').waitFor({ state: "visible" });
+    await page.locator("[data-close-go-pro-includes]").evaluate((button) => button.click());
+    await page.waitForFunction(() => !document.querySelector('[data-view="help"]')?.classList.contains("beginner-view-hidden"));
+  } finally {
+    await browser.close();
+  }
+}
+
+function verifyClairvoyanceTourImplementation() {
+  const launcherSource = fs.readFileSync(path.resolve(__dirname, "..", "telepathybeginner.js"), "utf8");
+  const launcherMarkup = fs.readFileSync(path.resolve(__dirname, "..", "telepathybeginner.html"), "utf8");
+  assert(
+    launcherSource.includes('const coveredScreenGuidedTour = coveredScreenMode && experienceMode === "tour";')
+      && launcherSource.includes('guidedTour: coveredScreenGuidedTour ? guidedReceiverTourMode : ""'),
+    "Every Covered Screen Tour, including a recognized user tour, must launch the runtime guided tour."
+  );
+  assert(
+    launcherMarkup.includes("Experience What Practicing Telepathic Reception is like")
+      && launcherMarkup.includes("Experience What Practicing Telepathic Sending is like")
+      && launcherMarkup.includes("Experience What Practicing Remote Viewing is like"),
+    "The User Guide must show the three approved practice-experience labels."
+  );
+  assert(
+    launcherSource.includes("function startClairvoyanceGuidedTourFromUserGuide()")
+      && launcherSource.includes('latest.remoteViewerExperienceMode = "tour"')
+      && launcherSource.includes('view: "temporary-home-page"'),
+    "The User Guide Remote Viewing tour must start in Covered Screen Tour mode and retain a Landing Page return route."
+  );
+}
+
 async function verifyRemoteDeviceRoute() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -1221,6 +1325,9 @@ async function run() {
   await verifyRemoteDeviceInstructions();
   await verifyRemoteScreenUi();
   await verifyMobileReceiverTourLauncher();
+  await verifyClairvoyanceCoveredScreenTourLaunch();
+  await verifyLandingExploreOpensKeyConcepts();
+  await verifyHelpProFeatureSummaryNavigation();
   await verifyRemoteDeviceRoute();
   await verifyRemoteDevicePersistence();
   await verifyRemoteDeviceContinueMarksReady();
@@ -1232,6 +1339,7 @@ async function run() {
   await verifyRemoteScreenSettingsPersistAcrossReload();
   await verifyRemoteDisplayExerciseTwoRendersTarget();
   await verifyRemoteDisplayAbortReturnsToStandby();
+  verifyClairvoyanceTourImplementation();
   verifyPersistentRemoteDisplayImplementation();
 }
 

@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003e";
+  const launcherBuildVersion = "20261003f";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -221,6 +221,7 @@
   const openHelpButton = document.querySelector("[data-open-help]");
   const openTelepathyPracticeButton = document.querySelector("[data-open-telepathy-practice]");
   const openUserGuideButton = document.querySelector("[data-open-user-guide]");
+  const openHelpProFeatureSummaryButton = document.querySelector("[data-open-help-pro-feature-summary]");
   const openMessagingSetupButton = document.querySelector("[data-open-messaging-setup]");
   const openFeatureSetupButtons = Array.from(document.querySelectorAll("[data-open-feature-setup]"));
   const roleLessonWraps = Array.from(document.querySelectorAll("[data-role-lesson-wrap]"));
@@ -321,6 +322,7 @@
   const startGuidedReceiverTourButton = document.querySelector("[data-start-guided-receiver-tour]");
   const startGuidedReceiverTourLandingButton = document.querySelector("[data-start-guided-receiver-tour-landing]");
   const startGuidedSenderTourButton = document.querySelector("[data-start-guided-sender-tour]");
+  const startGuidedClairvoyanceTourButton = document.querySelector("[data-start-guided-clairvoyance-tour]");
   const guidedTourOverlay = document.querySelector("[data-guided-tour-overlay]");
   const guidedTourBalloon = document.querySelector("[data-guided-tour-balloon]");
   const guidedTourCopy = document.querySelector("[data-guided-tour-copy]");
@@ -1567,6 +1569,7 @@ ${calmPracticeMessage}`;
   let onlineCourseReturnTarget = { view: "options", role: "", scrollY: 0 };
   let learningCenterReturnTarget = { view: "options", role: "", scrollY: 0 };
   let learningCenterLandingVisitOrigin = null;
+  let pendingClairvoyanceGuidedTourOrigin = null;
   let baselineQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let activeEspLessonMode = "role";
@@ -24246,6 +24249,34 @@ ${calmPracticeMessage}`;
     });
   }
 
+  function startClairvoyanceGuidedTourFromUserGuide() {
+    const originState = captureLauncherGuidedTourOriginState();
+    pendingClairvoyanceGuidedTourOrigin = (
+      originState.view === "beginner-user-manual" && originState.helpReturnView === "temporary-home-page"
+    )
+      ? {
+          view: "temporary-home-page",
+          scrollY: Math.max(0, Number(originState.helpReturnScrollY || 0) || 0)
+        }
+      : originState;
+
+    const latest = readLauncherState();
+    latest.remoteViewerSimulationMode = "covered-screen";
+    latest.remoteViewerExperienceMode = "tour";
+    writeLauncherState(latest);
+    showClairvoyanceViewingView();
+
+    window.requestAnimationFrame(() => {
+      renderRemoteViewerCard();
+      const tourInput = remoteViewerExperienceInputs.find((input) => input.value === "tour");
+      if (tourInput) {
+        tourInput.checked = true;
+        tourInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      remoteViewerGoButton?.click();
+    });
+  }
+
   function saveProbeDeeperReturnTarget(target = null) {
     try {
       if (!target || typeof target !== "object") {
@@ -30882,8 +30913,17 @@ ${calmPracticeMessage}`;
   }
 
   async function handleLandingExploreClick() {
-    goProIncludesReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
-    showGoProIncludesView("temporary-home-page");
+    const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+    beginLearningCenterLandingVisit(returnScrollY);
+    showLearningCenterView({
+      view: "temporary-home-page",
+      returnScrollY,
+      tab: "key-concepts"
+    });
+    renderLearningCenterConceptPage(1);
+    window.setTimeout(() => {
+      window.scrollTo({ top: getLearningCenterTabsTopScrollY(), behavior: "smooth" });
+    }, 0);
   }
 
   async function resolveLandingExploreEntry() {
@@ -31279,6 +31319,11 @@ ${calmPracticeMessage}`;
       canTestNewDevice: true,
       canRestoreMyDevice: false
     });
+  }
+
+  function showGoProIncludesFromLanding() {
+    goProIncludesReturnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
+    showGoProIncludesView("temporary-home-page");
   }
 
   async function deleteInviteeRecord() {
@@ -33185,6 +33230,10 @@ ${calmPracticeMessage}`;
       forceReturnToTemporaryHomePage(goProIncludesReturnScrollY);
       return;
     }
+    if (goProIncludesReturnView === "help") {
+      showHelpView();
+      return;
+    }
     if (goProIncludesReturnView === "subscription-management") {
       showSubscriptionManagementView();
       return;
@@ -34507,6 +34556,7 @@ ${calmPracticeMessage}`;
     const anonymousCoveredScreenVisitorRun = coveredScreenMode
       && isAnonymousVisitorDisplayName(ownName);
     const anonymousCoveredScreenTour = anonymousCoveredScreenVisitorRun && experienceMode === "tour";
+    const coveredScreenGuidedTour = coveredScreenMode && experienceMode === "tour";
     const anonymousCoveredScreenUnsavedPractice = anonymousCoveredScreenVisitorRun && experienceMode === "practice-unsaved";
     const usesVisitorSimulationIdentity = anonymousCoveredScreenTour || anonymousCoveredScreenUnsavedPractice;
     const savesResults = experienceMode === "practice-saved";
@@ -34694,7 +34744,7 @@ ${calmPracticeMessage}`;
     const requestedRemoteViewerDifficulty = normalizeDifficultyLevel(
       getDifficultyLocalLevel("remote-viewer")
     );
-    if (anonymousCoveredScreenTour) {
+    if (coveredScreenGuidedTour) {
       const guidedSnapshotState = readLauncherState();
       guidedSnapshotState.difficultyLevel = requestedRemoteViewerDifficulty;
       guidedSnapshotState.roleDifficultyLevels = guidedSnapshotState.roleDifficultyLevels || {};
@@ -34720,9 +34770,10 @@ ${calmPracticeMessage}`;
           visitorDisplayName: submittedOwnDisplayName,
           difficultyLevel: requestedRemoteViewerDifficulty
         },
-        launcherOrigin: null,
+        launcherOrigin: cloneJsonValue(pendingClairvoyanceGuidedTourOrigin, null),
         lessonReturnTarget: readPendingLearningCenterLessonReturnTarget()
       });
+      pendingClairvoyanceGuidedTourOrigin = null;
     }
     showLocalLauncherDebugAlert(1, `mode=${remoteViewSimulationMode} covered=${coveredScreenMode ? 1 : 0} runtime=${runtimeMode}`);
     const targetUrl = buildTargetUrl(targetRole, canonicalOwnName, canonicalPartnerName, {
@@ -34730,12 +34781,13 @@ ${calmPracticeMessage}`;
       saveResults: savesResults,
       difficultyLevel: requestedRemoteViewerDifficulty,
       visitorDisplayName: usesVisitorSimulationIdentity ? submittedOwnDisplayName : "",
-      guidedTour: anonymousCoveredScreenTour ? guidedReceiverTourMode : ""
+      guidedTour: coveredScreenGuidedTour ? guidedReceiverTourMode : ""
     });
     showLocalLauncherDebugAlert(2, `target=${targetUrl}`);
     if (coveredScreenMode) {
       const confirmed = await confirmCoveredScreenInstructionBeforeLaunch();
       if (!confirmed) {
+        pendingClairvoyanceGuidedTourOrigin = null;
         return;
       }
     }
@@ -35011,6 +35063,9 @@ ${calmPracticeMessage}`;
   openUserGuideButton?.addEventListener("click", () => {
     showBeginnerUserManualView();
   });
+  openHelpProFeatureSummaryButton?.addEventListener("click", () => {
+    showGoProIncludesView("help");
+  });
   startGuidedReceiverTourButton?.addEventListener("click", () => {
     startLauncherGuidedTour("receiver");
   });
@@ -35019,6 +35074,9 @@ ${calmPracticeMessage}`;
   });
   startGuidedSenderTourButton?.addEventListener("click", () => {
     startLauncherGuidedTour("sender");
+  });
+  startGuidedClairvoyanceTourButton?.addEventListener("click", () => {
+    startClairvoyanceGuidedTourFromUserGuide();
   });
   onlineCourseIndexActionButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -35651,7 +35709,7 @@ ${calmPracticeMessage}`;
   });
   footerOpenProLink?.addEventListener("click", (event) => {
     event.preventDefault();
-    void handleLandingExploreClick();
+    showGoProIncludesFromLanding();
   });
   footerOpenTelepathyLink?.addEventListener("click", (event) => {
     event.preventDefault();
