@@ -205,6 +205,110 @@ async function verifyMobileReceiverTourLauncher() {
   }
 }
 
+async function verifyNarrowPhoneClairvoyanceLayout() {
+  const browser = await chromium.launch({ headless: true });
+  const devices = [
+    {
+      name: "iPhone",
+      viewport: { width: 390, height: 844 },
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"
+    },
+    {
+      name: "Android phone",
+      viewport: { width: 412, height: 915 },
+      userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
+    }
+  ];
+
+  try {
+    for (const device of devices) {
+      const context = await browser.newContext({
+        viewport: device.viewport,
+        isMobile: true,
+        hasTouch: true,
+        userAgent: device.userAgent
+      });
+      const page = await context.newPage();
+      page.setDefaultTimeout(20000);
+      await page.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(({ key }) => {
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem(key, JSON.stringify({ entryMode: "visitor" }));
+      }, { key: launcherStorageKey });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(700);
+      await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => {
+        view.classList.remove("beginner-view-hidden");
+      });
+      await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => {
+        card.hidden = false;
+      });
+
+      const header = page.locator('[data-role-card="remote-viewer"] .role-card-header');
+      const toggle = page.locator('[data-role-card="remote-viewer"] .role-card-toggle');
+      const tagline = page.locator('[data-role-card="remote-viewer"] .role-card-tagline');
+      const [headerBox, toggleBox, taglineBox] = await Promise.all([
+        header.boundingBox(),
+        toggle.boundingBox(),
+        tagline.boundingBox()
+      ]);
+      assert(headerBox && toggleBox && taglineBox, `${device.name} must render the collapsed Clairvoyance header.`);
+      assert(
+        toggleBox.width >= headerBox.width - 36,
+        `${device.name} collapsed Clairvoyance title must remain a full-width tap target.`
+      );
+      assert(
+        taglineBox.x >= headerBox.x && taglineBox.x + taglineBox.width <= headerBox.x + headerBox.width + 1,
+        `${device.name} skill banner must stay inside the Clairvoyance header.`
+      );
+
+      await toggle.click();
+      await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
+      assert(await tagline.isHidden(), `${device.name} expanded Clairvoyance header must hide its skill banner.`);
+
+      const modeButton = page.locator('[data-remote-view-mode-open]');
+      const exerciseStack = page.locator('[data-role-difficulty-stack="remote-viewer"]');
+      const backButton = page.locator('[data-collapse-role-card="remote-viewer"]');
+      const [modeBox, exerciseBox, backBox] = await Promise.all([
+        modeButton.boundingBox(),
+        exerciseStack.boundingBox(),
+        backButton.boundingBox()
+      ]);
+      assert(modeBox && exerciseBox && backBox, `${device.name} must render Clairvoyance controls after expansion.`);
+      assert(modeBox.height >= 44 && backBox.height >= 44, `${device.name} Clairvoyance controls need phone-sized tap targets.`);
+      assert(
+        modeBox.x + modeBox.width <= exerciseBox.x && exerciseBox.x + exerciseBox.width <= backBox.x,
+        `${device.name} Set Mode, Exercise, and BACK controls must not overlap.`
+      );
+
+      await modeButton.click();
+      await page.locator('[data-remote-view-mode-card="remote-device"]').click();
+      const ownInput = page.locator('[data-remote-viewer-own]');
+      const deviceInput = page.locator('[data-remote-viewer-partner]');
+      assert(await ownInput.inputValue() === "Name required. Tap GO.", `${device.name} must use the compact required-name instruction.`);
+      assert(await deviceInput.inputValue() === "Device name required. Tap GO.", `${device.name} must use the compact required-device instruction.`);
+      assert(await page.locator('[data-remote-viewer-own-mobile-hint]').isVisible(), `${device.name} must show the full name-setup guidance below the field.`);
+      assert(await page.locator('[data-remote-viewer-partner-mobile-hint]').isVisible(), `${device.name} must show the full remote-device guidance below the field.`);
+
+      await page.locator('[data-remote-viewer-remote-screen-options]').scrollIntoViewIfNeeded();
+      const optionBoxes = await page.locator('[data-remote-viewer-remote-screen-options] .remote-viewer-experience-option').evaluateAll((labels) => (
+        labels.map((label) => {
+          const box = label.getBoundingClientRect();
+          return { height: box.height, receivesOwnCenter: label.contains(document.elementFromPoint(box.x + (box.width / 2), box.y + (box.height / 2))) };
+        })
+      ));
+      assert(
+        optionBoxes.length === 2 && optionBoxes.every((option) => option.height >= 44 && option.receivesOwnCenter),
+        `${device.name} Remote Screen practice choices must be full-height, directly tappable controls.`
+      );
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
 async function verifyClairvoyanceCoveredScreenTourLaunch() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -1325,6 +1429,7 @@ async function run() {
   await verifyRemoteDeviceInstructions();
   await verifyRemoteScreenUi();
   await verifyMobileReceiverTourLauncher();
+  await verifyNarrowPhoneClairvoyanceLayout();
   await verifyClairvoyanceCoveredScreenTourLaunch();
   await verifyLandingExploreOpensKeyConcepts();
   await verifyHelpProFeatureSummaryNavigation();

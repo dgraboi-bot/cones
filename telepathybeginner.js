@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003f";
+  const launcherBuildVersion = "20261003g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -41,6 +41,8 @@
   const anonymousVisitorDisplayName = "Anonymous Visitor";
   const remoteViewerNameRequiredDisplay = "Recognized Unique Name required. Click GO.";
   const remoteDeviceNameRequiredDisplay = "Recognized Remote Device name needed. Click GO.";
+  const remoteViewerNameRequiredMobileDisplay = "Name required. Tap GO.";
+  const remoteDeviceNameRequiredMobileDisplay = "Device name required. Tap GO.";
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   let remoteViewerDeviceDiscoveryToken = 0;
   let remoteViewerDeviceAvailabilityToken = 0;
@@ -1194,6 +1196,8 @@
   const remoteViewerForm = document.querySelector("[data-remote-viewer-form]");
   const remoteViewerOwnInput = document.querySelector("[data-remote-viewer-own]");
   const remoteViewerPartnerInput = document.querySelector("[data-remote-viewer-partner]");
+  const remoteViewerOwnMobileHint = document.querySelector("[data-remote-viewer-own-mobile-hint]");
+  const remoteViewerPartnerMobileHint = document.querySelector("[data-remote-viewer-partner-mobile-hint]");
   const remoteViewerGoButton = document.querySelector("[data-remote-viewer-go]");
   const remoteViewerPauseButton = document.querySelector("[data-remote-viewer-pause]");
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
@@ -9366,7 +9370,7 @@ ${calmPracticeMessage}`;
 
   function showRemoteDeviceNeededOverlay(deviceName) {
     if (remoteViewerPartnerInput) {
-      remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
+      remoteViewerPartnerInput.value = getRemoteDeviceNameRequiredDisplay();
     }
     openUniqueNameRequiredOverlay("remote-viewer", {
       title: "Remote Device Name Needed",
@@ -15584,11 +15588,43 @@ ${calmPracticeMessage}`;
   }
 
   function isRemoteViewerNameRequiredDisplay(value) {
-    return normalizeIdentifierForStorage(value) === normalizeIdentifierForStorage(remoteViewerNameRequiredDisplay);
+    const normalizedValue = normalizeIdentifierForStorage(value);
+    return normalizedValue === normalizeIdentifierForStorage(remoteViewerNameRequiredDisplay)
+      || normalizedValue === normalizeIdentifierForStorage(remoteViewerNameRequiredMobileDisplay);
   }
 
   function isRemoteDeviceNameRequiredDisplay(value) {
-    return normalizeIdentifierForStorage(value) === normalizeIdentifierForStorage(remoteDeviceNameRequiredDisplay);
+    const normalizedValue = normalizeIdentifierForStorage(value);
+    return normalizedValue === normalizeIdentifierForStorage(remoteDeviceNameRequiredDisplay)
+      || normalizedValue === normalizeIdentifierForStorage(remoteDeviceNameRequiredMobileDisplay);
+  }
+
+  function isNarrowPhoneViewport() {
+    return window.matchMedia?.("(max-width: 480px)")?.matches === true;
+  }
+
+  function getRemoteViewerNameRequiredDisplay() {
+    return isNarrowPhoneViewport()
+      ? remoteViewerNameRequiredMobileDisplay
+      : remoteViewerNameRequiredDisplay;
+  }
+
+  function getRemoteDeviceNameRequiredDisplay() {
+    return isNarrowPhoneViewport()
+      ? remoteDeviceNameRequiredMobileDisplay
+      : remoteDeviceNameRequiredDisplay;
+  }
+
+  function syncRemoteViewerMobileFieldHints() {
+    const remoteScreenMode = readRemoteViewSimulationMode() === "remote-device";
+    const ownNameRequired = isRemoteViewerNameRequiredDisplay(remoteViewerOwnInput?.value || "");
+    const deviceNameRequired = isRemoteDeviceNameRequiredDisplay(remoteViewerPartnerInput?.value || "");
+    if (remoteViewerOwnMobileHint) {
+      remoteViewerOwnMobileHint.hidden = !(isNarrowPhoneViewport() && remoteScreenMode && ownNameRequired);
+    }
+    if (remoteViewerPartnerMobileHint) {
+      remoteViewerPartnerMobileHint.hidden = !(isNarrowPhoneViewport() && remoteScreenMode && deviceNameRequired);
+    }
   }
 
   function getPersistedRemoteViewerPartnerName(value = remoteViewerPartnerInput?.value || "") {
@@ -15608,7 +15644,7 @@ ${calmPracticeMessage}`;
       return;
     }
 
-    remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
+    remoteViewerPartnerInput.value = getRemoteDeviceNameRequiredDisplay();
     const latest = readLauncherState();
     const ownIdentifier = getPreferredIdentifier(String(remoteViewerOwnInput?.value || "").trim(), latest);
     const existingProfile = getRemoteViewerProfileState(latest, ownIdentifier);
@@ -15847,7 +15883,7 @@ ${calmPracticeMessage}`;
 
     remoteViewerOwnInput.value = isRecognizedRemoteViewerUser(state)
       ? automaticIdentifier
-      : remoteViewerNameRequiredDisplay;
+      : getRemoteViewerNameRequiredDisplay();
     remoteViewerOwnInput.readOnly = isVisitorLauncherEntry(state);
     remoteViewerOwnInput.setAttribute("aria-readonly", isVisitorLauncherEntry(state) ? "true" : "false");
     remoteViewerOwnInput.title = isVisitorLauncherEntry(state)
@@ -15858,7 +15894,7 @@ ${calmPracticeMessage}`;
       !remoteDeviceName ||
       isRemoteDeviceNameRequiredDisplay(remoteDeviceName)
     ) {
-      remoteViewerPartnerInput.value = remoteDeviceNameRequiredDisplay;
+      remoteViewerPartnerInput.value = getRemoteDeviceNameRequiredDisplay();
     }
     scheduleKnownRemoteDisplayDeviceDiscovery(state);
   }
@@ -15988,6 +16024,7 @@ ${calmPracticeMessage}`;
           : "This task is not for the faint of heart. With only a machine putting a visual image on a screen in some remote location, it is not as simple to tune into that image as it is to tune into an image being viewed by a live human being."
     );
     setRoleFeatureSetupPrompt("remote-viewer", !usesTemporaryIdentity && setupPromptVisible);
+    syncRemoteViewerMobileFieldHints();
     if (shouldShowEspLessonForRole("remote-viewer")) {
       void refreshRoleEspLesson("remote-viewer");
     } else {
