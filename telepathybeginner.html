@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/esp-pro-og-preview.png">
-  <meta name="espgym-build-version" content="20261003c">
+  <meta name="espgym-build-version" content="20261003d">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -56,19 +56,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261003c">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261003d">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261003c">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261003c">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20261003c">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261003d">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261003d">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20261003d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261003c">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20261003c">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261003c">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261003d">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20261003d">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261003d">
   <script>
     (function () {
-      var buildVersion = "20261003c";
+      var buildVersion = "20261003d";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -475,7 +475,10 @@
 
       <div class="handle-overlay beginner-view-hidden" data-remote-device-setup-overlay aria-hidden="true">
         <div class="handle-dialog remote-device-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="remoteDeviceSetupTitle">
-          <h2 class="about-section-title" id="remoteDeviceSetupTitle">Remote Device Setup</h2>
+          <div class="remote-device-setup-title-row">
+            <h2 class="about-section-title" id="remoteDeviceSetupTitle">Remote Device Setup</h2>
+            <button class="remote-device-setup-instructions-button" type="button" data-open-remote-device-instructions>Instructions</button>
+          </div>
           <p class="about-section-copy" data-remote-device-user-copy>Please fill in your unique recognized ESP GYM name.</p>
           <label class="settings-view-field">
             <span class="settings-view-label">You:</span>
@@ -496,6 +499,18 @@
           <div class="contact-actions">
             <button class="options-button contact-action-button" type="button" data-remote-device-confirm disabled>CONTINUE</button>
             <button class="options-button contact-action-button" type="button" data-remote-device-reset disabled>RESET</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="handle-overlay beginner-view-hidden remote-device-instructions-overlay" data-remote-device-instructions-overlay aria-hidden="true">
+        <div class="handle-dialog remote-device-instructions-dialog" role="dialog" aria-modal="true" aria-labelledby="remoteDeviceInstructionsTitle">
+          <h2 class="about-section-title" id="remoteDeviceInstructionsTitle">Remote Device Instructions</h2>
+          <p class="about-section-copy" data-remote-device-instructions-copy="pc">It is important that this device does not automatically go to sleep. If it will be operating for a long time, it is recommended that the device be plugged in and, for this PC device, go to <strong>Settings â†’ System â†’ Power &amp; battery â†’ Screen, sleep &amp; hibernate timeouts</strong> and set both <strong>Turn my screen off after</strong> and <strong>Make my device sleep after</strong> to &ldquo;Never&rdquo; or an appropriate length of time.</p>
+          <p class="about-section-copy" data-remote-device-instructions-copy="ios" hidden>It is important that this device does not automatically go to sleep. If it will be operating for a long time, it is recommended that the device be plugged in and, for this iPhone or iPad device, go to <strong>Settings â†’ Display &amp; Brightness â†’ Auto-Lock</strong> and set it to &ldquo;Never&rdquo; or an appropriate length of time.</p>
+          <p class="about-section-copy" data-remote-device-instructions-copy="android" hidden>It is important that this device does not automatically go to sleep. If it will be operating for a long time, it is recommended that the device be plugged in and, for this Android device, go to <strong>Settings â†’ Display â†’ Screen timeout</strong> and choose the longest appropriate duration offered.</p>
+          <div class="contact-actions remote-device-instructions-actions">
+            <button class="options-button contact-action-button" type="button" data-close-remote-device-instructions>BACK</button>
           </div>
         </div>
       </div>
@@ -628,7 +643,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20261003c</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20261003d</span>
           </div>
         </div>
 
@@ -2569,8 +2584,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261003c'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261003c'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261003d'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261003d'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3291,10 +3306,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20261003c"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261003d"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20261003c"></script>
-<script src="telepathybeginner.js?v=20261003c"></script>
+<script src="target-selection.js?v=20261003d"></script>
+<script src="telepathybeginner.js?v=20261003d"></script>
 </body>
 </html>
 

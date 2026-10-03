@@ -33,6 +33,37 @@ async function verifyRemoteLoadingPage() {
   }
 }
 
+async function verifyRemoteDeviceInstructions() {
+  const browser = await chromium.launch({ headless: true });
+  const platforms = [
+    { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36", copy: "for this PC device" },
+    { userAgent: "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", copy: "for this iPhone or iPad device" },
+    { userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36", copy: "for this Android device" }
+  ];
+
+  try {
+    for (const platform of platforms) {
+      const context = await browser.newContext({ userAgent: platform.userAgent });
+      const page = await context.newPage();
+      page.setDefaultTimeout(20000);
+      await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+      await page.locator("[data-remote-device-setup-overlay]").waitFor({ state: "visible" });
+      await page.locator("[data-open-remote-device-instructions]").click();
+      const instructions = page.locator("[data-remote-device-instructions-overlay]");
+      await instructions.waitFor({ state: "visible" });
+      assert(
+        (await instructions.locator(".about-section-copy:visible").textContent()).includes(platform.copy),
+        `Remote device instructions did not use the expected wording for ${platform.copy}.`
+      );
+      await instructions.locator("[data-close-remote-device-instructions]").click();
+      assert(await instructions.isHidden(), "Closing remote device instructions must return to the setup form.");
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
 async function verifyRemoteScreenUi() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -1141,6 +1172,7 @@ async function run() {
   // Each case uses the same origin and local-storage keys, so run them in
   // sequence to prevent one browser context from overwriting another's setup.
   await verifyRemoteLoadingPage();
+  await verifyRemoteDeviceInstructions();
   await verifyRemoteScreenUi();
   await verifyRemoteDeviceRoute();
   await verifyRemoteDevicePersistence();

@@ -3429,6 +3429,52 @@ button.remote-viewer-save-results-cancel {
   max-height: calc(100dvh - 40px);
 }
 
+.remote-device-setup-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.remote-device-setup-title-row .about-section-title {
+  margin: 0;
+}
+
+.remote-device-setup-instructions-button {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(248, 240, 232, 0.96);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.remote-device-setup-instructions-button:hover,
+.remote-device-setup-instructions-button:focus-visible {
+  color: #ffffff;
+}
+
+.remote-device-instructions-overlay {
+  z-index: 1350;
+  place-items: center;
+  padding: 20px 24px;
+}
+
+.remote-device-instructions-dialog {
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+}
+
+.remote-device-instructions-actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 html.remote-device-setup-open,
 body.remote-device-setup-open {
   overflow: hidden;
@@ -3440,6 +3486,16 @@ body.remote-device-setup-open {
   }
 
   .remote-device-setup-dialog {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    padding: 18px;
+  }
+
+  .remote-device-instructions-overlay {
+    padding: 12px;
+  }
+
+  .remote-device-instructions-dialog {
     max-height: calc(100vh - 24px);
     max-height: calc(100dvh - 24px);
     padding: 18px;
@@ -5814,7 +5870,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261003c") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261003d") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

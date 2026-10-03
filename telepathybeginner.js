@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003c";
+  const launcherBuildVersion = "20261003d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -842,6 +842,11 @@
   const uniqueNameRequiredCloseButton = document.querySelector("[data-unique-name-required-close]");
   const remoteDeviceSetupOverlay = document.querySelector("[data-remote-device-setup-overlay]");
   const remoteDeviceSetupDialog = remoteDeviceSetupOverlay?.querySelector(".handle-dialog") || null;
+  const remoteDeviceInstructionsOverlay = document.querySelector("[data-remote-device-instructions-overlay]");
+  const remoteDeviceInstructionsDialog = remoteDeviceInstructionsOverlay?.querySelector(".handle-dialog") || null;
+  const remoteDeviceInstructionsOpenButton = document.querySelector("[data-open-remote-device-instructions]");
+  const remoteDeviceInstructionsCloseButton = document.querySelector("[data-close-remote-device-instructions]");
+  const remoteDeviceInstructionsCopies = Array.from(document.querySelectorAll("[data-remote-device-instructions-copy]"));
   const remoteDeviceUserInput = document.querySelector("[data-remote-device-user-input]");
   const remoteDeviceUserSubmitButton = document.querySelector("[data-remote-device-user-submit]");
   const remoteDeviceNameInput = document.querySelector("[data-remote-device-name-input]");
@@ -9385,6 +9390,27 @@ ${calmPracticeMessage}`;
     document.body?.classList.toggle("remote-device-setup-open", locked);
   }
 
+  function openRemoteDeviceInstructionsOverlay() {
+    const environment = detectInstallEnvironment();
+    const deviceType = environment.isIOS
+      ? "ios"
+      : environment.isAndroid
+        ? "android"
+        : "pc";
+    remoteDeviceInstructionsCopies.forEach((copy) => {
+      copy.hidden = copy.dataset.remoteDeviceInstructionsCopy !== deviceType;
+    });
+    remoteDeviceInstructionsOverlay?.classList.remove("beginner-view-hidden");
+    remoteDeviceInstructionsOverlay?.setAttribute("aria-hidden", "false");
+    remoteDeviceInstructionsCloseButton?.focus();
+  }
+
+  function closeRemoteDeviceInstructionsOverlay() {
+    remoteDeviceInstructionsOverlay?.classList.add("beginner-view-hidden");
+    remoteDeviceInstructionsOverlay?.setAttribute("aria-hidden", "true");
+    remoteDeviceInstructionsOpenButton?.focus();
+  }
+
   function renderRemoteDeviceSetupControls(ownerName = "", deviceName = "", hasDeviceControlToken = false) {
     const hasOwner = !!String(ownerName || "").trim();
     const hasDevice = !!String(deviceName || "").trim();
@@ -17286,12 +17312,9 @@ ${calmPracticeMessage}`;
     if (sessionMode === "remote_viewing") {
       if (remoteViewingSubmode === "covered_screen") {
         const coveredScreenLabel = receiverLabel;
-        const sourceLabel = String(pairInfo?.source || "real").trim().toLowerCase() === "simulation"
-          ? "Simulation"
-          : "Practice";
         return sessionLevel
-          ? `${coveredScreenLabel} (Clairvoyance ${sourceLabel}) Exercise ${sessionLevel} covered screen data`
-          : `${coveredScreenLabel} (Clairvoyance ${sourceLabel}) covered screen Multi-exercise data`;
+          ? `${coveredScreenLabel} (Clairvoyance) Exercise ${sessionLevel} covered screen data`
+          : `${coveredScreenLabel} (Clairvoyance) covered screen Multi-exercise data`;
       }
       const remoteScreenSubject = normalizedSenderName === "robot"
         ? receiverLabel
@@ -35735,7 +35758,14 @@ ${calmPracticeMessage}`;
   remoteDeviceResetButton?.addEventListener("click", () => {
     void resetRemoteDeviceSetup();
   });
+  remoteDeviceInstructionsOpenButton?.addEventListener("click", () => {
+    openRemoteDeviceInstructionsOverlay();
+  });
+  remoteDeviceInstructionsCloseButton?.addEventListener("click", () => {
+    closeRemoteDeviceInstructionsOverlay();
+  });
   remoteDeviceSetupDialog?.addEventListener("click", (event) => event.stopPropagation());
+  remoteDeviceInstructionsDialog?.addEventListener("click", (event) => event.stopPropagation());
   pushSetupInstallButton?.addEventListener("click", () => {
     showInstallGuideView({ returnView: "push-setup" });
   });
