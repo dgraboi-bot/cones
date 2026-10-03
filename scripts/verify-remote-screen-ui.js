@@ -203,7 +203,9 @@ async function verifyRemoteDevicePersistence() {
     await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
     await page.evaluate(({ key }) => {
       localStorage.clear();
-      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "molly" }));
+      // A remote display runtime can cache its device name as the generic
+      // launcher identity. Its saved owner must still populate the You field.
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "dan's remote" }));
       localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
         ownerName: "molly",
         deviceName: "dan's remote",

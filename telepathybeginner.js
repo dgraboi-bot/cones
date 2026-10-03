@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002q";
+  const launcherBuildVersion = "20261003a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9395,7 +9395,9 @@ ${calmPracticeMessage}`;
     const recognizedOwner = forceClean || isVisitorLauncherEntry(state)
       ? ""
       : String(getCanonicalRecognizedIdentity(state) || "").trim();
-    const ownerName = recognizedOwner || local.ownerName;
+    // A remote display's device name is also used as the sender runtime name.
+    // Its local registration remains the authoritative owner for this setup form.
+    const ownerName = local.ownerName || recognizedOwner;
     let deviceName = local.deviceName;
     let controlToken = local.controlToken;
     renderRemoteDeviceSetupControls(ownerName, deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
