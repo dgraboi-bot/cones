@@ -36,9 +36,9 @@ async function verifyRemoteLoadingPage() {
 async function verifyRemoteDeviceInstructions() {
   const browser = await chromium.launch({ headless: true });
   const platforms = [
-    { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36", copy: "for this PC device" },
-    { userAgent: "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", copy: "for this iPhone or iPad device" },
-    { userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36", copy: "for this Android device" }
+    { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36", copy: "for this PC device", path: "Settings -> System -> Power & battery -> Screen, sleep & hibernate timeouts" },
+    { userAgent: "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", copy: "for this iPhone or iPad device", path: "Settings -> Display & Brightness -> Auto-Lock" },
+    { userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36", copy: "for this Android device", path: "Settings -> Display -> Screen timeout" }
   ];
 
   try {
@@ -51,9 +51,14 @@ async function verifyRemoteDeviceInstructions() {
       await page.locator("[data-open-remote-device-instructions]").click();
       const instructions = page.locator("[data-remote-device-instructions-overlay]");
       await instructions.waitFor({ state: "visible" });
+      const instructionText = (await instructions.locator(".about-section-copy:visible").textContent()).trim();
       assert(
-        (await instructions.locator(".about-section-copy:visible").textContent()).includes(platform.copy),
+        instructionText.includes(platform.copy),
         `Remote device instructions did not use the expected wording for ${platform.copy}.`
+      );
+      assert(
+        instructionText.includes(platform.path),
+        `Remote device instructions did not use the expected ASCII settings path for ${platform.copy}.`
       );
       await instructions.locator("[data-close-remote-device-instructions]").click();
       assert(await instructions.isHidden(), "Closing remote device instructions must return to the setup form.");
@@ -155,6 +160,47 @@ async function verifyRemoteScreenUi() {
       document.querySelector('[data-pair-difficulty-label="remote-viewer"]')?.textContent.trim() === "Exercise 1"
     ));
   } finally {
+    await browser.close();
+  }
+}
+
+async function verifyMobileReceiverTourLauncher() {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ entryMode: "visitor" }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(700);
+    await page.locator("[data-start-guided-receiver-tour-landing]").evaluate((button) => button.click());
+
+    const receiverButton = page.locator('[data-role-card="receiver"] .role-card-toggle');
+    const guide = page.locator("[data-guided-tour-balloon]");
+    await guide.waitFor({ state: "visible" });
+    const [receiverBox, guideBox] = await Promise.all([receiverButton.boundingBox(), guide.boundingBox()]);
+    assert(receiverBox && guideBox, "The mobile receiver tour must show both the required button and its guide.");
+    assert(
+      guideBox.y >= receiverBox.y + receiverBox.height,
+      "The mobile receiver tour guide must be positioned below, not over, the Receiver button."
+    );
+    assert(
+      await guide.evaluate((element) => getComputedStyle(element).touchAction === "none"),
+      "The mobile tour guide must retain touch drags rather than letting the page pan behind it."
+    );
+  } finally {
+    await context.close();
     await browser.close();
   }
 }
@@ -1174,6 +1220,7 @@ async function run() {
   await verifyRemoteLoadingPage();
   await verifyRemoteDeviceInstructions();
   await verifyRemoteScreenUi();
+  await verifyMobileReceiverTourLauncher();
   await verifyRemoteDeviceRoute();
   await verifyRemoteDevicePersistence();
   await verifyRemoteDeviceContinueMarksReady();

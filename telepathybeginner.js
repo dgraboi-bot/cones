@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003d";
+  const launcherBuildVersion = "20261003e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -23813,11 +23813,9 @@ ${calmPracticeMessage}`;
     } else if (step?.placement === "bottom-center") {
       left = Math.max(16, Math.round((window.innerWidth - balloonWidth) / 2));
       if (step?.id === "open-card" && launcherGuidedTourState?.role === "receiver") {
-        const senderCard = Array.from(document.querySelectorAll("[data-role-card]")).find((card) => String(card?.dataset.roleCard || "").trim() === "sender");
-        const senderToggle = senderCard?.querySelector(".role-card-toggle");
-        const senderRect = senderToggle instanceof HTMLElement ? senderToggle.getBoundingClientRect() : null;
-        top = senderRect
-          ? Math.max(16, Math.round(senderRect.bottom + 8))
+        // Keep the required Receiver button visible, with the guide immediately below it.
+        top = step.target instanceof HTMLElement
+          ? Math.max(16, Math.round(step.target.getBoundingClientRect().bottom + 12))
           : Math.max(16, window.innerHeight - 180);
       } else {
         top = Math.max(16, window.innerHeight - 180);
@@ -23825,7 +23823,9 @@ ${calmPracticeMessage}`;
     }
     guidedTourBalloon.style.width = `${balloonWidth}px`;
     guidedTourBalloon.style.left = `${Math.min(Math.max(16, left), Math.max(16, window.innerWidth - balloonWidth - 16))}px`;
-    guidedTourBalloon.style.top = `${Math.min(Math.max(16, top), Math.max(16, window.innerHeight - 160))}px`;
+    const balloonHeight = Math.max(120, guidedTourBalloon.offsetHeight || 0);
+    const maxTop = Math.max(16, window.innerHeight - balloonHeight - 16);
+    guidedTourBalloon.style.top = `${Math.min(Math.max(16, top), maxTop)}px`;
     guidedTourBalloon.style.right = "auto";
     guidedTourBalloon.style.bottom = "auto";
   }
@@ -23835,10 +23835,9 @@ ${calmPracticeMessage}`;
       return;
     }
     if (step?.id === "open-card" && launcherGuidedTourState?.role === "receiver") {
-      const hero = document.querySelector(".telepathy-hero");
-      if (hero instanceof HTMLElement) {
-        const heroRect = hero.getBoundingClientRect();
-        const targetScrollY = Math.max(0, Math.round(window.scrollY + heroRect.top));
+      const targetRect = step.target.getBoundingClientRect();
+      if (targetRect.height > 0) {
+        const targetScrollY = Math.max(0, Math.round(window.scrollY + targetRect.top - 16));
         if (Math.abs(window.scrollY - targetScrollY) >= 4) {
           window.scrollTo({
             top: targetScrollY,
@@ -24315,6 +24314,7 @@ ${calmPracticeMessage}`;
     };
     guidedTourBalloon.setPointerCapture?.(event.pointerId);
     event.preventDefault();
+    event.stopPropagation();
   });
 
   guidedTourBalloon?.addEventListener("pointermove", (event) => {
@@ -24342,6 +24342,8 @@ ${calmPracticeMessage}`;
     guidedTourBalloon.style.top = `${top}px`;
     guidedTourBalloon.style.right = "auto";
     guidedTourBalloon.style.bottom = "auto";
+    event.preventDefault();
+    event.stopPropagation();
   });
 
   const clearLauncherGuidedBalloonDrag = () => {
