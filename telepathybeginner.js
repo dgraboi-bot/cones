@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003a";
+  const launcherBuildVersion = "20261003b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -15607,7 +15607,9 @@ ${calmPracticeMessage}`;
 
   async function populateKnownRemoteDisplayDevice(state = readLauncherState()) {
     const mode = readRemoteViewSimulationMode(state);
-    const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
+    // Discovery must follow the recognized name currently shown in the viewer
+    // card, not an older browser-wide identity that may still be stored here.
+    const ownerName = String(remoteViewerOwnInput?.value || "").trim();
     const currentDeviceName = String(remoteViewerPartnerInput?.value || "").trim();
     if (
       mode !== "remote-device" ||
@@ -34363,11 +34365,13 @@ ${calmPracticeMessage}`;
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
     renderRemoteViewerLabels();
+    scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
   });
   remoteViewerOwnInput?.addEventListener("blur", () => {
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
     renderRemoteViewerLabels();
+    scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
   });
   remoteViewerPartnerInput?.addEventListener("input", persistRemoteViewerCardState);
   remoteViewerPartnerInput?.addEventListener("input", () => {
