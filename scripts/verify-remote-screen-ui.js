@@ -393,7 +393,6 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
   let remoteDeviceReady = false;
-  const discoveryOwners = [];
 
   try {
     await page.route("**/api.php", async (route) => {
@@ -420,12 +419,11 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
         return;
       }
       if (request.action === "get_remote_display_devices_for_owner") {
-        discoveryOwners.push(request.owner_identifier);
         await route.fulfill({
           contentType: "application/json",
           body: JSON.stringify({
             ok: true,
-            remote_display_devices: remoteDeviceReady && request.owner_identifier === "molly"
+            remote_display_devices: remoteDeviceReady
               ? [{ device_name: "dan's remote", owner_identifier: "molly", is_ready: true, is_active: false }]
               : []
           })
@@ -451,7 +449,8 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
       localStorage.clear();
       sessionStorage.clear();
       localStorage.setItem(key, JSON.stringify({
-        recognizedIdentity: "graboi",
+        recognizedIdentity: "molly",
+        ownNames: { "remote-viewer": "molly" },
         remoteViewerSimulationMode: "remote-device"
       }));
     }, { key: launcherStorageKey });
@@ -461,14 +460,6 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
     await remoteScreenInput.waitFor({ state: "visible" });
-    const remoteViewerNameInput = page.locator('[data-remote-viewer-own]');
-    await remoteViewerNameInput.evaluate((input) => {
-      // The visible Clairvoyance name can be changed before browser-wide
-      // identity setup changes. Discovery must now follow this value.
-      input.value = "molly";
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    });
     assert(
       await remoteScreenInput.inputValue() === "Recognized Remote Device name needed. Click GO.",
       "A viewer without a remote device must start with the clear setup instruction."
@@ -485,7 +476,6 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
       await remoteScreenInput.inputValue() === "dan's remote",
       "An open viewer must discover a newly registered remote device automatically."
     );
-    assert(discoveryOwners.includes("molly"), "Remote-device discovery must use the name currently visible in the Clairvoyance You field.");
 
     await remoteScreenInput.evaluate((input) => {
       input.value = "Recognized Remote Device name needed. Click GO.";
@@ -505,6 +495,58 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
       document.querySelector('[data-remote-viewer-partner]')?.value === "dan's remote"
     ));
     assert(await remoteScreenInput.inputValue() === "dan's remote", "Closing the instruction modal must discover and fill the newly registered remote device.");
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyBrowserRegisteredIdentityCannotBeOverwritten() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  const notices = [];
+
+  try {
+    page.on("dialog", async (dialog) => {
+      notices.push(dialog.message());
+      await dialog.dismiss();
+    });
+    await page.goto(`${baseUrl}?open=launcher`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem(key, JSON.stringify({
+        recognizedIdentity: "graboi",
+        ownNames: { sender: "graboi", receiver: "graboi", "remote-viewer": "graboi" }
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(700);
+
+    const replaceAndExpectRestore = async (input) => {
+      await input.evaluate((element) => {
+        element.value = "molly";
+        element.dispatchEvent(new Event("input", { bubbles: true }));
+        element.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      await page.waitForTimeout(100);
+      assert(await input.inputValue() === "graboi", "A browser-bound recognized name must be restored after a different name is entered.");
+    };
+
+    await page.locator('[data-role-card="receiver"] .role-card-toggle').evaluate((button) => button.click());
+    await replaceAndExpectRestore(page.locator('[data-role-form="receiver"] input[name="ownName"]'));
+
+    await page.locator('[data-role-card="sender"] .role-card-toggle').evaluate((button) => button.click());
+    await replaceAndExpectRestore(page.locator('[data-role-form="sender"] input[name="ownName"]'));
+
+    await page.locator('[data-open-clairvoyance-viewing]').evaluate((button) => button.click());
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await replaceAndExpectRestore(page.locator('[data-remote-viewer-own]'));
+
+    assert(
+      notices.filter((message) => message === "The recognized name for this browser is graboi.").length === 3,
+      "Sender, Receiver, and Clairvoyance must restore the browser's recognized name after a different name is entered."
+    );
   } finally {
     await browser.close();
   }
@@ -1105,6 +1147,7 @@ async function run() {
   await verifyRemoteDeviceContinueMarksReady();
   await verifyIncompleteRemoteDeviceSetup();
   await verifyViewerDiscoversRemoteDeviceAfterModal();
+  await verifyBrowserRegisteredIdentityCannotBeOverwritten();
   await verifyViewerSelectsTheSingleReadyRemoteDevice();
   await verifyViewerClearsReleasedRemoteDevice();
   await verifyRemoteScreenSettingsPersistAcrossReload();

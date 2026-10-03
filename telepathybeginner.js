@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003b";
+  const launcherBuildVersion = "20261003c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -2514,6 +2514,27 @@ ${calmPracticeMessage}`;
 
   function getCanonicalRecognizedIdentity(state = readLauncherState()) {
     return String(state?.recognizedIdentity || "").trim();
+  }
+
+  function restoreBrowserRegisteredIdentity(input, options = {}) {
+    if (!(input instanceof HTMLInputElement) || isAnonymousLauncherEntry()) {
+      return false;
+    }
+    const registeredName = getCanonicalRecognizedIdentity();
+    if (!registeredName) {
+      return false;
+    }
+    const enteredName = String(input.value || "").trim();
+    if (normalizeIdentifierForStorage(enteredName) === normalizeIdentifierForStorage(registeredName)) {
+      input.value = registeredName;
+      return false;
+    }
+
+    input.value = registeredName;
+    if (options.notify !== false) {
+      window.alert(`The recognized name for this browser is ${registeredName}.`);
+    }
+    return true;
   }
 
   function buildLauncherIdentityState(baseState, ownIdentifier, userType = "standard", options = {}) {
@@ -15318,7 +15339,9 @@ ${calmPracticeMessage}`;
     const state = readLauncherState();
     const savedOwn = isAnonymousLauncherEntry(state)
       ? anonymousVisitorDisplayName
-      : String(state.ownNames?.["remote-viewer"] || "").trim() || getFallbackOwnIdentifierForRemoteViewer();
+      : String(getCanonicalRecognizedIdentity(state) || "").trim()
+        || String(state.ownNames?.["remote-viewer"] || "").trim()
+        || getFallbackOwnIdentifierForRemoteViewer();
     const profileState = getRemoteViewerProfileState(state, savedOwn);
     remoteViewerOwnInput.value = savedOwn;
     remoteViewerPartnerInput.value = profileState.currentPartner || String(state.currentPartners?.["remote-viewer"] || "").trim() || readRoleSettings("remote-viewer").partnerName || "";
@@ -15607,9 +15630,7 @@ ${calmPracticeMessage}`;
 
   async function populateKnownRemoteDisplayDevice(state = readLauncherState()) {
     const mode = readRemoteViewSimulationMode(state);
-    // Discovery must follow the recognized name currently shown in the viewer
-    // card, not an older browser-wide identity that may still be stored here.
-    const ownerName = String(remoteViewerOwnInput?.value || "").trim();
+    const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
     const currentDeviceName = String(remoteViewerPartnerInput?.value || "").trim();
     if (
       mode !== "remote-device" ||
@@ -22871,7 +22892,10 @@ ${calmPracticeMessage}`;
     const lockedVisitorName = visitorMode ? getVisitorLockedName(state) : "";
     const savedOwn = guestEntryActive
       ? (lockedVisitorName || getPreferredVisitorDisplayNameForRole(role, state) || (visitorMode ? anonymousVisitorDisplayName : ""))
-      : String(state.ownNames?.[role] || "").trim() || roleSettings.ownName || "";
+      : String(getCanonicalRecognizedIdentity(state) || "").trim()
+        || String(state.ownNames?.[role] || "").trim()
+        || roleSettings.ownName
+        || "";
     const profileState = guestEntryActive ? null : readLauncherProfileState(role, savedOwn, state);
     const savedPartner = guestEntryActive
       ? (visitorMode ? "Robot" : "")
@@ -22988,11 +23012,19 @@ ${calmPracticeMessage}`;
       showVisitorNameLockedMessage();
     });
     ownInput.addEventListener("change", () => {
+      if (restoreBrowserRegisteredIdentity(ownInput)) {
+        void syncRoleIdentifierPresentation(role, form);
+        return;
+      }
       void hydrateLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
       void refreshMainUserType();
     });
     ownInput.addEventListener("blur", () => {
+      if (restoreBrowserRegisteredIdentity(ownInput)) {
+        void syncRoleIdentifierPresentation(role, form);
+        return;
+      }
       void hydrateLauncherProfileForForm(role, form);
       void syncRoleIdentifierPresentation(role, form);
       void refreshMainUserType();
@@ -34355,23 +34387,33 @@ ${calmPracticeMessage}`;
       event.stopPropagation();
     }
   };
-  remoteViewerOwnInput?.addEventListener("input", persistRemoteViewerCardState);
+  remoteViewerOwnInput?.addEventListener("input", () => {
+    if (!getCanonicalRecognizedIdentity()) {
+      persistRemoteViewerCardState();
+    }
+  });
   remoteViewerOwnInput?.addEventListener("input", () => {
     renderRemoteViewerLabels();
   });
   remoteViewerOwnInput?.addEventListener("keydown", suppressIdentifierEnter);
   remoteViewerOwnInput?.addEventListener("change", () => {
+    if (restoreBrowserRegisteredIdentity(remoteViewerOwnInput)) {
+      renderRemoteViewerLabels();
+      return;
+    }
     persistRemoteViewerCardState();
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
     renderRemoteViewerLabels();
-    scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
   });
   remoteViewerOwnInput?.addEventListener("blur", () => {
+    if (restoreBrowserRegisteredIdentity(remoteViewerOwnInput)) {
+      renderRemoteViewerLabels();
+      return;
+    }
     void hydrateRemoteViewerLauncherProfile();
     void refreshMainUserType();
     renderRemoteViewerLabels();
-    scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
   });
   remoteViewerPartnerInput?.addEventListener("input", persistRemoteViewerCardState);
   remoteViewerPartnerInput?.addEventListener("input", () => {
