@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>ESP GYM Remote Device Setup</title>
+  <style>
+    html {
+      background: #05090f;
+      color-scheme: dark;
+    }
+
+    body {
+      align-items: center;
+      background: radial-gradient(circle at 50% 30%, #193b72, #05090f 68%);
+      color: #f4eee6;
+      display: flex;
+      font-family: Georgia, "Times New Roman", serif;
+      justify-content: center;
+      margin: 0;
+      min-height: 100dvh;
+      text-align: center;
+    }
+
+    main {
+      max-width: 32rem;
+      padding: 2rem;
+    }
+
+    .spinner {
+      animation: spin 0.9s linear infinite;
+      border: 0.28rem solid rgba(214, 231, 255, 0.32);
+      border-radius: 50%;
+      border-top-color: #7ec4ff;
+      height: 2.5rem;
+      margin: 0 auto 1.4rem;
+      width: 2.5rem;
+    }
+
+    h1 {
+      font-size: clamp(1.35rem, 5vw, 2rem);
+      font-weight: 600;
+      line-height: 1.3;
+      margin: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <main data-remote-loading-status role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <h1>Opening Remote Device Setup. Please Wait...</h1>
+  </main>
+  <script>
+    // Ensure the loading page gets a visible first paint before opening the app.
+    window.setTimeout(() => {
+      window.location.replace("telepathybeginner.html?open=remote-device");
+    }, 500);
+  </script>
+</body>
+</html>

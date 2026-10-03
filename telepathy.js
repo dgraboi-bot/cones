@@ -17,6 +17,7 @@
   const stage = document.getElementById("stage");
   const homeLink = document.querySelector(".home-link");
   const waitingBackButton = document.getElementById("waitingBackButton");
+  const remoteDisplayPauseButton = document.getElementById("remoteDisplayPauseButton");
   const settingsGear = document.getElementById("settingsGear");
   const settingsScreen = document.getElementById("settingsScreen");
   const guidedTourOverlay = document.getElementById("guidedTourOverlay");
@@ -50,7 +51,7 @@
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261002p";
+  const runtimeBuildVersion = "20261002q";
   const runtimeAlertDebugSeen = new Set();
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
@@ -83,11 +84,13 @@
   const probeReturnTarget = String(runtimeQuery.get("probe_return") || "").trim().toLowerCase();
   const launchedFromLauncher = runtimeQuery.get("prefill") === "1";
   let runtimePrefillSettingsOverride = null;
+  let runtimeHeartbeatTimer = 0;
   let remoteDisplayReadyHeartbeatTimer = 0;
   let remoteDisplayWakeLock = null;
   let remoteDisplayWakeLockRequestPending = false;
   let remoteDisplayReadyAnnounced = false;
   let remoteDisplayLastReadyError = "";
+  let remoteDisplayPaused = false;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteViewerCoveredMode = runtimeMode === "remote-viewer-covered";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
@@ -108,7 +111,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261002p";
+  const launcherBuildVersion = "20261002q";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4011,6 +4014,10 @@
   }
 
   function showRemoteDisplayStandbyState() {
+    if (remoteDisplayPaused) {
+      showRemoteDisplayPausedState();
+      return;
+    }
     appExited = false;
     senderHoldingResult = false;
     senderTrialBackSuppressed = false;
@@ -4035,6 +4042,75 @@
     setUiMode("sender-waiting-online");
     startRemoteDisplayReadyHeartbeat();
     void syncState();
+  }
+
+  function setRemoteDisplayPauseButton(options = {}) {
+    if (!remoteDisplayPauseButton) {
+      return;
+    }
+    const visible = !!options.visible;
+    remoteDisplayPauseButton.classList.toggle("hidden", !visible);
+    remoteDisplayPauseButton.disabled = !!options.disabled;
+    remoteDisplayPauseButton.textContent = options.label || "Pause Remote Device";
+  }
+
+  function stopRuntimeHeartbeat() {
+    if (runtimeHeartbeatTimer) {
+      window.clearInterval(runtimeHeartbeatTimer);
+      runtimeHeartbeatTimer = 0;
+    }
+  }
+
+  function startRuntimeHeartbeat() {
+    if (runtimeHeartbeatTimer || (isRemoteDisplayMode && remoteDisplayPaused)) {
+      return;
+    }
+    runtimeHeartbeatTimer = window.setInterval(() => {
+      if (!settingsOpen && hasRequiredSettings() && !(isRemoteDisplayMode && remoteDisplayPaused)) {
+        void syncState();
+      }
+    }, heartbeatMs);
+  }
+
+  function stopRemoteDisplayReadyHeartbeat() {
+    if (remoteDisplayReadyHeartbeatTimer) {
+      window.clearInterval(remoteDisplayReadyHeartbeatTimer);
+      remoteDisplayReadyHeartbeatTimer = 0;
+    }
+  }
+
+  function showRemoteDisplayPausedState() {
+    if (!isRemoteDisplayMode) {
+      return;
+    }
+    remoteDisplayPaused = true;
+    stopRuntimeHeartbeat();
+    stopRemoteDisplayReadyHeartbeat();
+    releaseRemoteDisplayWakeLock();
+    appExited = false;
+    senderHoldingResult = false;
+    senderTrialBackSuppressed = false;
+    receiverReady = false;
+    awaitingReceiverDone = false;
+    receiverChoiceOpen = false;
+    localRoundRunning = false;
+    roundScheduled = false;
+    confidenceScreenOpen = false;
+    instructionScreenOpen = false;
+    receiverMirrorPhase = "idle";
+    postRoundChoiceSubmitted = false;
+    postRoundClearPending = false;
+    activeRound = null;
+    currentUiMode = "remote-display-paused";
+    hideStage();
+    hideChoiceGrid();
+    hideConfidencePanel();
+    hideInstructionPanel();
+    hideDecisionPanel();
+    hideMessagePanel();
+    setPrompt("Remote Device Paused", false);
+    updateSettingsGearVisibility();
+    setRemoteDisplayPauseButton({ visible: true, label: "Resume Remote Device" });
   }
 
   function showExitedState() {
@@ -4526,6 +4602,7 @@
           frontend_build_version: runtimeBuildVersion,
           session_code: getCurrentSessionCode(),
           profile: getCurrentProfile(),
+        remote_display_device: getRemoteDisplayControlPayload(),
         sync_metrics: getSyncMetrics(),
         mark_interaction: shouldMarkInteraction,
         ...payload
@@ -4558,8 +4635,78 @@
     }
   }
 
-  async function markRemoteDisplayReady() {
+  function getRemoteDisplayControlPayload() {
     if (!isRemoteDisplayMode) {
+      return undefined;
+    }
+    const setup = readRemoteDisplaySetup();
+    if (!setup.ownerName || !setup.deviceName || !/^[a-f0-9]{64}$/i.test(setup.controlToken)) {
+      return undefined;
+    }
+    return {
+      owner_identifier: setup.ownerName,
+      device_name: setup.deviceName,
+      device_control_token: setup.controlToken
+    };
+  }
+
+  async function setRemoteDisplayPausedOnServer(paused) {
+    const setup = readRemoteDisplaySetup();
+    if (!setup.ownerName || !setup.deviceName || !/^[a-f0-9]{64}$/i.test(setup.controlToken)) {
+      throw new Error("This remote device is not fully registered.");
+    }
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "set_remote_display_device_pause_state",
+        owner_identifier: setup.ownerName,
+        device_name: setup.deviceName,
+        device_control_token: setup.controlToken,
+        paused: !!paused
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data?.ok) {
+      throw new Error(String(data?.error || `Remote-device pause request failed with status ${response.status}`));
+    }
+    return data;
+  }
+
+  async function toggleRemoteDisplayPause() {
+    if (!isRemoteDisplayMode || remoteDisplayPauseButton?.disabled) {
+      return;
+    }
+    const pausing = !remoteDisplayPaused;
+    setRemoteDisplayPauseButton({
+      visible: true,
+      disabled: true,
+      label: pausing ? "Pausing Remote Device..." : "Resuming Remote Device..."
+    });
+    try {
+      await setRemoteDisplayPausedOnServer(pausing);
+      remoteDisplayPaused = pausing;
+      if (pausing) {
+        showRemoteDisplayPausedState();
+      } else {
+        remoteDisplayPaused = false;
+        remoteDisplayReadyAnnounced = false;
+        showRemoteDisplayStandbyState();
+        startRuntimeHeartbeat();
+      }
+    } catch (error) {
+      setRemoteDisplayPauseButton({
+        visible: currentUiMode === "sender-waiting-online" || remoteDisplayPaused,
+        label: remoteDisplayPaused ? "Resume Remote Device" : "Pause Remote Device"
+      });
+      void logDebugEvent("remote_display_pause_toggle_failed", {
+        message: error instanceof Error ? error.message : "Remote-device pause request failed."
+      });
+    }
+  }
+
+  async function markRemoteDisplayReady() {
+    if (!isRemoteDisplayMode || remoteDisplayPaused) {
       return;
     }
     const setup = readRemoteDisplaySetup();
@@ -4574,12 +4721,17 @@
           action: "mark_remote_display_device_ready",
           owner_identifier: setup.ownerName,
           device_name: setup.deviceName,
-          device_control_token: setup.controlToken
+          device_control_token: setup.controlToken,
+          is_standby: currentUiMode === "sender-waiting-online"
         })
       });
       const data = await response.json();
       if (!response.ok || !data?.ok) {
         throw new Error(String(data?.error || `Remote-display readiness request failed with status ${response.status}`));
+      }
+      if (data?.remote_display_device?.is_paused) {
+        showRemoteDisplayPausedState();
+        return;
       }
       remoteDisplayLastReadyError = "";
       if (!remoteDisplayReadyAnnounced) {
@@ -4631,7 +4783,7 @@
         void logDebugEvent("remote_display_wake_lock_released", {
           visibility: document.visibilityState
         });
-        if (document.visibilityState === "visible") {
+        if (document.visibilityState === "visible" && !remoteDisplayPaused) {
           void requestRemoteDisplayWakeLock();
         }
       }, { once: true });
@@ -4654,7 +4806,7 @@
   }
 
   function handleRemoteDisplayVisibilityChange() {
-    if (!isRemoteDisplayMode) {
+    if (!isRemoteDisplayMode || remoteDisplayPaused) {
       return;
     }
     void logDebugEvent("remote_display_visibility_changed", {
@@ -4669,7 +4821,7 @@
   }
 
   function startRemoteDisplayReadyHeartbeat() {
-    if (!isRemoteDisplayMode || remoteDisplayReadyHeartbeatTimer) {
+    if (!isRemoteDisplayMode || remoteDisplayPaused || remoteDisplayReadyHeartbeatTimer) {
       return;
     }
     void markRemoteDisplayReady();
@@ -7768,6 +7920,9 @@
 
     roundScheduled = true;
     localRoundRunning = true;
+    if (isRemoteDisplayMode) {
+      void markRemoteDisplayReady();
+    }
     lastSeenRoundId = round.id;
     receiverReady = false;
     awaitingReceiverDone = false;
@@ -8093,6 +8248,10 @@
     currentUiMode = mode;
     currentUiModeEnteredAtMs = Date.now();
     hideStage();
+    setRemoteDisplayPauseButton({
+      visible: isRemoteDisplayMode && mode === "sender-waiting-online" && !remoteDisplayPaused,
+      label: "Pause Remote Device"
+    });
 
     if (mode === "sender-waiting-online") {
       setPrompt(getWaitingOnlinePrompt(), false);
@@ -8183,6 +8342,11 @@
     currentPairDifficultyLevel = normalizeDifficultyLevel(payload.pair_difficulty);
     if (settingsOpen && settingsAllowSecondChoiceCheckbox) {
       updateSecondChoiceSettingsControl(settingsAllowSecondChoiceCheckbox.checked);
+    }
+
+    if (isRemoteDisplayMode && payload.remote_display_paused) {
+      showRemoteDisplayPausedState();
+      return;
     }
 
     if (settingsOpen) {
@@ -8410,6 +8574,9 @@
   }
 
   async function syncState() {
+    if (isRemoteDisplayMode && remoteDisplayPaused) {
+      return;
+    }
     if (isLocalSimulationMode) {
       bootstrapRobotSimulation();
       applyRemoteState(buildRobotSimulationPayload());
@@ -8528,6 +8695,9 @@
         open: getLauncherReturnRole()
       });
     });
+    remoteDisplayPauseButton?.addEventListener("click", () => {
+      void toggleRemoteDisplayPause();
+    });
     homeLink?.addEventListener("click", (event) => {
       event.preventDefault();
       noteUserInteraction();
@@ -8593,11 +8763,7 @@
       await clearTimeoutExitOnBoot();
       await syncState();
     }
-    window.setInterval(() => {
-      if (!settingsOpen && hasRequiredSettings()) {
-        void syncState();
-      }
-    }, heartbeatMs);
+    startRuntimeHeartbeat();
   }
 
   void boot();

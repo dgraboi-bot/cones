@@ -3204,6 +3204,32 @@ button.remote-viewer-save-results-cancel {
   filter: brightness(1.06);
 }
 
+.remote-display-pause-button {
+  position: fixed;
+  right: 24px;
+  bottom: 22px;
+  z-index: 20;
+  min-height: 42px;
+  padding: 8px 18px;
+  border: 1px solid rgba(126, 196, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(18, 65, 126, 0.94);
+  color: #f5eee4;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.remote-display-pause-button:hover,
+.remote-display-pause-button:focus-visible {
+  filter: brightness(1.12);
+  outline: none;
+}
+
+.remote-display-pause-button.hidden {
+  display: none;
+}
+
 .role-go {
   align-self: end;
   min-width: 92px;
@@ -5788,7 +5814,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261002p") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261002q") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

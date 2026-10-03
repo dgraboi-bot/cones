@@ -36,6 +36,7 @@ $versionPattern = '20\d{6}[A-Za-z][A-Za-z0-9]*'
 $deployFiles = @(
   ".htaccess",
   "api.php",
+  "remote.html",
   "wait.html",
   "wait-status.php",
   "composer.json",
@@ -139,6 +140,7 @@ $mirrorVerifyFiles = @(
   "telepathybeginner.css",
   "target-selection.js",
   "api.php",
+  "remote.html",
   "wait.html",
   "wait-status.php",
   "docs\espgym-live-deployment-runbook.md",
@@ -162,6 +164,7 @@ $liveHashAuditFiles = @(
   "telepathy.js",
   "telepathy.css",
   "api.php",
+  "remote.html",
   "wait.html",
   "wait-status.php",
   "content_repo\esp-lessons.txt",

@@ -6833,7 +6833,7 @@ function remote_display_device_is_ready(array $record, int $nowMs): bool
     $lastReadyMs = (int) ($record['last_ready_ms'] ?? 0);
     // A display that has not checked in recently is treated as offline. This
     // prevents an old registration from being selected over a live display.
-    return $lastReadyMs > 0 && $lastReadyMs >= ($nowMs - 30000);
+    return empty($record['pause_requested']) && $lastReadyMs > 0 && $lastReadyMs >= ($nowMs - 30000);
 }
 
 function get_public_remote_display_device_record(?array $record, int $nowMs): ?array
@@ -6846,7 +6846,9 @@ function get_public_remote_display_device_record(?array $record, int $nowMs): ?a
         'owner_identifier' => trim((string) ($record['owner_identifier'] ?? '')),
         'created_ms' => (int) ($record['created_ms'] ?? 0),
         'updated_ms' => (int) ($record['updated_ms'] ?? 0),
-        'is_ready' => remote_display_device_is_ready($record, $nowMs)
+        'is_ready' => remote_display_device_is_ready($record, $nowMs),
+        'is_standby' => !empty($record['is_standby']),
+        'is_paused' => !empty($record['pause_requested'])
     ];
 }
 
@@ -6884,6 +6886,8 @@ function get_remote_display_devices_for_owner(array $state, string $ownerIdentif
             'device_name' => $deviceName,
             'owner_identifier' => trim((string) ($record['owner_identifier'] ?? '')),
             'is_ready' => remote_display_device_is_ready($record, $nowMs),
+            'is_standby' => !empty($record['is_standby']),
+            'is_paused' => !empty($record['pause_requested']),
             'is_active' => $activeDeviceKey !== '' && canonicalize_handle((string) $recordKey) === $activeDeviceKey
         ];
     }
@@ -7019,7 +7023,7 @@ function reset_remote_display_device(array &$state, string $ownerIdentifier, str
     ];
 }
 
-function mark_remote_display_device_ready(array &$state, string $ownerIdentifier, string $deviceName, string $deviceControlToken, int $nowMs): array
+function mark_remote_display_device_ready(array &$state, string $ownerIdentifier, string $deviceName, string $deviceControlToken, bool $isStandby, int $nowMs): array
 {
     $ownerStatus = get_identifier_status($state, $ownerIdentifier);
     $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
@@ -7037,13 +7041,84 @@ function mark_remote_display_device_ready(array &$state, string $ownerIdentifier
     if ($expectedHash === '' || !hash_equals($expectedHash, $providedHash)) {
         throw new RuntimeException('This remote device is registered to another browser or device.');
     }
+    // A viewer-requested pause wins over background ready heartbeats. The
+    // remote display must explicitly resume itself from its paused screen.
+    if (!empty($record['pause_requested'])) {
+        return $record;
+    }
     $record['last_ready_ms'] = $nowMs;
+    $record['is_standby'] = $isStandby;
     $state['remote_display_devices'][$deviceKey] = $record;
     if (!is_array($state['active_remote_display_devices'] ?? null)) {
         $state['active_remote_display_devices'] = [];
     }
     // CONTINUE explicitly selects this display for its recognized owner.
     $state['active_remote_display_devices'][normalize_identifier_for_lookup($owner)] = $deviceKey;
+    return $record;
+}
+
+function set_remote_display_device_pause_state(array &$state, string $ownerIdentifier, string $deviceName, string $deviceControlToken, bool $paused, int $nowMs): array
+{
+    $ownerStatus = get_identifier_status($state, $ownerIdentifier);
+    $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
+    $device = trim(preg_replace('/\s+/', ' ', $deviceName) ?? '');
+    $deviceKey = canonicalize_handle($device);
+    $record = get_remote_display_device_record($state, $device);
+    if ($deviceKey === '' || $record === null) {
+        throw new RuntimeException('This remote device registration was not found.');
+    }
+    if (normalize_identifier_for_lookup((string) ($record['owner_identifier'] ?? '')) !== normalize_identifier_for_lookup($owner)) {
+        throw new RuntimeException('This remote device belongs to a different recognized user.');
+    }
+    $expectedHash = trim((string) ($record['control_token_hash'] ?? ''));
+    $providedHash = hash('sha256', validate_remote_display_device_control_token($deviceControlToken));
+    if ($expectedHash === '' || !hash_equals($expectedHash, $providedHash)) {
+        throw new RuntimeException('This remote device is registered to another browser or device.');
+    }
+
+    $record['pause_requested'] = $paused;
+    $record['last_ready_ms'] = $paused ? 0 : $nowMs;
+    $record['updated_ms'] = $nowMs;
+    $state['remote_display_devices'][$deviceKey] = $record;
+    if (!is_array($state['active_remote_display_devices'] ?? null)) {
+        $state['active_remote_display_devices'] = [];
+    }
+    $ownerKey = normalize_identifier_for_lookup($owner);
+    if ($paused) {
+        if (canonicalize_handle((string) ($state['active_remote_display_devices'][$ownerKey] ?? '')) === $deviceKey) {
+            unset($state['active_remote_display_devices'][$ownerKey]);
+        }
+    } else {
+        $state['active_remote_display_devices'][$ownerKey] = $deviceKey;
+    }
+    return $record;
+}
+
+function request_remote_display_device_pause(array &$state, string $ownerIdentifier, string $deviceName, int $nowMs): array
+{
+    $ownerStatus = get_identifier_status($state, $ownerIdentifier);
+    $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
+    if (!formal_identifier_exists($state, $owner) || empty($ownerStatus['uses_handle'])) {
+        throw new RuntimeException('A recognized unique name is required to pause a remote device.');
+    }
+    $device = trim(preg_replace('/\s+/', ' ', $deviceName) ?? '');
+    $deviceKey = canonicalize_handle($device);
+    $record = get_remote_display_device_record($state, $device);
+    if ($deviceKey === '' || $record === null) {
+        throw new RuntimeException('This remote device registration was not found.');
+    }
+    if (normalize_identifier_for_lookup((string) ($record['owner_identifier'] ?? '')) !== normalize_identifier_for_lookup($owner)) {
+        throw new RuntimeException('This remote device belongs to a different recognized user.');
+    }
+
+    $record['pause_requested'] = true;
+    $record['last_ready_ms'] = 0;
+    $record['updated_ms'] = $nowMs;
+    $state['remote_display_devices'][$deviceKey] = $record;
+    $ownerKey = normalize_identifier_for_lookup($owner);
+    if (canonicalize_handle((string) ($state['active_remote_display_devices'][$ownerKey] ?? '')) === $deviceKey) {
+        unset($state['active_remote_display_devices'][$ownerKey]);
+    }
     return $record;
 }
 
@@ -12021,6 +12096,20 @@ if ((int) ($session['partner_confirmation']['expires_ms'] ?? 0) > 0 && (int) $se
 }
 $debugEnabled = (bool) $state['debug_enabled'];
 $profileInput = isset($input['profile']) && is_array($input['profile']) ? normalize_profile($input['profile']) : default_profile();
+$remoteDisplayPaused = false;
+if ($role === 'sender' && isset($input['remote_display_device']) && is_array($input['remote_display_device'])) {
+    $remoteDisplayInput = $input['remote_display_device'];
+    $deviceName = trim((string) ($remoteDisplayInput['device_name'] ?? ''));
+    $controlToken = strtolower(trim((string) ($remoteDisplayInput['device_control_token'] ?? '')));
+    $record = $deviceName !== '' ? get_remote_display_device_record($state, $deviceName) : null;
+    if (
+        is_array($record)
+        && preg_match('/^[a-f0-9]{64}$/', $controlToken)
+        && hash_equals((string) ($record['control_token_hash'] ?? ''), hash('sha256', $controlToken))
+    ) {
+        $remoteDisplayPaused = !empty($record['pause_requested']);
+    }
+}
 $secretCandidate = isset($input['secret_candidate']) ? (string) $input['secret_candidate'] : '';
 $isAdmin = is_admin_profile($profileInput, $adminSecret) || is_admin_secret_candidate($secretCandidate, $adminSecret);
 $hasAdminAccess = $isAdmin;
@@ -13635,11 +13724,78 @@ if ($action === 'claim_unique_handle') {
 
 if ($action === 'mark_remote_display_device_ready') {
     try {
-        require_allowed_keys($input, ['action', 'owner_identifier', 'device_name', 'device_control_token'], 'request');
+        require_allowed_keys($input, ['action', 'owner_identifier', 'device_name', 'device_control_token', 'is_standby'], 'request');
         $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
         $deviceName = validate_participant_identifier_string($input['device_name'] ?? '', 'device_name', true);
         $deviceControlToken = validate_remote_display_device_control_token($input['device_control_token'] ?? '');
-        $record = mark_remote_display_device_ready($state, $ownerIdentifier, $deviceName, $deviceControlToken, $nowMs);
+        $record = mark_remote_display_device_ready(
+            $state,
+            $ownerIdentifier,
+            $deviceName,
+            $deviceControlToken,
+            !empty($input['is_standby']),
+            $nowMs
+        );
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'remote_display_device' => get_public_remote_display_device_record($record, $nowMs),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'set_remote_display_device_pause_state') {
+    try {
+        require_allowed_keys($input, ['action', 'owner_identifier', 'device_name', 'device_control_token', 'paused'], 'request');
+        $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
+        $deviceName = validate_participant_identifier_string($input['device_name'] ?? '', 'device_name', true);
+        $deviceControlToken = validate_remote_display_device_control_token($input['device_control_token'] ?? '');
+        $record = set_remote_display_device_pause_state(
+            $state,
+            $ownerIdentifier,
+            $deviceName,
+            $deviceControlToken,
+            !empty($input['paused']),
+            $nowMs
+        );
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+
+    $response = [
+        'ok' => true,
+        'remote_display_device' => get_public_remote_display_device_record($record, $nowMs),
+        'server_now_ms' => $nowMs
+    ];
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
+if ($action === 'pause_remote_display_device') {
+    try {
+        require_allowed_keys($input, ['action', 'owner_identifier', 'device_name'], 'request');
+        $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
+        $deviceName = validate_participant_identifier_string($input['device_name'] ?? '', 'device_name', true);
+        $record = request_remote_display_device_pause($state, $ownerIdentifier, $deviceName, $nowMs);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -15679,6 +15835,7 @@ $response = [
     'esp_pro_special_edition_enabled' => !empty($state['esp_pro_special_edition_enabled']),
     'messaging_limits' => get_messaging_limits($state),
     'pair_difficulty' => normalize_difficulty_level($state['pair_difficulties'][$sessionCode]['difficulty_level'] ?? '1'),
+    'remote_display_paused' => $remoteDisplayPaused,
     'role_conflict' => $roleConflict,
     'state' => [
         'sender_online' => ((int) ($session['sender']['last_seen_ms'] ?? 0)) > 0,

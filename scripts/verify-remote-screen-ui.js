@@ -11,6 +11,28 @@ function assert(condition, message) {
   }
 }
 
+async function verifyRemoteLoadingPage() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    const remoteUrl = new URL("remote", baseUrl).href;
+    await page.goto(remoteUrl, { waitUntil: "domcontentloaded" });
+    const status = page.locator("[data-remote-loading-status]");
+    await status.waitFor({ state: "visible" });
+    assert(
+      (await status.textContent()).trim() === "Opening Remote Device Setup. Please Wait...",
+      "The /remote entry must show its loading status before the launcher opens."
+    );
+
+    await page.waitForURL(/telepathybeginner\.html\?open=remote-device/);
+    await page.locator("[data-remote-device-setup-overlay]").waitFor({ state: "visible" });
+  } finally {
+    await browser.close();
+  }
+}
+
 async function verifyRemoteScreenUi() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -24,6 +46,8 @@ async function verifyRemoteScreenUi() {
       localStorage.setItem(key, JSON.stringify({ entryMode: "visitor" }));
     }, { key: launcherStorageKey });
     await page.reload({ waitUntil: "domcontentloaded" });
+    // The launcher performs its initial state render asynchronously after DOMContentLoaded.
+    await page.waitForTimeout(700);
     await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => {
       view.classList.remove("beginner-view-hidden");
     });
@@ -85,6 +109,8 @@ async function verifyRemoteScreenUi() {
       input.value = "Robot";
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
+    // Let the initial asynchronous difficulty-label refresh finish before testing the local Robot cycle.
+    await page.waitForTimeout(700);
     await page.locator('[data-role-difficulty-bump="remote-viewer"][data-direction="down"]').evaluate((button) => button.click());
     await page.waitForFunction(() => (
       document.querySelector('[data-pair-difficulty-label="remote-viewer"]')?.textContent.trim() === "Exercise 4"
@@ -92,6 +118,7 @@ async function verifyRemoteScreenUi() {
     await page.waitForFunction(() => (
       !document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("role-card-level-adjusting")
     ));
+    await page.waitForTimeout(100);
     await page.locator('[data-role-difficulty-bump="remote-viewer"][data-direction="up"]').evaluate((button) => button.click());
     await page.waitForFunction(() => (
       document.querySelector('[data-pair-difficulty-label="remote-viewer"]')?.textContent.trim() === "Exercise 1"
@@ -415,8 +442,7 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
     }, { key: launcherStorageKey });
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1000);
-    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
-    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.locator('[data-open-clairvoyance-viewing]').evaluate((button) => button.click());
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
     await remoteScreenInput.waitFor({ state: "visible" });
@@ -617,8 +643,7 @@ async function verifyViewerClearsReleasedRemoteDevice() {
       }));
     }, { key: launcherStorageKey });
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
-    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.locator('[data-open-clairvoyance-viewing]').evaluate((button) => button.click());
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
     await page.waitForFunction(() => (
@@ -734,8 +759,8 @@ async function verifyRemoteScreenSettingsPersistAcrossReload() {
       }));
     }, { key: launcherStorageKey });
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
-    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.waitForTimeout(700);
+    await page.locator('[data-open-clairvoyance-viewing]').evaluate((button) => button.click());
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
     await page.locator('[data-remote-view-mode-open]').evaluate((button) => button.click());
@@ -745,8 +770,8 @@ async function verifyRemoteScreenSettingsPersistAcrossReload() {
     await page.waitForFunction(() => JSON.parse(localStorage.getItem("cones-beginner-launcher-v2") || "{}").remoteViewerExperienceMode === "practice-saved");
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.locator('[data-view="clairvoyance-viewing"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
-    await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => { card.hidden = false; });
+    await page.waitForTimeout(700);
+    await page.locator('[data-open-clairvoyance-viewing]').evaluate((button) => button.click());
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     await page.locator('[data-remote-viewer-remote-screen-options]').waitFor({ state: "visible" });
     await page.waitForTimeout(250);
@@ -765,6 +790,20 @@ async function verifyRemoteScreenSettingsPersistAcrossReload() {
     assert(
       await page.locator('[data-remote-viewer-remote-screen-experience="practice-saved"]').isChecked(),
       "Remote Screen must restore the selected saved-results choice after reload."
+    );
+
+    await page.locator('[data-remote-viewer-remote-screen-experience="practice-unsaved"]').check();
+    let launchedUrl = "";
+    await page.route("**/receiver.html?*", async (route) => {
+      launchedUrl = route.request().url();
+      await route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Remote run</title>" });
+    });
+    const remoteRunNavigation = page.waitForURL(/receiver\.html\?/, { timeout: 10000 });
+    await page.locator('[data-remote-viewer-go]').evaluate((button) => button.click());
+    await remoteRunNavigation;
+    assert(
+      new URL(launchedUrl).searchParams.get("save_results") === "0",
+      "Remote Screen practice without saving results must launch the runtime with save_results=0."
     );
   } finally {
     await browser.close();
@@ -967,6 +1006,36 @@ function verifyPersistentRemoteDisplayImplementation() {
     "Remote-display sessions must have a direct completion-to-standby path."
   );
   assert(
+    launcherMarkup.includes('data-remote-viewer-pause hidden>Pause Remote</button>'),
+    "The Clairvoyance panel must replace its location button with the hidden remote-pause control."
+  );
+  assert(
+    launcherSource.includes('actionLabel: "LOCATION"'),
+    "Setup Website Features must label its location action LOCATION."
+  );
+  assert(
+    launcherSource.includes("function pauseSelectedRemoteViewerDevice()")
+      && launcherSource.includes("Remote device ${deviceName} has been paused"),
+    "A ready remote device must be pausable from its viewer panel."
+  );
+  assert(
+    runtimeSource.includes("function showRemoteDisplayPausedState()")
+      && runtimeSource.includes("stopRuntimeHeartbeat();")
+      && runtimeSource.includes("stopRemoteDisplayReadyHeartbeat();")
+      && runtimeSource.includes("releaseRemoteDisplayWakeLock();"),
+    "Pausing a remote device must stop its network loops and release its wake lock."
+  );
+  assert(
+    runtimeSource.includes('label: "Resume Remote Device"')
+      && runtimeSource.includes('label: "Pause Remote Device"'),
+    "A paused remote device must offer an explicit one-tap resume control."
+  );
+  assert(
+    runtimeSource.includes('is_standby: currentUiMode === "sender-waiting-online"')
+      && launcherSource.includes("!!device?.is_standby"),
+    "Pause Remote must be limited to a remote device that is actually in standby."
+  );
+  assert(
     runtimeSource.includes('if (String(round?.stimulus_kind || "") === "image_pair") {')
       && runtimeSource.includes("Remote display intentionally does not satisfy the legacy level-four helper."),
     "Remote Screen Exercise 2 image-pair rounds must render an image target instead of a cone layout."
@@ -1002,6 +1071,7 @@ function verifyPersistentRemoteDisplayImplementation() {
 async function run() {
   // Each case uses the same origin and local-storage keys, so run them in
   // sequence to prevent one browser context from overwriting another's setup.
+  await verifyRemoteLoadingPage();
   await verifyRemoteScreenUi();
   await verifyRemoteDeviceRoute();
   await verifyRemoteDevicePersistence();

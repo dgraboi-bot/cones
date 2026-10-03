@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261002p";
+  const launcherBuildVersion = "20261002q";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1188,6 +1188,7 @@
   const remoteViewerOwnInput = document.querySelector("[data-remote-viewer-own]");
   const remoteViewerPartnerInput = document.querySelector("[data-remote-viewer-partner]");
   const remoteViewerGoButton = document.querySelector("[data-remote-viewer-go]");
+  const remoteViewerPauseButton = document.querySelector("[data-remote-viewer-pause]");
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
   const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
   const remoteViewerExperienceInputs = Array.from(document.querySelectorAll("[data-remote-viewer-experience]"));
@@ -5587,6 +5588,19 @@ ${calmPracticeMessage}`;
       })
     });
     return parseApiResponse(response, `Remote-display readiness check failed with status ${response.status}`);
+  }
+
+  async function pauseRemoteDisplayDevice(ownerName, deviceName) {
+    const response = await fetch("api.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "pause_remote_display_device",
+        owner_identifier: assertValidParticipantIdentifier(ownerName, "You", { required: true }),
+        device_name: assertValidParticipantIdentifier(deviceName, "Remote Device", { required: true })
+      })
+    });
+    return parseApiResponse(response, `Remote-device pause request failed with status ${response.status}`);
   }
 
   async function fetchUserType(identifier) {
@@ -10453,41 +10467,41 @@ ${calmPracticeMessage}`;
       return {
         ready: false,
         statusText: "Blocked in the browser or PWA settings.",
-        actionLabel: "REVIEW LOCATION"
+        actionLabel: "LOCATION"
       };
     }
     if (savedLocation?.source === "manual-map" && (permission === "granted" || permission === "manual")) {
       return {
         ready: true,
         statusText: "A manually adjusted location is set on this device.",
-        actionLabel: "REVIEW LOCATION"
+        actionLabel: "LOCATION"
       };
     }
     if (savedLocation) {
       return {
         ready: true,
         statusText: "A browser-estimated location is available on this device.",
-        actionLabel: "REVIEW LOCATION"
+        actionLabel: "LOCATION"
       };
     }
     if (permission === "granted" || permission === "manual") {
       return {
         ready: false,
         statusText: "Location permission is available, but no device location has been stored yet.",
-        actionLabel: "REVIEW LOCATION"
+        actionLabel: "LOCATION"
       };
     }
     if (permission === "error") {
       return {
         ready: false,
         statusText: "Browser location was not available yet. You can still review location options manually.",
-        actionLabel: "REVIEW LOCATION"
+        actionLabel: "LOCATION"
       };
     }
     return {
       ready: false,
       statusText: "Location is not set up yet.",
-      actionLabel: "REVIEW LOCATION"
+      actionLabel: "LOCATION"
     };
   }
 
@@ -15642,6 +15656,7 @@ ${calmPracticeMessage}`;
       const selectedExercise = getDifficultyLocalLevel("remote-viewer");
       remoteViewerPartnerInput.value = deviceName;
       persistRemoteViewerCardState();
+      void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
       if (activeDeviceName) {
         await initializeActiveRemoteViewerDeviceExercise(selectedExercise);
       }
@@ -15691,10 +15706,12 @@ ${calmPracticeMessage}`;
 
   async function refreshRemoteViewerRemoteDeviceAvailability(state = readLauncherState()) {
     if (!remoteViewerPartnerInput || readRemoteViewSimulationMode(state) !== "remote-device") {
+      updateRemoteViewerPauseControl(null, state);
       return;
     }
     const deviceName = String(remoteViewerPartnerInput.value || "").trim();
     if (!deviceName || isRemoteDeviceNameRequiredDisplay(deviceName)) {
+      updateRemoteViewerPauseControl(null, state);
       return;
     }
 
@@ -15709,9 +15726,51 @@ ${calmPracticeMessage}`;
         if (nextState) {
           void persistRemoteViewerLauncherProfile(nextState);
         }
+        updateRemoteViewerPauseControl(null, state);
+        return;
       }
+      updateRemoteViewerPauseControl(device, state);
     } catch (_) {
       // Keep the current device name during a temporary availability failure.
+    }
+  }
+
+  function updateRemoteViewerPauseControl(device = null, state = readLauncherState()) {
+    if (!remoteViewerPauseButton) {
+      return;
+    }
+    const canPause =
+      readRemoteViewSimulationMode(state) === "remote-device" &&
+      isRecognizedRemoteViewerUser(state) &&
+      !!device?.is_ready &&
+      !!device?.is_standby &&
+      !device?.is_paused;
+    remoteViewerPauseButton.hidden = !canPause;
+    remoteViewerPauseButton.disabled = !canPause;
+  }
+
+  async function pauseSelectedRemoteViewerDevice() {
+    const state = readLauncherState();
+    const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
+    const deviceName = String(remoteViewerPartnerInput?.value || "").trim();
+    if (
+      !ownerName ||
+      !deviceName ||
+      isRemoteDeviceNameRequiredDisplay(deviceName) ||
+      readRemoteViewSimulationMode(state) !== "remote-device"
+    ) {
+      return;
+    }
+    if (remoteViewerPauseButton) {
+      remoteViewerPauseButton.disabled = true;
+    }
+    try {
+      await pauseRemoteDisplayDevice(ownerName, deviceName);
+      updateRemoteViewerPauseControl(null, state);
+      window.alert(`Remote device ${deviceName} has been paused`);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Unable to pause the remote device.");
+      void refreshRemoteViewerRemoteDeviceAvailability(state);
     }
   }
 
@@ -15810,6 +15869,9 @@ ${calmPracticeMessage}`;
     if (remoteScreenOptions) {
       remoteScreenOptions.hidden = !remoteScreen;
       remoteScreenOptions.toggleAttribute("hidden", !remoteScreen);
+    }
+    if (!remoteScreen) {
+      updateRemoteViewerPauseControl(null, readLauncherState());
     }
     syncRemoteViewerExperienceControls(readLauncherState());
     logRemoteViewModeDebug("apply_presentation", {
@@ -24578,6 +24640,8 @@ ${calmPracticeMessage}`;
 
   function showClairvoyanceViewingView() {
     clearReportPanelOffset();
+    // Reapply persisted mode, identity, and experience choices whenever this view opens.
+    renderRemoteViewerCard();
     learningCenterView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
@@ -34357,6 +34421,9 @@ ${calmPracticeMessage}`;
     scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
     void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
+  remoteViewerPauseButton?.addEventListener("click", () => {
+    void pauseSelectedRemoteViewerDevice();
+  });
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();
@@ -34369,7 +34436,7 @@ ${calmPracticeMessage}`;
     const anonymousCoveredScreenTour = anonymousCoveredScreenVisitorRun && experienceMode === "tour";
     const anonymousCoveredScreenUnsavedPractice = anonymousCoveredScreenVisitorRun && experienceMode === "practice-unsaved";
     const usesVisitorSimulationIdentity = anonymousCoveredScreenTour || anonymousCoveredScreenUnsavedPractice;
-    const savesResults = !coveredScreenMode || experienceMode === "practice-saved";
+    const savesResults = experienceMode === "practice-saved";
     const submittedOwnDisplayName = stripGuestDisplaySuffix(ownName);
 
     if (
