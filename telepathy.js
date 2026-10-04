@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261004e";
+  const runtimeBuildVersion = "20261004g";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -93,6 +93,7 @@
   let remoteDisplayWakeLockRequestPending = false;
   let remoteDisplayReadyAnnounced = false;
   let remoteDisplayLastReadyError = "";
+  let remoteDisplayActivationRejected = false;
   let remoteDisplayIdleFadeTimer = 0;
   let remoteDisplayStandbyDimmed = false;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
@@ -115,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261004e";
+  const launcherBuildVersion = "20261004g";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4111,6 +4112,28 @@
     void syncState();
   }
 
+  function isRemoteDisplayActivationConflict(message) {
+    return isRemoteDisplayMode && /is currently the active remote display for/i.test(String(message || ""));
+  }
+
+  function returnRemoteDisplayToSetupAfterActivationConflict(message) {
+    if (remoteDisplayActivationRejected) {
+      return;
+    }
+    remoteDisplayActivationRejected = true;
+    stopRemoteDisplayReadyHeartbeat();
+    clearRemoteDisplayStandbyTimers();
+    releaseRemoteDisplayWakeLock();
+    if (window.parent !== window) {
+      window.parent.postMessage({
+        type: "espgym-remote-display-activation-rejected",
+        message: String(message || "").trim()
+      }, window.location.origin);
+      return;
+    }
+    window.location.href = `telepathybeginner.html?v=${runtimeBuildVersion}&open=remote-device`;
+  }
+
   function stopRuntimeHeartbeat() {
     if (runtimeHeartbeatTimer) {
       window.clearInterval(runtimeHeartbeatTimer);
@@ -4676,7 +4699,7 @@
   }
 
   async function markRemoteDisplayReady() {
-    if (!isRemoteDisplayMode) {
+    if (!isRemoteDisplayMode || remoteDisplayActivationRejected) {
       return;
     }
     const setup = readRemoteDisplaySetup();
@@ -4718,6 +4741,10 @@
           visibility: document.visibilityState,
           message
         });
+      }
+      if (isRemoteDisplayActivationConflict(message)) {
+        returnRemoteDisplayToSetupAfterActivationConflict(message);
+        return;
       }
       // The next scheduled heartbeat will retry a transient network failure.
     }
@@ -4787,7 +4814,7 @@
   }
 
   function startRemoteDisplayReadyHeartbeat() {
-    if (!isRemoteDisplayMode || remoteDisplayReadyHeartbeatTimer) {
+    if (!isRemoteDisplayMode || remoteDisplayActivationRejected || remoteDisplayReadyHeartbeatTimer) {
       return;
     }
     void markRemoteDisplayReady();

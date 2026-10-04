@@ -456,6 +456,71 @@ async function verifyRemoteDeviceRoute() {
   }
 }
 
+async function verifyRemoteDeviceNameDraftRemainsEditable() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "Moomoo",
+              preferred_identifier: "Moomoo",
+              preferred_handle: "moomoo",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_devices_for_owner") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, remote_display_devices: [] })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "Moomoo" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "Moomoo",
+        deviceName: "",
+        controlToken: ""
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    const deviceNameInput = dialog.locator('[data-remote-device-name-input]');
+    await dialog.waitFor({ state: "visible" });
+    await deviceNameInput.fill("M");
+    // The availability check runs each second. A draft must survive that check
+    // and remain editable until the user submits a complete device name.
+    await page.waitForTimeout(1250);
+    await deviceNameInput.pressSequentially("imi");
+    assert(await deviceNameInput.inputValue() === "Mimi", "A new remote-device name must remain editable after its first character.");
+    assert(!(await deviceNameInput.evaluate((input) => input.readOnly)), "Only a server-accepted remote-device name may become read-only.");
+  } finally {
+    await browser.close();
+  }
+}
+
 async function verifyRemoteDevicePersistence() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -521,6 +586,96 @@ async function verifyRemoteDevicePersistence() {
     assert(restoredOwner === "molly", `Remote setup must restore its saved owner on reload; received ${JSON.stringify(restoredOwner)} with setup ${JSON.stringify(persistedSetup)}.`);
     assert(restoredDevice === "dan's remote", `Remote setup must restore its saved device name on reload; received ${JSON.stringify(restoredDevice)}.`);
     assert(await dialog.locator('[data-remote-device-reset]').isEnabled(), "A restored remote setup must remain resettable by this browser.");
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyRemoteDeviceResetClearsReleasedSetup() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  let initialStatusLookupStarted;
+  const initialStatusLookup = new Promise((resolve) => {
+    initialStatusLookupStarted = resolve;
+  });
+  let releaseInitialStatusLookup;
+  const initialStatusRelease = new Promise((resolve) => {
+    releaseInitialStatusLookup = resolve;
+  });
+  let resetRequested = false;
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "molly",
+              preferred_identifier: "molly",
+              preferred_handle: "molly",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        initialStatusLookupStarted();
+        await initialStatusRelease;
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "dan's remote", owner_identifier: "molly" }
+          })
+        });
+        return;
+      }
+      if (request.action === "reset_remote_display_device") {
+        resetRequested = true;
+        releaseInitialStatusLookup();
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, remote_display_device_reset: { device_name: "dan's remote" } })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "molly" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "molly",
+        deviceName: "dan's remote",
+        controlToken: "a".repeat(64)
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    await dialog.waitFor({ state: "visible" });
+    await initialStatusLookup;
+    page.once("dialog", (dialogEvent) => dialogEvent.accept());
+    await dialog.locator('[data-remote-device-reset]').click();
+    await page.waitForFunction(() => document.querySelector('[data-remote-device-status]')?.textContent === "Remote device setup has been reset.");
+    assert(resetRequested, "RESET must release the registered remote device before clearing the browser setup.");
+    assert(await dialog.locator('[data-remote-device-user-input]').inputValue() === "", "RESET must leave the Remote Device owner field blank.");
+    assert(await dialog.locator('[data-remote-device-name-input]').inputValue() === "", "RESET must leave the Remote Device name field blank.");
+    assert(!(await dialog.locator('[data-remote-device-user-input]').evaluate((input) => input.readOnly)), "RESET must make the Remote Device owner field editable.");
+    assert(!(await dialog.locator('[data-remote-device-name-input]').evaluate((input) => input.readOnly)), "RESET must make the Remote Device name field editable.");
+    assert(await dialog.locator('[data-remote-device-reset]').isDisabled(), "RESET must be unavailable after the remote-device registration is released.");
   } finally {
     await browser.close();
   }
@@ -720,6 +875,145 @@ async function verifyRemoteDeviceBlocksCompetingLiveDisplay() {
     androidRemoteIsLive = false;
     await page.waitForFunction(() => document.querySelector('[data-remote-device-confirm]')?.disabled === false, null, { timeout: 5000 });
     assert((await status.textContent()).includes("Remote device is now available"), "CONTINUE must become available once the prior remote display is no longer live.");
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyStaleRemoteRuntimeReturnsToSetupOnActivationConflict() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  let readyRequests = 0;
+  let androidRemoteIsLive = false;
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests receive an idle response below.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "Moomoo",
+              preferred_identifier: "Moomoo",
+              preferred_handle: "moomoo",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "iPhone Remote", owner_identifier: "Moomoo" }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_devices_for_owner") {
+        const devices = androidRemoteIsLive
+          ? [{ device_name: "Android Remote", owner_identifier: "Moomoo", is_active: true, is_ready: true }]
+          : [{ device_name: "iPhone Remote", owner_identifier: "Moomoo", is_active: true, is_ready: true }];
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, remote_display_devices: devices })
+        });
+        return;
+      }
+      if (request.action === "mark_remote_display_device_ready") {
+        readyRequests += 1;
+        if (readyRequests === 1) {
+          await route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({
+              ok: true,
+              remote_display_device: { device_name: "iPhone Remote", owner_identifier: "Moomoo", is_ready: true }
+            })
+          });
+          return;
+        }
+        await route.fulfill({
+          status: 409,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: false,
+            error: "Android Remote is currently the active remote display for Moomoo. Please close that active display before making this device the active remote display for Moomoo."
+          })
+        });
+        return;
+      }
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          server_now_ms: Date.now(),
+          state: {
+            sender_online: true,
+            receiver_online: false,
+            receiver_ready: false,
+            receiver_view: { phase: "idle" },
+            post_round: null,
+            timeout_notice: null,
+            timeout_exit: null,
+            abort_notice: null,
+            partner_finished_notice: null,
+            session_limit_notice: null,
+            authorization_notice: null,
+            round: null
+          }
+        })
+      });
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "Moomoo" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "Moomoo",
+        deviceName: "iPhone Remote",
+        controlToken: "b".repeat(64)
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    const status = dialog.locator('[data-remote-device-setup-status]');
+    await dialog.waitFor({ state: "visible" });
+    await dialog.locator('[data-remote-device-confirm]').click();
+    await page.waitForFunction(() => document.querySelector('[data-remote-display-runtime-frame]')?.src.includes("sender.html"));
+    let runtimeFrame = null;
+    for (let attempt = 0; attempt < 40 && !runtimeFrame; attempt += 1) {
+      runtimeFrame = page.frames().find((frame) => frame.url().includes("sender.html")) || null;
+      if (!runtimeFrame) {
+        await page.waitForTimeout(50);
+      }
+    }
+    assert(runtimeFrame, "Remote Device Setup must open its embedded remote runtime before it can receive a conflict message.");
+    await runtimeFrame.evaluate(() => {
+      window.parent.postMessage({
+        type: "espgym-remote-display-activation-rejected",
+        message: "Android Remote is currently the active remote display for Moomoo. Please close that active display before making this device the active remote display for Moomoo."
+      }, window.location.origin);
+    });
+    androidRemoteIsLive = true;
+    assert(readyRequests >= 1, "CONTINUE must first confirm that its own registered remote device is ready.");
+    await page.waitForFunction(() => (
+      document.querySelector('[data-remote-device-setup-status]')?.textContent ===
+      "Android Remote is currently the active remote display for Moomoo. Please close that active display before making this device the active remote display for Moomoo."
+    ));
+    assert(await page.locator('[data-remote-display-runtime-shell]').isHidden(), "A rejected stale runtime must return to Remote Device Setup.");
+    assert((await status.textContent()).includes("Android Remote is currently the active remote display"), "Remote Device Setup must visibly explain the competing active display.");
   } finally {
     await browser.close();
   }
@@ -1492,9 +1786,25 @@ function verifyPersistentRemoteDisplayImplementation() {
     "Remote Device Setup must block and recheck a competing live remote display."
   );
   assert(
+    launcherSource.includes("let remoteDeviceSetupGeneration = 0;") &&
+      launcherSource.includes("setupGeneration !== remoteDeviceSetupGeneration"),
+    "RESET must invalidate stale setup lookups so released values cannot return to its fields."
+  );
+  assert(
     apiSource.includes("$activeDeviceKey !== '' && $activeDeviceKey !== $deviceKey") &&
       apiSource.includes("Please close that active display before making this device the active remote display"),
     "The server must reject a race that attempts to replace a competing live remote display."
+  );
+  assert(
+    runtimeSource.includes("function returnRemoteDisplayToSetupAfterActivationConflict") &&
+      runtimeSource.includes("remoteDisplayActivationRejected = true") &&
+      runtimeSource.includes("espgym-remote-display-activation-rejected"),
+    "A stale remote display must stop heartbeats and report an activation conflict instead of retrying indefinitely."
+  );
+  assert(
+    launcherSource.includes("espgym-remote-display-activation-rejected") &&
+      launcherSource.includes("remoteDisplayRuntimeReturnStatus"),
+    "Remote Device Setup must return from a rejected runtime and visibly retain the server conflict message."
   );
   assert(
     runtimeSource.includes("function showRemoteDisplayStandbyState()"),
@@ -1602,9 +1912,12 @@ async function run() {
   await verifyLandingExploreOpensKeyConcepts();
   await verifyHelpProFeatureSummaryNavigation();
   await verifyRemoteDeviceRoute();
+  await verifyRemoteDeviceNameDraftRemainsEditable();
   await verifyRemoteDevicePersistence();
+  await verifyRemoteDeviceResetClearsReleasedSetup();
   await verifyRemoteDeviceContinueMarksReady();
   await verifyRemoteDeviceBlocksCompetingLiveDisplay();
+  await verifyStaleRemoteRuntimeReturnsToSetupOnActivationConflict();
   await verifyIncompleteRemoteDeviceSetup();
   await verifyViewerDiscoversRemoteDeviceAfterModal();
   await verifyBrowserRegisteredIdentityCannotBeOverwritten();

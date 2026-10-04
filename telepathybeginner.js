@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004f";
+  const launcherBuildVersion = "20261004g";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9401,8 +9401,12 @@ ${calmPracticeMessage}`;
 
   let remoteDisplayRuntimeActive = false;
   let remoteDisplayRuntimeReturning = false;
+  let remoteDisplayRuntimeReturnStatus = "";
   let remoteDeviceSetupActiveBlockName = "";
   let remoteDeviceSetupAvailabilityTimer = 0;
+  // Each setup opening owns its async lookups. A reset invalidates older
+  // lookups so they cannot redraw a released remote-device registration.
+  let remoteDeviceSetupGeneration = 0;
 
   function isRemoteDeviceFullscreen() {
     return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
@@ -9477,10 +9481,15 @@ ${calmPracticeMessage}`;
     remoteDisplayRuntimeFrame.src = targetUrl;
   }
 
-  function returnRemoteDisplayRuntimeToSetup() {
+  function returnRemoteDisplayRuntimeToSetup(statusMessage = "") {
+    if (String(statusMessage || "").trim()) {
+      remoteDisplayRuntimeReturnStatus = String(statusMessage).trim();
+    }
     if (!remoteDisplayRuntimeActive || remoteDisplayRuntimeReturning) {
       return;
     }
+    const finalStatusMessage = remoteDisplayRuntimeReturnStatus;
+    remoteDisplayRuntimeReturnStatus = "";
     remoteDisplayRuntimeReturning = true;
     remoteDisplayRuntimeActive = false;
     if (remoteDisplayRuntimeFrame) {
@@ -9488,9 +9497,15 @@ ${calmPracticeMessage}`;
     }
     remoteDisplayRuntimeShell?.classList.add("beginner-view-hidden");
     remoteDisplayRuntimeShell?.setAttribute("aria-hidden", "true");
-    void openRemoteDeviceSetupOverlay().finally(() => {
-      remoteDisplayRuntimeReturning = false;
-    });
+    void openRemoteDeviceSetupOverlay()
+      .then(() => {
+        if (finalStatusMessage && remoteDeviceSetupStatus) {
+          remoteDeviceSetupStatus.textContent = finalStatusMessage;
+        }
+      })
+      .finally(() => {
+        remoteDisplayRuntimeReturning = false;
+      });
   }
 
   function openRemoteDeviceInstructionsOverlay() {
@@ -9512,7 +9527,14 @@ ${calmPracticeMessage}`;
   async function refreshRemoteDeviceSetupAvailability() {
     const ownerName = String(remoteDeviceUserInput?.value || "").trim();
     const deviceName = String(remoteDeviceNameInput?.value || "").trim();
-    if (!ownerName || !deviceName || remoteDisplayRuntimeActive) {
+    const savedSetup = readRemoteDisplaySetup();
+    const hasRegisteredCurrentDevice = (
+      /^[a-f0-9]{64}$/i.test(String(savedSetup.controlToken || "")) &&
+      normalizeIdentifierForStorage(savedSetup.deviceName) === normalizeIdentifierForStorage(deviceName)
+    );
+    // A typed draft is not a registered device. Do not let the availability
+    // poll re-render it as read-only before the user submits its full name.
+    if (!ownerName || !deviceName || !hasRegisteredCurrentDevice || remoteDisplayRuntimeActive) {
       remoteDeviceSetupActiveBlockName = "";
       return;
     }
@@ -9568,7 +9590,9 @@ ${calmPracticeMessage}`;
 
   function renderRemoteDeviceSetupControls(ownerName = "", deviceName = "", hasDeviceControlToken = false) {
     const hasOwner = !!String(ownerName || "").trim();
-    const hasDevice = !!String(deviceName || "").trim();
+    // A device field remains editable until its name has been accepted and
+    // paired with this browser's control token.
+    const hasDevice = !!String(deviceName || "").trim() && hasDeviceControlToken;
     if (remoteDeviceUserInput) {
       remoteDeviceUserInput.value = ownerName;
       remoteDeviceUserInput.readOnly = hasOwner;
@@ -9590,6 +9614,7 @@ ${calmPracticeMessage}`;
   }
 
   async function openRemoteDeviceSetupOverlay({ forceClean = false, showOpeningMessage = false } = {}) {
+    const setupGeneration = ++remoteDeviceSetupGeneration;
     if (remoteDeviceSetupBackButton) {
       remoteDeviceSetupBackButton.hidden = !shouldReturnRemoteDeviceSetupToOtherSettings();
     }
@@ -9620,12 +9645,18 @@ ${calmPracticeMessage}`;
     if (ownerName && remoteDeviceUserInput) {
       try {
         const status = await fetchIdentifierStatus(ownerName);
+        if (setupGeneration !== remoteDeviceSetupGeneration) {
+          return;
+        }
         if (!isAcceptedUniqueHandleIdentifier(ownerName, status)) {
           renderRemoteDeviceSetupControls("", deviceName, /^[a-f0-9]{64}$/i.test(controlToken));
         } else {
           rememberIdentifierStatus(ownerName, status);
         }
       } catch (error) {
+        if (setupGeneration !== remoteDeviceSetupGeneration) {
+          return;
+        }
         // A transient lookup problem must not erase this device's saved setup.
         if (remoteDeviceSetupStatus) {
           remoteDeviceSetupStatus.textContent = "Unable to verify the recognized name right now. Your saved remote-device setup is still available.";
@@ -9635,6 +9666,9 @@ ${calmPracticeMessage}`;
     if (deviceName && remoteDeviceNameInput) {
       try {
         const device = await fetchRemoteDisplayDeviceStatus(deviceName);
+        if (setupGeneration !== remoteDeviceSetupGeneration) {
+          return;
+        }
         if (!device) {
           deviceName = "";
           controlToken = "";
@@ -9653,6 +9687,9 @@ ${calmPracticeMessage}`;
           if (remoteDeviceSetupStatus) remoteDeviceSetupStatus.textContent = "Remote device secured for this browser.";
         }
       } catch (error) {
+        if (setupGeneration !== remoteDeviceSetupGeneration) {
+          return;
+        }
         if (remoteDeviceSetupStatus) {
           remoteDeviceSetupStatus.textContent = error instanceof Error ? error.message : "Unable to verify this remote device.";
         }
@@ -9665,6 +9702,9 @@ ${calmPracticeMessage}`;
       remoteDeviceSetupStatus.textContent = ownerName && !hasCompleteRemoteDisplaySetup({ ownerName, deviceName, controlToken })
         ? "This browser is not currently configured as a remote display device. Choose a unique remote device name to set it up."
         : "";
+    }
+    if (setupGeneration !== remoteDeviceSetupGeneration) {
+      return;
     }
     const firstInput = remoteDeviceUserInput?.readOnly ? remoteDeviceNameInput : remoteDeviceUserInput;
     firstInput?.focus();
@@ -9771,7 +9811,11 @@ ${calmPracticeMessage}`;
       await resetRemoteDisplayDevice(ownerName, deviceName, local.controlToken);
       // A /remote browser should return to a truly fresh remote-device setup,
       // without retaining the former owner or display identity locally.
+      stopRemoteDeviceSetupAvailabilityChecks();
+      remoteDeviceSetupGeneration += 1;
+      remoteDeviceSetupActiveBlockName = "";
       clearLauncherIdentityArtifacts();
+      renderRemoteDeviceSetupControls("", "", false);
       if (isDeviceResetContinuationRequested()) {
         window.alert("Remote Device successfully reset on this device.");
         await completeDeviceResetToAnonymousVisitor();
@@ -36021,14 +36065,24 @@ ${calmPracticeMessage}`;
     closeRemoteDeviceInstructionsOverlay();
   });
   window.addEventListener("message", (event) => {
+    const messageType = String(event.data?.type || "");
     if (
       event.origin !== window.location.origin ||
-      event.data?.type !== "espgym-remote-display-standby-exit" ||
+      ![
+        "espgym-remote-display-standby-exit",
+        "espgym-remote-display-activation-rejected"
+      ].includes(messageType) ||
       event.source !== remoteDisplayRuntimeFrame?.contentWindow
     ) {
       return;
     }
-    void exitRemoteDeviceFullscreen().finally(returnRemoteDisplayRuntimeToSetup);
+    const statusMessage = messageType === "espgym-remote-display-activation-rejected"
+      ? String(event.data?.message || "").trim()
+      : "";
+    if (statusMessage) {
+      remoteDisplayRuntimeReturnStatus = statusMessage;
+    }
+    void exitRemoteDeviceFullscreen().finally(() => returnRemoteDisplayRuntimeToSetup(statusMessage));
   });
   const handleRemoteDeviceFullscreenChange = () => {
     if (remoteDisplayRuntimeActive && !isRemoteDeviceFullscreen()) {
