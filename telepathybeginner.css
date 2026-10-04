@@ -3525,14 +3525,19 @@ button.remote-viewer-save-results-cancel {
 }
 
 .remote-device-setup-title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   gap: 16px;
 }
 
 .remote-device-setup-title-row .about-section-title {
   margin: 0;
+  text-align: center;
+}
+
+.remote-device-setup-back-button {
+  justify-self: start;
 }
 
 .remote-device-setup-instructions-button {
@@ -3564,6 +3569,11 @@ button.remote-viewer-save-results-cancel {
 .remote-device-instructions-dialog {
   max-height: calc(100vh - 40px);
   max-height: calc(100dvh - 40px);
+}
+
+.remote-device-instructions-dialog .about-section-title {
+  display: block;
+  margin-block: 0 1em;
 }
 
 .remote-device-instructions-dialog .remote-device-instructions-followup {
@@ -3607,6 +3617,20 @@ body.remote-device-setup-open {
     max-height: calc(100vh - 24px);
     max-height: calc(100dvh - 24px);
     padding: 18px;
+  }
+
+  .remote-device-setup-title-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .remote-device-setup-title-row .about-section-title {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .remote-device-setup-instructions-button {
+    justify-self: end;
   }
 
   .remote-device-instructions-overlay {
@@ -6007,7 +6031,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261004c") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261004e") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

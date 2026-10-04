@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004c";
+  const launcherBuildVersion = "20261004e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -847,6 +847,7 @@
   const uniqueNameRequiredCloseButton = document.querySelector("[data-unique-name-required-close]");
   const remoteDeviceSetupOverlay = document.querySelector("[data-remote-device-setup-overlay]");
   const remoteDeviceSetupDialog = remoteDeviceSetupOverlay?.querySelector(".handle-dialog") || null;
+  const remoteDeviceSetupBackButton = document.querySelector("[data-close-remote-device-setup]");
   const remoteDeviceInstructionsOverlay = document.querySelector("[data-remote-device-instructions-overlay]");
   const remoteDeviceInstructionsDialog = remoteDeviceInstructionsOverlay?.querySelector(".handle-dialog") || null;
   const remoteDeviceInstructionsOpenButton = document.querySelector("[data-open-remote-device-instructions]");
@@ -5357,6 +5358,14 @@ ${calmPracticeMessage}`;
     }
   }
 
+  function shouldReturnRemoteDeviceSetupToOtherSettings() {
+    try {
+      return new URLSearchParams(window.location.search).get("remote_return") === "other-settings";
+    } catch (_) {
+      return false;
+    }
+  }
+
   function shouldStartInFreshLauncherMode() {
     const requestedView = readRequestedLauncherView();
     return requestedView === "fresh-launcher" || requestedView === "visitor-launcher";
@@ -9170,7 +9179,11 @@ ${calmPracticeMessage}`;
     } else if (isVisitorRole) {
       setRoleDefaultNoteHtml(role, buildVisitorRoleNoteHtml(role), buildVisitorRoleNote(role));
     } else if (ownUsesHandle) {
-      setRoleDefaultNoteText(role, role === "receiver" ? receiverCalmPracticeMessage : calmPracticeMessage);
+      setRoleDefaultNoteText(
+        role,
+        getCurrentRoleExerciseExplanation(role)
+          || (role === "receiver" ? receiverCalmPracticeMessage : calmPracticeMessage)
+      );
     } else {
       setRoleDefaultNoteText(role, buildRoleGuidanceFallback(role));
     }
@@ -9395,21 +9408,38 @@ ${calmPracticeMessage}`;
 
   async function requestRemoteDeviceFullscreen() {
     const root = document.documentElement;
-    const request = root.requestFullscreen || root.webkitRequestFullscreen;
-    if (isRemoteDeviceFullscreen() || typeof request !== "function") {
+    const standardRequest = root.requestFullscreen;
+    const webkitRequest = root.webkitRequestFullscreen;
+    if (isRemoteDeviceFullscreen() || (typeof standardRequest !== "function" && typeof webkitRequest !== "function")) {
       return false;
     }
+    void traceLauncherClient("remote_display:parent_fullscreen_requested");
     try {
-      const result = request === root.requestFullscreen
-        ? request.call(root, { navigationUI: "hide" })
-        : request.call(root);
+      const result = typeof standardRequest === "function"
+        ? standardRequest.call(root, { navigationUI: "hide" })
+        : webkitRequest.call(root);
       await Promise.resolve(result);
-      void traceClientEvent("remote_display_parent_fullscreen_entered");
+      void traceLauncherClient("remote_display:parent_fullscreen_entered");
       return true;
-    } catch (error) {
+    } catch (navigationUiError) {
+      // Some Android/PWA combinations reject the navigationUI option even though
+      // they accept a normal direct-gesture fullscreen request.
+      if (typeof standardRequest === "function") {
+        try {
+          await Promise.resolve(standardRequest.call(root));
+          void traceLauncherClient("remote_display:parent_fullscreen_entered", { fallback: "standard" });
+          return true;
+        } catch (fallbackError) {
+          void traceLauncherClient("remote_display:parent_fullscreen_unavailable", {
+            navigation_ui_message: navigationUiError instanceof Error ? navigationUiError.message : "Fullscreen navigation UI request failed.",
+            message: fallbackError instanceof Error ? fallbackError.message : "Fullscreen request failed."
+          });
+          return false;
+        }
+      }
       // The display still works in its embedded shell when fullscreen is unavailable.
-      void traceClientEvent("remote_display_parent_fullscreen_unavailable", {
-        message: error instanceof Error ? error.message : "Fullscreen request failed."
+      void traceLauncherClient("remote_display:parent_fullscreen_unavailable", {
+        message: navigationUiError instanceof Error ? navigationUiError.message : "Fullscreen request failed."
       });
       return false;
     }
@@ -9496,6 +9526,9 @@ ${calmPracticeMessage}`;
   }
 
   async function openRemoteDeviceSetupOverlay({ forceClean = false, showOpeningMessage = false } = {}) {
+    if (remoteDeviceSetupBackButton) {
+      remoteDeviceSetupBackButton.hidden = !shouldReturnRemoteDeviceSetupToOtherSettings();
+    }
     const local = forceClean
       ? { ownerName: "", deviceName: "", controlToken: "" }
       : readRemoteDisplaySetup();
@@ -9614,7 +9647,7 @@ ${calmPracticeMessage}`;
     }
   }
 
-  async function confirmRemoteDeviceSetup() {
+  async function confirmRemoteDeviceSetup({ fullscreenAlreadyRequested = false } = {}) {
     const ownerName = String(remoteDeviceUserInput?.value || "").trim();
     const deviceName = String(remoteDeviceNameInput?.value || "").trim();
     if (!ownerName || !deviceName || remoteDeviceConfirmButton?.disabled) {
@@ -9627,9 +9660,11 @@ ${calmPracticeMessage}`;
     if (remoteDeviceConfirmButton) {
       remoteDeviceConfirmButton.disabled = true;
     }
-    // Fullscreen must be requested in this direct CONTINUE gesture. Navigating
+    // Fullscreen must be requested in the direct CONTINUE gesture. Navigating
     // first would discard that browser-granted user activation.
-    void requestRemoteDeviceFullscreen();
+    if (!fullscreenAlreadyRequested) {
+      void requestRemoteDeviceFullscreen();
+    }
     try {
       await markRemoteDisplayDeviceReady(ownerName, deviceName, readRemoteDisplaySetup().controlToken);
     } catch (error) {
@@ -13547,6 +13582,14 @@ ${calmPracticeMessage}`;
     return "";
   }
 
+  function getCurrentRoleExerciseExplanation(role) {
+    const normalizedRole = String(role || "").trim();
+    const level = getDifficultyLocalLevel(normalizedRole);
+    return normalizedRole === "remote-viewer"
+      ? getRemoteViewerExerciseExplanation(level)
+      : getDifficultyExplanation(normalizedRole, level);
+  }
+
   function getSkillExplanation(role) {
     return roleSkillExplanationCopy[String(role || "").trim()] || "";
   }
@@ -13701,8 +13744,8 @@ ${calmPracticeMessage}`;
   }
 
   function clearRoleLevelExplanation(role) {
-    // Clairvoyance keeps the selected exercise explanation visible while its panel is open.
-    if (String(role || "").trim() === "remote-viewer") {
+    // Exercise explanations remain visible while a practice panel is open.
+    if (["receiver", "sender", "remote-viewer"].includes(String(role || "").trim())) {
       return;
     }
     if (isRoleMessageAreaVisible(role)) {
@@ -13770,8 +13813,8 @@ ${calmPracticeMessage}`;
       return;
     }
     previewLevelExplanationFromCurrentLabel(normalizedRole);
-    // Sender and Clairvoyance exercise explanations stay visible while open.
-    if (normalizedRole === "sender" || normalizedRole === "remote-viewer") {
+    // Exercise explanations stay visible while a practice panel is open.
+    if (["receiver", "sender", "remote-viewer"].includes(normalizedRole)) {
       return;
     }
     scheduleRoleLevelExplanationClear(normalizedRole);
@@ -13804,7 +13847,7 @@ ${calmPracticeMessage}`;
 
   function scheduleRoleLevelExplanationClear(role, delayMs = roleLevelPreviewGraceMs) {
     const normalizedRole = String(role || "").trim();
-    if (!normalizedRole || normalizedRole === "sender" || normalizedRole === "remote-viewer") {
+    if (!normalizedRole || ["receiver", "sender", "remote-viewer"].includes(normalizedRole)) {
       return;
     }
     clearRoleLevelPreviewClearTimer(normalizedRole);
@@ -35262,7 +35305,7 @@ ${calmPracticeMessage}`;
     void openPartnerMessagingFromNavigation("other-settings");
   });
   openRemoteDeviceSetupButton?.addEventListener("click", () => {
-    window.location.href = buildCanonicalLauncherUrl({ open: "remote-device" });
+    window.location.href = buildCanonicalLauncherUrl({ open: "remote-device", remote_return: "other-settings" });
   });
   resetThisDeviceButton?.addEventListener("click", () => {
     void resetThisDeviceToAnonymousVisitor();
@@ -35874,7 +35917,26 @@ ${calmPracticeMessage}`;
     void submitRemoteDeviceName();
   });
   remoteDeviceConfirmButton?.addEventListener("click", () => {
-    void confirmRemoteDeviceSetup();
+    // Keep this API invocation at the outer click handler so Android treats it
+    // as a direct user gesture before any asynchronous setup work begins.
+    void requestRemoteDeviceFullscreen();
+    void confirmRemoteDeviceSetup({ fullscreenAlreadyRequested: true });
+  });
+  remoteDeviceSetupBackButton?.addEventListener("click", () => {
+    if (!shouldReturnRemoteDeviceSetupToOtherSettings()) {
+      return;
+    }
+    remoteDeviceInstructionsOverlay?.classList.add("beginner-view-hidden");
+    remoteDeviceInstructionsOverlay?.setAttribute("aria-hidden", "true");
+    remoteDeviceSetupOverlay?.classList.add("beginner-view-hidden");
+    remoteDeviceSetupOverlay?.setAttribute("aria-hidden", "true");
+    setRemoteDeviceSetupScrollLock(false);
+    try {
+      window.history.replaceState({}, "", buildCanonicalLauncherUrl({ open: "launcher" }));
+    } catch (_) {
+      // Returning to the visible Other Functions view does not depend on URL replacement.
+    }
+    showOtherSettingsView();
   });
   remoteDeviceResetButton?.addEventListener("click", () => {
     void resetRemoteDeviceSetup();

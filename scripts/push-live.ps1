@@ -366,7 +366,7 @@ function Get-RemoteSha256([string]$RemotePath) {
   throw "Unable to read remote hash for $RemotePath"
 }
 
-function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
+function Get-RemoteFileHashes([string[]]$RelativePaths, [string]$RootPath, [string]$StepLabelPrefix) {
   $paths = @($RelativePaths | ForEach-Object { Convert-ToPosixPath $_ } | Sort-Object -Unique)
   $hashes = @{}
 
@@ -377,19 +377,23 @@ function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
     $lastIndex = [Math]::Min($offset + $batchSize - 1, $paths.Count - 1)
     $batch = @($paths[$offset..$lastIndex])
     $payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($batch | ConvertTo-Json -Compress)))
-    $pythonCode = "import base64, hashlib, json, os; root=r`"$liveRoot`"; paths=json.loads(base64.b64decode(`"$payload`").decode(`"utf-8`")); [print(hashlib.sha256(open(os.path.join(root, relative_path), `"rb`").read()).hexdigest().upper() if os.path.isfile(os.path.join(root, relative_path)) else `"MISSING`") for relative_path in paths]"
+    $pythonCode = "import base64, hashlib, json, os; root=r`"$RootPath`"; paths=json.loads(base64.b64decode(`"$payload`").decode(`"utf-8`")); [print(hashlib.sha256(open(os.path.join(root, relative_path), `"rb`").read()).hexdigest().upper() if os.path.isfile(os.path.join(root, relative_path)) else `"MISSING`") for relative_path in paths]"
     $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("python3 -c '$pythonCode'"))
     $remoteCommand = "echo $encodedCommand | base64 -d | bash"
-    $output = Invoke-PlinkStep $remoteCommand ("read live deploy hash batch {0}-{1}" -f ($offset + 1), ($lastIndex + 1)) -TimeoutSeconds 180
+    $output = Invoke-PlinkStep $remoteCommand ("{0} hash batch {1}-{2}" -f $StepLabelPrefix, ($offset + 1), ($lastIndex + 1)) -TimeoutSeconds 180
     $hashRows = @($output | ForEach-Object { ([string]$_).Trim() } | Where-Object { $_ })
     if ($hashRows.Count -ne $batch.Count) {
-      throw "Live deploy hash batch returned $($hashRows.Count) rows for $($batch.Count) expected files."
+      throw "$StepLabelPrefix hash batch returned $($hashRows.Count) rows for $($batch.Count) expected files."
     }
     for ($index = 0; $index -lt $batch.Count; $index++) {
       $hashes[$batch[$index]] = $hashRows[$index].ToUpperInvariant()
     }
   }
   return $hashes
+}
+
+function Get-RemoteDeployFileHashes([string[]]$RelativePaths) {
+  return Get-RemoteFileHashes -RelativePaths $RelativePaths -RootPath $liveRoot -StepLabelPrefix "read live deploy"
 }
 
 function Convert-ToPrivateContentPath([string]$RelativePath) {
@@ -612,6 +616,18 @@ for ($index = 0; $index -lt $deployFileCount; $index++) {
   $stagePath = "$stageRoot/$remoteRelative"
   Invoke-PscpUpload -LocalPath $localPath -RemotePath $stagePath -StepLabel ("upload staged file {0}/{1}: {2}" -f ($index + 1), $deployFileCount, $relativePath)
 }
+Write-ReleaseLog ("Verifying SHA-256 hashes for {0} staged deploy files before promotion" -f $deployFileCount) "Yellow"
+$stagedHashes = Get-RemoteFileHashes -RelativePaths $deployFilesList -RootPath $stageRoot -StepLabelPrefix "read staged deploy"
+foreach ($relativePath in $deployFilesList) {
+  $normalizedPath = Convert-ToPosixPath ([string]$relativePath)
+  $localPath = Join-Path $manifestRepoRoot ([string]$relativePath)
+  $localHash = (Get-FileHash -Algorithm SHA256 $localPath).Hash.ToUpperInvariant()
+  $stagedHash = [string]$stagedHashes[$normalizedPath]
+  if ($stagedHash -ne $localHash) {
+    throw "Staged file SHA-256 mismatch for $relativePath. Promotion has not begun."
+  }
+}
+Write-ReleaseLog "Verified all staged deploy file hashes before promotion" "DarkGreen"
 if ($vendorArchive) {
   $remoteVendorArchivePath = "$stageRoot/vendor-release.tar.gz"
   Write-ReleaseLog "Uploading verified Composer vendor archive" "Yellow"
