@@ -50,9 +50,12 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
+  const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261003h";
+  const runtimeBuildVersion = "20261003i";
   const runtimeAlertDebugSeen = new Set();
+  let globalRuntimeDebuggingEnabled = false;
+  let runtimeDebugSourceCode = "";
   const runtimePageInstanceId = `runtime-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runtimeQuery = (() => {
     try {
@@ -111,7 +114,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261003h";
+  const launcherBuildVersion = "20261003i";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -4869,7 +4872,8 @@
     try {
       await api("log_debug", {
         label,
-        details
+        details,
+        debug_source_code: runtimeDebugSourceCode
       });
     } catch (error) {
       // Ignore debug logging failures.
@@ -4902,10 +4906,46 @@
         details: {
           ...details,
           runtime_build_version: runtimeBuildVersion
-        }
+        },
+        debug_source_code: runtimeDebugSourceCode
       });
     } catch (error) {
       // Ignore trace failures.
+    }
+  }
+
+  function getRuntimeDebugParticipantKey() {
+    try {
+      const existing = String(localStorage.getItem(runtimeDebugClientKey) || "").trim();
+      if (/^[a-z0-9_-]{8,48}$/i.test(existing)) {
+        return existing;
+      }
+      const generated = typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID().replace(/-/g, "")
+        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem(runtimeDebugClientKey, generated);
+      return generated;
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  async function refreshRuntimeGlobalDebugContext() {
+    try {
+      const data = await api("get_client_debug_context", {
+        client_debug_key: getRuntimeDebugParticipantKey()
+      });
+      globalRuntimeDebuggingEnabled = !!data.global_debug_enabled;
+      const sourceCode = String(data.debug_source_code || "");
+      runtimeDebugSourceCode = /^[A-Z]$/.test(sourceCode) ? sourceCode : "";
+      if (globalRuntimeDebuggingEnabled) {
+        void traceClientEvent("global_debug:context_ready", {
+          global_debug_enabled: true,
+          debug_source: runtimeDebugSourceCode
+        });
+      }
+    } catch (_error) {
+      // Debug availability must never interfere with normal runtime behavior.
     }
   }
 
@@ -8635,10 +8675,12 @@
 
     async function boot() {
       applyLauncherPrefillFromQuery();
-      void traceClientEvent("boot_client", {
-        role,
-        page: role === "sender" ? "sender.html" : "receiver.html",
-        runtime_mode: runtimeMode
+      void refreshRuntimeGlobalDebugContext().finally(() => {
+        void traceClientEvent("boot_client", {
+          role,
+          page: role === "sender" ? "sender.html" : "receiver.html",
+          runtime_mode: runtimeMode
+        });
       });
       showLocalRuntimeDebugAlert(9, `boot role=${role} mode=${runtimeMode}`);
       if (isRemoteDisplayMode) {

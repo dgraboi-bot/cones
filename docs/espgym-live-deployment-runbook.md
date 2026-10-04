@@ -487,13 +487,13 @@ Required rule going forward:
 1. `Enable local debugging` is stored only in the current browser or PWA and must never enable tracing on another device.
 2. `Enable global debugging` is an Admin-controlled server setting for short development investigations. A reloaded device reads it immediately; an already-open device follows it on its next normal refresh.
 3. Browser traces must be emitted only when local or global debugging is enabled. Disabled debugging must not write trace entries to the server log.
-4. Reserve debug source `A` for the development browser. While global debugging is enabled, other participating browsers receive short diagnostic labels beginning with `B`.
-5. Source labels are random diagnostic markers, not user identities or hardware fingerprints. Clear the global switch after the investigation; this also clears its temporary non-development source assignments.
+4. Reserve debug source `A` for the development browser. While global debugging is enabled, launcher and runtime pages share one browser-local key and other participating browsers receive short diagnostic labels beginning with `B`.
+5. Source labels are random diagnostic markers, not user identities or hardware fingerprints. Non-development assignments expire after 30 inactive minutes so long investigations cannot exhaust the available labels. Clear the global switch after the investigation; this also clears its temporary non-development source assignments.
 6. Do not let debugging delay, block, or change normal user navigation or trial behavior.
 
 Practical meaning:
 
-- `A` can identify the development PC while `B` identifies iPad Safari and `C` identifies iPhone Safari in the shared server trace.
+- `A` can identify the development PC while `B` identifies iPad Safari and `C` identifies iPhone Safari in the shared server trace. The live-debug reader includes runtime startup and Covered Screen traces as well as launcher traces.
 - Turning global debugging off and reloading a device stops its client tracing immediately.
 - Clearing browser site data can result in a new non-development diagnostic label during a later global-debug session, which is expected.
 

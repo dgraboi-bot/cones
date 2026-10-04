@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003h";
+  const launcherBuildVersion = "20261003i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -34054,6 +34054,15 @@ ${calmPracticeMessage}`;
     });
   }
 
+  function resetCoveredScreenInstructionForNewSession() {
+    try {
+      // This acknowledgement is scoped to one ESP GYM run, not the browser tab.
+      window.sessionStorage.removeItem(coveredScreenInstructionDismissKey);
+    } catch (_) {
+      // Ignore transient session-storage failures.
+    }
+  }
+
   async function handleInstallRequest() {
     const browser = detectMobileBrowser();
     const requiresInstallIdentity = !publicLandingMode.espProSpecialEditionEnabled;
@@ -34823,6 +34832,7 @@ ${calmPracticeMessage}`;
     });
     showLocalLauncherDebugAlert(2, `target=${targetUrl}`);
     if (coveredScreenMode) {
+      resetCoveredScreenInstructionForNewSession();
       const confirmed = await confirmCoveredScreenInstructionBeforeLaunch();
       if (!confirmed) {
         pendingClairvoyanceGuidedTourOrigin = null;

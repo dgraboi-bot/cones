@@ -13,7 +13,11 @@ function assert(condition, message) {
 
 async function verifyCoveredScreenLaunch() {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  const androidContext = await browser.newContext({
+    viewport: { width: 412, height: 915 },
+    userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
+  });
+  const page = await androidContext.newPage();
   page.setDefaultTimeout(20000);
   page.setDefaultNavigationTimeout(20000);
 
@@ -135,6 +139,12 @@ async function verifyCoveredScreenLaunch() {
 
     await page.locator("#countdownBox").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("At the end of the countdown"));
+    const coveredTargetImage = page.locator("#receiverImageDisplayPanel.visible .image-display-asset");
+    await coveredTargetImage.waitFor({ state: "visible" });
+    assert(
+      (await coveredTargetImage.getAttribute("src")).includes("imagepairs/"),
+      "Exercise 2 on Android must reveal a loaded target image after the countdown."
+    );
     await page.locator("#guidedTourNextButton").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("Look into your mind's eye carefully"));
     await page.locator("#guidedTourProbeButton").click();
@@ -158,7 +168,11 @@ async function verifyCoveredScreenLaunch() {
       "Exiting a Covered Screen tour must reset its session-only instruction dismissal."
     );
 
-    const unsavedPage = await browser.newPage();
+    const freshSessionAndroidContext = await browser.newContext({
+      viewport: { width: 412, height: 915 },
+      userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
+    });
+    const unsavedPage = await freshSessionAndroidContext.newPage();
     unsavedPage.setDefaultTimeout(20000);
     unsavedPage.setDefaultNavigationTimeout(20000);
     await unsavedPage.goto(`${baseUrl}?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
@@ -180,6 +194,10 @@ async function verifyCoveredScreenLaunch() {
     });
     await unsavedPage.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
     await unsavedPage.locator('[data-remote-viewer-experience="practice-unsaved"]').evaluate((input) => input.click());
+    await unsavedPage.locator('[data-role-difficulty-bump="remote-viewer"][data-direction="up"]').evaluate((button) => button.click());
+    await unsavedPage.waitForFunction(() => (
+      document.querySelector('[data-role-identifier-note="remote-viewer"]')?.textContent?.includes("In Exercise 2")
+    ));
     const unsavedLaunchUrls = [];
     unsavedPage.on("framenavigated", (frame) => {
       if (frame === unsavedPage.mainFrame()) {
@@ -187,11 +205,28 @@ async function verifyCoveredScreenLaunch() {
       }
     });
     await unsavedPage.locator('[data-remote-viewer-go]').evaluate((button) => button.click());
+    const newSessionInstruction = unsavedPage.locator('[data-covered-screen-instruction-overlay]');
+    await newSessionInstruction.waitFor({ state: "visible" });
+    assert(
+      await unsavedPage.evaluate(() => sessionStorage.getItem("cones-covered-screen-instruction-dismiss-v1") === null),
+      "A new Covered Screen session must clear an earlier session-only acknowledgement dismissal."
+    );
+    await newSessionInstruction.getByRole("button", { name: "OK" }).click();
     await unsavedPage.waitForURL(/receiver\.html/);
     const unsavedLaunchUrl = unsavedLaunchUrls.find((url) => url.includes("receiver.html?")) || "";
     assert(unsavedLaunchUrl.includes("save_results=0"), `Unsaved practice must explicitly disable result storage at launch: ${unsavedLaunchUrl}`);
     assert(!unsavedLaunchUrl.includes("guided_tour="), "Unsaved practice must not be converted into a guided tour.");
-    await unsavedPage.close();
+    await unsavedPage.waitForFunction(() => (
+      document.querySelector("#countdownNumber")?.textContent === "Press when ready."
+    ));
+    await unsavedPage.locator("#countdownBox").click();
+    const secondSessionTargetImage = unsavedPage.locator("#receiverImageDisplayPanel.visible .image-display-asset");
+    await secondSessionTargetImage.waitFor({ state: "visible" });
+    assert(
+      (await secondSessionTargetImage.getAttribute("src")).includes("imagepairs/"),
+      "A new Android Exercise 2 session must display its target image after the countdown."
+    );
+    await freshSessionAndroidContext.close();
 
     const recognizedPage = await browser.newPage();
     recognizedPage.setDefaultTimeout(20000);
@@ -227,6 +262,7 @@ async function verifyCoveredScreenLaunch() {
     await recognizedPage.close();
 
   } finally {
+    await androidContext.close();
     await browser.close();
   }
 }
@@ -457,8 +493,8 @@ function verifyRuntimeGuards() {
     "Clairvoyance explanation clearing must remain disabled."
   );
   assert(
-    /if \(coveredScreenMode\) \{\s+const confirmed = await confirmCoveredScreenInstructionBeforeLaunch\(\);/.test(launcherSource),
-    "Anonymous Covered Screen tours must display the instruction modal before launch."
+    /if \(coveredScreenMode\) \{\s+resetCoveredScreenInstructionForNewSession\(\);\s+const confirmed = await confirmCoveredScreenInstructionBeforeLaunch\(\);/.test(launcherSource),
+    "Every new Covered Screen session must reset its acknowledgement before displaying the instruction modal."
   );
   const coveredContinueStart = runtimeSource.indexOf('if (mode === "continue") {\n        if (isRemoteViewerCoveredMode) {');
   const coveredContinueEnd = runtimeSource.indexOf("        } else if (isRobotSenderLikeMode)", coveredContinueStart);

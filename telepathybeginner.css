@@ -935,6 +935,33 @@ html.espgym-build-recovery-active body {
   backdrop-filter: blur(4px);
 }
 
+/* Keep the Clairvoyance master label clear of its two outer navigation pills. */
+.beginner-view[data-view="clairvoyance-viewing"] > .clairvoyance-top-row:first-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    "kicker kicker kicker"
+    "learn . back";
+  row-gap: 6px;
+  min-height: 0;
+}
+
+.beginner-view[data-view="clairvoyance-viewing"] > .clairvoyance-top-row:first-child .beginner-kicker {
+  grid-area: kicker;
+}
+
+.beginner-view[data-view="clairvoyance-viewing"] > .clairvoyance-top-row:first-child .beginner-top-button-left {
+  position: static;
+  grid-area: learn;
+  justify-self: start;
+}
+
+.beginner-view[data-view="clairvoyance-viewing"] > .clairvoyance-top-row:first-child .beginner-top-button-right {
+  position: static;
+  grid-area: back;
+  justify-self: end;
+}
+
 .beginner-view[data-view="online-course"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="visualization"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
 .beginner-view[data-view="feature-setup"]:not(.beginner-view-hidden) > .beginner-top-row:first-child,
@@ -2849,6 +2876,21 @@ button.remote-viewer-save-results-cancel {
   line-height: 1.02;
 }
 
+@media (min-width: 481px) {
+  /* Put Exercise beside "Remote View" instead of making the header as tall as a vertical spinner. */
+  .role-card.active[data-role-card="remote-viewer"] .role-card-level-stack {
+    min-width: 0;
+    align-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .role-card.active[data-role-card="remote-viewer"] .role-level-bump {
+    flex: 0 0 auto;
+  }
+}
+
 .role-card-level.is-guided-preview {
   color: #fff4e1;
   text-shadow:
@@ -3934,8 +3976,9 @@ body.remote-device-setup-open {
 
 .report-pair-trigger-text {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
   white-space: pre;
 }
 
@@ -5894,7 +5937,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261003h") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261003i") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
