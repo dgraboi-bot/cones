@@ -2891,6 +2891,36 @@ button.remote-viewer-save-results-cancel {
   }
 }
 
+@media (min-width: 900px) {
+  /* The master card does not need reserved space for controls shown only after expansion. */
+  .role-card[data-role-card="remote-viewer"]:not(.active) .role-card-header {
+    grid-template-columns: minmax(240px, auto) minmax(0, 1fr) auto;
+    grid-template-areas: "title tagline level";
+    gap: 10px;
+    padding-block: 12px;
+  }
+
+  .role-card[data-role-card="remote-viewer"]:not(.active) .role-card-remote-view-badge {
+    display: none;
+  }
+
+  /* Reserve enough width for the two-line title, then align Exercise with its lower line. */
+  .role-card.active[data-role-card="remote-viewer"] .role-card-header {
+    grid-template-columns: minmax(220px, auto) minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "title tagline mode level back";
+    gap: 10px;
+    padding-block: 6px;
+  }
+
+  .role-card.active[data-role-card="remote-viewer"] .role-card-toggle {
+    min-width: 220px;
+  }
+
+  .role-card.active[data-role-card="remote-viewer"] .role-card-tagline {
+    min-width: 0;
+  }
+}
+
 .role-card-level.is-guided-preview {
   color: #fff4e1;
   text-shadow:
@@ -4064,6 +4094,7 @@ body.remote-device-setup-open {
 .report-pair-menu-options {
   max-height: 320px;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .report-pair-option {
@@ -4076,6 +4107,13 @@ body.remote-device-setup-open {
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+/* Keep long report names intact; the list itself scrolls horizontally when needed. */
+.report-pair-menu-options .report-pair-option {
+  width: max-content;
+  min-width: 100%;
+  grid-template-columns: minmax(max-content, 1fr) 104px;
 }
 
 .report-pair-option:last-child {
@@ -4094,8 +4132,8 @@ body.remote-device-setup-open {
 
 .report-pair-option-value {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .report-pair-menu-header span:last-child,
@@ -5937,7 +5975,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261003i") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261003j") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

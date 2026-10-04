@@ -52,7 +52,7 @@
   const remoteDisplayReadyHeartbeatMs = 10000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261003i";
+  const runtimeBuildVersion = "20261003j";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -114,7 +114,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261003i";
+  const launcherBuildVersion = "20261003j";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -7487,7 +7487,10 @@
       activeRound = null;
       if (mode === "continue") {
         if (isRemoteViewerCoveredMode) {
-          receiverReady = true;
+          // Continue Session returns the viewer to the deliberate ready prompt.
+          // Keeping this false prevents the heartbeat from treating the next
+          // trial as already started and hiding that prompt on touch devices.
+          receiverReady = false;
           currentUiMode = "receiver-ready";
           countdownBox.classList.add("hidden");
           updateSettingsGearVisibility();

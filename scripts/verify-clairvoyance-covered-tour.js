@@ -11,6 +11,23 @@ function assert(condition, message) {
   }
 }
 
+async function assertLoadedTargetImage(locator, message) {
+  await locator.waitFor({ state: "visible" });
+  const imageState = await locator.evaluate((image) => ({
+    src: image.getAttribute("src") || "",
+    complete: image.complete,
+    naturalWidth: image.naturalWidth,
+    naturalHeight: image.naturalHeight
+  }));
+  assert(
+    imageState.src.includes("imagepairs/") &&
+      imageState.complete &&
+      imageState.naturalWidth > 0 &&
+      imageState.naturalHeight > 0,
+    `${message}: ${JSON.stringify(imageState)}`
+  );
+}
+
 async function verifyCoveredScreenLaunch() {
   const browser = await chromium.launch({ headless: true });
   const androidContext = await browser.newContext({
@@ -140,10 +157,9 @@ async function verifyCoveredScreenLaunch() {
     await page.locator("#countdownBox").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("At the end of the countdown"));
     const coveredTargetImage = page.locator("#receiverImageDisplayPanel.visible .image-display-asset");
-    await coveredTargetImage.waitFor({ state: "visible" });
-    assert(
-      (await coveredTargetImage.getAttribute("src")).includes("imagepairs/"),
-      "Exercise 2 on Android must reveal a loaded target image after the countdown."
+    await assertLoadedTargetImage(
+      coveredTargetImage,
+      "Exercise 2 on Android must reveal a decoded target image after the countdown"
     );
     await page.locator("#guidedTourNextButton").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("Look into your mind's eye carefully"));
@@ -211,6 +227,12 @@ async function verifyCoveredScreenLaunch() {
       await unsavedPage.evaluate(() => sessionStorage.getItem("cones-covered-screen-instruction-dismiss-v1") === null),
       "A new Covered Screen session must clear an earlier session-only acknowledgement dismissal."
     );
+    const newSessionCheckbox = newSessionInstruction.locator('[data-covered-screen-instruction-checkbox]');
+    await newSessionCheckbox.check();
+    assert(
+      await newSessionCheckbox.isChecked(),
+      "The Covered Screen instruction acknowledgement must retain its in-session dismissal choice."
+    );
     await newSessionInstruction.getByRole("button", { name: "OK" }).click();
     await unsavedPage.waitForURL(/receiver\.html/);
     const unsavedLaunchUrl = unsavedLaunchUrls.find((url) => url.includes("receiver.html?")) || "";
@@ -221,10 +243,36 @@ async function verifyCoveredScreenLaunch() {
     ));
     await unsavedPage.locator("#countdownBox").click();
     const secondSessionTargetImage = unsavedPage.locator("#receiverImageDisplayPanel.visible .image-display-asset");
-    await secondSessionTargetImage.waitFor({ state: "visible" });
+    await assertLoadedTargetImage(
+      secondSessionTargetImage,
+      "A new Android Exercise 2 session must display a decoded target image after the countdown"
+    );
+
+    // The acknowledgement stays suppressed only for this one run.  A second
+    // trial must still display its next Exercise 2 target after Continue Session.
+    await unsavedPage.locator("#receiverImageDisplayPanel").click();
+    const firstRoundChoices = unsavedPage.locator("#receiverLevelFourChoiceGrid.visible .image-choice-card");
+    await firstRoundChoices.first().waitFor({ state: "visible" });
+    await firstRoundChoices.first().click();
+    const continueSessionButton = unsavedPage.getByRole("button", { name: "Continue Session" });
+    await continueSessionButton.waitFor({ state: "visible" });
+    await continueSessionButton.click();
+    await unsavedPage.waitForFunction(() => (
+      document.querySelector("#countdownNumber")?.textContent === "Press when ready."
+    ));
+    // Wait past the regular heartbeat. Before the regression fix, it hid the
+    // prompt and left Android on a blank screen before a human could tap it.
+    await unsavedPage.waitForTimeout(1500);
     assert(
-      (await secondSessionTargetImage.getAttribute("src")).includes("imagepairs/"),
-      "A new Android Exercise 2 session must display its target image after the countdown."
+      await unsavedPage.locator("#countdownBox").isVisible() &&
+        (await unsavedPage.locator("#countdownNumber").textContent()) === "Press when ready.",
+      "Continue Session must keep the Covered Screen ready prompt visible through the next heartbeat."
+    );
+    await unsavedPage.locator("#countdownBox").click();
+    const continuedSessionTargetImage = unsavedPage.locator("#receiverImageDisplayPanel.visible .image-display-asset");
+    await assertLoadedTargetImage(
+      continuedSessionTargetImage,
+      "A continued Android Exercise 2 trial must display a decoded target image after the countdown"
     );
     await freshSessionAndroidContext.close();
 
