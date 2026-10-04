@@ -28,6 +28,7 @@ $localPrivateContentRoot = "C:\xampp\telepathyexperiment_private\cones\content"
 $localDeploySyncBackupRoot = "C:\xampp\telepathyexperiment_private\cones\backup\deploy-live-managed-content-sync"
 $preparedReleaseRoot = "C:\xampp\telepathyexperiment_private\cones\release-prep"
 $preparedReleasePath = Join-Path $preparedReleaseRoot "prepared-release.json"
+$githubCheckpointPlanPath = Join-Path $preparedReleaseRoot "github-checkpoint-plan.json"
 $imagePairsRoot = Join-Path $repoRoot "imagepairs"
 $mirrorImagePairsRoot = Join-Path $mirrorRoot "imagepairs"
 $imagePairsSyncScript = Join-Path $PSScriptRoot "sync-imagepairs-from-live.ps1"
@@ -603,6 +604,17 @@ function Write-Utf8NoBomFile([string]$Path, [string]$Content) {
   [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
 }
 
+function Assert-WritableDirectory([string]$Directory, [string]$Purpose) {
+  try {
+    New-Item -ItemType Directory -Path $Directory -Force | Out-Null
+    $probePath = Join-Path $Directory (".write-probe-{0}.tmp" -f [guid]::NewGuid().ToString("N"))
+    [System.IO.File]::WriteAllText($probePath, "ok", (New-Object System.Text.UTF8Encoding($false)))
+    Remove-Item -LiteralPath $probePath -Force
+  } catch {
+    throw ("{0} requires write access to '{1}'. Grant the release helper access to that existing private directory, then rerun before any versioned files are changed. Details: {2}" -f $Purpose, $Directory, $_.Exception.Message)
+  }
+}
+
 function Get-RemoteLessonFileNames([string]$RemoteDirectory) {
   $remoteCommand = @"
 python3 - <<'PY'
@@ -982,6 +994,7 @@ if ($AllowDirty) {
 
 $changedFiles = Get-GitChangedFiles -RepoRoot $repoRoot -BaseRef $BaselineRef
 Assert-DeployCoverage $changedFiles
+Assert-WritableDirectory $preparedReleaseRoot "Release preparation"
 
 $vendorArchive = $null
 $vendorChanged = @($changedFiles | Where-Object {
@@ -1146,9 +1159,29 @@ $manifestJson = $manifest | ConvertTo-Json -Depth 6
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($preparedReleasePath, $manifestJson, $utf8NoBom)
 
+$checkpointExpectedHead = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $checkpointExpectedHead) {
+  throw "Git could not read the release checkpoint baseline."
+}
+$checkpointPlan = [ordered]@{
+  schema = 1
+  state = "awaiting_live_verification"
+  ready = $false
+  version = $Version
+  repository = $repoRoot
+  expectedHead = $checkpointExpectedHead
+  commitMessage = "Release $Version"
+  files = @($changedFiles)
+  prepared_at = (Get-Date).ToString("o")
+  live_verified_at = $null
+  completed_at = $null
+}
+[System.IO.File]::WriteAllText($githubCheckpointPlanPath, ($checkpointPlan | ConvertTo-Json -Depth 4), $utf8NoBom)
+
 Write-Host ""
 Write-Host "Prepared release $Version" -ForegroundColor Green
 Write-Host "Prepared manifest: $preparedReleasePath" -ForegroundColor Green
+Write-Host "GitHub checkpoint plan: $githubCheckpointPlanPath (waiting for live verification; do not run the checkpoint yet)" -ForegroundColor Yellow
 Write-Host "Mirror synced: $mirrorRoot" -ForegroundColor Green
 Write-Host ("Changed live deploy file count: {0} of {1}" -f $manifest.changed_deploy_files.Count, $manifest.deploy_files.Count) -ForegroundColor Green
 Write-Host ("Changed private managed-content file count: {0}" -f $manifest.changed_private_content_sync_files.Count) -ForegroundColor Green

@@ -17,7 +17,6 @@
   const stage = document.getElementById("stage");
   const homeLink = document.querySelector(".home-link");
   const waitingBackButton = document.getElementById("waitingBackButton");
-  const remoteDisplayPauseButton = document.getElementById("remoteDisplayPauseButton");
   const settingsGear = document.getElementById("settingsGear");
   const settingsScreen = document.getElementById("settingsScreen");
   const guidedTourOverlay = document.getElementById("guidedTourOverlay");
@@ -51,10 +50,9 @@
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
   const remoteDisplayIdleFadeMs = 15000;
-  const remoteDisplayControlsWakeMs = 60000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261004a";
+  const runtimeBuildVersion = "20261004b";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -95,9 +93,7 @@
   let remoteDisplayWakeLockRequestPending = false;
   let remoteDisplayReadyAnnounced = false;
   let remoteDisplayLastReadyError = "";
-  let remoteDisplayPaused = false;
   let remoteDisplayIdleFadeTimer = 0;
-  let remoteDisplayControlsWakeTimer = 0;
   let remoteDisplayStandbyDimmed = false;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteViewerCoveredMode = runtimeMode === "remote-viewer-covered";
@@ -119,7 +115,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261004a";
+  const launcherBuildVersion = "20261004b";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1607,7 +1603,7 @@
     }
     if (role === "sender") {
       return isRemoteDisplayMode
-        ? "Waiting for remote viewer to be online...\n\nScreen remains blank except to display the remote image at the correct time. Tap blank screen to wake it up."
+        ? "Waiting for remote viewer to be online...\n\nScreen remains blank except to display the remote image at the correct time. Tap blank screen to return to Remote Device Setup."
         : "Waiting for receiver to be online...";
     }
 
@@ -4037,10 +4033,6 @@
       window.clearTimeout(remoteDisplayIdleFadeTimer);
       remoteDisplayIdleFadeTimer = 0;
     }
-    if (remoteDisplayControlsWakeTimer) {
-      window.clearTimeout(remoteDisplayControlsWakeTimer);
-      remoteDisplayControlsWakeTimer = 0;
-    }
   }
 
   function setRemoteDisplayStandbyDimmed(dimmed) {
@@ -4052,7 +4044,7 @@
   }
 
   function isRemoteDisplayStandbyState() {
-    return isRemoteDisplayMode && !remoteDisplayPaused && currentUiMode === "sender-waiting-online";
+    return isRemoteDisplayMode && currentUiMode === "sender-waiting-online";
   }
 
   function scheduleRemoteDisplayStandbyDimming(delayMs = remoteDisplayIdleFadeMs) {
@@ -4068,47 +4060,12 @@
     }, delayMs);
   }
 
-  async function requestRemoteDisplayFullscreenFromGesture() {
-    if (!isRemoteDisplayMode || document.fullscreenElement || !document.documentElement.requestFullscreen) {
-      return;
-    }
-    try {
-      await document.documentElement.requestFullscreen();
-      void logDebugEvent("remote_display_fullscreen_entered");
-    } catch (error) {
-      void logDebugEvent("remote_display_fullscreen_unavailable", {
-        message: error instanceof Error ? error.message : "Fullscreen request failed."
-      });
-    }
-  }
-
-  function revealRemoteDisplayStandbyControls(options = {}) {
-    if (!isRemoteDisplayStandbyState()) {
-      return;
-    }
-    clearRemoteDisplayStandbyTimers();
-    setRemoteDisplayStandbyDimmed(false);
-    if (options.requestFullscreen) {
-      void requestRemoteDisplayFullscreenFromGesture();
-    }
-    const wakeForMs = Number(options.wakeForMs ?? remoteDisplayControlsWakeMs);
-    if (wakeForMs > 0) {
-      remoteDisplayControlsWakeTimer = window.setTimeout(() => {
-        remoteDisplayControlsWakeTimer = 0;
-        if (isRemoteDisplayStandbyState()) {
-          setRemoteDisplayStandbyDimmed(true);
-        }
-      }, wakeForMs);
-    }
-  }
-
   function prepareRemoteDisplayTargetPresentation() {
     if (!isRemoteDisplayMode) {
       return;
     }
     clearRemoteDisplayStandbyTimers();
     setRemoteDisplayStandbyDimmed(false);
-    setRemoteDisplayPauseButton({ visible: false });
     stage?.classList.add("remote-display-target-presenting");
   }
 
@@ -4117,22 +4074,17 @@
       return;
     }
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest("#remoteDisplayPauseButton, #settingsGear, a, button, input, select, textarea")) {
+    if (target?.closest("#settingsGear, a, button, input, select, textarea")) {
       return;
     }
-    if (remoteDisplayStandbyDimmed) {
-      revealRemoteDisplayStandbyControls({ requestFullscreen: true });
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: "espgym-remote-display-standby-exit" }, window.location.origin);
       return;
     }
-    clearRemoteDisplayStandbyTimers();
-    setRemoteDisplayStandbyDimmed(true);
+    window.location.href = `telepathybeginner.html?v=${runtimeBuildVersion}&open=remote-device`;
   }
 
   function showRemoteDisplayStandbyState() {
-    if (remoteDisplayPaused) {
-      showRemoteDisplayPausedState();
-      return;
-    }
     appExited = false;
     senderHoldingResult = false;
     senderTrialBackSuppressed = false;
@@ -4159,16 +4111,6 @@
     void syncState();
   }
 
-  function setRemoteDisplayPauseButton(options = {}) {
-    if (!remoteDisplayPauseButton) {
-      return;
-    }
-    const visible = !!options.visible;
-    remoteDisplayPauseButton.classList.toggle("hidden", !visible);
-    remoteDisplayPauseButton.disabled = !!options.disabled;
-    remoteDisplayPauseButton.textContent = options.label || "Pause Remote Device";
-  }
-
   function stopRuntimeHeartbeat() {
     if (runtimeHeartbeatTimer) {
       window.clearInterval(runtimeHeartbeatTimer);
@@ -4177,11 +4119,11 @@
   }
 
   function startRuntimeHeartbeat() {
-    if (runtimeHeartbeatTimer || (isRemoteDisplayMode && remoteDisplayPaused)) {
+    if (runtimeHeartbeatTimer) {
       return;
     }
     runtimeHeartbeatTimer = window.setInterval(() => {
-      if (!settingsOpen && hasRequiredSettings() && !(isRemoteDisplayMode && remoteDisplayPaused)) {
+      if (!settingsOpen && hasRequiredSettings()) {
         void syncState();
       }
     }, heartbeatMs);
@@ -4192,42 +4134,6 @@
       window.clearInterval(remoteDisplayReadyHeartbeatTimer);
       remoteDisplayReadyHeartbeatTimer = 0;
     }
-  }
-
-  function showRemoteDisplayPausedState() {
-    if (!isRemoteDisplayMode) {
-      return;
-    }
-    remoteDisplayPaused = true;
-    clearRemoteDisplayStandbyTimers();
-    setRemoteDisplayStandbyDimmed(false);
-    stopRuntimeHeartbeat();
-    stopRemoteDisplayReadyHeartbeat();
-    releaseRemoteDisplayWakeLock();
-    appExited = false;
-    senderHoldingResult = false;
-    senderTrialBackSuppressed = false;
-    receiverReady = false;
-    awaitingReceiverDone = false;
-    receiverChoiceOpen = false;
-    localRoundRunning = false;
-    roundScheduled = false;
-    confidenceScreenOpen = false;
-    instructionScreenOpen = false;
-    receiverMirrorPhase = "idle";
-    postRoundChoiceSubmitted = false;
-    postRoundClearPending = false;
-    activeRound = null;
-    currentUiMode = "remote-display-paused";
-    hideStage();
-    hideChoiceGrid();
-    hideConfidencePanel();
-    hideInstructionPanel();
-    hideDecisionPanel();
-    hideMessagePanel();
-    setPrompt("Remote Device Paused", false);
-    updateSettingsGearVisibility();
-    setRemoteDisplayPauseButton({ visible: true, label: "Resume Remote Device" });
   }
 
   function showExitedState() {
@@ -4769,63 +4675,8 @@
     };
   }
 
-  async function setRemoteDisplayPausedOnServer(paused) {
-    const setup = readRemoteDisplaySetup();
-    if (!setup.ownerName || !setup.deviceName || !/^[a-f0-9]{64}$/i.test(setup.controlToken)) {
-      throw new Error("This remote device is not fully registered.");
-    }
-    const response = await fetch("api.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "set_remote_display_device_pause_state",
-        owner_identifier: setup.ownerName,
-        device_name: setup.deviceName,
-        device_control_token: setup.controlToken,
-        paused: !!paused
-      })
-    });
-    const data = await response.json();
-    if (!response.ok || !data?.ok) {
-      throw new Error(String(data?.error || `Remote-device pause request failed with status ${response.status}`));
-    }
-    return data;
-  }
-
-  async function toggleRemoteDisplayPause() {
-    if (!isRemoteDisplayMode || remoteDisplayPauseButton?.disabled) {
-      return;
-    }
-    const pausing = !remoteDisplayPaused;
-    setRemoteDisplayPauseButton({
-      visible: true,
-      disabled: true,
-      label: pausing ? "Pausing Remote Device..." : "Resuming Remote Device..."
-    });
-    try {
-      await setRemoteDisplayPausedOnServer(pausing);
-      remoteDisplayPaused = pausing;
-      if (pausing) {
-        showRemoteDisplayPausedState();
-      } else {
-        remoteDisplayPaused = false;
-        remoteDisplayReadyAnnounced = false;
-        showRemoteDisplayStandbyState();
-        startRuntimeHeartbeat();
-      }
-    } catch (error) {
-      setRemoteDisplayPauseButton({
-        visible: currentUiMode === "sender-waiting-online" || remoteDisplayPaused,
-        label: remoteDisplayPaused ? "Resume Remote Device" : "Pause Remote Device"
-      });
-      void logDebugEvent("remote_display_pause_toggle_failed", {
-        message: error instanceof Error ? error.message : "Remote-device pause request failed."
-      });
-    }
-  }
-
   async function markRemoteDisplayReady() {
-    if (!isRemoteDisplayMode || remoteDisplayPaused) {
+    if (!isRemoteDisplayMode) {
       return;
     }
     const setup = readRemoteDisplaySetup();
@@ -4847,10 +4698,6 @@
       const data = await response.json();
       if (!response.ok || !data?.ok) {
         throw new Error(String(data?.error || `Remote-display readiness request failed with status ${response.status}`));
-      }
-      if (data?.remote_display_device?.is_paused) {
-        showRemoteDisplayPausedState();
-        return;
       }
       remoteDisplayLastReadyError = "";
       if (!remoteDisplayReadyAnnounced) {
@@ -4902,7 +4749,7 @@
         void logDebugEvent("remote_display_wake_lock_released", {
           visibility: document.visibilityState
         });
-        if (document.visibilityState === "visible" && !remoteDisplayPaused) {
+        if (document.visibilityState === "visible") {
           void requestRemoteDisplayWakeLock();
         }
       }, { once: true });
@@ -4925,7 +4772,7 @@
   }
 
   function handleRemoteDisplayVisibilityChange() {
-    if (!isRemoteDisplayMode || remoteDisplayPaused) {
+    if (!isRemoteDisplayMode) {
       return;
     }
     void logDebugEvent("remote_display_visibility_changed", {
@@ -4940,7 +4787,7 @@
   }
 
   function startRemoteDisplayReadyHeartbeat() {
-    if (!isRemoteDisplayMode || remoteDisplayPaused || remoteDisplayReadyHeartbeatTimer) {
+    if (!isRemoteDisplayMode || remoteDisplayReadyHeartbeatTimer) {
       return;
     }
     void markRemoteDisplayReady();
@@ -8431,7 +8278,7 @@
     currentUiMode = mode;
     currentUiModeEnteredAtMs = Date.now();
     if (isRemoteDisplayMode) {
-      if (mode === "sender-waiting-online" && !remoteDisplayPaused) {
+      if (mode === "sender-waiting-online") {
         scheduleRemoteDisplayStandbyDimming();
       } else {
         clearRemoteDisplayStandbyTimers();
@@ -8439,11 +8286,6 @@
       }
     }
     hideStage();
-    setRemoteDisplayPauseButton({
-      visible: isRemoteDisplayMode && mode === "sender-waiting-online" && !remoteDisplayPaused,
-      label: "Pause Remote Device"
-    });
-
     if (mode === "sender-waiting-online") {
       setPrompt(getWaitingOnlinePrompt(), false);
       updateSettingsGearVisibility();
@@ -8533,11 +8375,6 @@
     currentPairDifficultyLevel = normalizeDifficultyLevel(payload.pair_difficulty);
     if (settingsOpen && settingsAllowSecondChoiceCheckbox) {
       updateSecondChoiceSettingsControl(settingsAllowSecondChoiceCheckbox.checked);
-    }
-
-    if (isRemoteDisplayMode && payload.remote_display_paused) {
-      showRemoteDisplayPausedState();
-      return;
     }
 
     if (settingsOpen) {
@@ -8765,9 +8602,6 @@
   }
 
   async function syncState() {
-    if (isRemoteDisplayMode && remoteDisplayPaused) {
-      return;
-    }
     if (isLocalSimulationMode) {
       bootstrapRobotSimulation();
       applyRemoteState(buildRobotSimulationPayload());
@@ -8887,9 +8721,6 @@
       void abortTrialAndReturnHome({
         open: getLauncherReturnRole()
       });
-    });
-    remoteDisplayPauseButton?.addEventListener("click", () => {
-      void toggleRemoteDisplayPause();
     });
     homeLink?.addEventListener("click", (event) => {
       event.preventDefault();

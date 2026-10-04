@@ -3551,8 +3551,31 @@ button.remote-viewer-save-results-cancel {
   max-height: calc(100dvh - 40px);
 }
 
+.remote-device-instructions-dialog .remote-device-instructions-followup {
+  margin-top: 1em;
+}
+
 .remote-device-instructions-actions {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.remote-display-runtime-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: #000000;
+}
+
+.remote-display-runtime-shell.beginner-view-hidden {
+  display: none;
+}
+
+.remote-display-runtime-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000000;
 }
 
 html.remote-device-setup-open,
@@ -5975,7 +5998,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261004a") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261004b") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

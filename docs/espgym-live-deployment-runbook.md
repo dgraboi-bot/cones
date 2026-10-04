@@ -813,6 +813,21 @@ The wrapper resolves PowerShell 7 (`pwsh`) explicitly and starts both child stag
 7. verify a post-deploy live SHA-256 file audit
 8. verify the mirrored private managed-content set live
 
+## GitHub Checkpoint Handoff
+
+The desktop `ESP-GYM-GitHub-Checkpoint.cmd` must never be run based only on a verbal deployment summary. It reads one shared checkpoint plan from:
+
+- `C:\xampp\telepathyexperiment_private\cones\release-prep\github-checkpoint-plan.json`
+
+The release helpers control that plan as follows:
+
+1. `prepare-release.ps1` writes it as `awaiting_live_verification` and explicitly says not to run the desktop checkpoint yet.
+2. `push-live.ps1` changes it to `ready` only after the live shell and SHA-256 audits pass, then writes `CHECKPOINT PLAN READY` to the release log.
+3. The desktop checkpoint wrapper must report the exact plan state. A waiting plan means the live deployment has not finished; a completed plan means the checkpoint was already pushed.
+4. Before changing versioned files, preparation probes its existing private release-prep directory for write access. A denial must stop the release before any version bump and state the exact directory that needs access.
+
+Required rule going forward: tell the user to run the desktop checkpoint only after the release log contains `CHECKPOINT PLAN READY` for the matching version. If the plan is not ready, do not ask the user to retry the icon; inspect the plan state and the matching release log first.
+
 ## Changed-File Deployment Acceleration
 
 Ordinary releases must retain rollback and hash verification while avoiding needless transfer of unchanged assets.

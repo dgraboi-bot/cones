@@ -19,6 +19,7 @@ $powerShell7 = $powerShell7Command.Source
 if (-not $powerShell7) {
   throw "PowerShell 7 (pwsh) is required for reliable release preparation. Install PowerShell 7, then rerun this helper."
 }
+Write-Host ("Deployment runtime: PowerShell 7 at {0}" -f $powerShell7) -ForegroundColor DarkCyan
 
 if ($PrepareOnly -and $PushOnly) {
   throw "Use only one of -PrepareOnly or -PushOnly."

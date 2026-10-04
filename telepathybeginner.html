@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/esp-pro-og-preview.png">
-  <meta name="espgym-build-version" content="20261004a">
+  <meta name="espgym-build-version" content="20261004b">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -56,19 +56,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261004a">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261004b">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261004a">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261004a">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20261004a">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261004b">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261004b">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20261004b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261004a">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20261004a">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261004a">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261004b">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20261004b">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261004b">
   <script>
     (function () {
-      var buildVersion = "20261004a";
+      var buildVersion = "20261004b";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -506,13 +506,17 @@
       <div class="handle-overlay beginner-view-hidden remote-device-instructions-overlay" data-remote-device-instructions-overlay aria-hidden="true">
         <div class="handle-dialog remote-device-instructions-dialog" role="dialog" aria-modal="true" aria-labelledby="remoteDeviceInstructionsTitle">
           <h2 class="about-section-title" id="remoteDeviceInstructionsTitle">Remote Device Instructions</h2>
-          <p class="about-section-copy">When this device acts as a remote display device for ESP GYM Clairvoyance / Remote Viewing, a feature called &ldquo;wake lock&rdquo; is active, which prevents it from going to sleep as it might usually do when left alone, according to its set sleep timeout. It will still go to sleep if its battery gets too low, but this does not happen while it is plugged in to its charger. If you plan to keep it on for long enough to deplete the battery, plug it in to its charger.</p>
-          <p class="about-section-copy">While operating as a remote ESP GYM display, the screen is normally <strong>COMPLETELY BLANK</strong> except when it displays an image to be viewed clairvoyantly. To <strong>UNBLANK THE SCREEN</strong>, simply <strong>TAP IT</strong>. It automatically fades to blank after one minute, or tap it again to blank it.</p>
+          <p class="about-section-copy">When this device acts as a remote display device for ESP GYM, the screen is prevented from going to sleep as usual when left alone. It will still go to sleep if its battery gets too low, but this doesn't happen while it is plugged in to its charger. If you plan to keep the remote device on long enough to deplete the battery, plug it in to its charger.</p>
+          <p class="about-section-copy remote-device-instructions-followup">While operating, the screen is normally <strong>COMPLETELY BLANK</strong> except when it displays an image to be viewed clairvoyantly. To <strong>UNBLANK THE SCREEN</strong>, simply <strong>TAP IT</strong>. It automatically fades to blank.</p>
           <div class="contact-actions remote-device-instructions-actions">
             <button class="options-button contact-action-button" type="button" data-close-remote-device-instructions>BACK</button>
           </div>
         </div>
       </div>
+
+      <section class="remote-display-runtime-shell beginner-view-hidden" data-remote-display-runtime-shell aria-hidden="true">
+        <iframe class="remote-display-runtime-frame" data-remote-display-runtime-frame title="ESP GYM Remote Device display"></iframe>
+      </section>
 
       <div class="handle-overlay beginner-view-hidden" data-device-reset-choice-overlay aria-hidden="true">
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="deviceResetChoiceTitle">
@@ -642,7 +646,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20261004a</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20261004b</span>
           </div>
         </div>
 
@@ -1635,9 +1639,6 @@
                         spellcheck="false"
                         data-remote-viewer-own
                       >
-                      <div class="remote-viewer-location-launch">
-                        <button class="role-location-exact" type="button" data-remote-viewer-pause hidden>Pause Remote</button>
-                      </div>
                       <div class="role-course-launch">
                         <button class="role-message-open role-course-open" type="button" data-open-online-course-direct="remote-viewer" data-tooltip="Quick link to the Learning Center" title="Quick link to the Learning Center">Learning Center</button>
                       </div>
@@ -2587,8 +2588,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261004a'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261004a'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261004b'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261004b'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3309,10 +3310,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20261004a"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261004b"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20261004a"></script>
-<script src="telepathybeginner.js?v=20261004a"></script>
+<script src="target-selection.js?v=20261004b"></script>
+<script src="telepathybeginner.js?v=20261004b"></script>
 </body>
 </html>
 

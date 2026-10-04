@@ -58,7 +58,7 @@ async function verifyRemoteDeviceInstructions() {
       );
       assert(
         instructionText.includes("COMPLETELY BLANK") && instructionText.includes("UNBLANK THE SCREEN"),
-        "Remote device instructions must explain the blank standby screen."
+        "Remote device instructions must explain how to unblank the standby screen."
       );
       await instructions.locator("[data-close-remote-device-instructions]").click();
       assert(await instructions.isHidden(), "Closing remote device instructions must return to the setup form.");
@@ -581,7 +581,13 @@ async function verifyRemoteDeviceContinueMarksReady() {
     const dialog = page.locator('[data-remote-device-setup-overlay]');
     await dialog.waitFor({ state: "visible" });
     await dialog.locator('[data-remote-device-confirm]').click();
-    await page.waitForURL(/sender\.html/);
+    const runtimeFrame = page.locator('[data-remote-display-runtime-frame]');
+    await runtimeFrame.waitFor({ state: "visible" });
+    await page.waitForFunction(() => {
+      const frame = document.querySelector('[data-remote-display-runtime-frame]');
+      return frame?.getAttribute("src")?.includes("sender.html");
+    });
+    assert(!/sender\.html/.test(page.url()), "CONTINUE must keep Remote Device Setup loaded around the remote runtime.");
     assert(
       readyRequest?.owner_identifier === "molly" &&
         readyRequest?.device_name === "dan's remote 2" &&
@@ -721,7 +727,7 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
           body: JSON.stringify({
             ok: true,
             remote_display_device: request.device_name === "dan's remote" && remoteDeviceReady
-              ? { device_name: "dan's remote", owner_identifier: "molly", is_ready: true, is_standby: true, is_paused: false }
+              ? { device_name: "dan's remote", owner_identifier: "molly", is_ready: true, is_standby: true }
               : null
           })
         });
@@ -1241,8 +1247,8 @@ async function verifyRemoteDisplayExerciseTwoRendersTarget() {
       "A remote target image must be centered in the Remote Device display."
     );
     assert(
-      await page.locator("#remoteDisplayPauseButton").isHidden(),
-      "The Remote Device pause control must be hidden while a target image is displayed."
+      await page.locator("#remoteDisplayPauseButton").count() === 0,
+      "The Remote Device pause control must not exist while a target image is displayed."
     );
   } finally {
     await browser.close();
@@ -1364,19 +1370,20 @@ function verifyPersistentRemoteDisplayImplementation() {
   );
   assert(
     runtimeSource.includes("remoteDisplayIdleFadeMs")
-      && runtimeSource.includes("remoteDisplayControlsWakeMs")
-      && runtimeSource.includes("function handleRemoteDisplayStandbyScreenTap"),
-    "A ready remote display must fade its static standby screen and wake its controls on a blank-screen tap."
+      && runtimeSource.includes("function handleRemoteDisplayStandbyScreenTap")
+      && runtimeSource.includes("espgym-remote-display-standby-exit"),
+    "A ready remote display must fade its static standby screen and return setup control to its parent on a tap."
   );
   assert(
-    runtimeSource.includes("function requestRemoteDisplayFullscreenFromGesture")
-      && runtimeSource.includes("remote_display_fullscreen_unavailable"),
-    "A Remote Device must make a best-effort fullscreen request from the user's blank-screen tap."
+    launcherSource.includes("function requestRemoteDeviceFullscreen()")
+      && launcherSource.includes("void requestRemoteDeviceFullscreen();")
+      && launcherSource.includes("function showRemoteDisplayRuntime(targetUrl)"),
+    "CONTINUE must request fullscreen before opening the embedded Remote Device runtime."
   );
   assert(
     runtimeSource.includes("function prepareRemoteDisplayTargetPresentation")
-      && runtimeSource.includes("setRemoteDisplayPauseButton({ visible: false })"),
-    "A Remote Device must hide its pause control while presenting a target."
+      && !runtimeSource.includes("remoteDisplayPauseButton"),
+    "A Remote Device must present targets without a pause control."
   );
   assert(
     runtimeStyles.includes(".stage.remote-display-target-presenting.visible")
@@ -1396,34 +1403,19 @@ function verifyPersistentRemoteDisplayImplementation() {
     "Remote-display sessions must have a direct completion-to-standby path."
   );
   assert(
-    launcherMarkup.includes('data-remote-viewer-pause hidden>Pause Remote</button>'),
-    "The Clairvoyance panel must replace its location button with the hidden remote-pause control."
+    launcherMarkup.includes('data-remote-display-runtime-shell')
+      && launcherMarkup.includes('data-remote-display-runtime-frame'),
+    "The Remote Device runtime must remain inside its same-origin fullscreen parent shell."
   );
   assert(
     launcherSource.includes('actionLabel: "LOCATION"'),
     "Setup Website Features must label its location action LOCATION."
   );
   assert(
-    launcherSource.includes("function pauseSelectedRemoteViewerDevice()")
-      && launcherSource.includes("Remote device ${deviceName} has been paused"),
-    "A ready remote device must be pausable from its viewer panel."
-  );
-  assert(
-    runtimeSource.includes("function showRemoteDisplayPausedState()")
-      && runtimeSource.includes("stopRuntimeHeartbeat();")
-      && runtimeSource.includes("stopRemoteDisplayReadyHeartbeat();")
-      && runtimeSource.includes("releaseRemoteDisplayWakeLock();"),
-    "Pausing a remote device must stop its network loops and release its wake lock."
-  );
-  assert(
-    runtimeSource.includes('label: "Resume Remote Device"')
-      && runtimeSource.includes('label: "Pause Remote Device"'),
-    "A paused remote device must offer an explicit one-tap resume control."
-  );
-  assert(
-    runtimeSource.includes('is_standby: currentUiMode === "sender-waiting-online"')
-      && launcherSource.includes("!!device?.is_standby"),
-    "Pause Remote must be limited to a remote device that is actually in standby."
+    !launcherSource.includes("pauseSelectedRemoteViewerDevice")
+      && !runtimeSource.includes("Pause Remote Device")
+      && !runtimeSource.includes("Resume Remote Device"),
+    "Pause and Resume must be removed from the viewer and Remote Device runtime."
   );
   assert(
     runtimeSource.includes('if (String(round?.stimulus_kind || "") === "image_pair") {')

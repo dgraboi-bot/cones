@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004a";
+  const launcherBuildVersion = "20261004b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -857,6 +857,8 @@
   const remoteDeviceSetupStatus = document.querySelector("[data-remote-device-setup-status]");
   const remoteDeviceConfirmButton = document.querySelector("[data-remote-device-confirm]");
   const remoteDeviceResetButton = document.querySelector("[data-remote-device-reset]");
+  const remoteDisplayRuntimeShell = document.querySelector("[data-remote-display-runtime-shell]");
+  const remoteDisplayRuntimeFrame = document.querySelector("[data-remote-display-runtime-frame]");
   const deviceResetChoiceOverlay = document.querySelector("[data-device-reset-choice-overlay]");
   const deviceResetRemoteButton = document.querySelector("[data-device-reset-remote]");
   const deviceResetKeepRemoteButton = document.querySelector("[data-device-reset-keep-remote]");
@@ -1198,7 +1200,6 @@
   const remoteViewerOwnMobileHint = document.querySelector("[data-remote-viewer-own-mobile-hint]");
   const remoteViewerPartnerMobileHint = document.querySelector("[data-remote-viewer-partner-mobile-hint]");
   const remoteViewerGoButton = document.querySelector("[data-remote-viewer-go]");
-  const remoteViewerPauseButton = document.querySelector("[data-remote-viewer-pause]");
   const remoteViewerOwnLabel = document.querySelector("[data-remote-viewer-own-label]");
   const remoteViewerPartnerLabel = document.querySelector("[data-remote-viewer-partner-label]");
   const remoteViewerExperienceInputs = Array.from(document.querySelectorAll("[data-remote-viewer-experience]"));
@@ -5622,19 +5623,6 @@ ${calmPracticeMessage}`;
     return parseApiResponse(response, `Remote-display readiness check failed with status ${response.status}`);
   }
 
-  async function pauseRemoteDisplayDevice(ownerName, deviceName) {
-    const response = await fetch("api.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "pause_remote_display_device",
-        owner_identifier: assertValidParticipantIdentifier(ownerName, "You", { required: true }),
-        device_name: assertValidParticipantIdentifier(deviceName, "Remote Device", { required: true })
-      })
-    });
-    return parseApiResponse(response, `Remote-device pause request failed with status ${response.status}`);
-  }
-
   async function fetchUserType(identifier) {
     const cleanIdentifier = assertValidParticipantIdentifier(identifier, "identifier");
     const response = await fetch("api.php", {
@@ -9396,6 +9384,80 @@ ${calmPracticeMessage}`;
     document.body?.classList.toggle("remote-device-setup-open", locked);
   }
 
+  let remoteDisplayRuntimeActive = false;
+  let remoteDisplayRuntimeReturning = false;
+
+  function isRemoteDeviceFullscreen() {
+    return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  async function requestRemoteDeviceFullscreen() {
+    const root = document.documentElement;
+    const request = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (isRemoteDeviceFullscreen() || typeof request !== "function") {
+      return false;
+    }
+    try {
+      const result = request === root.requestFullscreen
+        ? request.call(root, { navigationUI: "hide" })
+        : request.call(root);
+      await Promise.resolve(result);
+      void traceClientEvent("remote_display_parent_fullscreen_entered");
+      return true;
+    } catch (error) {
+      // The display still works in its embedded shell when fullscreen is unavailable.
+      void traceClientEvent("remote_display_parent_fullscreen_unavailable", {
+        message: error instanceof Error ? error.message : "Fullscreen request failed."
+      });
+      return false;
+    }
+  }
+
+  async function exitRemoteDeviceFullscreen() {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!isRemoteDeviceFullscreen() || typeof exit !== "function") {
+      return;
+    }
+    try {
+      await Promise.resolve(exit.call(document));
+    } catch (_) {
+      // A browser may already have exited fullscreen through its own UI.
+    }
+  }
+
+  function showRemoteDisplayRuntime(targetUrl) {
+    if (!remoteDisplayRuntimeShell || !remoteDisplayRuntimeFrame) {
+      window.location.href = targetUrl;
+      return;
+    }
+    remoteDisplayRuntimeActive = true;
+    remoteDisplayRuntimeReturning = false;
+    remoteDeviceSetupOverlay?.classList.add("beginner-view-hidden");
+    remoteDeviceSetupOverlay?.setAttribute("aria-hidden", "true");
+    remoteDeviceInstructionsOverlay?.classList.add("beginner-view-hidden");
+    remoteDeviceInstructionsOverlay?.setAttribute("aria-hidden", "true");
+    setRemoteDeviceSetupScrollLock(false);
+    remoteDisplayRuntimeShell.classList.remove("beginner-view-hidden");
+    remoteDisplayRuntimeShell.setAttribute("aria-hidden", "false");
+    remoteDisplayRuntimeFrame.src = targetUrl;
+  }
+
+  function returnRemoteDisplayRuntimeToSetup() {
+    if (!remoteDisplayRuntimeActive || remoteDisplayRuntimeReturning) {
+      return;
+    }
+    remoteDisplayRuntimeReturning = true;
+    remoteDisplayRuntimeActive = false;
+    if (remoteDisplayRuntimeFrame) {
+      remoteDisplayRuntimeFrame.src = "about:blank";
+    }
+    remoteDisplayRuntimeShell?.classList.add("beginner-view-hidden");
+    remoteDisplayRuntimeShell?.setAttribute("aria-hidden", "true");
+    void openRemoteDeviceSetupOverlay().finally(() => {
+      remoteDisplayRuntimeReturning = false;
+    });
+  }
+
   function openRemoteDeviceInstructionsOverlay() {
     remoteDeviceInstructionsOverlay?.classList.remove("beginner-view-hidden");
     remoteDeviceInstructionsOverlay?.setAttribute("aria-hidden", "false");
@@ -9563,6 +9625,9 @@ ${calmPracticeMessage}`;
     if (remoteDeviceConfirmButton) {
       remoteDeviceConfirmButton.disabled = true;
     }
+    // Fullscreen must be requested in this direct CONTINUE gesture. Navigating
+    // first would discard that browser-granted user activation.
+    void requestRemoteDeviceFullscreen();
     try {
       await markRemoteDisplayDeviceReady(ownerName, deviceName, readRemoteDisplaySetup().controlToken);
     } catch (error) {
@@ -9577,11 +9642,11 @@ ${calmPracticeMessage}`;
     persistLauncherRuntimeIdentity("sender", deviceName, ownerName, {
       device_location: getLocationForRuntimeState(state)
     });
-    window.location.href = buildTargetUrl("sender", deviceName, ownerName, {
+    showRemoteDisplayRuntime(buildTargetUrl("sender", deviceName, ownerName, {
       runtimeMode: "remote-display",
       remoteDisplayDevice: true,
       difficultyLevel: getDifficultyLocalLevel("remote-viewer")
-    });
+    }));
   }
 
   async function resetRemoteDeviceSetup() {
@@ -15787,12 +15852,10 @@ ${calmPracticeMessage}`;
 
   async function refreshRemoteViewerRemoteDeviceAvailability(state = readLauncherState()) {
     if (!remoteViewerPartnerInput || readRemoteViewSimulationMode(state) !== "remote-device") {
-      updateRemoteViewerPauseControl(null, state);
       return;
     }
     const deviceName = String(remoteViewerPartnerInput.value || "").trim();
     if (!deviceName || isRemoteDeviceNameRequiredDisplay(deviceName)) {
-      updateRemoteViewerPauseControl(null, state);
       return;
     }
 
@@ -15807,51 +15870,10 @@ ${calmPracticeMessage}`;
         if (nextState) {
           void persistRemoteViewerLauncherProfile(nextState);
         }
-        updateRemoteViewerPauseControl(null, state);
         return;
       }
-      updateRemoteViewerPauseControl(device, state);
     } catch (_) {
       // Keep the current device name during a temporary availability failure.
-    }
-  }
-
-  function updateRemoteViewerPauseControl(device = null, state = readLauncherState()) {
-    if (!remoteViewerPauseButton) {
-      return;
-    }
-    const canPause =
-      readRemoteViewSimulationMode(state) === "remote-device" &&
-      isRecognizedRemoteViewerUser(state) &&
-      !!device?.is_ready &&
-      !!device?.is_standby &&
-      !device?.is_paused;
-    remoteViewerPauseButton.hidden = !canPause;
-    remoteViewerPauseButton.disabled = !canPause;
-  }
-
-  async function pauseSelectedRemoteViewerDevice() {
-    const state = readLauncherState();
-    const ownerName = String(getCanonicalRecognizedIdentity(state) || "").trim();
-    const deviceName = String(remoteViewerPartnerInput?.value || "").trim();
-    if (
-      !ownerName ||
-      !deviceName ||
-      isRemoteDeviceNameRequiredDisplay(deviceName) ||
-      readRemoteViewSimulationMode(state) !== "remote-device"
-    ) {
-      return;
-    }
-    if (remoteViewerPauseButton) {
-      remoteViewerPauseButton.disabled = true;
-    }
-    try {
-      await pauseRemoteDisplayDevice(ownerName, deviceName);
-      updateRemoteViewerPauseControl(null, state);
-      window.alert(`Remote device ${deviceName} has been paused`);
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Unable to pause the remote device.");
-      void refreshRemoteViewerRemoteDeviceAvailability(state);
     }
   }
 
@@ -15950,9 +15972,6 @@ ${calmPracticeMessage}`;
     if (remoteScreenOptions) {
       remoteScreenOptions.hidden = !remoteScreen;
       remoteScreenOptions.toggleAttribute("hidden", !remoteScreen);
-    }
-    if (!remoteScreen) {
-      updateRemoteViewerPauseControl(null, readLauncherState());
     }
     syncRemoteViewerExperienceControls(readLauncherState());
     logRemoteViewModeDebug("apply_presentation", {
@@ -34580,9 +34599,6 @@ ${calmPracticeMessage}`;
     scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
     void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
-  remoteViewerPauseButton?.addEventListener("click", () => {
-    void pauseSelectedRemoteViewerDevice();
-  });
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();
@@ -35862,6 +35878,23 @@ ${calmPracticeMessage}`;
   remoteDeviceInstructionsCloseButton?.addEventListener("click", () => {
     closeRemoteDeviceInstructionsOverlay();
   });
+  window.addEventListener("message", (event) => {
+    if (
+      event.origin !== window.location.origin ||
+      event.data?.type !== "espgym-remote-display-standby-exit" ||
+      event.source !== remoteDisplayRuntimeFrame?.contentWindow
+    ) {
+      return;
+    }
+    void exitRemoteDeviceFullscreen().finally(returnRemoteDisplayRuntimeToSetup);
+  });
+  const handleRemoteDeviceFullscreenChange = () => {
+    if (remoteDisplayRuntimeActive && !isRemoteDeviceFullscreen()) {
+      returnRemoteDisplayRuntimeToSetup();
+    }
+  };
+  document.addEventListener("fullscreenchange", handleRemoteDeviceFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", handleRemoteDeviceFullscreenChange);
   remoteDeviceSetupDialog?.addEventListener("click", (event) => event.stopPropagation());
   remoteDeviceInstructionsDialog?.addEventListener("click", (event) => event.stopPropagation());
   pushSetupInstallButton?.addEventListener("click", () => {

@@ -21,6 +21,7 @@ $snapshotPath = "$snapshotRoot/$snapshotName"
 $stageRoot = "/home/ec2-user/espgym_stage_{0}" -f $Version
 $preparedReleaseRoot = "C:\xampp\telepathyexperiment_private\cones\release-prep"
 $preparedReleasePath = Join-Path $preparedReleaseRoot "prepared-release.json"
+$githubCheckpointPlanPath = Join-Path $preparedReleaseRoot "github-checkpoint-plan.json"
 $releaseLogRoot = "C:\xampp\telepathyexperiment_private\cones\release-logs"
 $releaseLogRetentionCount = 30
 $releaseLogStamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -42,6 +43,31 @@ function Prune-LocalReleaseLogs {
     Remove-Item -LiteralPath $log.FullName -Force
   }
   return $staleLogs.Count
+}
+
+function Publish-VerifiedGitHubCheckpointPlan($Manifest) {
+  $repository = [string]$Manifest.repo_root
+  $expectedHead = (& git -C $repository rev-parse HEAD).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $expectedHead) {
+    throw "Git could not read the checkpoint baseline after live verification."
+  }
+
+  $checkpointPlan = [ordered]@{
+    schema = 1
+    state = "ready"
+    ready = $true
+    version = [string]$Manifest.version
+    repository = $repository
+    expectedHead = $expectedHead
+    commitMessage = "Release $($Manifest.version)"
+    files = @($Manifest.changed_files)
+    prepared_at = [string]$Manifest.prepared_at
+    live_verified_at = (Get-Date).ToString("o")
+    completed_at = $null
+  }
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($githubCheckpointPlanPath, ($checkpointPlan | ConvertTo-Json -Depth 4), $utf8NoBom)
+  Write-ReleaseLog ("CHECKPOINT PLAN READY: build {0}; run ESP-GYM-GitHub-Checkpoint.cmd once." -f $Manifest.version) "Green"
 }
 
 function Write-ReleaseLog([string]$Message, [string]$Color = "Gray") {
@@ -687,6 +713,7 @@ Assert-RemoteManagedLessonSetConsistent -RepoRootForCheck $manifestRepoRoot
 Assert-LiveShellVersion -ExpectedVersion $Version
 Set-LiveDeploymentStatus -State "ready" -Message "ESP GYM is ready."
 $script:releaseVerified = $true
+Publish-VerifiedGitHubCheckpointPlan $manifest
 Write-ReleaseLog "Phase 6/6: final live shell verification and cleanup" "Yellow"
 Invoke-PlinkStep "rm -rf '$stageRoot'" "remove remote stage root after successful deploy" -AllowEmptyOutput
 if ($vendorArchive) {
