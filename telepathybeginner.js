@@ -2,6 +2,7 @@
   try {
   const launcherKey = "cones-beginner-launcher-v2";
   const recognizedIdentityKey = "cones-recognized-identity-v1";
+  const browserIdentityAuthorizationKey = "cones-browser-identity-authorizations-v1";
   const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
   const launcherStateWriteLockKey = "cones-launcher-state-write-lock-v1";
   const launcherIdentityTimeoutBypassKey = "cones-launcher-identity-timeout-bypass-v1";
@@ -11,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004h";
+  const launcherBuildVersion = "20261004i";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1564,6 +1565,7 @@ ${calmPracticeMessage}`;
   let stripeCheckoutInFlight = false;
   let exploreProOverlayMode = "trial";
   let pendingRecoveryIdentifier = "";
+  let pendingRecoveryContext = "";
   let pendingUniqueNameClaim = null;
   let pendingApplePasskeySetup = null;
   let pendingApplePasskeyRestore = null;
@@ -2164,6 +2166,33 @@ ${calmPracticeMessage}`;
     localStorage.setItem(launcherKey, JSON.stringify(normalizedState));
   }
 
+  function readBrowserIdentityAuthorizations() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(browserIdentityAuthorizationKey) || "{}");
+      return saved && typeof saved === "object" ? saved : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function getBrowserIdentityAuthorizationToken(identifier) {
+    const key = normalizeIdentifierForStorage(identifier);
+    const token = String(readBrowserIdentityAuthorizations()?.[key] || "").trim();
+    return /^[a-f0-9]{64}$/i.test(token) ? token : "";
+  }
+
+  function rememberBrowserIdentityAuthorization(authorization) {
+    const identifier = String(authorization?.identifier || "").trim();
+    const token = String(authorization?.token || "").trim();
+    const key = normalizeIdentifierForStorage(identifier);
+    if (!key || !/^[a-f0-9]{64}$/i.test(token)) {
+      return;
+    }
+    const authorizations = readBrowserIdentityAuthorizations();
+    authorizations[key] = token;
+    localStorage.setItem(browserIdentityAuthorizationKey, JSON.stringify(authorizations));
+  }
+
   function setLauncherStateWriteLock(active) {
     try {
       if (active) {
@@ -2216,6 +2245,7 @@ ${calmPracticeMessage}`;
     try {
       localStorage.removeItem(launcherKey);
       localStorage.removeItem(recognizedIdentityKey);
+      localStorage.removeItem(browserIdentityAuthorizationKey);
       localStorage.removeItem(deviceTestRestoreSnapshotKey);
       localStorage.removeItem(stripeReturnIdentifierStorageKey);
       localStorage.removeItem(remoteDisplaySetupKey);
@@ -5573,10 +5603,18 @@ ${calmPracticeMessage}`;
 
   async function fetchRemoteDisplayDevicesForOwner(ownerName) {
     const cleanOwner = assertValidParticipantIdentifier(ownerName, "You", { required: true });
+    const ownerAuthorizationToken = getBrowserIdentityAuthorizationToken(cleanOwner);
+    if (!ownerAuthorizationToken) {
+      throw new Error("Please verify this unique name on this browser before using it for a remote display.");
+    }
     const response = await fetch("api.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "get_remote_display_devices_for_owner", owner_identifier: cleanOwner })
+      body: JSON.stringify({
+        action: "get_remote_display_devices_for_owner",
+        owner_identifier: cleanOwner,
+        owner_authorization_token: ownerAuthorizationToken
+      })
     });
     const data = await parseApiResponse(response, `Remote-device lookup failed with status ${response.status}`);
     return Array.isArray(data?.remote_display_devices) ? data.remote_display_devices : [];
@@ -5592,6 +5630,10 @@ ${calmPracticeMessage}`;
     if (!/^[a-f0-9]{64}$/i.test(cleanControlToken)) {
       throw new Error("This browser cannot securely register a remote device. Please reload and try again.");
     }
+    const ownerAuthorizationToken = getBrowserIdentityAuthorizationToken(cleanOwner);
+    if (!ownerAuthorizationToken) {
+      throw new Error("Please verify this unique name on this browser before using it for a remote display.");
+    }
     const response = await fetch("api.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -5599,7 +5641,8 @@ ${calmPracticeMessage}`;
         action: "claim_remote_display_device",
         owner_identifier: cleanOwner,
         proposed_device_name: cleanDevice,
-        device_control_token: cleanControlToken
+        device_control_token: cleanControlToken,
+        owner_authorization_token: ownerAuthorizationToken
       })
     });
     const data = await parseApiResponse(response, `Remote-device name request failed with status ${response.status}`);
@@ -5944,7 +5987,8 @@ ${calmPracticeMessage}`;
     const data = await parseApiResponse(response, `Unique handle request failed with status ${response.status}`);
     return {
       claim: data?.unique_handle || null,
-      status: data?.identifier_status || null
+      status: data?.identifier_status || null,
+      browserIdentityAuthorization: data?.browser_identity_authorization || null
     };
   }
 
@@ -9538,6 +9582,10 @@ ${calmPracticeMessage}`;
       remoteDeviceSetupActiveBlockName = "";
       return;
     }
+    if (!getBrowserIdentityAuthorizationToken(ownerName)) {
+      remoteDeviceSetupActiveBlockName = "";
+      return;
+    }
     try {
       const devices = await fetchRemoteDisplayDevicesForOwner(ownerName);
       const currentDeviceKey = normalizeIdentifierForStorage(deviceName);
@@ -9590,21 +9638,22 @@ ${calmPracticeMessage}`;
 
   function renderRemoteDeviceSetupControls(ownerName = "", deviceName = "", hasDeviceControlToken = false) {
     const hasOwner = !!String(ownerName || "").trim();
+    const hasAuthorizedOwner = hasOwner && !!getBrowserIdentityAuthorizationToken(ownerName);
     // A device field remains editable until its name has been accepted and
     // paired with this browser's control token.
     const hasDevice = !!String(deviceName || "").trim() && hasDeviceControlToken;
     if (remoteDeviceUserInput) {
       remoteDeviceUserInput.value = ownerName;
-      remoteDeviceUserInput.readOnly = hasOwner;
+      remoteDeviceUserInput.readOnly = hasAuthorizedOwner;
     }
     if (remoteDeviceNameInput) {
       remoteDeviceNameInput.value = deviceName;
       remoteDeviceNameInput.readOnly = hasDevice;
     }
-    if (remoteDeviceUserSubmitButton) remoteDeviceUserSubmitButton.hidden = hasOwner;
+    if (remoteDeviceUserSubmitButton) remoteDeviceUserSubmitButton.hidden = hasAuthorizedOwner;
     if (remoteDeviceNameSubmitButton) remoteDeviceNameSubmitButton.hidden = hasDevice;
     if (remoteDeviceConfirmButton) {
-      remoteDeviceConfirmButton.disabled = !(hasOwner && hasDevice) || !!remoteDeviceSetupActiveBlockName;
+      remoteDeviceConfirmButton.disabled = !(hasAuthorizedOwner && hasDevice) || !!remoteDeviceSetupActiveBlockName;
       remoteDeviceConfirmButton.textContent = "CONTINUE";
       remoteDeviceConfirmButton.dataset.ready = "false";
     }
@@ -9719,6 +9768,17 @@ ${calmPracticeMessage}`;
         throw new Error("Please fill in your unique recognized ESP GYM name.");
       }
       const canonicalOwner = String(status?.preferred_identifier || ownerName).trim();
+      if (!getBrowserIdentityAuthorizationToken(canonicalOwner)) {
+        if (!status?.auth_email_on_file) {
+          throw new Error(`To ensure security, first set up email authentication for ${canonicalOwner} on the browser/device where you currently use that name.`);
+        }
+        openExploreProOverlay({
+          mode: "recovery",
+          identifier: canonicalOwner,
+          recoveryContext: "remote-device"
+        });
+        return;
+      }
       rememberIdentifierStatus(ownerName, status);
       writeRemoteDisplaySetup(canonicalOwner, String(remoteDeviceNameInput?.value || "").trim(), readRemoteDisplaySetup().controlToken);
       renderRemoteDeviceSetupControls(
@@ -9954,6 +10014,32 @@ ${calmPracticeMessage}`;
       // A Clairvoyance-originated claim creates a recognized practice name
       // without asking an irrelevant partner-confirmation question. The
       // method is chosen later, only when the person starts human telepathy.
+      if (isRemoteViewerRole) {
+        let proposedStatus = null;
+        try {
+          proposedStatus = await fetchIdentifierStatus(proposedHandle);
+        } catch (_) {
+          proposedStatus = null;
+        }
+        if (proposedStatus?.formal_identity_exists) {
+          const existingIdentifier = String(proposedStatus.preferred_identifier || proposedHandle).trim();
+          if (!proposedStatus.auth_email_on_file) {
+            throw new Error(`To ensure security, first set up email authentication for ${existingIdentifier} on the browser/device where you currently use that name.`);
+          }
+          activeHandleRole = "";
+          handleOverlayReturnRole = "";
+          featureSetupPendingHandleFlow = "";
+          handleOverlay?.classList.add("beginner-view-hidden");
+          if (handleStatus) handleStatus.textContent = "";
+          if (handleInput) handleInput.value = "";
+          openExploreProOverlay({
+            mode: "recovery",
+            identifier: existingIdentifier,
+            recoveryContext: "remote-viewer"
+          });
+          return;
+        }
+      }
       const needsImmediatePartnerConfirmation = !isRemoteViewerRole && (firstClaimMode || detectMobileBrowser().isIOS);
       // Existing names continue through email recovery.
       if (needsImmediatePartnerConfirmation) {
@@ -10029,6 +10115,7 @@ ${calmPracticeMessage}`;
       }
       const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
+      rememberBrowserIdentityAuthorization(result?.browserIdentityAuthorization);
       if (result?.status) {
         rememberIdentifierStatus(currentIdentifier || acceptedHandle, result.status);
       }
@@ -30612,6 +30699,7 @@ ${calmPracticeMessage}`;
   function resetExploreProOverlay() {
     exploreProOverlayMode = "trial";
     pendingRecoveryIdentifier = "";
+    pendingRecoveryContext = "";
     pendingUniqueNameClaim = null;
     pendingApplePasskeySetup = null;
     if (exploreProTitle) {
@@ -30676,6 +30764,7 @@ ${calmPracticeMessage}`;
         : "trial";
     exploreProOverlayMode = mode;
     pendingRecoveryIdentifier = String(options.identifier || "").trim();
+    pendingRecoveryContext = mode === "recovery" ? String(options.recoveryContext || "").trim() : "";
     if (mode === "claim") {
       pendingUniqueNameClaim = options && typeof options === "object"
         ? {
@@ -30796,6 +30885,8 @@ ${calmPracticeMessage}`;
   }
 
   async function completeVerifiedRecovery(data, recoveredIdentifier) {
+    const recoveryContext = pendingRecoveryContext;
+    rememberBrowserIdentityAuthorization(data?.browser_identity_authorization);
     const userType = String(data?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
     const latestState = readLauncherState();
     const nextIdentityState = buildLauncherIdentityState(latestState, recoveredIdentifier, userType, {
@@ -30815,10 +30906,19 @@ ${calmPracticeMessage}`;
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
     closeExploreProOverlay();
+    if (recoveryContext === "remote-device") {
+      await openRemoteDeviceSetupOverlay();
+      return;
+    }
+    if (recoveryContext === "remote-viewer") {
+      showClairvoyanceViewingView();
+      return;
+    }
     window.location.href = buildCanonicalLauncherUrl({ open: "launcher" });
   }
 
   async function completeVerifiedClaim(data, claimContext) {
+    rememberBrowserIdentityAuthorization(data?.browser_identity_authorization);
     const acceptedHandle = String(data?.identifier || claimContext?.proposedHandle || "").trim();
     const currentIdentifier = String(claimContext?.currentIdentifier || "").trim();
     if (currentIdentifier && acceptedHandle) propagateClaimedHandle(currentIdentifier, acceptedHandle);
@@ -34781,6 +34881,24 @@ ${calmPracticeMessage}`;
     }
 
     if (!coveredScreenMode) {
+      if (!getBrowserIdentityAuthorizationToken(ownName)) {
+        try {
+          const status = await fetchIdentifierStatus(ownName);
+          const existingIdentifier = String(status?.preferred_identifier || ownName).trim();
+          if (status?.formal_identity_exists && status?.auth_email_on_file) {
+            openExploreProOverlay({
+              mode: "recovery",
+              identifier: existingIdentifier,
+              recoveryContext: "remote-viewer"
+            });
+          } else {
+            window.alert(`To ensure security, first set up email authentication for ${existingIdentifier} on the browser/device where you currently use that name.`);
+          }
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : "Unable to verify this unique name right now.");
+        }
+        return;
+      }
       await populateKnownRemoteDisplayDevice(readLauncherState());
       partnerName = String(remoteViewerPartnerInput?.value || "").trim();
     }

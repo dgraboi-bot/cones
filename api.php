@@ -1133,7 +1133,7 @@ function delete_user_identity_record(array &$state, string $identifier): array
         }
     }
 
-    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'partner_confirmation_preferences', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
+    foreach (['unique_handles', 'retired_handles', 'identifier_aliases', 'user_types', 'user_preferences', 'handle_owners', 'invitees', 'level_four_receiver_pools', 'identifier_recovery_verifications', 'unique_name_claim_verifications', 'browser_identity_authorizations', 'partner_confirmation_preferences', 'explore_pro_verifications', 'explore_pro_trials'] as $bucket) {
         if (!is_array($state[$bucket] ?? null)) {
             continue;
         }
@@ -1621,6 +1621,62 @@ function verify_identifier_recovery_code(array &$state, string $identifier, stri
         'identifier_status' => get_identifier_status($state, $preferredIdentifier),
         'user_type' => get_user_type_for_identifier($state, $preferredIdentifier)
     ];
+}
+
+function validate_browser_identity_authorization_token($value): string
+{
+    $token = strtolower(trim((string) $value));
+    if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+        throw new RuntimeException('Please verify this unique name on this browser before using it for a remote display.');
+    }
+    return $token;
+}
+
+function get_browser_identity_authorization_owner_key(array $state, string $identifier): string
+{
+    $status = get_identifier_status($state, $identifier);
+    $owner = trim((string) ($status['owner_identifier'] ?? $status['preferred_identifier'] ?? $identifier));
+    return get_handle_owner_key($owner);
+}
+
+function issue_browser_identity_authorization(array &$state, string $identifier, int $nowMs): array
+{
+    $ownerKey = get_browser_identity_authorization_owner_key($state, $identifier);
+    if ($ownerKey === '') {
+        throw new RuntimeException('Unable to authorize this browser for that unique name.');
+    }
+    if (!is_array($state['browser_identity_authorizations'] ?? null)) {
+        $state['browser_identity_authorizations'] = [];
+    }
+    $token = bin2hex(random_bytes(32));
+    $records = is_array($state['browser_identity_authorizations'][$ownerKey] ?? null)
+        ? $state['browser_identity_authorizations'][$ownerKey]
+        : [];
+    $records[hash('sha256', $token)] = [
+        'created_ms' => $nowMs,
+        'last_used_ms' => $nowMs
+    ];
+    uasort($records, static fn($left, $right): int => ((int) ($right['last_used_ms'] ?? 0)) <=> ((int) ($left['last_used_ms'] ?? 0)));
+    $state['browser_identity_authorizations'][$ownerKey] = array_slice($records, 0, 8, true);
+    $status = get_identifier_status($state, $identifier);
+    return [
+        'token' => $token,
+        'identifier' => trim((string) ($status['preferred_identifier'] ?? $identifier))
+    ];
+}
+
+function require_browser_identity_authorization(array &$state, string $identifier, $token, int $nowMs): void
+{
+    $ownerKey = get_browser_identity_authorization_owner_key($state, $identifier);
+    $tokenHash = hash('sha256', validate_browser_identity_authorization_token($token));
+    $records = is_array($state['browser_identity_authorizations'][$ownerKey] ?? null)
+        ? $state['browser_identity_authorizations'][$ownerKey]
+        : [];
+    if (!is_array($records[$tokenHash] ?? null)) {
+        throw new RuntimeException('Please verify this unique name on this browser before using it for a remote display.');
+    }
+    $records[$tokenHash]['last_used_ms'] = $nowMs;
+    $state['browser_identity_authorizations'][$ownerKey] = $records;
 }
 
 function build_unique_name_claim_verification_key(string $currentIdentifier, string $proposedHandle): string
@@ -6920,13 +6976,14 @@ function get_remote_display_devices_for_owner(array $state, string $ownerIdentif
     return $matches;
 }
 
-function claim_remote_display_device(array &$state, string $ownerIdentifier, string $proposedDeviceName, string $deviceControlToken, int $nowMs): array
+function claim_remote_display_device(array &$state, string $ownerIdentifier, string $proposedDeviceName, string $deviceControlToken, string $ownerAuthorizationToken, int $nowMs): array
 {
     $ownerStatus = get_identifier_status($state, $ownerIdentifier);
     $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
     if (!formal_identifier_exists($state, $owner) || empty($ownerStatus['uses_handle'])) {
         throw new RuntimeException('Please fill in your unique recognized ESP GYM name.');
     }
+    require_browser_identity_authorization($state, $owner, $ownerAuthorizationToken, $nowMs);
 
     $deviceName = trim(preg_replace('/\s+/', ' ', $proposedDeviceName) ?? '');
     if (!is_valid_handle_identifier($deviceName)) {
@@ -11726,6 +11783,7 @@ if (!is_array($state)) {
         'esp_lessons' => [],
         'identifier_recovery_verifications' => [],
         'unique_name_claim_verifications' => [],
+        'browser_identity_authorizations' => [],
         'user_preferences' => [],
         'invitees' => [],
         'email_list' => [],
@@ -11777,6 +11835,7 @@ if (!array_key_exists('sessions', $state)) {
         'esp_lessons' => [],
         'identifier_recovery_verifications' => [],
         'unique_name_claim_verifications' => [],
+        'browser_identity_authorizations' => [],
         'user_preferences' => [],
         'invitees' => [],
         'email_list' => [],
@@ -11832,6 +11891,9 @@ if (!is_array($state['identifier_recovery_verifications'] ?? null)) {
 }
 if (!is_array($state['unique_name_claim_verifications'] ?? null)) {
     $state['unique_name_claim_verifications'] = [];
+}
+if (!is_array($state['browser_identity_authorizations'] ?? null)) {
+    $state['browser_identity_authorizations'] = [];
 }
 if (!is_array($state['passkey_credentials'] ?? null)) {
     $state['passkey_credentials'] = [];
@@ -13379,11 +13441,13 @@ if ($action === 'verify_identifier_recovery_code') {
     }
 
     $passkeyEnrollmentGrant = issue_passkey_enrollment_grant($state, $result['identifier'], $nowMs);
+    $browserIdentityAuthorization = issue_browser_identity_authorization($state, $result['identifier'], $nowMs);
     $response = [
         'ok' => true,
         'identifier' => $result['identifier'],
         'identifier_status' => $result['identifier_status'],
         'user_type' => $result['user_type'],
+        'browser_identity_authorization' => $browserIdentityAuthorization,
         'passkey_enrollment_grant' => $passkeyEnrollmentGrant,
         'server_now_ms' => $nowMs
     ];
@@ -13465,11 +13529,13 @@ if ($action === 'verify_unique_name_claim_code') {
     }
 
     $passkeyEnrollmentGrant = issue_passkey_enrollment_grant($state, $result['identifier'], $nowMs);
+    $browserIdentityAuthorization = issue_browser_identity_authorization($state, $result['identifier'], $nowMs);
     $response = [
         'ok' => true,
         'identifier' => $result['identifier'],
         'identifier_status' => $result['identifier_status'],
         'user_type' => $result['user_type'],
+        'browser_identity_authorization' => $browserIdentityAuthorization,
         'passkey_enrollment_grant' => $passkeyEnrollmentGrant,
         'server_now_ms' => $nowMs
     ];
@@ -13682,11 +13748,13 @@ if ($action === 'claim_unique_handle') {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
 
+    $browserIdentityAuthorization = issue_browser_identity_authorization($state, (string) ($claimResult['handle'] ?? ''), $nowMs);
     $response = [
         'ok' => true,
         'unique_handle' => $claimResult,
         'identifier_status' => get_identifier_status($state, (string) ($claimResult['handle'] ?? '')),
         'user_type' => get_user_type_for_identifier($state, (string) ($claimResult['handle'] ?? '')),
+        'browser_identity_authorization' => $browserIdentityAuthorization,
         'server_now_ms' => $nowMs
     ];
 
@@ -13752,13 +13820,14 @@ if ($action === 'get_remote_display_device_status') {
 
 if ($action === 'get_remote_display_devices_for_owner') {
     try {
-        require_allowed_keys($input, ['action', 'owner_identifier'], 'request');
+        require_allowed_keys($input, ['action', 'owner_identifier', 'owner_authorization_token'], 'request');
         $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
         $ownerStatus = get_identifier_status($state, $ownerIdentifier);
         $owner = trim((string) ($ownerStatus['preferred_identifier'] ?? $ownerIdentifier));
         if (!formal_identifier_exists($state, $owner) || empty($ownerStatus['uses_handle'])) {
             throw new RuntimeException('Please fill in your unique recognized ESP GYM name.');
         }
+        require_browser_identity_authorization($state, $owner, $input['owner_authorization_token'] ?? '', $nowMs);
         $records = get_remote_display_devices_for_owner($state, $owner, $nowMs);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
@@ -13773,11 +13842,18 @@ if ($action === 'get_remote_display_devices_for_owner') {
 
 if ($action === 'claim_remote_display_device') {
     try {
-        require_allowed_keys($input, ['action', 'owner_identifier', 'proposed_device_name', 'device_control_token'], 'request');
+        require_allowed_keys($input, ['action', 'owner_identifier', 'proposed_device_name', 'device_control_token', 'owner_authorization_token'], 'request');
         $ownerIdentifier = validate_participant_identifier_string($input['owner_identifier'] ?? '', 'owner_identifier', true);
         $deviceName = trim((string) ($input['proposed_device_name'] ?? ''));
         $deviceControlToken = validate_remote_display_device_control_token($input['device_control_token'] ?? '');
-        $record = claim_remote_display_device($state, $ownerIdentifier, $deviceName, $deviceControlToken, $nowMs);
+        $record = claim_remote_display_device(
+            $state,
+            $ownerIdentifier,
+            $deviceName,
+            $deviceControlToken,
+            $input['owner_authorization_token'] ?? '',
+            $nowMs
+        );
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -15183,6 +15259,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
         $state['handle_owners'] = [];
         $state['identifier_recovery_verifications'] = [];
         $state['unique_name_claim_verifications'] = [];
+        $state['browser_identity_authorizations'] = [];
         $state['passkey_credentials'] = [];
         $state['passkey_ceremonies'] = [];
         $state['passkey_enrollment_grants'] = [];
