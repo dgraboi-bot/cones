@@ -51,6 +51,16 @@ function Publish-VerifiedGitHubCheckpointPlan($Manifest) {
   if ($LASTEXITCODE -ne 0 -or -not $expectedHead) {
     throw "Git could not read the checkpoint baseline after live verification."
   }
+  # Version preparation changes cache-bearing deploy assets in addition to the
+  # source edits that began the release. Checkpoint both sets together.
+  $checkpointFiles = @(
+    @($Manifest.changed_files) + @($Manifest.changed_deploy_files) |
+      Where-Object { -not [string]::IsNullOrWhiteSpace([string] $_) } |
+      Sort-Object -Unique
+  )
+  if ($checkpointFiles.Count -eq 0) {
+    throw "Verified release did not identify any files for the GitHub checkpoint."
+  }
 
   $checkpointPlan = [ordered]@{
     schema = 1
@@ -60,7 +70,7 @@ function Publish-VerifiedGitHubCheckpointPlan($Manifest) {
     repository = $repository
     expectedHead = $expectedHead
     commitMessage = "Release $($Manifest.version)"
-    files = @($Manifest.changed_files)
+    files = $checkpointFiles
     prepared_at = [string]$Manifest.prepared_at
     live_verified_at = (Get-Date).ToString("o")
     completed_at = $null

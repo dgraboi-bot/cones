@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004g";
+  const launcherBuildVersion = "20261004h";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -28538,15 +28538,8 @@ ${calmPracticeMessage}`;
         return rows;
       }
       return rows.filter((row) => {
-        const subscription = String(row?.subscription || "").trim().toLowerCase();
-        const kind = String(row?.kind || "").trim().toLowerCase();
         const type = String(row?.type || "").trim().toLowerCase();
-        return (
-          subscription === activeAdminIdentityFilter ||
-          kind === activeAdminIdentityFilter ||
-          type === activeAdminIdentityFilter ||
-          type.endsWith(` ${activeAdminIdentityFilter}`)
-        );
+        return type === activeAdminIdentityFilter;
       });
     }
 
@@ -28560,7 +28553,7 @@ ${calmPracticeMessage}`;
         adminIdentityListSummary.textContent = `Report Date: ${reportDate}   Total Identities: ${totalIdentities}`;
       }
       if (adminIdentityListStatus) {
-        adminIdentityListStatus.textContent = rows.length ? "" : "No recognized identities are available right now.";
+        adminIdentityListStatus.textContent = rows.length ? "" : "No identity or historical trial records are available right now.";
       }
       setAdminFilterButtonState(adminIdentityFilterButtons, activeAdminIdentityFilter);
       if (adminIdentityListBody) {

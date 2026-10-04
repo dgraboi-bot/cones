@@ -10210,26 +10210,27 @@ function build_identity_type_label(array $state, string $identifier): string
 {
     $cleanIdentifier = trim($identifier);
     if ($cleanIdentifier === '') {
-        return 'Assigned STD';
+        return 'Temporary Historical Trial Name';
+    }
+
+    if (is_robot_simulation_identifier($cleanIdentifier)) {
+        return 'System Robot';
     }
 
     if (is_temporary_name_identifier($state, $cleanIdentifier) || is_internal_visitor_simulation_identifier($cleanIdentifier)) {
-        return 'Temp';
+        return 'Temporary Historical Trial Name';
     }
 
-    $subscription = get_user_type_for_identifier($state, $cleanIdentifier) === 'pro' ? 'PRO' : 'STD';
-    $lookup = normalize_identifier_for_lookup($cleanIdentifier);
-
-    if ($lookup !== '' && is_array($state['invitees'] ?? null) && isset($state['invitees'][$lookup]) && is_array($state['invitees'][$lookup])) {
-        return 'Invitee ' . $subscription;
+    $status = get_identifier_status($state, $cleanIdentifier);
+    if (!empty($status['is_remote_display_device'])) {
+        return 'Remote Display Device';
     }
 
-    $authEmail = trim((string) get_identifier_auth_email($state, $cleanIdentifier));
-    if ($authEmail !== '') {
-        return 'User ' . $subscription;
+    if (!empty($status['partner_confirmation_configured'])) {
+        return 'Telepathy-Ready Name';
     }
 
-    return 'Assigned ' . $subscription;
+    return 'Recognized Clairvoyance Name';
 }
 
 function build_all_pairs_summary(array $state, array $records): array
@@ -10359,21 +10360,27 @@ function build_all_identities_summary(array $state, array $records): array
     $summary = [];
     $demoSummary = [];
 
-    $ensureIdentity = static function (string $identifier) use (&$summary, $state): void {
+    $ensureIdentity = static function (string $identifier, bool $includeTemporary = false) use (&$summary, $state): void {
         $cleanIdentifier = trim($identifier);
         if ($cleanIdentifier === '') {
             return;
         }
-        $displayIdentifier = (
-            is_internal_visitor_simulation_identifier($cleanIdentifier)
-            || is_temporary_name_identifier($state, $cleanIdentifier)
-        )
+        $isRobot = is_robot_simulation_identifier($cleanIdentifier);
+        $isTemporary = is_internal_visitor_simulation_identifier($cleanIdentifier)
+            || is_temporary_name_identifier($state, $cleanIdentifier);
+        // Temporary names are report provenance, not active identities. Include
+        // them only while rendering a completed trial that still uses the name.
+        if ($isTemporary && !$includeTemporary) {
+            return;
+        }
+        $displayIdentifier = $isRobot
+            ? 'Robot'
+            : ($isTemporary
             ? resolve_admin_report_display_identifier($state, $cleanIdentifier, 'receiver', 'Robot')
-            : $cleanIdentifier;
+            : $cleanIdentifier);
         $status = get_identifier_status($state, $cleanIdentifier);
         $preferredIdentifier = (
-            is_internal_visitor_simulation_identifier($cleanIdentifier)
-            || is_temporary_name_identifier($state, $cleanIdentifier)
+            $isRobot || $isTemporary
         )
             ? trim($displayIdentifier)
             : trim((string) ($status['preferred_identifier'] ?? $displayIdentifier));
@@ -10473,8 +10480,8 @@ function build_all_identities_summary(array $state, array $records): array
         }
         $receiverName = resolve_admin_report_display_identifier($state, $receiverRaw, 'receiver', $senderRaw);
         $senderName = resolve_admin_report_display_identifier($state, $senderRaw, 'sender', $receiverRaw);
-        $ensureIdentity($receiverName);
-        $ensureIdentity($senderName);
+        $ensureIdentity($receiverName, true);
+        $ensureIdentity($senderName, true);
 
         $receiverKey = get_canonical_identifier_key($state, $receiverName);
         $receiverKey = $receiverKey !== '' ? $receiverKey : normalize_identifier_for_lookup($receiverName);

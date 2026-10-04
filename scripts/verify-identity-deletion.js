@@ -68,7 +68,8 @@ async function main() {
     },
     identifier_aliases: { [owner]: handle },
     handle_owners: { [owner]: { owner_identifier: owner, current_handle: handle, current_canonical_handle: "road dog", auth_email: owner } },
-    user_types: { "road dog": "pro" }, user_preferences: { "road dog": { updated_ms: 1 } },
+    user_types: { "road dog": "pro", robot: "standard" }, user_preferences: { "road dog": { updated_ms: 1 } },
+    partner_confirmation_preferences: { "road dog": { method: "verified", updated_ms: 1 } },
     launcher_profiles: {
       "road dog": { receiver: { own_email: handle, current_partner: "Big Bopper", partner_history: ["Big Bopper"], deleted_partners: [] } },
       "big bopper": { sender: { own_email: "Big Bopper", current_partner: handle, partner_history: [handle], deleted_partners: [handle] } }
@@ -86,6 +87,8 @@ async function main() {
   // The Admin list renders an unclaimed historical name with this suffix.
   // Deletion must recognize and remove it as Road Dog's data.
   await writeFile(csv, '"rx name","tx name","round_id"\n"Road Dog (guest)","Big Bopper","round-1"\n');
+  const historicalCsv = path.join(pairsDir, "rx-legacy-viewer__tx-legacy-sender.csv");
+  await writeFile(historicalCsv, '"rx name","tx name","round_id","rx choice1"\n"Legacy Viewer","Legacy Sender","legacy-round","one"\n');
   await writeFile(path.join(questionnaireDir, "baseline__road-dog.json"), JSON.stringify({ identifier: handle, response: { note: "test" } }));
 
   const port = 48882;
@@ -94,6 +97,20 @@ async function main() {
     await waitForServer(port);
     const lock = await request(port, { action: "claim_admin_lock", secret_candidate: adminSecret, admin_client_id: adminClientId });
     if (lock.status !== 200 || !lock.body.ok) throw new Error(`Admin test lock failed: ${JSON.stringify(lock.body)}`);
+    const identitySummary = await request(port, { action: "list_all_identities", secret_candidate: adminSecret, admin_client_id: adminClientId });
+    if (identitySummary.status !== 200 || !identitySummary.body.ok) throw new Error(`Identity summary failed: ${JSON.stringify(identitySummary.body)}`);
+    const typesByIdentity = new Map((identitySummary.body.identity_summary || []).map((row) => [row.identity, row.type]));
+    const expectedIdentityTypes = new Map([
+      ["Road Dog", "Telepathy-Ready Name"],
+      ["Road Display", "Remote Display Device"],
+      ["Robot", "System Robot"],
+      ["Legacy Viewer (guest)", "Temporary Historical Trial Name"]
+    ]);
+    for (const [identity, expectedType] of expectedIdentityTypes) {
+      if (typesByIdentity.get(identity) !== expectedType) {
+        throw new Error(`Identity ${identity} was classified as ${typesByIdentity.get(identity) || "missing"}, expected ${expectedType}. Available identities: ${JSON.stringify(Object.fromEntries(typesByIdentity))}`);
+      }
+    }
     const deleted = await request(port, { action: "delete_user_identity", user_identifier: handle, secret_candidate: adminSecret, admin_client_id: adminClientId });
     if (deleted.status !== 200 || !deleted.body.ok) throw new Error(`Identity deletion failed: ${JSON.stringify(deleted.body)}`);
     const status = await request(port, { action: "get_identifier_status", identifier: handle });
