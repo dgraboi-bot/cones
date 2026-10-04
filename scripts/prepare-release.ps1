@@ -963,6 +963,13 @@ if (-not (Test-Path -LiteralPath $imagePairsSyncScript)) {
 Assert-ToolExists $plinkPath "plink"
 Assert-ToolExists $sshPrivateKeyPath "SSH private key"
 
+# Verify both version-bearing trees are writable before any release audit,
+# local synchronization, version change, or server contact.
+& powershell -NoProfile -ExecutionPolicy Bypass -File $bumpScript -Version $Version -PreflightOnly
+if ($LASTEXITCODE -ne 0) {
+  throw "Release write preflight failed. No version markers, mirror files, private release manifests, or live server files were changed."
+}
+
 $gitTopLevel = (git -C $repoRoot rev-parse --show-toplevel).Trim()
 if (-not $gitTopLevel) {
   throw "Unable to determine git repo root for $repoRoot"
@@ -1062,7 +1069,7 @@ if ($SyncImagePairsFromLive) {
 }
 Write-Host "Ordinary release manifests exclude the imagepairs payload after authoritative live sync, so unchanged imagepairs do not slow code releases." -ForegroundColor Green
 
-& powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
+& powershell -NoProfile -ExecutionPolicy Bypass -File $bumpScript -Version $Version
 if ($LASTEXITCODE -ne 0) {
   throw "Version bump helper failed; mirror synchronization and release preparation were not attempted."
 }

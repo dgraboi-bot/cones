@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004i";
+  const launcherBuildVersion = "20261004j";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1244,6 +1244,9 @@
   let uniqueNameRequiredRole = "";
   let activeLauncherRole = "";
   let handleOverlayReturnRole = "";
+  let clairvoyanceEmailAuthorizedClaimActive = false;
+  let clairvoyanceEmailAuthorizationReturnPending = false;
+  let clairvoyanceUniqueNameClaimDraft = "";
   let pushSetupReturnRole = "";
   let pushSetupReturnView = "card";
   let pushSetupOwnIdentifier = "";
@@ -9426,16 +9429,57 @@ ${calmPracticeMessage}`;
   }
 
   function openClairvoyanceUniqueNameClaim() {
+    clairvoyanceEmailAuthorizedClaimActive = false;
+    openHandleOverlay("remote-viewer");
+    if (handleDialogTitle) {
+      handleDialogTitle.textContent = "Choose Unique Name For Use With This Browser";
+    }
+    renderClairvoyanceUniqueNameClaimIntro();
+    if (handleInput) {
+      handleInput.placeholder = "Your handle.";
+      handleInput.value = clairvoyanceUniqueNameClaimDraft;
+    }
+  }
+
+  function renderClairvoyanceUniqueNameClaimIntro() {
+    if (!handleIntro) {
+      return;
+    }
+    const emailAuthorizationLink = document.createElement("button");
+    emailAuthorizationLink.className = "role-note-link";
+    emailAuthorizationLink.type = "button";
+    emailAuthorizationLink.dataset.openClairvoyanceEmailAuthorization = "";
+    emailAuthorizationLink.textContent = "Use email authorization instead";
+    handleIntro.replaceChildren(
+      document.createTextNode("Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name you become a recognized user for all Clairvoyance / Remote Viewing exercises. Being recognized allows your data to be saved along with performance reporting."),
+      document.createElement("br"),
+      document.createElement("br"),
+      document.createTextNode("For added flexibility, including alternative browsers, telepathy, and alternative remote devices, use email authorization to verify your identity: "),
+      emailAuthorizationLink
+    );
+  }
+
+  function openClairvoyanceEmailAuthorizedNameClaim() {
+    clairvoyanceUniqueNameClaimDraft = String(handleInput?.value || "").trim();
+    clairvoyanceEmailAuthorizedClaimActive = true;
     openHandleOverlay("remote-viewer");
     if (handleDialogTitle) {
       handleDialogTitle.textContent = "Choose Unique Name For Use With This Browser";
     }
     if (handleIntro) {
-      handleIntro.textContent = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name you become a recognized user for all Clairvoyance / Remote Viewing exercises. Being recognized allows your data to be saved along with performance reporting.";
+      handleIntro.textContent = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. This name will be verified by email before it becomes available on this browser for Clairvoyance, remote devices, and telepathy.";
     }
     if (handleInput) {
       handleInput.placeholder = "Your handle.";
+      handleInput.value = clairvoyanceUniqueNameClaimDraft;
+      handleInput.focus();
     }
+  }
+
+  function returnToClairvoyanceUniqueNameClaim() {
+    clairvoyanceEmailAuthorizationReturnPending = false;
+    clairvoyanceEmailAuthorizedClaimActive = false;
+    openClairvoyanceUniqueNameClaim();
   }
 
   function setRemoteDeviceSetupScrollLock(locked) {
@@ -9912,6 +9956,7 @@ ${calmPracticeMessage}`;
     activeHandleRole = "";
     handleOverlayReturnRole = "";
     featureSetupPendingHandleFlow = "";
+    clairvoyanceEmailAuthorizedClaimActive = false;
     handleOverlay?.classList.add("beginner-view-hidden");
     if (handleStatus) {
       handleStatus.textContent = "";
@@ -9986,6 +10031,51 @@ ${calmPracticeMessage}`;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const postClaimFlow = featureSetupPendingHandleFlow;
+      if (isRemoteViewerRole && clairvoyanceEmailAuthorizedClaimActive) {
+        clairvoyanceUniqueNameClaimDraft = proposedHandle;
+        let proposedStatus = null;
+        try {
+          proposedStatus = await fetchIdentifierStatus(proposedHandle);
+        } catch (_) {
+          proposedStatus = null;
+        }
+        if (proposedStatus?.formal_identity_exists) {
+          const existingIdentifier = String(proposedStatus.preferred_identifier || proposedHandle).trim();
+          if (!proposedStatus.auth_email_on_file) {
+            throw new Error(`To ensure security, first set up email authentication for ${existingIdentifier} on the browser/device where you currently use that name.`);
+          }
+          clairvoyanceEmailAuthorizedClaimActive = false;
+          clairvoyanceEmailAuthorizationReturnPending = true;
+          activeHandleRole = "";
+          handleOverlayReturnRole = "";
+          featureSetupPendingHandleFlow = "";
+          handleOverlay?.classList.add("beginner-view-hidden");
+          if (handleStatus) handleStatus.textContent = "";
+          openExploreProOverlay({
+            mode: "recovery",
+            identifier: existingIdentifier,
+            recoveryContext: "remote-viewer"
+          });
+          return;
+        }
+        clairvoyanceEmailAuthorizedClaimActive = false;
+        clairvoyanceEmailAuthorizationReturnPending = true;
+        activeHandleRole = "";
+        handleOverlayReturnRole = "";
+        featureSetupPendingHandleFlow = "";
+        handleOverlay?.classList.add("beginner-view-hidden");
+        if (handleStatus) handleStatus.textContent = "";
+        openExploreProOverlay({
+          mode: "claim",
+          claimPurpose: "clairvoyance-email-authorization",
+          identifier: proposedHandle,
+          role: "remote-viewer",
+          returnRole: "remote-viewer",
+          returnScrollY,
+          currentIdentifier
+        });
+        return;
+      }
       if (!firstClaimMode && currentIdentifier && normalizeIdentifierForStorage(currentIdentifier) !== normalizeIdentifierForStorage(proposedHandle)) {
         const currentStatus = await fetchIdentifierStatus(currentIdentifier);
         if (currentStatus?.formal_identity_exists) {
@@ -30829,9 +30919,14 @@ ${calmPracticeMessage}`;
     exploreProEmailInput?.select?.();
   }
 
-  function closeExploreProOverlay() {
+  function closeExploreProOverlay(options = {}) {
+    const returnToClairvoyanceClaim = !options.completed && clairvoyanceEmailAuthorizationReturnPending;
+    clairvoyanceEmailAuthorizationReturnPending = false;
     exploreProOverlay?.classList.add("beginner-view-hidden");
     setFeatureSetupBackButtonTemporarilyHidden(false);
+    if (returnToClairvoyanceClaim) {
+      returnToClairvoyanceUniqueNameClaim();
+    }
   }
 
   async function requestExploreProCode(resend = false) {
@@ -30886,6 +30981,7 @@ ${calmPracticeMessage}`;
 
   async function completeVerifiedRecovery(data, recoveredIdentifier) {
     const recoveryContext = pendingRecoveryContext;
+    clairvoyanceEmailAuthorizationReturnPending = false;
     rememberBrowserIdentityAuthorization(data?.browser_identity_authorization);
     const userType = String(data?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
     const latestState = readLauncherState();
@@ -30905,7 +31001,7 @@ ${calmPracticeMessage}`;
     });
     setLauncherGuestEntryActive(false);
     applyIdentityStateToLauncherInputs();
-    closeExploreProOverlay();
+    closeExploreProOverlay({ completed: true });
     if (recoveryContext === "remote-device") {
       await openRemoteDeviceSetupOverlay();
       return;
@@ -30918,6 +31014,7 @@ ${calmPracticeMessage}`;
   }
 
   async function completeVerifiedClaim(data, claimContext) {
+    clairvoyanceEmailAuthorizationReturnPending = false;
     rememberBrowserIdentityAuthorization(data?.browser_identity_authorization);
     const acceptedHandle = String(data?.identifier || claimContext?.proposedHandle || "").trim();
     const currentIdentifier = String(claimContext?.currentIdentifier || "").trim();
@@ -30983,7 +31080,7 @@ ${calmPracticeMessage}`;
       void refreshFeatureSetupView();
       return;
     }
-    closeExploreProOverlay();
+    closeExploreProOverlay({ completed: true });
     if (String(claimContext?.postClaimFlow || "").trim() === "install-gate") {
       showInstallGuideView({ returnView: "feature-setup" });
       return;
@@ -36109,6 +36206,9 @@ ${calmPracticeMessage}`;
     if (target?.closest("[data-open-handle-privacy]")) {
       event.preventDefault();
       openHandlePrivacyPolicy();
+    } else if (target?.closest("[data-open-clairvoyance-email-authorization]")) {
+      event.preventDefault();
+      openClairvoyanceEmailAuthorizedNameClaim();
     }
     event.stopPropagation();
   });

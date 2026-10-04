@@ -2,7 +2,9 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Version,
 
-  [string]$MirrorRoot = "C:\xampp\htdocs\cones"
+  [string]$MirrorRoot = "C:\xampp\htdocs\cones",
+
+  [switch]$PreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -75,6 +77,11 @@ foreach ($file in $files) {
   $mirrorFile = Join-Path $MirrorRoot $relativePath
   Assert-FileWritable $file "source file"
   Assert-FileWritable $mirrorFile "mirror file"
+}
+
+if ($PreflightOnly) {
+  Write-Host "Release write preflight passed for all version-bearing source and mirror files."
+  exit 0
 }
 
 $previousVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)

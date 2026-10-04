@@ -792,6 +792,19 @@ The deployment flow is now intentionally split into two concrete stages:
 
 The wrapper resolves PowerShell 7 (`pwsh`) explicitly and starts both child stages with `-NoProfile`. Do not change it back to Windows PowerShell or a profile-loaded session: release preparation depends on consistent SHA-256 support and must not inherit machine-specific profile state.
 
+### Release Write-Access Gate
+
+Before a normal deployment begins, `prepare-release.ps1` invokes `bump-version.ps1 -PreflightOnly`. This is a non-modifying probe, performed before any release-boundary audit, mirror sync, version update, private manifest write, or server contact. It opens every version-bearing authoritative source file and its matching `C:\xampp\htdocs\cones` mirror file for read/write access in the release helper's PowerShell context.
+
+Required rule going forward:
+
+1. use `scripts\deploy-live.ps1 -Version <release-version>` for production deployment; do not run `prepare-local-debug.ps1` as a production pre-step
+2. if the write-access gate fails, stop before any release work and report the exact source or mirror path and operating-system error
+3. correct the permission scope, then rerun the same release version from `deploy-live.ps1`; do not manually bump versions or run only the push stage
+4. `prepare-local-debug.ps1` applies the same gate before its local-only bump and now stops immediately if either child helper fails
+
+This gate is intentionally repeated inside the actual bump helper, immediately before it writes version markers, so the final write check and the update use the same PowerShell execution context.
+
 `prepare-release.ps1` owns the fast local/preflight work:
 
 1. perform the release-boundary audit

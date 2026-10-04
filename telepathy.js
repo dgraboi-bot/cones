@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261004i";
+  const runtimeBuildVersion = "20261004j";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261004i";
+  const launcherBuildVersion = "20261004j";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),

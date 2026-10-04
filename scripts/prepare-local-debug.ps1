@@ -108,7 +108,15 @@ if (-not (Test-Path -LiteralPath $bumpScript)) {
   throw "Missing bump script: $bumpScript"
 }
 
-& powershell -ExecutionPolicy Bypass -File $bumpScript -Version $Version
+& powershell -NoProfile -ExecutionPolicy Bypass -File $bumpScript -Version $Version -PreflightOnly
+if ($LASTEXITCODE -ne 0) {
+  throw "Release write preflight failed. No version markers or mirror files were changed."
+}
+
+& powershell -NoProfile -ExecutionPolicy Bypass -File $bumpScript -Version $Version
+if ($LASTEXITCODE -ne 0) {
+  throw "Version bump helper failed. No mirror synchronization or local version audit was attempted."
+}
 
 $robocopyArgs = @(
   $repoRoot,
