@@ -52,7 +52,7 @@
   const remoteDisplayReadyHeartbeatMs = 10000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261003j";
+  const runtimeBuildVersion = "20261003k";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -114,7 +114,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261003j";
+  const launcherBuildVersion = "20261003k";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -492,9 +492,10 @@
   }
 
   function clearGuidedReceiverTourTargetClasses() {
-    document.querySelectorAll(".guided-tour-runtime-target, .guided-tour-runtime-muted").forEach((node) => {
+    document.querySelectorAll(".guided-tour-runtime-target, .guided-tour-runtime-muted, .guided-tour-runtime-allowed").forEach((node) => {
       node.classList.remove("guided-tour-runtime-target");
       node.classList.remove("guided-tour-runtime-muted");
+      node.classList.remove("guided-tour-runtime-allowed");
     });
   }
 
@@ -722,6 +723,9 @@
     setGuidedReceiverTourProbeVisible(!!step?.showProbeDeeper);
 
     const allowedNodes = new Set(getGuidedReceiverTourAllowedNodes(step));
+    allowedNodes.forEach((node) => {
+      node.classList.add("guided-tour-runtime-allowed");
+    });
     if (step?.target instanceof HTMLElement) {
       step.target.classList.add("guided-tour-runtime-target");
       if (allowedNodes.size === 0 && step.allowTargetByDefault !== false) {
@@ -1262,7 +1266,14 @@
 
     const currentStep = guidedReceiverTourState.step;
     const allowedNodes = getGuidedReceiverTourAllowedNodes(currentStep);
-    const isAllowed = allowedNodes.some((node) => node === target || node.contains(target));
+    // A visible result action must remain usable even if a delayed tour-state
+    // update has not yet moved the guide from the choice step to the result step.
+    const isVisibleDecisionAction = Boolean(
+      decisionPanel?.classList.contains("visible") &&
+      [enoughButton, anotherButton].some((node) => node && (node === target || node.contains(target)))
+    );
+    const isMarkedAllowed = Boolean(target.closest(".guided-tour-runtime-allowed"));
+    const isAllowed = isVisibleDecisionAction || isMarkedAllowed || allowedNodes.some((node) => node === target || node.contains(target));
 
     if (isAllowed) {
       if (currentStep?.id === "ready") {
@@ -5628,6 +5639,7 @@
     enough.type = "button";
     enough.textContent = isRemoteViewerCoveredMode ? "End Session" : "Thanks! I've had enough for now.";
     enough.addEventListener("click", () => {
+      dismissGuidedReceiverTourResultStep();
       void submitPostRoundChoice("enough");
     });
 
@@ -5636,6 +5648,7 @@
     another.type = "button";
     another.textContent = isRemoteViewerCoveredMode ? "Continue Session" : "Another?";
     another.addEventListener("click", () => {
+      dismissGuidedReceiverTourResultStep();
       void submitPostRoundChoice("another");
     });
 
@@ -7359,6 +7372,21 @@
     }
 
     return null;
+  }
+
+  function dismissGuidedReceiverTourResultStep() {
+    if (!guidedReceiverTourState || !decisionPanel?.classList.contains("visible")) {
+      return;
+    }
+
+    clearGuidedReceiverTourTargetClasses();
+    guidedReceiverTourState.step = null;
+    guidedReceiverTourState.pendingPhase = null;
+    guidedReceiverTourState.phase = "waiting-online";
+    guidedReceiverTourState.waitingOnlineAcknowledged = false;
+    guidedReceiverTourState.manualBalloonPosition = null;
+    guidedTourOverlay?.classList.add("hidden");
+    setGuidedReceiverTourHint("");
   }
 
   async function submitPostRoundChoice(choice) {

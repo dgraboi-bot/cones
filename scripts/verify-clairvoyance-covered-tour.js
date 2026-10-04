@@ -32,6 +32,8 @@ async function verifyCoveredScreenLaunch() {
   const browser = await chromium.launch({ headless: true });
   const androidContext = await browser.newContext({
     viewport: { width: 412, height: 915 },
+    isMobile: true,
+    hasTouch: true,
     userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
   });
   const page = await androidContext.newPage();
@@ -161,6 +163,7 @@ async function verifyCoveredScreenLaunch() {
       coveredTargetImage,
       "Exercise 2 on Android must reveal a decoded target image after the countdown"
     );
+    const guidedTargetSrc = await coveredTargetImage.getAttribute("src");
     await page.locator("#guidedTourNextButton").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("Look into your mind's eye carefully"));
     await page.locator("#guidedTourProbeButton").click();
@@ -176,16 +179,53 @@ async function verifyCoveredScreenLaunch() {
     await page.locator("#guidedTourProbeBackButton").click();
     await page.locator("#guidedTourProbeBackButton").click();
     await probeScreen.waitFor({ state: "hidden" });
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.locator("#guidedTourExitButton").click();
-    await page.waitForURL(/telepathybeginner\.html/);
+
+    // Finish a real touch-guided Exercise 2 round and verify that its result
+    // action cannot be swallowed by the guided-tour input guard.
+    await page.locator("#guidedTourNextButton").tap();
+    await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("After you have had enough time"));
+    await page.locator("#countdownBox").tap();
+    const guidedRoundChoices = page.locator("#receiverLevelFourChoiceGrid.visible .image-choice-card");
+    await guidedRoundChoices.first().waitFor({ state: "visible" });
+    await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("For this tour, tap the highlighted correct answer"));
+    const guidedCorrectChoice = page.locator("#receiverLevelFourChoiceGrid.visible .image-choice-card.guided-tour-runtime-allowed");
+    assert(await guidedCorrectChoice.count() === 1, "The guided Exercise 2 target did not match exactly one choice.");
     assert(
-      await page.evaluate(() => sessionStorage.getItem("cones-covered-screen-instruction-dismiss-v1") === null),
-      "Exiting a Covered Screen tour must reset its session-only instruction dismissal."
+      await guidedCorrectChoice.locator("img").getAttribute("src") === guidedTargetSrc,
+      "The guide marked an image other than the displayed Exercise 2 target as correct."
+    );
+    const guidedChoiceHitTarget = await guidedCorrectChoice.evaluate((choice) => {
+      const rect = choice.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return {
+        reachesChoice: hit === choice || choice.contains(hit),
+        hitId: hit?.id || "",
+        hitClass: hit?.className || ""
+      };
+    });
+    assert(guidedChoiceHitTarget.reachesChoice, `The guided Exercise 2 target is covered: ${JSON.stringify(guidedChoiceHitTarget)}`);
+    await guidedCorrectChoice.tap();
+    const guidedContinueButton = page.getByRole("button", { name: "Continue Session" });
+    await guidedContinueButton.waitFor({ state: "visible" });
+    await guidedContinueButton.tap();
+    const continuedGuidedInstruction = page.locator("[data-covered-screen-runtime-instruction-overlay]");
+    if (await continuedGuidedInstruction.isVisible()) {
+      await continuedGuidedInstruction.getByRole("button", { name: "OK" }).tap();
+    }
+    await page.waitForFunction(() => document.querySelector("#countdownNumber")?.textContent === "Press when ready.");
+    assert(
+      await page.locator("#receiverDecisionPanel").isHidden(),
+      "Guided Continue Session must leave the Exercise 2 result choices instead of freezing on them."
+    );
+    assert(
+      await page.locator("#guidedTourOverlay").isHidden(),
+      "Guided Continue Session must clear the result guide before returning to Press when ready."
     );
 
     const freshSessionAndroidContext = await browser.newContext({
       viewport: { width: 412, height: 915 },
+      isMobile: true,
+      hasTouch: true,
       userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
     });
     const unsavedPage = await freshSessionAndroidContext.newPage();
@@ -256,7 +296,13 @@ async function verifyCoveredScreenLaunch() {
     await firstRoundChoices.first().click();
     const continueSessionButton = unsavedPage.getByRole("button", { name: "Continue Session" });
     await continueSessionButton.waitFor({ state: "visible" });
-    await continueSessionButton.click();
+    const decisionHitTarget = await continueSessionButton.evaluate((button) => {
+      const rect = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return hit === button || button.contains(hit);
+    });
+    assert(decisionHitTarget, "The Android Continue Session button is covered by another element.");
+    await continueSessionButton.tap();
     await unsavedPage.waitForFunction(() => (
       document.querySelector("#countdownNumber")?.textContent === "Press when ready."
     ));

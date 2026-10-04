@@ -10,7 +10,12 @@ function assert(condition, message) {
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 412, height: 915 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
+  });
 
   try {
     await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
@@ -23,8 +28,7 @@ function assert(condition, message) {
       const exercise = card.querySelector(".role-card-level-stack");
       view.classList.remove("beginner-view-hidden");
       card.hidden = false;
-      card.classList.add("active");
-      title.textContent = "Clairvoyance\nRemote View";
+      card.classList.remove("active");
 
       const box = (node) => {
         const rect = node.getBoundingClientRect();
@@ -36,20 +40,26 @@ function assert(condition, message) {
           height: Math.round(rect.height)
         };
       };
+      const mode = card.querySelector(".role-card-remote-view-badge");
+      const back = card.querySelector(".role-card-inline-back");
       return {
         header: box(header),
         title: box(title),
         tagline: box(tagline),
         exercise: box(exercise),
-        gridAreas: getComputedStyle(header).gridTemplateAreas
+        gridAreas: getComputedStyle(header).gridTemplateAreas,
+        modeDisplay: getComputedStyle(mode).display,
+        backDisplay: getComputedStyle(back).display
       };
     });
 
-    assert(layout.header.height <= 72, `Expanded Clairvoyance header is too tall: ${layout.header.height}px.`);
-    assert(layout.title.right <= layout.tagline.left, "Clairvoyance title overlaps the skill banner.");
-    assert(layout.exercise.top >= layout.title.top + 18, "Exercise is not aligned with the Remote View line.");
-    assert(layout.gridAreas.includes("title tagline mode level back"), "Expanded Clairvoyance header grid is not compact.");
-    console.log("Clairvoyance master layout verified.");
+    assert(layout.header.height <= 108, `Collapsed Android Clairvoyance master card is too tall: ${layout.header.height}px.`);
+    assert(layout.exercise.top >= layout.title.top - 4 && layout.exercise.bottom <= layout.title.bottom + 8, "Exercise is not aligned with the collapsed card title.");
+    assert(layout.gridAreas.includes("title level"), "Collapsed Android Clairvoyance master card is not using its compact two-row grid.");
+    assert(layout.modeDisplay === "none" && layout.backDisplay === "none", "Hidden master-card controls still consume mobile layout space.");
+    await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').tap();
+    assert(await page.locator('[data-role-card="remote-viewer"]').evaluate((card) => card.classList.contains("active")), "A touch tap on the Clairvoyance master card did not expand it.");
+    console.log("Collapsed Android Clairvoyance master layout verified.");
   } finally {
     await browser.close();
   }
