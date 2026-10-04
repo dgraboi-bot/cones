@@ -53,8 +53,8 @@ async function verifyRemoteDeviceInstructions() {
       await instructions.waitFor({ state: "visible" });
       const instructionText = (await instructions.locator(".about-section-copy").allTextContents()).join(" ").trim();
       assert(
-        instructionText.includes("wake lock") && instructionText.includes("plugged in to its charger"),
-        "Remote device instructions must explain wake lock and charging."
+        instructionText.includes("screen is prevented from going to sleep") && instructionText.includes("plug it in to its charger"),
+        "Remote device instructions must explain sleep prevention and charging."
       );
       assert(
         instructionText.includes("COMPLETELY BLANK") && instructionText.includes("UNBLANK THE SCREEN"),
@@ -246,24 +246,36 @@ async function verifyNarrowPhoneClairvoyanceLayout() {
       });
 
       const header = page.locator('[data-role-card="remote-viewer"] .role-card-header');
-      const toggle = page.locator('[data-role-card="remote-viewer"] .role-card-toggle');
+      const card = page.locator('[data-role-card="remote-viewer"]');
+      const inlineBack = card.locator('[data-collapse-role-card="remote-viewer"]');
       const tagline = page.locator('[data-role-card="remote-viewer"] .role-card-tagline');
-      const [headerBox, toggleBox, taglineBox] = await Promise.all([
+      const [headerBox, taglineBox] = await Promise.all([
         header.boundingBox(),
-        toggle.boundingBox(),
         tagline.boundingBox()
       ]);
-      assert(headerBox && toggleBox && taglineBox, `${device.name} must render the collapsed Clairvoyance header.`);
-      assert(
-        toggleBox.width >= headerBox.width - 36,
-        `${device.name} collapsed Clairvoyance title must remain a full-width tap target.`
-      );
+      assert(headerBox && taglineBox, `${device.name} must render the collapsed Clairvoyance header.`);
       assert(
         taglineBox.x >= headerBox.x && taglineBox.x + taglineBox.width <= headerBox.x + headerBox.width + 1,
         `${device.name} skill banner must stay inside the Clairvoyance header.`
       );
 
-      await toggle.click();
+      for (const horizontalPosition of [0.15, 0.5]) {
+        await header.click({
+          position: {
+            x: headerBox.width * horizontalPosition,
+            y: headerBox.height / 2
+          }
+        });
+        await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
+        assert(
+          await card.evaluate((element) => element.classList.contains("active")),
+          `${device.name} must open Clairvoyance from its visible ${horizontalPosition < 0.5 ? "title" : "header"} area.`
+        );
+        await inlineBack.click();
+        await page.waitForFunction(() => !document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
+      }
+
+      await header.click({ position: { x: headerBox.width * 0.15, y: headerBox.height / 2 } });
       await page.waitForFunction(() => document.querySelector('[data-role-card="remote-viewer"]')?.classList.contains("active"));
       assert(await tagline.isHidden(), `${device.name} expanded Clairvoyance header must hide its skill banner.`);
 
@@ -554,6 +566,21 @@ async function verifyRemoteDeviceContinueMarksReady() {
         });
         return;
       }
+      if (request.action === "get_remote_display_devices_for_owner") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_devices: [{
+              device_name: "dan's remote 2",
+              owner_identifier: "molly",
+              is_active: true,
+              is_ready: true
+            }]
+          })
+        });
+        return;
+      }
       if (request.action === "mark_remote_display_device_ready") {
         readyRequest = request;
         await route.fulfill({
@@ -594,6 +621,105 @@ async function verifyRemoteDeviceContinueMarksReady() {
         readyRequest?.device_control_token === "a".repeat(64),
       "CONTINUE must confirm the registered remote device is ready before opening standby."
     );
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyRemoteDeviceBlocksCompetingLiveDisplay() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+  let androidRemoteIsLive = true;
+  let readyRequests = 0;
+
+  try {
+    await page.route("**/api.php", async (route) => {
+      let request = {};
+      try {
+        request = JSON.parse(route.request().postData() || "{}");
+      } catch (_) {
+        // Let malformed or unrelated requests follow their normal path.
+      }
+      if (request.action === "get_identifier_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            identifier_status: {
+              input_identifier: "Moomoo",
+              preferred_identifier: "Moomoo",
+              preferred_handle: "Moomoo",
+              formal_identity_exists: true,
+              uses_handle: true
+            }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_device_status") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: { device_name: "iPad Remote", owner_identifier: "Moomoo" }
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_devices_for_owner") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_devices: [{
+              device_name: "Android Remote",
+              owner_identifier: "Moomoo",
+              is_active: true,
+              is_ready: androidRemoteIsLive
+            }, {
+              device_name: "iPad Remote",
+              owner_identifier: "Moomoo",
+              is_active: false,
+              is_ready: false
+            }]
+          })
+        });
+        return;
+      }
+      if (request.action === "mark_remote_display_device_ready") {
+        readyRequests += 1;
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, remote_display_device: { device_name: "iPad Remote", owner_identifier: "Moomoo" } })
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
+    await page.evaluate(({ key }) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify({ recognizedIdentity: "Moomoo" }));
+      localStorage.setItem("cones-remote-display-setup-v1", JSON.stringify({
+        ownerName: "Moomoo",
+        deviceName: "iPad Remote",
+        controlToken: "b".repeat(64)
+      }));
+    }, { key: launcherStorageKey });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const dialog = page.locator('[data-remote-device-setup-overlay]');
+    const continueButton = dialog.locator('[data-remote-device-confirm]');
+    const status = dialog.locator('[data-remote-device-setup-status]');
+    await dialog.waitFor({ state: "visible" });
+    await page.waitForFunction(() => document.querySelector('[data-remote-device-confirm]')?.disabled === true);
+    assert(await status.textContent() === "Android Remote is currently the active remote display for Moomoo. Please close that active display before making this device the active remote display for Moomoo.", "A competing live remote display must explain why CONTINUE is disabled.");
+    await continueButton.click({ force: true });
+    assert(readyRequests === 0, "A disabled CONTINUE button must not replace the active remote display.");
+
+    androidRemoteIsLive = false;
+    await page.waitForFunction(() => document.querySelector('[data-remote-device-confirm]')?.disabled === false, null, { timeout: 5000 });
+    assert((await status.textContent()).includes("Remote device is now available"), "CONTINUE must become available once the prior remote display is no longer live.");
   } finally {
     await browser.close();
   }
@@ -768,6 +894,9 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
       "An open viewer must discover a newly registered remote device automatically."
     );
 
+    // Return to the no-device state before opening the setup instruction. The
+    // remote device will become available again while that instruction is open.
+    remoteDeviceReady = false;
     await remoteScreenInput.evaluate((input) => {
       input.value = "Recognized Remote Device name needed. Click GO.";
     });
@@ -781,6 +910,7 @@ async function verifyViewerDiscoversRemoteDeviceAfterModal() {
     );
 
     // The other device completes setup while this viewer remains on the instruction modal.
+    remoteDeviceReady = true;
     await instructionModal.locator('[data-unique-name-required-close]').click();
     await page.waitForFunction(() => (
       document.querySelector('[data-remote-viewer-partner]')?.value === "dan's remote"
@@ -1331,6 +1461,7 @@ function verifyPersistentRemoteDisplayImplementation() {
   const launcherStyles = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.css"), "utf8");
   const runtimeSource = fs.readFileSync(path.join(__dirname, "..", "telepathy.js"), "utf8");
   const runtimeStyles = fs.readFileSync(path.join(__dirname, "..", "telepathy.css"), "utf8");
+  const apiSource = fs.readFileSync(path.join(__dirname, "..", "api.php"), "utf8");
 
   assert(
     !launcherSource.includes('remoteDeviceConfirmButton?.dataset.ready !== "true"'),
@@ -1355,6 +1486,15 @@ function verifyPersistentRemoteDisplayImplementation() {
   assert(
     launcherSource.includes("This removes this browser's remote device and releases the remote device name."),
     "Remote-device RESET must use the approved confirmation wording."
+  );
+  assert(
+    launcherSource.includes("getRemoteDeviceActiveBlockMessage") && launcherSource.includes("startRemoteDeviceSetupAvailabilityChecks"),
+    "Remote Device Setup must block and recheck a competing live remote display."
+  );
+  assert(
+    apiSource.includes("$activeDeviceKey !== '' && $activeDeviceKey !== $deviceKey") &&
+      apiSource.includes("Please close that active display before making this device the active remote display"),
+    "The server must reject a race that attempts to replace a competing live remote display."
   );
   assert(
     runtimeSource.includes("function showRemoteDisplayStandbyState()"),
@@ -1464,6 +1604,7 @@ async function run() {
   await verifyRemoteDeviceRoute();
   await verifyRemoteDevicePersistence();
   await verifyRemoteDeviceContinueMarksReady();
+  await verifyRemoteDeviceBlocksCompetingLiveDisplay();
   await verifyIncompleteRemoteDeviceSetup();
   await verifyViewerDiscoversRemoteDeviceAfterModal();
   await verifyBrowserRegisteredIdentityCannotBeOverwritten();

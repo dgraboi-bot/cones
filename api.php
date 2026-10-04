@@ -7066,17 +7066,30 @@ function mark_remote_display_device_ready(array &$state, string $ownerIdentifier
     if ($expectedHash === '' || !hash_equals($expectedHash, $providedHash)) {
         throw new RuntimeException('This remote device is registered to another browser or device.');
     }
+    if (!is_array($state['active_remote_display_devices'] ?? null)) {
+        $state['active_remote_display_devices'] = [];
+    }
+    $ownerKey = normalize_identifier_for_lookup($owner);
+    $activeDeviceKey = canonicalize_handle((string) ($state['active_remote_display_devices'][$ownerKey] ?? ''));
+    if ($activeDeviceKey !== '' && $activeDeviceKey !== $deviceKey) {
+        $activeRecord = is_array($state['remote_display_devices'][$activeDeviceKey] ?? null)
+            ? $state['remote_display_devices'][$activeDeviceKey]
+            : null;
+        if ($activeRecord !== null && remote_display_device_is_ready($activeRecord, $nowMs)) {
+            $activeDeviceName = trim((string) ($activeRecord['device_name'] ?? 'Another remote device'));
+            throw new RuntimeException("$activeDeviceName is currently the active remote display for $owner. Please close that active display before making this device the active remote display for $owner.");
+        }
+        // A stale or deleted device must not block a newly opened display.
+        unset($state['active_remote_display_devices'][$ownerKey]);
+    }
     // Older releases could leave this flag behind. A live readiness heartbeat
     // always restores the display to its normal available state.
     unset($record['pause_requested']);
     $record['last_ready_ms'] = $nowMs;
     $record['is_standby'] = $isStandby;
     $state['remote_display_devices'][$deviceKey] = $record;
-    if (!is_array($state['active_remote_display_devices'] ?? null)) {
-        $state['active_remote_display_devices'] = [];
-    }
-    // CONTINUE explicitly selects this display for its recognized owner.
-    $state['active_remote_display_devices'][normalize_identifier_for_lookup($owner)] = $deviceKey;
+    // CONTINUE selects this display only after no competing live display remains.
+    $state['active_remote_display_devices'][$ownerKey] = $deviceKey;
     return $record;
 }
 
