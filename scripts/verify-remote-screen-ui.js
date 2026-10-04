@@ -36,14 +36,14 @@ async function verifyRemoteLoadingPage() {
 async function verifyRemoteDeviceInstructions() {
   const browser = await chromium.launch({ headless: true });
   const platforms = [
-    { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36", copy: "for this PC device", path: "Settings -> System -> Power & battery -> Screen, sleep & hibernate timeouts" },
-    { userAgent: "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", copy: "for this iPhone or iPad device", path: "Settings -> Display & Brightness -> Auto-Lock" },
-    { userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36", copy: "for this Android device", path: "Settings -> Display -> Screen timeout" }
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
   ];
 
   try {
-    for (const platform of platforms) {
-      const context = await browser.newContext({ userAgent: platform.userAgent });
+    for (const userAgent of platforms) {
+      const context = await browser.newContext({ userAgent });
       const page = await context.newPage();
       page.setDefaultTimeout(20000);
       await page.goto(`${baseUrl}?open=remote-device`, { waitUntil: "domcontentloaded" });
@@ -51,14 +51,14 @@ async function verifyRemoteDeviceInstructions() {
       await page.locator("[data-open-remote-device-instructions]").click();
       const instructions = page.locator("[data-remote-device-instructions-overlay]");
       await instructions.waitFor({ state: "visible" });
-      const instructionText = (await instructions.locator(".about-section-copy:visible").textContent()).trim();
+      const instructionText = (await instructions.locator(".about-section-copy").allTextContents()).join(" ").trim();
       assert(
-        instructionText.includes(platform.copy),
-        `Remote device instructions did not use the expected wording for ${platform.copy}.`
+        instructionText.includes("wake lock") && instructionText.includes("plugged in to its charger"),
+        "Remote device instructions must explain wake lock and charging."
       );
       assert(
-        instructionText.includes(platform.path),
-        `Remote device instructions did not use the expected ASCII settings path for ${platform.copy}.`
+        instructionText.includes("COMPLETELY BLANK") && instructionText.includes("UNBLANK THE SCREEN"),
+        "Remote device instructions must explain the blank standby screen."
       );
       await instructions.locator("[data-close-remote-device-instructions]").click();
       assert(await instructions.isHidden(), "Closing remote device instructions must return to the setup form.");
@@ -1230,6 +1230,20 @@ async function verifyRemoteDisplayExerciseTwoRendersTarget() {
       await targetPanel.locator("img").getAttribute("src") === targetUrl,
       "Remote Screen Exercise 2 must render its assigned target image on the remote display."
     );
+    const [stageBox, targetBox] = await Promise.all([
+      page.locator("#stage").boundingBox(),
+      targetPanel.boundingBox()
+    ]);
+    assert(stageBox && targetBox, "The remote target and its display stage must be measurable.");
+    assert(
+      Math.abs((targetBox.x + (targetBox.width / 2)) - (stageBox.x + (stageBox.width / 2))) <= 2
+        && Math.abs((targetBox.y + (targetBox.height / 2)) - (stageBox.y + (stageBox.height / 2))) <= 2,
+      "A remote target image must be centered in the Remote Device display."
+    );
+    assert(
+      await page.locator("#remoteDisplayPauseButton").isHidden(),
+      "The Remote Device pause control must be hidden while a target image is displayed."
+    );
   } finally {
     await browser.close();
   }
@@ -1310,6 +1324,7 @@ function verifyPersistentRemoteDisplayImplementation() {
   const launcherMarkup = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.html"), "utf8");
   const launcherStyles = fs.readFileSync(path.join(__dirname, "..", "telepathybeginner.css"), "utf8");
   const runtimeSource = fs.readFileSync(path.join(__dirname, "..", "telepathy.js"), "utf8");
+  const runtimeStyles = fs.readFileSync(path.join(__dirname, "..", "telepathy.css"), "utf8");
 
   assert(
     !launcherSource.includes('remoteDeviceConfirmButton?.dataset.ready !== "true"'),
@@ -1346,6 +1361,27 @@ function verifyPersistentRemoteDisplayImplementation() {
   assert(
     runtimeSource.includes("navigator.wakeLock?.request") && runtimeSource.includes("remote_display_visibility_changed"),
     "A remote display must request a screen wake lock when available and trace foreground/background changes."
+  );
+  assert(
+    runtimeSource.includes("remoteDisplayIdleFadeMs")
+      && runtimeSource.includes("remoteDisplayControlsWakeMs")
+      && runtimeSource.includes("function handleRemoteDisplayStandbyScreenTap"),
+    "A ready remote display must fade its static standby screen and wake its controls on a blank-screen tap."
+  );
+  assert(
+    runtimeSource.includes("function requestRemoteDisplayFullscreenFromGesture")
+      && runtimeSource.includes("remote_display_fullscreen_unavailable"),
+    "A Remote Device must make a best-effort fullscreen request from the user's blank-screen tap."
+  );
+  assert(
+    runtimeSource.includes("function prepareRemoteDisplayTargetPresentation")
+      && runtimeSource.includes("setRemoteDisplayPauseButton({ visible: false })"),
+    "A Remote Device must hide its pause control while presenting a target."
+  );
+  assert(
+    runtimeStyles.includes(".stage.remote-display-target-presenting.visible")
+      && runtimeStyles.includes("body.remote-display-standby-dimmed"),
+    "Remote targets must be centered and standby controls must fade to a blank display."
   );
   assert(
     runtimeSource.includes("if (isRemoteDisplayMode) {\n      showRemoteDisplayStandbyState();\n      return;"),

@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261003k";
+  const launcherBuildVersion = "20261004a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -850,7 +850,6 @@
   const remoteDeviceInstructionsDialog = remoteDeviceInstructionsOverlay?.querySelector(".handle-dialog") || null;
   const remoteDeviceInstructionsOpenButton = document.querySelector("[data-open-remote-device-instructions]");
   const remoteDeviceInstructionsCloseButton = document.querySelector("[data-close-remote-device-instructions]");
-  const remoteDeviceInstructionsCopies = Array.from(document.querySelectorAll("[data-remote-device-instructions-copy]"));
   const remoteDeviceUserInput = document.querySelector("[data-remote-device-user-input]");
   const remoteDeviceUserSubmitButton = document.querySelector("[data-remote-device-user-submit]");
   const remoteDeviceNameInput = document.querySelector("[data-remote-device-name-input]");
@@ -9398,15 +9397,6 @@ ${calmPracticeMessage}`;
   }
 
   function openRemoteDeviceInstructionsOverlay() {
-    const environment = detectInstallEnvironment();
-    const deviceType = environment.isIOS
-      ? "ios"
-      : environment.isAndroid
-        ? "android"
-        : "pc";
-    remoteDeviceInstructionsCopies.forEach((copy) => {
-      copy.hidden = copy.dataset.remoteDeviceInstructionsCopy !== deviceType;
-    });
     remoteDeviceInstructionsOverlay?.classList.remove("beginner-view-hidden");
     remoteDeviceInstructionsOverlay?.setAttribute("aria-hidden", "false");
     remoteDeviceInstructionsCloseButton?.focus();

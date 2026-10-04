@@ -840,6 +840,19 @@ html.open-probe-pending body[data-role="receiver"] .screen > :not(#guidedTourPro
   display: block;
 }
 
+/* Remote displays keep the target centered after their standby screen fades away. */
+.stage.remote-display-target-presenting.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+}
+
+.stage.remote-display-target-presenting.visible .image-display-panel.visible,
+.stage.remote-display-target-presenting.visible .arrangement.visible {
+  margin: 0;
+}
+
 .stage.covered-screen-reveal.visible {
   display: flex;
   align-items: center;
@@ -870,6 +883,46 @@ html.open-probe-pending body[data-role="receiver"] .screen > :not(#guidedTourPro
 
 .countdown-box.hidden {
   display: none;
+}
+
+.remote-display-pause-button {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 20;
+  min-width: min(88vw, 300px);
+  min-height: 60px;
+  padding: 12px 24px;
+  border: 2px solid rgba(126, 226, 255, 0.9);
+  border-radius: 999px;
+  background: rgba(17, 81, 156, 0.97);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: clamp(1rem, 3.6vw, 1.2rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  transform: translateX(-50%);
+  transition: opacity 420ms ease, visibility 420ms step-end;
+}
+
+.remote-display-pause-button:hover,
+.remote-display-pause-button:focus-visible {
+  filter: brightness(1.14);
+  outline: none;
+}
+
+.remote-display-pause-button.hidden {
+  display: none;
+}
+
+body.remote-display-standby-dimmed .countdown-box,
+body.remote-display-standby-dimmed .remote-display-pause-button {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .arrangement {

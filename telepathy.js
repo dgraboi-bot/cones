@@ -50,9 +50,11 @@
   const launcherStorageKey = "cones-beginner-launcher-v2";
   const remoteDisplaySetupKey = "cones-remote-display-setup-v1";
   const remoteDisplayReadyHeartbeatMs = 10000;
+  const remoteDisplayIdleFadeMs = 15000;
+  const remoteDisplayControlsWakeMs = 60000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261003k";
+  const runtimeBuildVersion = "20261004a";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -94,6 +96,9 @@
   let remoteDisplayReadyAnnounced = false;
   let remoteDisplayLastReadyError = "";
   let remoteDisplayPaused = false;
+  let remoteDisplayIdleFadeTimer = 0;
+  let remoteDisplayControlsWakeTimer = 0;
+  let remoteDisplayStandbyDimmed = false;
   const isRemoteViewerMode = runtimeMode === "remote-viewer";
   const isRemoteViewerCoveredMode = runtimeMode === "remote-viewer-covered";
   const isRemoteDisplayMode = runtimeMode === "remote-display";
@@ -114,7 +119,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261003k";
+  const launcherBuildVersion = "20261004a";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1602,7 +1607,7 @@
     }
     if (role === "sender") {
       return isRemoteDisplayMode
-        ? "Waiting for remote viewer to be online..."
+        ? "Waiting for remote viewer to be online...\n\nScreen remains blank except to display the remote image at the correct time. Tap blank screen to wake it up."
         : "Waiting for receiver to be online...";
     }
 
@@ -4027,6 +4032,102 @@
     }
   }
 
+  function clearRemoteDisplayStandbyTimers() {
+    if (remoteDisplayIdleFadeTimer) {
+      window.clearTimeout(remoteDisplayIdleFadeTimer);
+      remoteDisplayIdleFadeTimer = 0;
+    }
+    if (remoteDisplayControlsWakeTimer) {
+      window.clearTimeout(remoteDisplayControlsWakeTimer);
+      remoteDisplayControlsWakeTimer = 0;
+    }
+  }
+
+  function setRemoteDisplayStandbyDimmed(dimmed) {
+    remoteDisplayStandbyDimmed = !!dimmed;
+    document.body.classList.toggle(
+      "remote-display-standby-dimmed",
+      isRemoteDisplayMode && remoteDisplayStandbyDimmed
+    );
+  }
+
+  function isRemoteDisplayStandbyState() {
+    return isRemoteDisplayMode && !remoteDisplayPaused && currentUiMode === "sender-waiting-online";
+  }
+
+  function scheduleRemoteDisplayStandbyDimming(delayMs = remoteDisplayIdleFadeMs) {
+    if (!isRemoteDisplayStandbyState()) {
+      return;
+    }
+    clearRemoteDisplayStandbyTimers();
+    remoteDisplayIdleFadeTimer = window.setTimeout(() => {
+      remoteDisplayIdleFadeTimer = 0;
+      if (isRemoteDisplayStandbyState()) {
+        setRemoteDisplayStandbyDimmed(true);
+      }
+    }, delayMs);
+  }
+
+  async function requestRemoteDisplayFullscreenFromGesture() {
+    if (!isRemoteDisplayMode || document.fullscreenElement || !document.documentElement.requestFullscreen) {
+      return;
+    }
+    try {
+      await document.documentElement.requestFullscreen();
+      void logDebugEvent("remote_display_fullscreen_entered");
+    } catch (error) {
+      void logDebugEvent("remote_display_fullscreen_unavailable", {
+        message: error instanceof Error ? error.message : "Fullscreen request failed."
+      });
+    }
+  }
+
+  function revealRemoteDisplayStandbyControls(options = {}) {
+    if (!isRemoteDisplayStandbyState()) {
+      return;
+    }
+    clearRemoteDisplayStandbyTimers();
+    setRemoteDisplayStandbyDimmed(false);
+    if (options.requestFullscreen) {
+      void requestRemoteDisplayFullscreenFromGesture();
+    }
+    const wakeForMs = Number(options.wakeForMs ?? remoteDisplayControlsWakeMs);
+    if (wakeForMs > 0) {
+      remoteDisplayControlsWakeTimer = window.setTimeout(() => {
+        remoteDisplayControlsWakeTimer = 0;
+        if (isRemoteDisplayStandbyState()) {
+          setRemoteDisplayStandbyDimmed(true);
+        }
+      }, wakeForMs);
+    }
+  }
+
+  function prepareRemoteDisplayTargetPresentation() {
+    if (!isRemoteDisplayMode) {
+      return;
+    }
+    clearRemoteDisplayStandbyTimers();
+    setRemoteDisplayStandbyDimmed(false);
+    setRemoteDisplayPauseButton({ visible: false });
+    stage?.classList.add("remote-display-target-presenting");
+  }
+
+  function handleRemoteDisplayStandbyScreenTap(event) {
+    if (!isRemoteDisplayStandbyState() || event.defaultPrevented) {
+      return;
+    }
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("#remoteDisplayPauseButton, #settingsGear, a, button, input, select, textarea")) {
+      return;
+    }
+    if (remoteDisplayStandbyDimmed) {
+      revealRemoteDisplayStandbyControls({ requestFullscreen: true });
+      return;
+    }
+    clearRemoteDisplayStandbyTimers();
+    setRemoteDisplayStandbyDimmed(true);
+  }
+
   function showRemoteDisplayStandbyState() {
     if (remoteDisplayPaused) {
       showRemoteDisplayPausedState();
@@ -4098,6 +4199,8 @@
       return;
     }
     remoteDisplayPaused = true;
+    clearRemoteDisplayStandbyTimers();
+    setRemoteDisplayStandbyDimmed(false);
     stopRuntimeHeartbeat();
     stopRemoteDisplayReadyHeartbeat();
     releaseRemoteDisplayWakeLock();
@@ -4481,6 +4584,7 @@
   }
 
   function showStage() {
+    prepareRemoteDisplayTargetPresentation();
     stage.classList.add("visible");
   }
 
@@ -4495,6 +4599,7 @@
   function clearStageVisibility() {
     clearImageBlinkCycle();
     stage?.classList.remove("covered-screen-reveal");
+    stage?.classList.remove("remote-display-target-presenting");
     arrangementNodes.forEach((node) => {
       node.classList.remove("visible");
     });
@@ -4846,6 +4951,11 @@
   }
 
   document.addEventListener("visibilitychange", handleRemoteDisplayVisibilityChange);
+  document.addEventListener("click", handleRemoteDisplayStandbyScreenTap);
+  window.addEventListener("pagehide", () => {
+    clearRemoteDisplayStandbyTimers();
+    releaseRemoteDisplayWakeLock();
+  });
 
   async function abortTrialAndReturnHome(options = {}) {
     clearRobotSimulationTimers();
@@ -5782,6 +5892,7 @@
     const targetArrangement = arrangementNodes.get(layoutNumber);
 
     if (targetArrangement) {
+      prepareRemoteDisplayTargetPresentation();
       targetArrangement.classList.add("visible");
     }
   }
@@ -5791,6 +5902,7 @@
       return;
     }
 
+    prepareRemoteDisplayTargetPresentation();
     arrangementNodes.forEach((node) => {
       node.classList.remove("visible");
     });
@@ -8318,6 +8430,14 @@
 
     currentUiMode = mode;
     currentUiModeEnteredAtMs = Date.now();
+    if (isRemoteDisplayMode) {
+      if (mode === "sender-waiting-online" && !remoteDisplayPaused) {
+        scheduleRemoteDisplayStandbyDimming();
+      } else {
+        clearRemoteDisplayStandbyTimers();
+        setRemoteDisplayStandbyDimmed(false);
+      }
+    }
     hideStage();
     setRemoteDisplayPauseButton({
       visible: isRemoteDisplayMode && mode === "sender-waiting-online" && !remoteDisplayPaused,
