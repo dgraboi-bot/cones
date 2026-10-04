@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004j";
+  const launcherBuildVersion = "20261004k";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -48,6 +48,7 @@
   let remoteViewerDeviceDiscoveryToken = 0;
   let remoteViewerDeviceAvailabilityToken = 0;
   let remoteViewerDeviceDiscoveryRetryTimer = 0;
+  let remoteViewerDeviceAvailabilityTimer = 0;
   const remoteViewerDeviceDiscoveryRetryMs = 3000;
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
   const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
@@ -16120,6 +16121,21 @@ ${calmPracticeMessage}`;
         normalizeIdentifierForStorage(String(device?.device_name || "")) === normalizeIdentifierForStorage(currentDeviceName)
       ));
       const currentDeviceIsReady = currentDevice?.is_ready === true;
+      if (
+        currentDeviceName &&
+        !isRemoteDeviceNameRequiredDisplay(currentDeviceName) &&
+        !currentDevice
+      ) {
+        const nextState = clearUnavailableRemoteViewerDevice(currentDeviceName);
+        if (nextState) {
+          void persistRemoteViewerLauncherProfile(nextState);
+        }
+        traceLauncherClient("remote_display:viewer_device_released", {
+          owner_identifier: ownerName,
+          released_device_name: currentDeviceName
+        });
+        return;
+      }
       const missingDeviceName = !currentDeviceName || isRemoteDeviceNameRequiredDisplay(currentDeviceName);
       const soleRegisteredDeviceName = devices.length === 1
         ? String(devices[0]?.device_name || "").trim()
@@ -16137,6 +16153,7 @@ ${calmPracticeMessage}`;
       const selectedExercise = getDifficultyLocalLevel("remote-viewer");
       remoteViewerPartnerInput.value = deviceName;
       persistRemoteViewerCardState();
+      startRemoteViewerDeviceAvailabilityChecks();
       void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
       if (activeDeviceName) {
         await initializeActiveRemoteViewerDeviceExercise(selectedExercise);
@@ -16178,11 +16195,39 @@ ${calmPracticeMessage}`;
       if (!shouldRetryKnownRemoteDisplayDeviceDiscovery(latest)) {
         return;
       }
+      // Discovery selects newly available displays. Validate the currently
+      // selected display separately so a remote RESET clears it promptly.
+      void refreshRemoteViewerRemoteDeviceAvailability(latest);
       remoteViewerDeviceDiscoveryRetryTimer = window.setTimeout(() => {
         remoteViewerDeviceDiscoveryRetryTimer = 0;
         scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
       }, remoteViewerDeviceDiscoveryRetryMs);
     });
+  }
+
+  function shouldMonitorRemoteViewerDeviceAvailability(state = readLauncherState()) {
+    return !!(
+      remoteViewerPartnerInput &&
+      !clairvoyanceViewingView?.classList.contains("beginner-view-hidden") &&
+      readRemoteViewSimulationMode(state) === "remote-device" &&
+      !isRemoteDeviceNameRequiredDisplay(String(remoteViewerPartnerInput.value || "").trim())
+    );
+  }
+
+  function startRemoteViewerDeviceAvailabilityChecks() {
+    const refresh = () => {
+      const state = readLauncherState();
+      if (!shouldMonitorRemoteViewerDeviceAvailability(state)) {
+        return;
+      }
+      void refreshRemoteViewerRemoteDeviceAvailability(state);
+    };
+    refresh();
+    if (!remoteViewerDeviceAvailabilityTimer) {
+      // Keep one lightweight watcher for this app lifetime. It does no network
+      // work unless the visible Remote Screen panel has a selected device.
+      remoteViewerDeviceAvailabilityTimer = window.setInterval(refresh, remoteViewerDeviceDiscoveryRetryMs);
+    }
   }
 
   async function refreshRemoteViewerRemoteDeviceAvailability(state = readLauncherState()) {
@@ -16204,6 +16249,9 @@ ${calmPracticeMessage}`;
         const nextState = clearUnavailableRemoteViewerDevice(deviceName);
         if (nextState) {
           void persistRemoteViewerLauncherProfile(nextState);
+          traceLauncherClient("remote_display:viewer_device_status_missing", {
+            released_device_name: deviceName
+          });
         }
         return;
       }
@@ -16245,6 +16293,13 @@ ${calmPracticeMessage}`;
       remoteViewerPartnerInput.value = getRemoteDeviceNameRequiredDisplay();
     }
     scheduleKnownRemoteDisplayDeviceDiscovery(state);
+    startRemoteViewerDeviceAvailabilityChecks();
+    // Mode and profile hydration can redraw this field later in the same
+    // turn. Start once more after that redraw so the watcher remains active.
+    window.setTimeout(() => startRemoteViewerDeviceAvailabilityChecks(), 0);
+    // Profile hydration can also complete asynchronously after the initial
+    // render tick and restore a selected remote device.
+    window.setTimeout(() => startRemoteViewerDeviceAvailabilityChecks(), 1200);
   }
 
   function getRemoteViewSimulationModeCopy(mode) {
@@ -34949,6 +35004,7 @@ ${calmPracticeMessage}`;
     scheduleKnownRemoteDisplayDeviceDiscovery(readLauncherState());
     void refreshRemoteViewerRemoteDeviceAvailability(readLauncherState());
   });
+  startRemoteViewerDeviceAvailabilityChecks();
   remoteViewerGoButton?.addEventListener("click", async () => {
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();

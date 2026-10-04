@@ -1369,8 +1369,17 @@ async function verifyViewerClearsReleasedRemoteDevice() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
+  let remoteDevicePresent = true;
 
   try {
+    // Keep this regression test on the current source instead of an
+    // identically versioned service-worker cache from an earlier test run.
+    await page.route("**/telepathybeginner.js*", async (route) => {
+      await route.fulfill({
+        contentType: "application/javascript",
+        body: fs.readFileSync(path.resolve(process.cwd(), "telepathybeginner.js"), "utf8")
+      });
+    });
     await page.route("**/api.php", async (route) => {
       let request = {};
       try {
@@ -1397,7 +1406,24 @@ async function verifyViewerClearsReleasedRemoteDevice() {
       if (request.action === "get_remote_display_device_status") {
         await route.fulfill({
           contentType: "application/json",
-          body: JSON.stringify({ ok: true, remote_display_device: null })
+          body: JSON.stringify({
+            ok: true,
+            remote_display_device: remoteDevicePresent
+              ? { device_name: "dan's remote", owner_identifier: "molly", is_ready: true }
+              : null
+          })
+        });
+        return;
+      }
+      if (request.action === "get_remote_display_devices_for_owner") {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            remote_display_devices: remoteDevicePresent
+              ? [{ device_name: "dan's remote", owner_identifier: "molly", is_ready: true, is_active: true }]
+              : []
+          })
         });
         return;
       }
@@ -1425,11 +1451,23 @@ async function verifyViewerClearsReleasedRemoteDevice() {
         own_email: "molly",
         partner_email: "dan's remote"
       }));
+      localStorage.setItem("cones-browser-identity-authorizations-v1", JSON.stringify({
+        molly: "a".repeat(64)
+      }));
     }, { key: launcherStorageKey });
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator('[data-open-clairvoyance-viewing]').evaluate((button) => button.click());
     await page.locator('[data-role-card="remote-viewer"] .role-card-toggle').evaluate((button) => button.click());
+    await page.locator('[data-remote-view-mode-card="remote-device"]').evaluate((button) => button.click());
+    await page.bringToFront();
     const remoteScreenInput = page.locator('[data-remote-viewer-partner]');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-remote-viewer-partner]')?.value === "dan's remote"
+    ));
+    // Reproduce a remote-device RESET after the viewer has already selected it.
+    remoteDevicePresent = false;
+    // A foreground viewer refreshes the selected device immediately on focus.
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
     await page.waitForFunction(() => (
       document.querySelector('[data-remote-viewer-partner]')?.value === "Recognized Remote Device name needed. Click GO."
     ));
