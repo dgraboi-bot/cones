@@ -11,7 +11,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004b";
+  const launcherBuildVersion = "20261004c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -272,6 +272,7 @@
   const openVisitorProFeatureButtons = Array.from(document.querySelectorAll("[data-open-visitor-pro-features]"));
   const openOtherSettingsButton = document.querySelector("[data-open-other-settings]");
   const openPartnerMessagingButton = document.querySelector("[data-open-partner-messaging]");
+  const openRemoteDeviceSetupButton = document.querySelector("[data-open-remote-device-setup]");
   const resetThisDeviceButton = document.querySelector("[data-reset-this-device]");
   const openTemporaryHomePageButton = document.querySelector("[data-open-temporary-home-page]");
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
@@ -1211,6 +1212,7 @@
   const remoteViewModeOverlay = document.querySelector("[data-remote-view-mode-overlay]");
   const remoteViewModeDialog = document.querySelector("[data-remote-view-mode-dialog]");
   const remoteViewModeStatus = document.querySelector("[data-remote-view-mode-status]");
+  const remoteViewModeIndicator = document.querySelector("[data-remote-view-mode-indicator]");
   const remoteViewModeCards = Array.from(document.querySelectorAll("[data-remote-view-mode-card]"));
   const remoteViewModeCancelButton = document.querySelector("[data-remote-view-mode-cancel]");
   const remoteViewerPartnerField = document.querySelector("[data-remote-viewer-partner-field]");
@@ -15989,10 +15991,12 @@ ${calmPracticeMessage}`;
 
   function refreshRemoteViewModeUi(state = readLauncherState()) {
     const mode = readRemoteViewSimulationMode(state);
-    const coveredScreen = mode === "covered-screen";
     if (remoteViewModeStatus) {
       remoteViewModeStatus.textContent = getRemoteViewSimulationModeCopy(mode);
       remoteViewModeStatus.hidden = false;
+    }
+    if (remoteViewModeIndicator) {
+      remoteViewModeIndicator.textContent = getRemoteViewSimulationModeCopy(mode);
     }
     applyRemoteViewerModePresentation(mode);
   }
@@ -35256,6 +35260,9 @@ ${calmPracticeMessage}`;
   openOtherSettingsButton?.addEventListener("click", showOtherSettingsView);
   openPartnerMessagingButton?.addEventListener("click", () => {
     void openPartnerMessagingFromNavigation("other-settings");
+  });
+  openRemoteDeviceSetupButton?.addEventListener("click", () => {
+    window.location.href = buildCanonicalLauncherUrl({ open: "remote-device" });
   });
   resetThisDeviceButton?.addEventListener("click", () => {
     void resetThisDeviceToAnonymousVisitor();
