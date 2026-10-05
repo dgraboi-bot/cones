@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004k";
+  const launcherBuildVersion = "20261004l";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -16137,15 +16137,12 @@ ${calmPracticeMessage}`;
         return;
       }
       const missingDeviceName = !currentDeviceName || isRemoteDeviceNameRequiredDisplay(currentDeviceName);
-      const soleRegisteredDeviceName = devices.length === 1
-        ? String(devices[0]?.device_name || "").trim()
-        : "";
       const deviceName = activeDeviceName
         ? activeDeviceName
         : readyDeviceName && !currentDeviceIsReady
           ? readyDeviceName
         : missingDeviceName
-          ? (readyDeviceName || soleRegisteredDeviceName)
+          ? readyDeviceName
           : "";
       if (!deviceName || normalizeIdentifierForStorage(deviceName) === normalizeIdentifierForStorage(currentDeviceName)) {
         return;

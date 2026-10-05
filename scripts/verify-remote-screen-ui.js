@@ -1422,7 +1422,7 @@ async function verifyViewerClearsReleasedRemoteDevice() {
             ok: true,
             remote_display_devices: remoteDevicePresent
               ? [{ device_name: "dan's remote", owner_identifier: "molly", is_ready: true, is_active: true }]
-              : []
+              : [{ device_name: "RV Test Screen", owner_identifier: "molly", is_ready: false, is_active: false }]
           })
         });
         return;
@@ -1473,7 +1473,7 @@ async function verifyViewerClearsReleasedRemoteDevice() {
     ));
     assert(
       await remoteScreenInput.inputValue() === "Recognized Remote Device name needed. Click GO.",
-      "A viewer must clear a remote device that was released by reset."
+      "A viewer must clear a remote device that was released by reset and must not select an inactive legacy device."
     );
     const stored = await page.evaluate(({ key }) => {
       const launcher = JSON.parse(localStorage.getItem(key) || "{}");
