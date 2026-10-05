@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261004o";
+  const runtimeBuildVersion = "20261005b";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261004o";
+  const launcherBuildVersion = "20261005b";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -3795,10 +3795,7 @@
   }
 
   function getCoveredScreenInstructionMessage() {
-    const clearInstruction = isLikelyTouchRuntimeDevice()
-      ? "WHEN DONE REMOTE VIEWING THE COVERED SCREEN, BEFORE CONTINUING, TAP ANYWHERE ON THE SCREEN TO CLEAR THE DISPLAYED IMAGE."
-      : "WHEN DONE REMOTE VIEWING THE COVERED SCREEN, BEFORE CONTINUING, TAP ANY KEY TO CLEAR THE DISPLAYED IMAGE.";
-    return `${clearInstruction}\n\nCOVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.`;
+    return "COVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.\n\nWHEN READY, BEFORE YOU REMOVE THE COVER, PRESS A KEY OR TAP AN EXPOSED PART OF THE SCREEN TO REMOVE THE HIDDEN IMAGE.";
   }
 
   function ensureCoveredScreenInstructionOverlay() {

@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004o";
+  const launcherBuildVersion = "20261005b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -280,6 +280,7 @@
   const openClairvoyanceViewingButton = document.querySelector("[data-open-clairvoyance-viewing]");
   const openResearchParticipationProButton = document.querySelector("[data-open-research-participation-pro]");
   const openResearchProposalButtons = Array.from(document.querySelectorAll("[data-open-research-proposal]"));
+  const openResearchProposalContactButtons = Array.from(document.querySelectorAll("[data-open-research-proposal-contact]"));
   const openResearchInterestFormButtons = Array.from(document.querySelectorAll("[data-open-research-interest-form]"));
   const openResearchTeamInterestButtons = Array.from(document.querySelectorAll("[data-open-research-team-interest]"));
   const openClairvoyanceLearnMoreButton = document.querySelector("[data-open-clairvoyance-learn-more]");
@@ -356,7 +357,7 @@
       paragraphs: [
         "When a sender looks at a visual image while sending it telepathically, the sender needs to understand what it means to be be serious about \"putting it out there.\" This is most effective when sustained intention and attention are used.",
         "When a sender is serious about sending, the receiver will pick up the features more clearly. A serious sender does not allow their mind to wander while sending.",
-        "It doesn't seem to matter whether a sender believes in the reality of telepathy or not. When they look at an image while a receiver knows they are looking at on, successful sending can occur."
+        "It doesn't seem to matter whether a sender believes in the reality of telepathy or not. When they look at an image while a receiver knows they are looking at one, successful sending can occur."
       ]
     },
     "concept-receiver": {
@@ -600,7 +601,6 @@
   const afterFirstSessionSaveButton = document.querySelector("[data-save-after-first-session-questions]");
   const researchInterestForm = document.querySelector("[data-research-interest-form]");
   const researchInterestNameInput = document.querySelector("[data-research-interest-name]");
-  const researchInterestUniqueNameInput = document.querySelector("[data-research-interest-unique-name]");
   const researchInterestEmailInput = document.querySelector("[data-research-interest-email]");
   const researchInterestZipInput = document.querySelector("[data-research-interest-zip]");
   const researchInterestAgeInput = document.querySelector("[data-research-interest-age]");
@@ -1266,6 +1266,7 @@
   let locationPickerHidesFeatureSetupBackButton = false;
   let featureSetupOwnIdentifier = "";
   let featureSetupPendingHandleFlow = "";
+  let featureSetupReturnLearningCenterTab = "start-here";
   let uniqueNameChangeAllowedNow = false;
   let installGuideReturnView = "feature-setup";
   let installGuideMode = "install";
@@ -1583,6 +1584,7 @@ ${calmPracticeMessage}`;
   let learningCenterReturnTarget = { view: "options", role: "", scrollY: 0 };
   let learningCenterLandingVisitOrigin = null;
   let pendingClairvoyanceGuidedTourOrigin = null;
+  let clairvoyanceQuickLinksTourPromptActive = false;
   let baselineQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let afterFirstSessionQuestionsReturnTarget = { view: "online-course", role: "", scrollY: 0, focusId: "" };
   let activeEspLessonMode = "role";
@@ -1591,6 +1593,7 @@ ${calmPracticeMessage}`;
   let pendingOnlineCourseRestoreFocusId = "";
   let activeOnlineCourseTab = "welcome";
   let activeLearningCenterTab = "welcome";
+  let lastUserSelectedLearningCenterTab = "welcome";
   let activeAdminReminderActionMode = "";
   let launcherAdminSessionActive = false;
   let activeLearningCenterConceptPage = 1;
@@ -9192,12 +9195,11 @@ ${calmPracticeMessage}`;
     }
     const setupButton = setupWrap.querySelector("[data-open-feature-setup]");
     if (setupButton) {
-      setupButton.textContent = getDisplayedLauncherUserType() === "pro"
-        ? "Click here to set up optional features for ESP PRO"
-        : "Click here to set up optional features for Telepathy Beginner";
+      setupButton.textContent = "Click here to set up optional features of this app";
     }
-    setupWrap.dataset.available = visible ? "true" : "false";
-    setupWrap.hidden = !visible;
+    const visibleOutsideGuidedTour = !!visible && !isSenderOrReceiverGuidedTourActive(role);
+    setupWrap.dataset.available = visibleOutsideGuidedTour ? "true" : "false";
+    setupWrap.hidden = !visibleOutsideGuidedTour;
   }
 
   function applyRoleIdentifierPresentation(role, options = {}) {
@@ -11713,6 +11715,9 @@ ${calmPracticeMessage}`;
         : originView === "remote-viewer"
           ? "remote-viewer"
           : "card";
+    featureSetupReturnLearningCenterTab = featureSetupReturnView === "learning-center"
+      ? normalizeLearningCenterTabId(options.learningCenterTab || activeLearningCenterTab || "start-here")
+      : "start-here";
     featureSetupReturnScrollY = Math.max(0, Number(options.scrollY ?? window.scrollY ?? window.pageYOffset ?? 0) || 0);
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -11884,7 +11889,7 @@ ${calmPracticeMessage}`;
     if (returnView === "learning-center") {
       showLearningCenterView({
         view: "learning-center",
-        tab: "start-here",
+        tab: featureSetupReturnLearningCenterTab,
         scrollY: returnScrollY
       });
       return;
@@ -14028,8 +14033,9 @@ ${calmPracticeMessage}`;
     if (setupWrap) {
       const ownIdentifier = String(readVisibleRoleIdentifiers(role)?.ownName || "").trim();
       const shouldShowSetupPrompt = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
-      setupWrap.hidden = !shouldShowSetupPrompt;
-      setupWrap.dataset.previewActive = shouldShowSetupPrompt ? "true" : "";
+      // Exercise previews must not reopen this link while a Sender/Receiver tour is active.
+      setRoleFeatureSetupPrompt(role, shouldShowSetupPrompt);
+      setupWrap.dataset.previewActive = shouldShowSetupPrompt && !isSenderOrReceiverGuidedTourActive(role) ? "true" : "";
     }
     panel.classList.add("is-level-preview");
   }
@@ -14066,7 +14072,7 @@ ${calmPracticeMessage}`;
       const ownUsesHandle = usesHandlePresentation(ownIdentifier, ownStatus);
       const usesTemporaryIdentity = isLandingExploreTemporaryIdentity(ownIdentifier);
       const setupPromptVisible = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier, ownStatus);
-      setupWrap.hidden = !(setupPromptVisible && !usesTemporaryIdentity && !ownUsesHandle);
+      setRoleFeatureSetupPrompt(role, setupPromptVisible && !usesTemporaryIdentity && !ownUsesHandle);
     }
     if (!defaultText) {
       void refreshRoleEspLesson(role);
@@ -24110,6 +24116,13 @@ ${calmPracticeMessage}`;
   const guidedSenderTourMode = "sender-experience";
   let launcherGuidedTourState = null;
 
+  function isSenderOrReceiverGuidedTourActive(role) {
+    const normalizedRole = String(role || "").trim().toLowerCase();
+    return !!launcherGuidedTourState &&
+      (normalizedRole === "sender" || normalizedRole === "receiver") &&
+      launcherGuidedTourState.role === normalizedRole;
+  }
+
   function getGuideElements(role) {
     const requestedRole = String(role || "").trim().toLowerCase();
     const normalizedRole = ["sender", "receiver", "remote-viewer"].includes(requestedRole)
@@ -24491,7 +24504,45 @@ ${calmPracticeMessage}`;
     clearLauncherGuidedBalloonPosition();
     clearLauncherGuidedTourClasses();
     setGuidedTourHint("");
+    refreshAllRoleFeatureSetupPrompts();
     updatePendingLearningCenterLessonReturnButtons();
+  }
+
+  function clearClairvoyanceQuickLinksTourPrompt() {
+    if (!clairvoyanceQuickLinksTourPromptActive) {
+      return;
+    }
+    clairvoyanceQuickLinksTourPromptActive = false;
+    guidedTourOverlay?.classList.remove("is-clairvoyance-tour-prompt");
+    guidedTourBalloon?.classList.remove("is-clairvoyance-tour-prompt");
+    guidedTourExitButton?.removeAttribute("hidden");
+    guidedTourNextButton?.removeAttribute("hidden");
+    if (guidedTourBalloon) {
+      guidedTourBalloon.setAttribute("aria-modal", "true");
+      guidedTourBalloon.setAttribute("aria-label", "Guided Receiver tour step");
+    }
+    clearLauncherGuidedBalloonPosition();
+    if (!launcherGuidedTourState && guidedTourOverlay) {
+      guidedTourOverlay.hidden = true;
+    }
+  }
+
+  function showClairvoyanceQuickLinksTourPrompt() {
+    if (!guidedTourOverlay || !guidedTourBalloon || !guidedTourCopy || !guidedTourNextButton || !guidedTourExitButton) {
+      return;
+    }
+    clearLauncherGuidedTourClasses();
+    clairvoyanceQuickLinksTourPromptActive = true;
+    guidedTourOverlay.classList.add("is-clairvoyance-tour-prompt");
+    guidedTourBalloon.classList.add("is-clairvoyance-tour-prompt");
+    clearLauncherGuidedBalloonPosition();
+    guidedTourBalloon.setAttribute("aria-modal", "false");
+    guidedTourBalloon.setAttribute("aria-label", "Clairvoyance Remote View Tour");
+    guidedTourCopy.textContent = "Clairvoyance / Remote View Tour. Press GO.";
+    setGuidedTourHint("");
+    guidedTourExitButton.hidden = true;
+    guidedTourNextButton.hidden = true;
+    guidedTourOverlay.hidden = false;
   }
 
   async function exitLauncherGuidedTourToOrigin() {
@@ -24615,6 +24666,7 @@ ${calmPracticeMessage}`;
       partnerInput: elements.partnerInput,
       previousPartnerReadOnly: !!elements.partnerInput.readOnly
     };
+    setRoleFeatureSetupPrompt(role, false);
     updatePendingLearningCenterLessonReturnButtons();
     renderLauncherGuidedTourStep();
   }
@@ -24670,6 +24722,7 @@ ${calmPracticeMessage}`;
         partnerInput: elements.partnerInput,
         previousPartnerReadOnly
       };
+      setRoleFeatureSetupPrompt(role, false);
 
       // Keep the visible control aligned with the Exercise 1 session the tour launches.
       setRoleDifficultyLabel(role, "1");
@@ -24710,6 +24763,38 @@ ${calmPracticeMessage}`;
         tourInput.dispatchEvent(new Event("change", { bubbles: true }));
       }
       remoteViewerGoButton?.click();
+    });
+  }
+
+  function startClairvoyanceGuidedTourFromQuickLinks() {
+    pendingClairvoyanceGuidedTourOrigin = {
+      view: "learning-center",
+      tab: "start-here",
+      scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
+    };
+
+    const latest = readLauncherState();
+    latest.remoteViewerSimulationMode = "covered-screen";
+    latest.remoteViewerExperienceMode = "tour";
+    latest.difficultyLevel = "2";
+    latest.roleDifficultyLevels = latest.roleDifficultyLevels || {};
+    latest.roleDifficultyLevels["remote-viewer"] = "2";
+    writeLauncherState(latest);
+
+    showClairvoyanceViewingView();
+    window.requestAnimationFrame(() => {
+      const remoteViewerCard = findRoleCard("remote-viewer");
+      if (remoteViewerCard) {
+        ensureCardExpanded(remoteViewerCard, { scrollIntoView: false });
+      }
+      renderRemoteViewerCard();
+      persistRoleDifficultyPreference("remote-viewer", "2");
+      setRoleDifficultyLabel("remote-viewer", "2");
+      const tourInput = remoteViewerExperienceInputs.find((input) => input.value === "tour");
+      if (tourInput) {
+        tourInput.checked = true;
+      }
+      showClairvoyanceQuickLinksTourPrompt();
     });
   }
 
@@ -26991,6 +27076,9 @@ ${calmPracticeMessage}`;
       case "guided-sender-tour":
         startLauncherGuidedTour("sender");
         return;
+      case "guided-remote-view-tour":
+        startClairvoyanceGuidedTourFromQuickLinks();
+        return;
       case "key-concepts":
         showLearningCenterView({ view: "learning-center", tab: "key-concepts" });
         window.setTimeout(() => {
@@ -27026,11 +27114,18 @@ ${calmPracticeMessage}`;
       case "readings-videos":
         showReadingsVideosView();
         return;
+      case "review-location":
+        showFeatureSetupView({
+          returnView: "learning-center",
+          learningCenterTab: activeLearningCenterTab,
+          scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
+        });
+        focusFeatureSetupItem("location");
+        return;
       case "setup-features":
       case "claim-name":
       case "install-app":
       case "test-sound":
-      case "review-location":
         showFeatureSetupView({
           returnView: "learning-center",
           scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
@@ -27522,7 +27617,7 @@ ${calmPracticeMessage}`;
     if (requestedTab) {
       setLearningCenterTab(requestedTab);
     } else {
-      setLearningCenterTab(activeLearningCenterTab || "welcome");
+      setLearningCenterTab(lastUserSelectedLearningCenterTab || activeLearningCenterTab || "welcome");
     }
     void refreshLearningCenterLessonIndex();
     learningCenterView?.classList.remove("beginner-view-hidden");
@@ -27578,6 +27673,17 @@ ${calmPracticeMessage}`;
     } else {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }
+
+  function focusFeatureSetupItem(itemName) {
+    const normalizedItemName = String(itemName || "").trim();
+    if (!normalizedItemName) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      const item = featureSetupView?.querySelector(`[data-feature-setup-item="${normalizedItemName}"]`);
+      item?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function renderLearningCenterConceptDetail(actionKey) {
@@ -28334,6 +28440,7 @@ ${calmPracticeMessage}`;
     learningCenterView?.classList.add("beginner-view-hidden");
     contactView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
+    researchProposalView?.classList.add("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
     lessonEditorView?.classList.add("beginner-view-hidden");
@@ -28372,6 +28479,10 @@ ${calmPracticeMessage}`;
     }
     if (contactReturnView === "clairvoyance-viewing") {
       showClairvoyanceViewingView();
+      return;
+    }
+    if (contactReturnView === "research-proposal") {
+      showResearchProposalView(researchProposalReturnView);
       return;
     }
     if (contactReturnView === "launcher") {
@@ -30016,10 +30127,6 @@ ${calmPracticeMessage}`;
   }
 
   function populateResearchInterestForm(response = {}) {
-    const identifier = getResearchInterestIdentifier();
-    if (researchInterestUniqueNameInput) {
-      researchInterestUniqueNameInput.value = identifier;
-    }
     if (researchInterestNameInput) {
       researchInterestNameInput.value = String(response.name || "").trim();
     }
@@ -34358,10 +34465,7 @@ ${calmPracticeMessage}`;
   }
 
   function getCoveredScreenInstructionMessage() {
-    const clearInstruction = isLikelyTouchLauncherDevice()
-      ? 'WHEN DONE REMOTE VIEWING THE COVERED SCREEN, BEFORE CONTINUING, TAP ANYWHERE ON THE SCREEN TO CLEAR THE DISPLAYED IMAGE.'
-      : 'WHEN DONE REMOTE VIEWING THE COVERED SCREEN, BEFORE CONTINUING, TAP ANY KEY TO CLEAR THE DISPLAYED IMAGE.';
-    return `${clearInstruction}\n\nCOVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.`;
+    return "COVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.\n\nWHEN READY, BEFORE YOU REMOVE THE COVER, PRESS A KEY OR TAP AN EXPOSED PART OF THE SCREEN TO REMOVE THE HIDDEN IMAGE.";
   }
 
   function ensureCoveredScreenInstructionOverlay() {
@@ -34573,6 +34677,9 @@ ${calmPracticeMessage}`;
     inlineBack?.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (role === "remote-viewer") {
+        clearClairvoyanceQuickLinksTourPrompt();
+      }
       if (isGuidedTourCompletionNoticeActive(role)) {
         endLauncherGuidedTour();
         collapseActiveLauncherCard();
@@ -34590,8 +34697,19 @@ ${calmPracticeMessage}`;
     if (!role) {
       return;
     }
-    // A near-miss around a level arrow must not collapse an expanded card.
+    // On a collapsed telepathy card, its Exercise label is also an entry point.
+    // The arrows remain the only exercise-changing controls once the card is open.
     stack.addEventListener("click", (event) => {
+      const isTelepathyRole = role === "receiver" || role === "sender";
+      const clickedExerciseArrow = event.target instanceof Element
+        && !!event.target.closest(".role-level-bump");
+      const card = stack.closest("[data-role-card]");
+      if (isTelepathyRole && !clickedExerciseArrow && card && !card.classList.contains("active")) {
+        event.preventDefault();
+        event.stopPropagation();
+        activateCard(card);
+        return;
+      }
       event.stopPropagation();
     });
     stack.addEventListener("mouseenter", () => {
@@ -34648,6 +34766,7 @@ ${calmPracticeMessage}`;
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      clearClairvoyanceQuickLinksTourPrompt();
       const card = findRoleCard("remote-viewer");
       if (!card?.classList.contains("active")) {
         activateCard(card);
@@ -35003,6 +35122,7 @@ ${calmPracticeMessage}`;
   });
   startRemoteViewerDeviceAvailabilityChecks();
   remoteViewerGoButton?.addEventListener("click", async () => {
+    clearClairvoyanceQuickLinksTourPrompt();
     persistRemoteViewerCardState();
     const remoteViewSimulationMode = readRemoteViewSimulationMode();
     const coveredScreenMode = remoteViewSimulationMode === "covered-screen";
@@ -35323,6 +35443,7 @@ ${calmPracticeMessage}`;
     button.addEventListener("click", () => {
       const requestedTab = button.dataset.learningCenterTab || "welcome";
       const normalizedTab = normalizeLearningCenterTabId(requestedTab);
+      lastUserSelectedLearningCenterTab = normalizedTab;
       setLearningCenterTab(requestedTab);
       if (["welcome", "course", "key-concepts", "start-here", "index"].includes(normalizedTab)) {
         const targetScrollY = getLearningCenterTabsTopScrollY();
@@ -35576,9 +35697,12 @@ ${calmPracticeMessage}`;
         case "setup-features":
         case "claim-name":
         case "install-app":
-        case "review-location":
         case "partner-messaging":
           showFeatureSetupView();
+          break;
+        case "review-location":
+          showFeatureSetupView();
+          focusFeatureSetupItem("location");
           break;
         case "user-guide":
           showHelpView();
@@ -35710,6 +35834,11 @@ ${calmPracticeMessage}`;
         ? "research-participation-pro"
         : "research-participation";
       showResearchProposalView(sourceView);
+    });
+  });
+  openResearchProposalContactButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      showContactView("research-proposal");
     });
   });
   openSubscriptionManagementButton?.addEventListener("click", () => {
@@ -36477,6 +36606,10 @@ ${calmPracticeMessage}`;
       event.preventDefault();
       event.stopPropagation();
       const role = String(button.dataset.openFeatureSetup || "").trim() || activeLauncherRole || "sender";
+      if (isSenderOrReceiverGuidedTourActive(role)) {
+        setRoleFeatureSetupPrompt(role, false);
+        return;
+      }
       showFeatureSetupView({
         role,
         returnView: role === "remote-viewer" ? "remote-viewer" : "card",

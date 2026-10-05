@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/esp-pro-og-preview.png">
-  <meta name="espgym-build-version" content="20261004o">
+  <meta name="espgym-build-version" content="20261005b">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -56,19 +56,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261004o">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261005b">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261004o">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261004o">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20261004o">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261005b">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261005b">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20261005b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261004o">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20261004o">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261004o">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261005b">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20261005b">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261005b">
   <script>
     (function () {
-      var buildVersion = "20261004o";
+      var buildVersion = "20261005b";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -174,7 +174,7 @@
                   </div>
                   <p data-role-handle-wrap="receiver"><button class="role-note-link" type="button" data-open-handle-control="receiver">Choose unique name instead of email address</button></p>
                   <p class="role-note-visitor-pro-wrap" data-role-visitor-pro-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-visitor-pro-features="receiver">PRO features</button></p>
-                  <p class="role-note-setup-wrap" data-role-setup-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-feature-setup="receiver">Click here to set up optional features for Telepathy Beginner</button></p>
+                  <p class="role-note-setup-wrap" data-role-setup-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-feature-setup="receiver">Click here to set up optional features of this app</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="receiver" hidden><button class="role-note-link" type="button" data-open-contact-inline="receiver">ESP GYM</button></p>
                   <div class="role-difficulty-status" data-role-difficulty-status="receiver" hidden></div>
                 </div>
@@ -265,7 +265,7 @@
                   </div>
                   <p data-role-handle-wrap="sender"><button class="role-note-link" type="button" data-open-handle-control="sender">Choose unique name instead of email address</button></p>
                   <p class="role-note-visitor-pro-wrap" data-role-visitor-pro-wrap="sender" hidden><button class="role-note-link" type="button" data-open-visitor-pro-features="sender">PRO features</button></p>
-                  <p class="role-note-setup-wrap" data-role-setup-wrap="sender" hidden><button class="role-note-link" type="button" data-open-feature-setup="sender">Click here to set up optional features for Telepathy Beginner</button></p>
+                  <p class="role-note-setup-wrap" data-role-setup-wrap="sender" hidden><button class="role-note-link" type="button" data-open-feature-setup="sender">Click here to set up optional features of this app</button></p>
                   <p class="role-note-contact-wrap" data-role-note-contact-wrap="sender" hidden><button class="role-note-link" type="button" data-open-contact-inline="sender">ESP GYM</button></p>
                   <div class="role-difficulty-status" data-role-difficulty-status="sender" hidden></div>
                 </div>
@@ -316,19 +316,20 @@
 
         </section>
 
-        <div class="guided-tour-launcher-overlay" data-guided-tour-overlay hidden>
-          <div class="guided-tour-launcher-balloon" data-guided-tour-balloon role="dialog" aria-modal="true" aria-label="Guided Receiver tour step">
-            <div class="guided-tour-launcher-exit-row">
-              <button class="guided-tour-exit-button" type="button" data-guided-tour-exit aria-label="Exit Tour" title="Exit Tour">X</button>
-            </div>
-            <p class="guided-tour-launcher-copy" data-guided-tour-copy></p>
-            <p class="guided-tour-launcher-hint" data-guided-tour-hint hidden></p>
-            <div class="guided-tour-launcher-actions">
-              <button class="options-button guided-tour-launcher-next" type="button" data-guided-tour-next>NEXT</button>
-            </div>
+      </section>
+
+      <div class="guided-tour-launcher-overlay" data-guided-tour-overlay hidden>
+        <div class="guided-tour-launcher-balloon" data-guided-tour-balloon role="dialog" aria-modal="true" aria-label="Guided Receiver tour step">
+          <div class="guided-tour-launcher-exit-row">
+            <button class="guided-tour-exit-button" type="button" data-guided-tour-exit aria-label="Exit Tour" title="Exit Tour">X</button>
+          </div>
+          <p class="guided-tour-launcher-copy" data-guided-tour-copy></p>
+          <p class="guided-tour-launcher-hint" data-guided-tour-hint hidden></p>
+          <div class="guided-tour-launcher-actions">
+            <button class="options-button guided-tour-launcher-next" type="button" data-guided-tour-next>NEXT</button>
           </div>
         </div>
-      </section>
+      </div>
 
       <section class="beginner-view beginner-view-hidden messages-overlay-view" data-view="messages" aria-labelledby="messagesTitle">
         <p class="visually-hidden" data-messages-subtitle>Your partner messages will appear here.</p>
@@ -647,7 +648,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20261004o</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20261005b</span>
           </div>
         </div>
 
@@ -720,7 +721,7 @@
             </div>
             <div class="temporary-home-tour-callout">
               <p class="temporary-home-tour-copy">New to ESP GYM? Try a guided experience of what it is like to be a telepathic receiver at ESP GYM.</p>
-              <button class="options-button temporary-home-card-button temporary-home-tour-button" type="button" data-start-guided-receiver-tour-landing>Experience What it's Like to be a Telepathic Receiver</button>
+              <button class="options-button temporary-home-card-button temporary-home-tour-button" type="button" data-start-guided-receiver-tour-landing>Experience What it's Like to Practice Telepathy</button>
             </div>
           </section>
 
@@ -955,7 +956,7 @@
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="guided-receiver-tour">Guided Receiver Tour</button>
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="guided-sender-tour">Guided Sender Tour</button>
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="telepathy-practice">Telepathy Practice</button>
-                    <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="performance-reports">Performance Reports</button>
+                    <button class="role-note-link online-course-jump-link guided-remote-view-tour-link" type="button" data-learning-center-action="guided-remote-view-tour" aria-label="Guided Remote View Tour"><span>Guided Remote</span><span>View Tour</span></button>
                   </div>
                 </article>
                 <article class="online-course-index-card">
@@ -1230,6 +1231,7 @@
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="setup-features">Setup Website Features</button>
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="claim-name">Claim Unique User Name</button>
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="install-app">Install As App</button>
+                    <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="review-location">Review Location</button>
                     <button class="role-note-link online-course-jump-link" type="button" data-learning-center-action="partner-messaging">Partner Messaging</button>
                   </div>
                 </article>
@@ -1626,7 +1628,7 @@
                       </div>
                     </div>
                     <p data-role-handle-wrap="remote-viewer"><button class="role-note-link" type="button" data-open-handle-control="remote-viewer">Create a unique identification name for yourself</button></p>
-                    <p class="role-note-setup-wrap" data-role-setup-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-feature-setup="remote-viewer">Click here to set up optional features for Telepathy Beginner</button></p>
+                    <p class="role-note-setup-wrap" data-role-setup-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-feature-setup="remote-viewer">Click here to set up optional features of this app</button></p>
                     <p class="role-note-contact-wrap" data-role-note-contact-wrap="remote-viewer" hidden><button class="role-note-link" type="button" data-open-contact-inline="remote-viewer">ESP GYM</button></p>
                     <div class="role-difficulty-status" data-role-difficulty-status="remote-viewer" hidden></div>
                   </div>
@@ -2339,7 +2341,7 @@
           <section class="settings-view-panel about-view-panel">
             <div class="about-section">
               <h2 class="about-section-title">Measuring the Speed of Thought Propagation</h2>
-              <p class="about-section-copy">How fast does the telepathic signal propagate through space? Does it travel at the speed of light, like radio waves, or slower, or faster? Since distance does not affect the quality of telepathy, one theory claims that its propagation is instantaneous like the phenomenon of entanglement. Science now has the tools to investigate this extremely important question. The critical experiment will require up to several hundred thousand dollars to implement, but it can and should be done. ESP GYM is looking for a donor(s) interested in funding this experiment. Please use the contact form if you have an interest in contributing.</p>
+              <p class="about-section-copy">How fast does the telepathic signal propagate through space? Does it travel at the speed of light, like radio waves, or slower, or faster? Since distance does not affect the quality of telepathy, one theory claims that its propagation is instantaneous like the phenomenon of entanglement. Science now has the tools to investigate this extremely important question. The critical experiment will require up to several hundred thousand dollars to implement, but it can and should be done. ESP GYM is looking for a donor(s) interested in funding this experiment. Please use the <button class="role-note-link role-note-inline-link" type="button" data-open-research-proposal-contact>contact form</button> if you have an interest in contributing.</p>
             </div>
           </section>
         </section>
@@ -2361,15 +2363,11 @@
                   <input class="settings-view-input" id="researchInterestName" type="text" data-research-interest-name>
                 </div>
                 <div class="settings-view-field">
-                  <label class="settings-view-label" for="researchInterestUniqueName">ESP Gym Unique Name:</label>
-                  <input class="settings-view-input" id="researchInterestUniqueName" type="text" data-research-interest-unique-name readonly>
-                </div>
-                <div class="settings-view-field">
                   <label class="settings-view-label" for="researchInterestEmail">Email:</label>
                   <input class="settings-view-input" id="researchInterestEmail" type="email" autocomplete="email" data-research-interest-email>
                 </div>
                 <div class="settings-view-field">
-                  <label class="settings-view-label" for="researchInterestZip">Adress zip code:</label>
+                  <label class="settings-view-label" for="researchInterestZip">Address zip code:</label>
                   <input class="settings-view-input" id="researchInterestZip" type="text" inputmode="text" data-research-interest-zip>
                 </div>
                 <div class="settings-view-field">
@@ -2591,8 +2589,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261004o'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261004o'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261005b'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261005b'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3314,10 +3312,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20261004o"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261005b"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20261004o"></script>
-<script src="telepathybeginner.js?v=20261004o"></script>
+<script src="target-selection.js?v=20261005b"></script>
+<script src="telepathybeginner.js?v=20261005b"></script>
 </body>
 </html>
 

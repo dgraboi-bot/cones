@@ -131,6 +131,10 @@ async function verifyCoveredScreenLaunch() {
     const modal = page.locator('[data-covered-screen-instruction-overlay]');
     await modal.waitFor({ state: "visible" });
     assert(await modal.locator("h2").textContent() === "Covered Screen", "Covered Screen instructions did not open.");
+    assert(
+      (await modal.locator('[data-covered-screen-instruction-copy]').textContent()) === "COVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.\n\nWHEN READY, BEFORE YOU REMOVE THE COVER, PRESS A KEY OR TAP AN EXPOSED PART OF THE SCREEN TO REMOVE THE HIDDEN IMAGE.",
+      "Covered Screen instructions do not use the approved wording."
+    );
     const checkbox = modal.locator('[data-covered-screen-instruction-checkbox]');
     await checkbox.click();
     assert(await checkbox.isChecked(), "Covered Screen instruction checkbox did not respond.");
@@ -166,7 +170,22 @@ async function verifyCoveredScreenLaunch() {
     const guidedTargetSrc = await coveredTargetImage.getAttribute("src");
     await page.locator("#guidedTourNextButton").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("Look into your mind's eye carefully"));
-    await page.locator("#guidedTourProbeButton").click();
+    const probeButton = page.locator("#guidedTourProbeButton");
+    const probeTooltip = "Knowing more about how this skill works can help you improve";
+    assert(await probeButton.getAttribute("data-tooltip") === probeTooltip, "Probe Deeper tooltip text is incorrect.");
+    assert(await probeButton.getAttribute("title") === null, "Probe Deeper must not show a second browser-native tooltip.");
+    await probeButton.hover();
+    await page.waitForTimeout(160);
+    const probeTooltipStyle = await probeButton.evaluate((button) => {
+      const tooltip = getComputedStyle(button, "::after");
+      return { opacity: Number.parseFloat(tooltip.opacity), top: tooltip.top, bottom: tooltip.bottom };
+    });
+    assert(probeTooltipStyle.opacity > 0.95, "Probe Deeper instant tooltip did not appear on hover.");
+    assert(
+      Number.parseFloat(probeTooltipStyle.bottom) > 0 && Number.parseFloat(probeTooltipStyle.top) < 0,
+      `Probe Deeper tooltip must appear above its button: ${JSON.stringify(probeTooltipStyle)}`
+    );
+    await probeButton.click();
     const probeScreen = page.locator("#guidedTourProbeScreen");
     await probeScreen.waitFor({ state: "visible" });
     await probeScreen.locator("[data-probe-topic-open]").first().click();
@@ -210,6 +229,10 @@ async function verifyCoveredScreenLaunch() {
     await guidedContinueButton.tap();
     const continuedGuidedInstruction = page.locator("[data-covered-screen-runtime-instruction-overlay]");
     if (await continuedGuidedInstruction.isVisible()) {
+      assert(
+        (await continuedGuidedInstruction.locator('[data-covered-screen-runtime-instruction-copy]').textContent()) === "COVER THE SCREEN DURING THE COUNTDOWN FROM SEVEN TO ONE.\n\nWHEN READY, BEFORE YOU REMOVE THE COVER, PRESS A KEY OR TAP AN EXPOSED PART OF THE SCREEN TO REMOVE THE HIDDEN IMAGE.",
+        "In-session Covered Screen instructions do not use the approved wording."
+      );
       await continuedGuidedInstruction.getByRole("button", { name: "OK" }).tap();
     }
     await page.waitForFunction(() => document.querySelector("#countdownNumber")?.textContent === "Press when ready.");
@@ -579,11 +602,11 @@ function verifyRuntimeGuards() {
     "In-session Covered Screen controls must remain interactive above the runtime screen."
   );
   assert(
-    launcherSource.includes('normalizedRole === "sender" || normalizedRole === "remote-viewer"'),
+    launcherSource.includes('["receiver", "sender", "remote-viewer"].includes(String(role || "").trim())'),
     "Clairvoyance exercise explanations must not be replaced by the timed fallback message."
   );
   assert(
-    launcherSource.includes('String(role || "").trim() === "remote-viewer"'),
+    launcherSource.includes('["receiver", "sender", "remote-viewer"].includes(normalizedRole)'),
     "Clairvoyance explanation clearing must remain disabled."
   );
   assert(

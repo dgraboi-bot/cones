@@ -439,6 +439,11 @@ html.espgym-build-recovery-active body {
   cursor: pointer;
 }
 
+/* General Information topic cards are descriptive, not navigation controls. */
+[data-view="general-information"] .learning-center-topic-card {
+  cursor: default;
+}
+
 .learning-center-topic-card:hover,
 .learning-center-topic-card:focus-visible {
   outline: none;
@@ -2797,6 +2802,11 @@ button.remote-viewer-save-results-cancel {
   min-width: 96px;
   justify-items: center;
   gap: 4px;
+}
+
+.role-card:not(.active)[data-role-card="receiver"] .role-card-level-stack,
+.role-card:not(.active)[data-role-card="sender"] .role-card-level-stack {
+  cursor: pointer;
 }
 
 .role-card-level {
@@ -5846,6 +5856,26 @@ body.remote-device-setup-open {
   pointer-events: none;
 }
 
+/* The Quick Links Clairvoyance entry uses the same guide styling without
+   blocking the GO button that begins the tour. */
+.guided-tour-launcher-overlay.is-clairvoyance-tour-prompt {
+  background: transparent;
+}
+
+.guided-tour-launcher-overlay.is-clairvoyance-tour-prompt .guided-tour-launcher-balloon {
+  top: 50%;
+  left: 50%;
+  width: min(92vw, 440px);
+  transform: translate(-50%, -50%);
+  cursor: default;
+  pointer-events: none;
+  resize: none;
+}
+
+.guided-remote-view-tour-link > span {
+  display: block;
+}
+
 html.launcher-direct-open-pending body {
   opacity: 0;
 }
@@ -6031,7 +6061,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261004o") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261005b") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);
