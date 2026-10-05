@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261004m";
+  const launcherBuildVersion = "20261004n";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1837,24 +1837,6 @@ ${calmPracticeMessage}`;
     renderAdminPrivilegeIndicator();
     startLauncherAdminLockRefresh();
     return data;
-  }
-
-  async function releaseLauncherAdminLease() {
-    if (!hasLauncherAdminLease()) {
-      stopLauncherAdminLockRefresh();
-      return;
-    }
-    try {
-      await launcherAdminApi("release_admin_lock", {
-        admin_client_id: launcherPageInstanceId
-      });
-    } catch (_) {
-      // The lease has a server-side expiry if this best-effort release fails.
-    } finally {
-      launcherAdminState.admin_lock_active = false;
-      stopLauncherAdminLockRefresh();
-      renderAdminPrivilegeIndicator();
-    }
   }
 
   async function refreshAdminLease(options = {}) {
@@ -36984,9 +36966,7 @@ ${calmPracticeMessage}`;
   adminOpenAnalyzerButton?.addEventListener("click", () => {
     void showAnalyzerView(selectedReportTarget || selectedReportPair);
   });
-  closeAdminButton?.addEventListener("click", () => {
-    void releaseLauncherAdminLease().finally(showSettingsView);
-  });
+  closeAdminButton?.addEventListener("click", showSettingsView);
   settingsSecondChoiceCheckbox?.addEventListener("change", () => {
     if (settingsStatus) {
       settingsStatus.textContent = "";

@@ -478,13 +478,17 @@ Practical meaning:
 - temporary notes or scripts may be ignored only by explicit non-deploy rule
 - if the script names a blocked file, fix the deploy list or remove the unintended file before continuing
 
+## Upload Resilience Rule
+
+The staged upload helper retries a transient SSH/PSCP connection failure up to three times, with a short logged delay between attempts. It must not retry authentication, host-key, file, or hash-validation failures. Staged files are hash-verified before promotion, so a retry can never promote an unverified partial upload.
+
 ## Client Debugging Rule
 
 Debugging controls are intentionally split between a device-local preference and a server-wide development switch.
 
 Required rule going forward:
 
-1. `Enable local debugging` is stored only in the current browser or PWA and must never enable tracing on another device.
+1. `Add extra debug info from this ADMIN browser/device` is stored only in the current browser or PWA and must never enable tracing on another device.
 2. `Enable global debugging` is an Admin-controlled server setting for short development investigations. A reloaded device reads it immediately; an already-open device follows it on its next normal refresh.
 3. Browser traces must be emitted only when local or global debugging is enabled. Disabled debugging must not write trace entries to the server log.
 4. Reserve debug source `A` for the development browser. While global debugging is enabled, launcher and runtime pages share one browser-local key and other participating browsers receive short diagnostic labels beginning with `B`.

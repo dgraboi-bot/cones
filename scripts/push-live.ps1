@@ -209,7 +209,24 @@ function Invoke-PlinkStep([string]$Command, [string]$StepLabel, [int]$TimeoutSec
 }
 
 function Invoke-PscpUpload([string]$LocalPath, [string]$RemotePath, [string]$StepLabel) {
-  [void](Invoke-ExternalCommand -FilePath $pscpPath -ArgumentList @("-q", "-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $LocalPath, "$remoteUploadTarget`:$RemotePath") -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput)
+  $lastError = $null
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+      [void](Invoke-ExternalCommand -FilePath $pscpPath -ArgumentList @("-q", "-batch", "-hostkey", $sshHostKey, "-i", $sshPrivateKeyPath, $LocalPath, "$remoteUploadTarget`:$RemotePath") -StepLabel $StepLabel -TimeoutSeconds 180 -AllowEmptyOutput)
+      return
+    } catch {
+      $lastError = $_
+      $message = [string]$_.Exception.Message
+      $isTransientConnectionFailure = $message -match '(?i)(network error|connection timed out|connection reset|connection closed|timed out)'
+      if (-not $isTransientConnectionFailure -or $attempt -eq 3) {
+        throw
+      }
+      $delaySeconds = 2 * $attempt
+      Write-ReleaseLog ("Transient upload connection failure for {0}; retrying attempt {1}/3 in {2}s." -f $StepLabel, ($attempt + 1), $delaySeconds) "Yellow"
+      Start-Sleep -Seconds $delaySeconds
+    }
+  }
+  throw $lastError
 }
 
 function Set-LiveDeploymentStatus([ValidateSet("deploying", "ready", "failed")][string]$State, [string]$Message) {
