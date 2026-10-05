@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261004n";
+  const runtimeBuildVersion = "20261004o";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261004n";
+  const launcherBuildVersion = "20261004o";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -976,8 +976,8 @@
     if (phase === "result") {
       setGuidedReceiverTourStep({
         id: "result",
-        text: isRemoteViewerCoveredMode
-          ? "This is the last screen of a trial. To do another trial, tap the words, \"Continue Session\" below. tap \"End Session\" to end this session."
+        text: isRemoteViewerLikeMode
+          ? "This is the last screen of a trial. To do another trial, tap the words, \"Continue Session\" below. Tap \"End Session\" to end this session."
           : "This is the last screen of a trial. To do another trial, you would tap the word, \"Another?\" below. The sender will then decide whether the sender is also ready for another trial. (Robot is always ready.)",
         target: decisionPanel || messagePanel || stage,
         showNext: false,
@@ -5621,7 +5621,7 @@
     const enough = document.createElement("button");
     enough.className = "confidence-button decision-button";
     enough.type = "button";
-    enough.textContent = isRemoteViewerCoveredMode ? "End Session" : "Thanks! I've had enough for now.";
+    enough.textContent = isRemoteViewerLikeMode ? "End Session" : "Thanks! I've had enough for now.";
     enough.addEventListener("click", () => {
       dismissGuidedReceiverTourResultStep();
       void submitPostRoundChoice("enough");
@@ -5630,7 +5630,7 @@
     const another = document.createElement("button");
     another.className = "confidence-button decision-button";
     another.type = "button";
-    another.textContent = isRemoteViewerCoveredMode ? "Continue Session" : "Another?";
+    another.textContent = isRemoteViewerLikeMode ? "Continue Session" : "Another?";
     another.addEventListener("click", () => {
       dismissGuidedReceiverTourResultStep();
       void submitPostRoundChoice("another");
