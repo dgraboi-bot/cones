@@ -179,8 +179,20 @@ async function verifyCoveredScreenLaunch() {
       "Exercise 2 on Android must reveal a decoded target image after the countdown"
     );
     const guidedTargetSrc = await coveredTargetImage.getAttribute("src");
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(120);
+    assert(
+      (await page.locator("#guidedTourCopy").textContent()).startsWith("At the end of the countdown"),
+      "A key press must not skip the guided receiving introduction."
+    );
     await page.locator("#guidedTourNextButton").click();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("Look into your mind's eye carefully"));
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(120);
+    assert(
+      (await page.locator("#guidedTourCopy").textContent()).startsWith("Look into your mind's eye carefully"),
+      "A key press must not skip the guided observation guidance."
+    );
     const probeButton = page.locator("#guidedTourProbeButton");
     const probeTooltip = "Knowing more about how this skill works can help you improve";
     assert(await probeButton.getAttribute("data-tooltip") === probeTooltip, "Probe Deeper tooltip text is incorrect.");
@@ -199,8 +211,20 @@ async function verifyCoveredScreenLaunch() {
     await probeButton.click();
     const probeScreen = page.locator("#guidedTourProbeScreen");
     await probeScreen.waitFor({ state: "visible" });
+    assert(
+      (await probeScreen.textContent()).includes("This is the crux of ESP sensitivity"),
+      "Probe Deeper overview does not use the approved ESP sensitivity introduction."
+    );
+    assert(
+      await probeScreen.getByRole("button", { name: "More" }).count() > 0,
+      "Probe Deeper topic cards must use More pills."
+    );
     await probeScreen.locator("[data-probe-topic-open]").first().click();
-    assert(await probeScreen.locator("h3").first().textContent() === "A Peaceful Environment", "Probe Deeper OPEN did not show its selected topic.");
+    assert(await probeScreen.locator("h3").first().textContent() === "A Peaceful Environment", "Probe Deeper More did not show its selected topic.");
+    assert(
+      await probeScreen.getByRole("button", { name: "All Topics" }).count() === 0,
+      "Probe Deeper detail pages must not show a duplicate All Topics pill."
+    );
     assert(
       (await page.locator("#guidedTourCopy").textContent()).startsWith("Look into your mind's eye carefully"),
       "Probe Deeper OPEN incorrectly advanced the underlying guided tour."
@@ -214,7 +238,7 @@ async function verifyCoveredScreenLaunch() {
     // action cannot be swallowed by the guided-tour input guard.
     await page.locator("#guidedTourNextButton").tap();
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("After you have had enough time"));
-    await page.locator("#countdownBox").tap();
+    await page.keyboard.press("Space");
     const guidedRoundChoices = page.locator("#receiverLevelFourChoiceGrid.visible .image-choice-card");
     await guidedRoundChoices.first().waitFor({ state: "visible" });
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("For this tour, tap the highlighted correct answer"));
@@ -607,6 +631,12 @@ function verifyRuntimeGuards() {
   assert(
     runtimeSource.includes("event.stopPropagation();") && runtimeSource.includes("Rendering a selected topic replaces this button"),
     "Probe Deeper topic navigation must stop its click before the runtime redraws the selected topic."
+  );
+  assert(
+    runtimeSource.includes("A Receiver does better when ESP impressions are not denied but accepted as real and immediately available.") &&
+      runtimeSource.includes("those shreds of remembered information can help you correctly choose the actual target image.") &&
+      !runtimeSource.includes('data-probe-topic-back="1"'),
+    "Probe Deeper copy or redundant All Topics navigation is not updated."
   );
   assert(
     runtimeSource.includes("covered-screen-runtime-instruction-ok"),

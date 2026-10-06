@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261005d";
+  const runtimeBuildVersion = "20261005e";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261005d";
+  const launcherBuildVersion = "20261005e";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -278,13 +278,13 @@
   let robotLevelFourPairsPromise = null;
   let senderTrialBackSuppressed = false;
   let guidedReceiverTourState = null;
-  const guidedReceiverTourProbeIntro = "This is the crux of telepathic reception: learning to recognize more clearly the visual information that appears telepathically in the mind's eye. Below are key ideas to help you understand and strengthen this skill.";
+  const guidedReceiverTourProbeIntro = "This is the crux of ESP sensitivity: learning to recognize more clearly the information that appears which you do not originate and is therefore somewhat \"surprising\" to you. Below are some key ideas to help you understand and strengthen this skill.";
   const guidedReceiverTourProbeTopics = [
     {
       id: "peaceful-environment",
       label: "Peaceful Environment",
       title: "A Peaceful Environment",
-      teaser: "A quiet, undistracting setting helps the receiver remain calm and perceptually open.",
+      teaser: "A quiet, undistracting setting helps a Receiver remain calm and perceptually open.",
       paragraphs: [
         "One factor is the state of mind of the receiver. In order to be calm, the environment should not be noisy or otherwise distracting. It should be quiet and peaceful."
       ]
@@ -313,7 +313,7 @@
       id: "state-of-mind",
       label: "State Of Mind",
       title: "State Of Mind And How Much You Care",
-      teaser: "The receiver needs to stay open to what appears, rather than be busy thinking personal thoughts.",
+      teaser: "A Receiver needs to stay open to what appears, rather than be busy thinking personal thoughts.",
       paragraphs: [
         "A receiver should not be absorbed in their own thoughts, but open to whatever pops into the mind's eye when the countdown ends and an image is displayed to the sender. Shreds of visual evidence can fade quickly, so they must be noticed and remembered quickly. Remember what the shreds looked like. Do not rush to name them unless an obvious name pops out on its own."
       ]
@@ -322,10 +322,10 @@
       id: "belief",
       label: "Belief",
       title: "A Certainty That Telepathy Is Real - And Real For Me",
-      teaser: "A receiver does better when telepathy is accepted inwardly as real and immediately available.",
+      teaser: "A Receiver does better when ESP impressions are not denied but accepted as real and immediately available.",
       paragraphs: [
-        "A receiver needs to fully believe that telepathy exists and fully trust that the right information is present in the mind's eye right after the countdown. It has been shown that those who do not believe telepathy exists are much less likely to experience it. However, a sender does not have to believe in telepathy in order to competently send telepathic information.",
-        "If you are the receiver, you must know in your heart that telepathy is real as strongly as you believe there is a real sun in the sky. If you do not believe in it, it still might happen spontaneously, but it is less likely that you will show consistently good results. A sender can be skeptical and still produce decent results for a receiver."
+        "A Receiver needs to fully believe that ESP exists and fully trust that the right information is present in the mind certainly at around the time of the beep. It has been shown that those who do not believe ESP exists are much less likely to experience it. However, a Sender does not have to believe in telepathy in order to competently send telepathic information.",
+        "If you are the Receiver, you must know in your heart that telepathy and clairvoyance are real as strongly as you believe there is a real sun in the sky. If you do not have strong belief, it still might happen spontaneously, but it is less likely that you will show consistently good results. A Sender in telepathy practice can be skeptical and still produce decent results for the Receiver."
       ]
     },
     {
@@ -334,7 +334,7 @@
       title: "Don't Worry How This Works",
       teaser: "How the connection happens may remain mysterious, but the practical task is still to receive what appears.",
       paragraphs: [
-        "How it is possible that, out of the millions of people in the world, by simply wanting to receive what one person may be looking at, it is possible to tune in to that one person? How this can happen is not the important thing. The important thing is that this is what does happen, and it can happen effortlessly, without conscious calculation."
+        "How it is possible that, out of the millions of people in the world, by simply wanting to receive what one person may be looking at, it is possible to tune in to what that one person sees? How this can happen is not the important thing. The important thing is that this is what does happen, and it can happen effortlessly,"
       ]
     },
     {
@@ -343,8 +343,8 @@
       title: "Objects Have Locations In The Visual Field - Remember What And Where",
       teaser: "Features may appear in different parts of the mind's eye. Remember both what appeared and where it appeared.",
       paragraphs: [
-        "The receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. The receiver should try to remember what was where in the visual field. Some features of what pops in may have color. Remember the color and where it is noticed. Was it on the right side? The left side?",
-        "After a few seconds, the whole image, not just part of it, may fade. Then it is time to consolidate in memory whatever shreds or pieces you saw. When the choice of images is shown, that remembered information can help you choose the actual target image."
+        "A Receiver has a visual field. That field has a left side and a right side. What appears will appear at different locations in the visual field. A Receiver should try to remember what was where in the visual field. Some features of what pops in may have color. Remember the color and where it is noticed. Was it on the right side? The left side?",
+        "After a few seconds, the whole image, not just part of it, may fade. Then it is time to consolidate in memory whatever shreds or pieces you saw. When the choice of images is shown, those shreds of remembered information can help you correctly choose the actual target image."
       ]
     },
     {
@@ -410,7 +410,7 @@
             <h3>${label}</h3>
             <p>${teaser}</p>
             <div class="guided-tour-probe-topic-actions">
-              <button class="guided-tour-probe-chip" type="button" data-probe-topic-open="${escapeHtml(topic.id)}">Open</button>
+              <button class="guided-tour-probe-chip" type="button" data-probe-topic-open="${escapeHtml(topic.id)}">More</button>
             </div>
           </article>
         `;
@@ -441,16 +441,8 @@
           .map((paragraph) => `<p>${escapeHtml(String(paragraph || ""))}</p>`)
           .join("")
       : "";
-    const inlineBackButton = guidedReceiverTourState
-      ? ""
-      : `
-        <div class="guided-tour-probe-detail-actions">
-          <button class="guided-tour-probe-chip" type="button" data-probe-topic-back="1">All Topics</button>
-        </div>
-      `;
     guidedTourProbeBody.innerHTML = `
       <div class="guided-tour-probe-detail">
-        ${inlineBackButton}
         <h3>${escapeHtml(topic.title || topic.label || "")}</h3>
         ${paragraphs}
       </div>
@@ -1151,7 +1143,7 @@
   });
   guidedTourProbeBody?.addEventListener("click", (event) => {
     const button = event.target instanceof Element
-      ? event.target.closest("[data-probe-topic-open], [data-probe-topic-back]")
+      ? event.target.closest("[data-probe-topic-open]")
       : null;
     if (!(button instanceof HTMLElement)) {
       return;
@@ -1160,14 +1152,6 @@
     // Rendering a selected topic replaces this button, so do not let the same
     // click fall through to Covered Screen's document-level completion handler.
     event.stopPropagation();
-    if (button.dataset.probeTopicBack === "1") {
-      if (guidedReceiverTourState) {
-        guidedReceiverTourState.probeTopicId = "";
-      }
-      guidedStandaloneProbeTopicId = "";
-      renderGuidedReceiverTourProbeView();
-      return;
-    }
     const topicId = String(button.dataset.probeTopicOpen || "").trim();
     if (!topicId) {
       return;
@@ -8743,6 +8727,13 @@
         !awaitingReceiverDone ||
         (currentUiMode !== "receiver-done" && currentUiMode !== "receiver-reveal")
       ) {
+        return;
+      }
+      // During the guided tour, only the explicit completion guidance may
+      // advance from viewing to the choice screen. Earlier guide panels use
+      // keys solely for reading and navigation, not for ending the interval.
+      if (isGuidedReceiverTour && guidedReceiverTourState?.step?.id !== "done") {
+        event.preventDefault();
         return;
       }
       const target = event.target instanceof Element ? event.target : null;
