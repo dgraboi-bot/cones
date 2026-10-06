@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261006a";
+  const launcherBuildVersion = "20261006b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -690,6 +690,8 @@
   const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
   const temporaryHomePageEspProExploreButton = document.querySelector("[data-temporary-home-esp-pro-explore]");
   const temporaryHomePageMoreButton = document.querySelector("[data-temporary-home-explore]");
+  const temporaryHomeClairvoyanceTourButton = document.querySelector("[data-temporary-home-clairvoyance-tour]");
+  const temporaryHomeClairvoyanceMoreButton = document.querySelector("[data-temporary-home-clairvoyance-more]");
   const temporaryHomePageLearningCenterButton = document.querySelector("[data-open-temporary-home-learning-center]");
   const temporaryHomePageRichCoursewareButton = document.querySelector("[data-temporary-home-rich-courseware]");
   const temporaryHomeExperiencesGrid = document.querySelector("[data-temporary-home-experiences]");
@@ -1479,6 +1481,7 @@
   let launcherAdminSecret = "";
   let clairvoyanceLearnMoreMode = "reader";
   let clairvoyanceLearnMoreReturnView = "clairvoyance-viewing";
+  let clairvoyanceLearnMoreReturnScrollY = 0;
   let resolvedMainUserType = "standard";
   let mainUserTypeLookupTimer = null;
   let pendingUserTypeLookupToken = 0;
@@ -24559,6 +24562,10 @@ ${calmPracticeMessage}`;
       : null;
     pendingClairvoyanceGuidedTourOrigin = null;
     clearClairvoyanceQuickLinksTourPrompt();
+    if (origin?.view === "temporary-home-page") {
+      forceReturnToTemporaryHomePage(origin.scrollY);
+      return;
+    }
     showLearningCenterView(origin || { view: "learning-center", tab: "start-here", scrollY: 0 });
   }
 
@@ -24788,6 +24795,40 @@ ${calmPracticeMessage}`;
       view: "learning-center",
       tab: "start-here",
       scrollY: Math.max(0, getLearningCenterTabsTopScrollY())
+    };
+
+    const latest = readLauncherState();
+    latest.remoteViewerSimulationMode = "covered-screen";
+    latest.remoteViewerExperienceMode = "tour";
+    latest.difficultyLevel = "2";
+    latest.roleDifficultyLevels = latest.roleDifficultyLevels || {};
+    latest.roleDifficultyLevels["remote-viewer"] = "2";
+    writeLauncherState(latest);
+
+    showClairvoyanceViewingView();
+    window.requestAnimationFrame(() => {
+      const remoteViewerCard = findRoleCard("remote-viewer");
+      if (remoteViewerCard) {
+        ensureCardExpanded(remoteViewerCard, { scrollIntoView: false });
+      }
+      renderRemoteViewerCard();
+      persistRoleDifficultyPreference("remote-viewer", "2");
+      setRoleDifficultyLabel("remote-viewer", "2");
+      const tourInput = remoteViewerExperienceInputs.find((input) => input.value === "tour");
+      if (tourInput) {
+        tourInput.checked = true;
+      }
+      window.requestAnimationFrame(() => {
+        remoteViewerCard?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+        showClairvoyanceQuickLinksTourPrompt();
+      });
+    });
+  }
+
+  function startClairvoyanceGuidedTourFromLanding() {
+    pendingClairvoyanceGuidedTourOrigin = {
+      view: "temporary-home-page",
+      scrollY: captureTemporaryHomeReturnScrollY()
     };
 
     const latest = readLauncherState();
@@ -25684,6 +25725,7 @@ ${calmPracticeMessage}`;
   function showClairvoyanceLearnMoreView(options = {}) {
     const isEditMode = !!options?.edit;
     clairvoyanceLearnMoreReturnView = String(options?.returnView || (isEditMode ? "admin" : "clairvoyance-viewing")).trim() || "clairvoyance-viewing";
+    clairvoyanceLearnMoreReturnScrollY = Math.max(0, Number(options?.returnScrollY || 0) || 0);
     clearReportPanelOffset();
     configureClairvoyanceLearnMoreMode(isEditMode ? "edit" : "reader");
     void populateLessonEditorFromServer("clairvoyance");
@@ -31523,11 +31565,12 @@ ${calmPracticeMessage}`;
 
   function openEspProMainMenuFromLanding() {
     saveLandingEspProExploreReturn(captureTemporaryHomeReturnScrollY());
+    const entryOptions = { afterEnter: showOptionsView };
     if (publicLandingMode.espProSpecialEditionEnabled) {
-      startEspProSpecialEditionLandingEntry();
+      startEspProSpecialEditionLandingEntry(entryOptions);
       return;
     }
-    startVisitorLandingEntry({ direct: true });
+    startVisitorLandingEntry({ direct: true, ...entryOptions });
   }
 
   async function handleLandingExploreClick() {
@@ -33815,6 +33858,10 @@ ${calmPracticeMessage}`;
       showAdminView();
       return;
     }
+    if (clairvoyanceLearnMoreReturnView === "temporary-home-page") {
+      forceReturnToTemporaryHomePage(clairvoyanceLearnMoreReturnScrollY);
+      return;
+    }
     showClairvoyanceViewingView();
   }
 
@@ -35690,7 +35737,21 @@ ${calmPracticeMessage}`;
     void showPeerReviewedListView();
   });
   closeOptionsButtons.forEach((button) => {
-    button.addEventListener("click", showLauncherView);
+    button.addEventListener("click", () => {
+      // The text BACK pill restores the Landing location for ESP PRO Explore.
+      // The home icon keeps its ordinary local-home behavior.
+      if (button.classList.contains("beginner-top-button-back")) {
+        const returnScrollY = consumeLandingEspProExploreReturn();
+        if (returnScrollY !== null) {
+          window.location.href = buildCanonicalLauncherUrl({
+            open: "landing-preview",
+            scroll_y: returnScrollY
+          });
+          return;
+        }
+      }
+      showLauncherView();
+    });
   });
   closeLessonEditorButton?.addEventListener("click", showAdminView);
   saveLessonEditorButton?.addEventListener("click", saveLessonEditorContent);
@@ -36346,6 +36407,15 @@ ${calmPracticeMessage}`;
   });
   temporaryHomePageMoreButton?.addEventListener("click", () => {
     void handleLandingExploreClick();
+  });
+  temporaryHomeClairvoyanceTourButton?.addEventListener("click", () => {
+    startClairvoyanceGuidedTourFromLanding();
+  });
+  temporaryHomeClairvoyanceMoreButton?.addEventListener("click", () => {
+    showClairvoyanceLearnMoreView({
+      returnView: "temporary-home-page",
+      returnScrollY: captureTemporaryHomeReturnScrollY()
+    });
   });
   temporaryHomePageLearningCenterButton?.addEventListener("click", () => {
     clearLearningCenterLandingVisitOrigin();

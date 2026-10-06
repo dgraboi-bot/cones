@@ -395,14 +395,47 @@ async function verifyLandingMoreAndEspProExplore() {
     await page.locator("[data-close-learning-center]").evaluate((button) => button.click());
     await page.waitForFunction(() => !document.querySelector('[data-view="temporary-home-page"]')?.classList.contains("beginner-view-hidden"));
     await page.locator("[data-temporary-home-esp-pro-explore]").click();
-    await page.locator('[data-view="launcher"]').waitFor({ state: "visible" });
-    await page.locator("[data-open-landing-page]").click();
+    await page.locator('[data-view="options"]').waitFor({ state: "visible" });
+    assert(
+      (await page.locator("#optionsTitle").textContent())?.trim() === "MAIN MENU",
+      "ESP PRO Explore must open the Main Menu, not the local role-selection home."
+    );
+    await page.locator('[data-view="options"] .beginner-top-button-back').click();
     await page.waitForURL(/open=landing-preview/);
     assert(
       new URL(page.url()).searchParams.has("scroll_y"),
       "ESP PRO Explore must preserve a Landing Page scroll position for the Main Menu BACK action."
     );
     await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
+
+    await page.evaluate(() => window.scrollTo(0, 360));
+    const landingScrollY = await page.evaluate(() => window.scrollY);
+    await page.locator("[data-temporary-home-clairvoyance-tour]").click();
+    await page.locator('[data-view="clairvoyance-viewing"]').waitFor({ state: "visible" });
+    assert(
+      (await page.locator("[data-guided-tour-copy]").textContent())?.includes("Clairvoyance / Remote View Tour. Press GO."),
+      "Landing Clairvoyance Explore must open the standard Guided Remote View Tour."
+    );
+    assert(
+      (await page.locator('[data-role-difficulty-label="remote-viewer"]').textContent())?.includes("Exercise 2"),
+      "Landing Clairvoyance Explore must begin with Exercise 2."
+    );
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.locator("[data-guided-tour-exit]").click();
+    await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
+    assert(
+      Math.abs((await page.evaluate(() => window.scrollY)) - landingScrollY) < 8,
+      "Exiting the Landing Clairvoyance tour must restore the Landing position."
+    );
+
+    await page.locator("[data-temporary-home-clairvoyance-more]").click();
+    await page.locator('[data-view="clairvoyance-learn-more"]').waitFor({ state: "visible" });
+    await page.locator("[data-close-clairvoyance-learn-more]").click();
+    await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
+    assert(
+      Math.abs((await page.evaluate(() => window.scrollY)) - landingScrollY) < 8,
+      "Clairvoyance Learn More BACK must restore the Landing position."
+    );
   } finally {
     await browser.close();
   }
