@@ -376,6 +376,18 @@ async function verifyLandingMoreAndEspProExplore() {
       (await page.locator("#temporary-home-ongoing-research").textContent()).includes("one or more ESP GYM practice tools"),
       "The Ongoing Research Landing Page card does not use the approved description."
     );
+    assert(
+      (await page.locator("#temporary-home-learning-center").textContent()).includes("take turns practicing and assessing skills in sending and receiving."),
+      "The Telepathy Training Landing Page card does not use the approved description."
+    );
+    assert(
+      (await page.locator("#temporary-home-practice .temporary-home-section-heading").textContent())?.trim() === "Practice",
+      "The Landing Page practice section must use the approved heading."
+    );
+    assert(
+      await page.locator("[data-temporary-home-clairvoyance-tour] > span").allTextContents().then((lines) => lines.join("|") === 'Explore "Covered Screen"|Clairvoyance Practice'),
+      "The Landing Clairvoyance Explore button must use the approved two-line label."
+    );
     await page.locator("#temporary-home-rich-courseware").evaluate((card) => { card.hidden = false; });
     assert(
       await page.locator("#temporary-home-rich-courseware").getByRole("button", { name: "More" }).count() === 1,
@@ -412,6 +424,7 @@ async function verifyLandingMoreAndEspProExplore() {
     const landingScrollY = await page.evaluate(() => window.scrollY);
     await page.locator("[data-temporary-home-clairvoyance-tour]").click();
     await page.locator('[data-view="clairvoyance-viewing"]').waitFor({ state: "visible" });
+    await page.waitForFunction(() => document.querySelector("[data-guided-tour-copy]")?.textContent?.includes("Clairvoyance / Remote View Tour. Press GO."));
     assert(
       (await page.locator("[data-guided-tour-copy]").textContent())?.includes("Clairvoyance / Remote View Tour. Press GO."),
       "Landing Clairvoyance Explore must open the standard Guided Remote View Tour."
