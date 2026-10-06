@@ -161,6 +161,17 @@ async function verifyCoveredScreenLaunch() {
     assert(await page.locator("#guidedTourNextButton").isHidden(), "Covered Screen preparation should not require a NEXT acknowledgement.");
 
     await page.locator("#countdownBox").click();
+    await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent === "Now you should be temporarily covering the area where the digits are showing.");
+    const countdownGuidePosition = await page.evaluate(() => {
+      const guide = document.querySelector("#guidedTourBalloon")?.getBoundingClientRect();
+      const countdown = document.querySelector("#countdownBox")?.getBoundingClientRect();
+      return guide && countdown ? { guideBottom: guide.bottom, countdownTop: countdown.top } : null;
+    });
+    assert(
+      countdownGuidePosition && countdownGuidePosition.guideBottom <= countdownGuidePosition.countdownTop,
+      `The countdown guidance must appear above the digit square: ${JSON.stringify(countdownGuidePosition)}`
+    );
+    assert(await page.locator("#guidedTourNextButton").isHidden(), "The automatic countdown guidance must not require NEXT.");
     await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent?.startsWith("At the end of the countdown"));
     const coveredTargetImage = page.locator("#receiverImageDisplayPanel.visible .image-display-asset");
     await assertLoadedTargetImage(
@@ -241,8 +252,23 @@ async function verifyCoveredScreenLaunch() {
       "Guided Continue Session must leave the Exercise 2 result choices instead of freezing on them."
     );
     assert(
-      await page.locator("#guidedTourOverlay").isHidden(),
-      "Guided Continue Session must clear the result guide before returning to Press when ready."
+      await page.locator("#guidedTourOverlay").isVisible(),
+      "Guided Continue Session must restore the ready guide so its input guard permits the next trial."
+    );
+    assert(
+      (await page.locator("#guidedTourCopy").textContent()).includes("Tap the message below when you are ready to cover the screen during the countdown before something will be displayed on it."),
+      "Guided Continue Session must restore the Covered Screen ready instruction."
+    );
+    await page.locator("#countdownBox").tap();
+    await page.waitForFunction(() => document.querySelector("#guidedTourCopy")?.textContent === "Now you should be temporarily covering the area where the digits are showing.");
+    const continuedCountdownGuidePosition = await page.evaluate(() => {
+      const guide = document.querySelector("#guidedTourBalloon")?.getBoundingClientRect();
+      const countdown = document.querySelector("#countdownBox")?.getBoundingClientRect();
+      return guide && countdown ? { guideBottom: guide.bottom, countdownTop: countdown.top } : null;
+    });
+    assert(
+      continuedCountdownGuidePosition && continuedCountdownGuidePosition.guideBottom <= continuedCountdownGuidePosition.countdownTop,
+      `The continued countdown guidance must appear above the digit square: ${JSON.stringify(continuedCountdownGuidePosition)}`
     );
 
     const freshSessionAndroidContext = await browser.newContext({

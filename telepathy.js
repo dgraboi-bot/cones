@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261005b";
+  const runtimeBuildVersion = "20261005d";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261005b";
+  const launcherBuildVersion = "20261005d";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -688,6 +688,11 @@
         width = Math.min(Math.max(Math.round((stageRect?.width || viewportWidth) * 0.38), 250), 360);
         left = Math.max(16, Math.round((stageRect?.left || 0) + 8));
         top = Math.max(16, Math.round((stageRect?.top || 0) + 8));
+        break;
+      case "countdown-above":
+        width = Math.min(Math.max(Math.round((countdownRect?.width || viewportWidth) * 0.95), 280), 460);
+        left = Math.max(16, Math.round((countdownRect?.left || 16) + (((countdownRect?.width || width) - width) / 2)));
+        top = Math.max(16, Math.round((countdownRect?.top || 16) - 148));
         break;
       default:
         width = Math.min(Math.max(Math.round((countdownRect?.width || viewportWidth) * 0.7), 250), 380);
@@ -7513,6 +7518,11 @@
             currentUiMode = "receiver-ready";
             setPrompt(prompt, true, prompt);
             updateSettingsGearVisibility();
+            // Continue Session clears the previous result guide. Recreate the
+            // ready guide so its input guard permits the next deliberate tap.
+            if (isGuidedReceiverTour) {
+              notifyGuidedReceiverTourPhase("ready");
+            }
           })();
         } else if (isRobotSenderLikeMode) {
           receiverReady = true;
@@ -8019,6 +8029,17 @@
       const timeoutMs = Math.max(0, syncStartLocalMs + checkpoint.delayMs - Date.now());
       setTimeout(() => {
         showCountdownValue(checkpoint.value);
+        if (isGuidedReceiverTour && isRemoteViewerCoveredMode && checkpoint.value === "7") {
+          setGuidedReceiverTourStep({
+            id: "covered-countdown",
+            text: "Now you should be temporarily covering the area where the digits are showing.",
+            target: countdownBox,
+            keepTargetBright: true,
+            showNext: false,
+            allowed: [],
+            placement: "countdown-above"
+          });
+        }
       }, timeoutMs);
     });
 

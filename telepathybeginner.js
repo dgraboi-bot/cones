@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261005b";
+  const launcherBuildVersion = "20261005d";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -24193,6 +24193,7 @@ ${calmPracticeMessage}`;
     guidedTourBalloon.style.left = "";
     guidedTourBalloon.style.right = "";
     guidedTourBalloon.style.bottom = "";
+    guidedTourBalloon.classList.remove("is-manually-positioned");
   }
 
   function maybeAdvanceLauncherGuidedOpenCardStep(card, role) {
@@ -24538,11 +24539,27 @@ ${calmPracticeMessage}`;
     clearLauncherGuidedBalloonPosition();
     guidedTourBalloon.setAttribute("aria-modal", "false");
     guidedTourBalloon.setAttribute("aria-label", "Clairvoyance Remote View Tour");
-    guidedTourCopy.textContent = "Clairvoyance / Remote View Tour. Press GO.";
+    guidedTourCopy.textContent = "Clairvoyance / Remote View Tour. Press GO.\n\nDuring this tour, you may move this box around as needed.";
     setGuidedTourHint("");
-    guidedTourExitButton.hidden = true;
+    guidedTourExitButton.hidden = false;
     guidedTourNextButton.hidden = true;
     guidedTourOverlay.hidden = false;
+  }
+
+  async function exitClairvoyanceQuickLinksTourPrompt() {
+    if (!clairvoyanceQuickLinksTourPromptActive) {
+      return;
+    }
+    const confirmed = window.confirm("Exit Tour. Are you sure?");
+    if (!confirmed) {
+      return;
+    }
+    const origin = pendingClairvoyanceGuidedTourOrigin && typeof pendingClairvoyanceGuidedTourOrigin === "object"
+      ? cloneJsonValue(pendingClairvoyanceGuidedTourOrigin, null)
+      : null;
+    pendingClairvoyanceGuidedTourOrigin = null;
+    clearClairvoyanceQuickLinksTourPrompt();
+    showLearningCenterView(origin || { view: "learning-center", tab: "start-here", scrollY: 0 });
   }
 
   async function exitLauncherGuidedTourToOrigin() {
@@ -24794,7 +24811,10 @@ ${calmPracticeMessage}`;
       if (tourInput) {
         tourInput.checked = true;
       }
-      showClairvoyanceQuickLinksTourPrompt();
+      window.requestAnimationFrame(() => {
+        remoteViewerCard?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+        showClairvoyanceQuickLinksTourPrompt();
+      });
     });
   }
 
@@ -24851,7 +24871,7 @@ ${calmPracticeMessage}`;
   let launcherGuidedBalloonDrag = null;
 
   guidedTourBalloon?.addEventListener("pointerdown", (event) => {
-    if (!launcherGuidedTourState) {
+    if (!launcherGuidedTourState && !clairvoyanceQuickLinksTourPromptActive) {
       return;
     }
     const target = event.target;
@@ -24870,7 +24890,11 @@ ${calmPracticeMessage}`;
   });
 
   guidedTourBalloon?.addEventListener("pointermove", (event) => {
-    if (!launcherGuidedBalloonDrag || !launcherGuidedTourState || launcherGuidedBalloonDrag.pointerId !== event.pointerId) {
+    if (
+      !launcherGuidedBalloonDrag ||
+      (!launcherGuidedTourState && !clairvoyanceQuickLinksTourPromptActive) ||
+      launcherGuidedBalloonDrag.pointerId !== event.pointerId
+    ) {
       return;
     }
     const rect = guidedTourBalloon.getBoundingClientRect();
@@ -24884,12 +24908,19 @@ ${calmPracticeMessage}`;
       Math.max(minVisibleY - rect.height, event.clientY - launcherGuidedBalloonDrag.offsetY),
       Math.max(minVisibleY, window.innerHeight - minVisibleY)
     );
-    launcherGuidedTourState.manualBalloonPosition = {
-      stepId: getCurrentLauncherGuidedTourStep()?.id || "",
+    const position = {
       left,
       top,
       width: rect.width
     };
+    if (launcherGuidedTourState) {
+      launcherGuidedTourState.manualBalloonPosition = {
+        stepId: getCurrentLauncherGuidedTourStep()?.id || "",
+        ...position
+      };
+    } else {
+      guidedTourBalloon.classList.add("is-manually-positioned");
+    }
     guidedTourBalloon.style.left = `${left}px`;
     guidedTourBalloon.style.top = `${top}px`;
     guidedTourBalloon.style.right = "auto";
@@ -35737,6 +35768,10 @@ ${calmPracticeMessage}`;
     advanceLauncherGuidedTourStep();
   });
   guidedTourExitButton?.addEventListener("click", () => {
+    if (clairvoyanceQuickLinksTourPromptActive) {
+      void exitClairvoyanceQuickLinksTourPrompt();
+      return;
+    }
     void exitLauncherGuidedTourToOrigin();
   });
   getGuideElements("receiver").ownInput?.addEventListener("input", () => {
