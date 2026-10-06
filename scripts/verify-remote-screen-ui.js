@@ -361,26 +361,48 @@ async function verifyClairvoyanceCoveredScreenTourLaunch() {
   }
 }
 
-async function verifyLandingExploreOpensKeyConcepts() {
+async function verifyLandingMoreAndEspProExplore() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   page.setDefaultTimeout(20000);
 
   try {
     await page.goto(`${baseUrl}?open=landing`, { waitUntil: "domcontentloaded" });
+    assert(
+      (await page.locator("#temporary-home-esp-pro").textContent()).includes("The flagship ESP GYM software app"),
+      "The ESP PRO Landing Page card does not use the approved description."
+    );
+    assert(
+      (await page.locator("#temporary-home-ongoing-research").textContent()).includes("one or more ESP GYM practice tools"),
+      "The Ongoing Research Landing Page card does not use the approved description."
+    );
+    await page.locator("#temporary-home-rich-courseware").evaluate((card) => { card.hidden = false; });
+    assert(
+      await page.locator("#temporary-home-rich-courseware").getByRole("button", { name: "More" }).count() === 1,
+      "Rich Courseware must include a More action beside Explore."
+    );
     await page.locator("[data-temporary-home-explore]").evaluate((button) => button.click());
     const keyConceptsTab = page.locator('[data-learning-center-tab="key-concepts"]');
     await keyConceptsTab.waitFor({ state: "visible" });
     assert(
       await keyConceptsTab.getAttribute("aria-selected") === "true",
-      "The ESP PRO Landing Page Explore button must open the Key Concepts tab."
+      "The Rich Courseware More button must open the Key Concepts tab."
     );
     assert(
       await page.locator('[data-learning-center-concept-card]:visible').count() > 0,
-      "The ESP PRO Landing Page Explore button must display the first Key Concepts page."
+      "The Rich Courseware More button must display the first Key Concepts page."
     );
     await page.locator("[data-close-learning-center]").evaluate((button) => button.click());
     await page.waitForFunction(() => !document.querySelector('[data-view="temporary-home-page"]')?.classList.contains("beginner-view-hidden"));
+    await page.locator("[data-temporary-home-esp-pro-explore]").click();
+    await page.locator('[data-view="launcher"]').waitFor({ state: "visible" });
+    await page.locator("[data-open-landing-page]").click();
+    await page.waitForURL(/open=landing-preview/);
+    assert(
+      new URL(page.url()).searchParams.has("scroll_y"),
+      "ESP PRO Explore must preserve a Landing Page scroll position for the Main Menu BACK action."
+    );
+    await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
   } finally {
     await browser.close();
   }
@@ -1947,7 +1969,7 @@ async function run() {
   await verifyMobileReceiverTourLauncher();
   await verifyNarrowPhoneClairvoyanceLayout();
   await verifyClairvoyanceCoveredScreenTourLaunch();
-  await verifyLandingExploreOpensKeyConcepts();
+  await verifyLandingMoreAndEspProExplore();
   await verifyHelpProFeatureSummaryNavigation();
   await verifyRemoteDeviceRoute();
   await verifyRemoteDeviceNameDraftRemainsEditable();

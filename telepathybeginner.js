@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261005e";
+  const launcherBuildVersion = "20261006a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -688,7 +688,8 @@
   const temporaryHomePageInvitationCodeInput = document.querySelector("[data-temporary-home-invitation-code]");
   const temporaryHomePageInvitationStatus = document.querySelector("[data-temporary-home-invitation-status]");
   const temporaryHomePageFreshOpenButton = document.querySelector("[data-temporary-home-open-fresh]");
-  const temporaryHomePageExploreButton = document.querySelector("[data-temporary-home-explore]");
+  const temporaryHomePageEspProExploreButton = document.querySelector("[data-temporary-home-esp-pro-explore]");
+  const temporaryHomePageMoreButton = document.querySelector("[data-temporary-home-explore]");
   const temporaryHomePageLearningCenterButton = document.querySelector("[data-open-temporary-home-learning-center]");
   const temporaryHomePageRichCoursewareButton = document.querySelector("[data-temporary-home-rich-courseware]");
   const temporaryHomeExperiencesGrid = document.querySelector("[data-temporary-home-experiences]");
@@ -1601,6 +1602,7 @@ ${calmPracticeMessage}`;
   let activeLearningCenterCoursePage = 1;
   let learningCenterConceptDetailReturnTarget = { tab: "key-concepts", scrollY: 0, conceptPage: 1, conceptActionKey: "", conceptCardViewportTop: 0 };
   const learningCenterConceptReturnKey = "cones-learning-center-concept-return-v1";
+  const landingEspProExploreReturnKey = "cones-landing-esp-pro-explore-return-v1";
   let lessonEditorTarget = { kind: "main", contentKey: "main", lessonId: "", displayNumber: "", title: "", subcopy: "", type: "lesson-page" };
   let lessonEditorLoadedSnapshot = { contentKey: "main", lessonDomain: "legacy", content: "" };
   let learningCenterLessonIndex = [];
@@ -6088,9 +6090,7 @@ ${calmPracticeMessage}`;
       return;
     }
     const specialEdition = publicLandingMode.espProSpecialEditionEnabled;
-    temporaryHomeEspProCopy.textContent = specialEdition
-      ? "A structured sender-receiver app for practicing visual telepathy and clairvoyance while tracking performance over time."
-      : "Advanced features and broader tools for deeper experimentation.";
+    temporaryHomeEspProCopy.textContent = "The flagship ESP GYM software app for practicing and acquiring knowledge about telepathy and clairvoyance while tracking performance over time.";
     temporaryHomeTelepathyBeginnerCard.hidden = specialEdition;
     temporaryHomeRichCoursewareCard.hidden = !specialEdition;
     temporaryHomeExperiencesGrid.replaceChildren(
@@ -31401,11 +31401,11 @@ ${calmPracticeMessage}`;
   }
 
   function resetTemporaryHomeExploreButton() {
-    if (!temporaryHomePageExploreButton) {
+    if (!temporaryHomePageEspProExploreButton) {
       return;
     }
-    temporaryHomePageExploreButton.disabled = false;
-    temporaryHomePageExploreButton.textContent = "Explore";
+    temporaryHomePageEspProExploreButton.disabled = false;
+    temporaryHomePageEspProExploreButton.textContent = "Explore";
   }
 
   function shouldResumeRecognizedLandingIdentity(state = readLauncherState()) {
@@ -31497,6 +31497,37 @@ ${calmPracticeMessage}`;
       return;
     }
     startVisitorLandingEntry({ direct: true, ...entryOptions });
+  }
+
+  function saveLandingEspProExploreReturn(scrollY = 0) {
+    try {
+      window.sessionStorage?.setItem(
+        landingEspProExploreReturnKey,
+        JSON.stringify({ scrollY: Math.max(0, Math.round(Number(scrollY || 0) || 0)) })
+      );
+    } catch (_) {
+      // A return to the Landing Page still works if session storage is unavailable.
+    }
+  }
+
+  function consumeLandingEspProExploreReturn() {
+    try {
+      const raw = window.sessionStorage?.getItem(landingEspProExploreReturnKey) || "";
+      window.sessionStorage?.removeItem(landingEspProExploreReturnKey);
+      const scrollY = Math.max(0, Math.round(Number(JSON.parse(raw)?.scrollY || 0) || 0));
+      return raw ? scrollY : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function openEspProMainMenuFromLanding() {
+    saveLandingEspProExploreReturn(captureTemporaryHomeReturnScrollY());
+    if (publicLandingMode.espProSpecialEditionEnabled) {
+      startEspProSpecialEditionLandingEntry();
+      return;
+    }
+    startVisitorLandingEntry({ direct: true });
   }
 
   async function handleLandingExploreClick() {
@@ -35789,7 +35820,11 @@ ${calmPracticeMessage}`;
   openLandingPageButton?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    window.location.href = buildCanonicalLauncherUrl({ open: "landing-preview" });
+    const returnScrollY = consumeLandingEspProExploreReturn();
+    window.location.href = buildCanonicalLauncherUrl({
+      open: "landing-preview",
+      ...(returnScrollY === null ? {} : { scroll_y: returnScrollY })
+    });
   });
   openGoProButton?.addEventListener("click", () => {
     logGoProCheckoutDebug("outer_pro_subscription_button_click", {
@@ -36306,7 +36341,10 @@ ${calmPracticeMessage}`;
   temporaryHomePageFreshOpenButton?.addEventListener("click", () => {
     startVisitorLandingEntry();
   });
-  temporaryHomePageExploreButton?.addEventListener("click", () => {
+  temporaryHomePageEspProExploreButton?.addEventListener("click", () => {
+    openEspProMainMenuFromLanding();
+  });
+  temporaryHomePageMoreButton?.addEventListener("click", () => {
     void handleLandingExploreClick();
   });
   temporaryHomePageLearningCenterButton?.addEventListener("click", () => {
