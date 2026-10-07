@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261007a";
+  const launcherBuildVersion = "20261007b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -25786,6 +25786,7 @@ ${calmPracticeMessage}`;
     goProView?.classList.add("beginner-view-hidden");
     otherSettingsView?.classList.add("beginner-view-hidden");
     clairvoyanceViewingView?.classList.add("beginner-view-hidden");
+    goProIncludesView?.classList.add("beginner-view-hidden");
     behaviorsView?.classList.add("beginner-view-hidden");
     colorSchemeView?.classList.add("beginner-view-hidden");
     blinkBehaviorView?.classList.add("beginner-view-hidden");
@@ -33914,7 +33915,10 @@ ${calmPracticeMessage}`;
       return;
     }
     if (goProIncludesReturnView === "help") {
-      showHelpView();
+      showHelpView({
+        returnView: helpReturnView,
+        scrollY: helpReturnScrollY
+      });
       return;
     }
     if (goProIncludesReturnView === "subscription-management") {

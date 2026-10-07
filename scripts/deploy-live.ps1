@@ -6,6 +6,8 @@ param(
 
   [switch]$AllowDirty,
 
+  [switch]$AllowManagedContentPublish,
+
   [switch]$PrepareOnly,
 
   [switch]$PushOnly
@@ -43,6 +45,9 @@ function Invoke-PrepareRelease {
   )
   if ($AllowDirty) {
     $arguments += "-AllowDirty"
+  }
+  if ($AllowManagedContentPublish) {
+    $arguments += "-AllowManagedContentPublish"
   }
   # Send child output to the host, not the function pipeline. The caller
   # must receive only the numeric process exit code.

@@ -397,6 +397,10 @@ async function verifyLandingMoreAndEspProExplore() {
       "The Landing Page clairvoyance card must use the approved explanation."
     );
     assert(
+      (await page.locator("[data-open-temporary-home-learning-center]").textContent())?.trim() === "Explore Learning Center",
+      "The Guided ESP Development Landing Page card must use the approved Learning Center action label."
+    );
+    assert(
       (await page.locator("#temporary-home-practice .temporary-home-section-heading").textContent())?.trim() === "Practice",
       "The Landing Page practice section must use the approved heading."
     );
@@ -427,6 +431,15 @@ async function verifyLandingMoreAndEspProExplore() {
       (await telepathyGuide.textContent()).includes("Diagonal running up")
         && (await telepathyGuide.locator(".telepathy-difficulty-image-preview").count()) === 2,
       "Exercise 2 must include two real-world examples and Exercise 3 must label its diagonal example correctly."
+    );
+    await page.setViewportSize({ width: 640, height: 900 });
+    const exerciseOneCardWidth = await telepathyGuide.locator("#telepathyExerciseOneTitle").locator("xpath=..").locator(".telepathy-difficulty-example-card").first().evaluate((card) => card.getBoundingClientRect().width);
+    const exerciseThreeCardWidth = await telepathyGuide.locator("#telepathyExerciseThreeTitle").locator("xpath=..").locator(".telepathy-difficulty-example-card").first().evaluate((card) => card.getBoundingClientRect().width);
+    const exerciseFourCardWidth = await telepathyGuide.locator("#telepathyExerciseFourTitle").locator("xpath=..").locator(".telepathy-difficulty-example-card").first().evaluate((card) => card.getBoundingClientRect().width);
+    assert(
+      Math.abs(exerciseOneCardWidth - exerciseThreeCardWidth) < 2
+        && Math.abs(exerciseOneCardWidth - exerciseFourCardWidth) < 2,
+      "Exercises 3 and 4 must use the same card width as Exercise 1 instead of compressed three-column cards."
     );
     await telepathyGuide.locator("[data-close-telepathy-difficulty-guide]").click();
     await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
@@ -485,6 +498,16 @@ async function verifyLandingMoreAndEspProExplore() {
 
     await page.locator("[data-temporary-home-clairvoyance-more]").click();
     await page.locator('[data-view="clairvoyance-learn-more"]').waitFor({ state: "visible" });
+    const screenedTargetParagraph = page.locator('[data-clairvoyance-learn-more-preview] p').filter({ hasText: "screened-target clairvoyance" });
+    await screenedTargetParagraph.waitFor({ state: "visible" });
+    assert(
+      (await screenedTargetParagraph.textContent())?.trim() === 'If a picture is displayed on a monitor screen that you cannot see because it is covered, the cleanest term for this ESP is "clairvoyance". More specifically, one might call it "screened-target clairvoyance".',
+      "The Clairvoyance Learn More paragraph must use the approved plain quoted terms."
+    );
+    assert(
+      await screenedTargetParagraph.locator("em, strong, [class*='emphasis']").count() === 0,
+      "The Clairvoyance Learn More terms must not render with emphasis or accent styling."
+    );
     await page.locator("[data-close-clairvoyance-learn-more]").click();
     await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
     assert(
@@ -591,12 +614,39 @@ async function verifyHelpProFeatureSummaryNavigation() {
   page.setDefaultTimeout(20000);
 
   try {
-    await page.goto(`${baseUrl}?open=launcher`, { waitUntil: "domcontentloaded" });
-    await page.locator('[data-view="help"]').evaluate((view) => view.classList.remove("beginner-view-hidden"));
-    await page.locator("[data-open-help-pro-feature-summary]").evaluate((button) => button.click());
-    await page.locator('[data-view="go-pro-includes"]').waitFor({ state: "visible" });
-    await page.locator("[data-close-go-pro-includes]").evaluate((button) => button.click());
-    await page.waitForFunction(() => !document.querySelector('[data-view="help"]')?.classList.contains("beginner-view-hidden"));
+    await page.goto(`${baseUrl}?open=landing`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(300);
+    await page.locator("[data-footer-open-help]").click();
+    const helpView = page.locator('[data-view="help"]');
+    await helpView.waitFor({ state: "visible" });
+    await page.locator("[data-open-help-pro-feature-summary]").click();
+    const includesView = page.locator('[data-view="go-pro-includes"]');
+    await includesView.waitFor({ state: "visible" });
+    assert(
+      (await includesView.locator(".about-section-copy").first().textContent())?.trim() === "ESP PRO, the flagship software offered by ESP GYM, includes the following features:",
+      "What ESP PRO Includes must use the approved flagship introduction."
+    );
+    const featureBlocks = includesView.locator(".go-pro-includes-list > li > p");
+    assert(
+      (await featureBlocks.nth(0).textContent())?.trim() === "Practice exercises use simple images of traffic cones at differing levels of complexity designed to be easy to send and receive telepathically. Another telepathy practice exercise uses distinctive real-world photos. Performance is measured when the user chooses between two different images - the actual image the Sender intended to send and a very different image. Instant reinforcement is provided when the correct image is chosen, which has been shown in research to improve skill development.",
+      "The first ESP PRO feature block must use the approved telepathy exercise copy."
+    );
+    assert(
+      (await featureBlocks.nth(1).textContent())?.trim() === "In telepathy there is a Sender who uses energy to generate thoughts which can be picked up and decoded by a distant Receiver. But even when there is no clear Sender, a suitably sensitive person can still pick up information as surely as a Receiver of telepathic information. The clairvoyance / remote viewing exercise does not require a human partner. Using two devices, such as a laptop and a phone, ESP GYM can present a target image on a display in another room or elsewhere in the world while the viewer attempts to perceive it in their mind's eye. Instant reinforcement is provided when the correct image is chosen, which has been shown in research to improve skill development.",
+      "The second ESP PRO feature block must use the approved Clairvoyance and Remote Viewing copy."
+    );
+    assert(
+      (await featureBlocks.nth(2).textContent()).includes('Ericsson and others, in a journal article, "The role of deliberate practice in the acquisition of expert performance" (1993), have emphasized that effective skill development isn\'t just repetition — it depends on knowing what you\'re trying to improve and getting feedback against a clear model of the skill.'),
+      "The Comprehensive Courseware feature must include the approved Ericsson article citation."
+    );
+    await page.locator("[data-close-go-pro-includes]").click();
+    await helpView.waitFor({ state: "visible" });
+    assert(
+      await includesView.evaluate((view) => view.classList.contains("beginner-view-hidden")),
+      "ESP PRO Feature Summary BACK must hide the summary before returning to Help."
+    );
+    await page.locator("[data-close-help]").click();
+    await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
   } finally {
     await browser.close();
   }
