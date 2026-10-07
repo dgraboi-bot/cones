@@ -377,8 +377,24 @@ async function verifyLandingMoreAndEspProExplore() {
       "The Ongoing Research Landing Page card does not use the approved description."
     );
     assert(
-      (await page.locator("#temporary-home-learning-center").textContent()).includes("take turns practicing and assessing skills in sending and receiving."),
+      (await page.locator("#temporary-home-learning-center").textContent()).includes("Graded telepathy exercises of increasing difficulty. You and a partner can take turns practicing and assessing skills in sending and receiving."),
       "The Telepathy Training Landing Page card does not use the approved description."
+    );
+    assert(
+      (await page.locator("[data-open-telepathy-difficulty-guide]").locator("xpath=..").locator(".temporary-home-section-title").textContent())?.trim() === "Telepathy Training Exercises",
+      "The Landing Page telepathy card must use the approved heading."
+    );
+    assert(
+      await page.locator("[data-open-telepathy-difficulty-guide] > span").allTextContents().then((lines) => lines.join("|") === "Explore Telepathy|Exercises"),
+      "The Landing Page telepathy action must use the approved two-line label."
+    );
+    assert(
+      (await page.locator("[data-temporary-home-clairvoyance-tour]").locator("xpath=../..").locator(".temporary-home-section-title").textContent())?.trim() === "Clairvoyance / Remote Viewing Exercises",
+      "The Landing Page clairvoyance card must use the approved heading."
+    );
+    assert(
+      (await page.locator("[data-temporary-home-clairvoyance-tour]").locator("xpath=../..").textContent()).includes("In these exercises images are displayed to either your screen which you temporarily cover, or to a remote screen that you specify."),
+      "The Landing Page clairvoyance card must use the approved explanation."
     );
     assert(
       (await page.locator("#temporary-home-practice .temporary-home-section-heading").textContent())?.trim() === "Practice",
@@ -388,6 +404,32 @@ async function verifyLandingMoreAndEspProExplore() {
       await page.locator("[data-temporary-home-clairvoyance-tour] > span").allTextContents().then((lines) => lines.join("|") === 'Explore "Covered Screen"|Clairvoyance Practice'),
       "The Landing Clairvoyance Explore button must use the approved two-line label."
     );
+    await page.locator("[data-open-telepathy-difficulty-guide]").click();
+    const telepathyGuide = page.locator('[data-view="telepathy-difficulty-guide"]');
+    await telepathyGuide.waitFor({ state: "visible" });
+    assert(
+      (await telepathyGuide.locator("h1").textContent())?.trim() === "Telepathy Exercises with Graded Difficulty",
+      "The Telepathy Exercises page must use the Level-free title."
+    );
+    assert(
+      (await telepathyGuide.textContent()).includes("ESP GYM begins with simple telepathic visual discrimination and gradually moves toward more difficult perceptual tasks."),
+      "The Telepathy Exercises page must use the approved introductory copy."
+    );
+    assert(
+      await telepathyGuide.locator("h2").allTextContents().then((headings) => headings.map((heading) => heading.trim()).join("|") === "Exercise 1|Exercise 2|Exercise 3|Exercise 4"),
+      "The Telepathy Exercises page must present Exercises 1 through 4 in order."
+    );
+    assert(
+      !(await telepathyGuide.textContent()).match(/\bLevel\b/i),
+      "The Telepathy Exercises page must not use the word Level."
+    );
+    assert(
+      (await telepathyGuide.textContent()).includes("Diagonal running up")
+        && (await telepathyGuide.locator(".telepathy-difficulty-image-preview").count()) === 2,
+      "Exercise 2 must include two real-world examples and Exercise 3 must label its diagonal example correctly."
+    );
+    await telepathyGuide.locator("[data-close-telepathy-difficulty-guide]").click();
+    await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
     await page.locator("#temporary-home-rich-courseware").evaluate((card) => { card.hidden = false; });
     assert(
       await page.locator("#temporary-home-rich-courseware").getByRole("button", { name: "More" }).count() === 1,
@@ -452,6 +494,95 @@ async function verifyLandingMoreAndEspProExplore() {
   } finally {
     await browser.close();
   }
+}
+
+async function verifyResearchInterestUniqueNameValidation() {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  page.setDefaultTimeout(20000);
+
+  try {
+    await page.addInitScript(() => {
+      localStorage.setItem("cones-beginner-launcher-v2", JSON.stringify({ resolvedMainUserType: "pro" }));
+    });
+    await page.goto(`${baseUrl}?open=landing`, { waitUntil: "domcontentloaded" });
+    await page.locator("[data-open-research-participation]").click();
+    await page.locator('[data-view="research-participation"] [data-open-research-interest-form]').click();
+    await page.locator('[data-view="research-interest-form"]').waitFor({ state: "visible" });
+
+    const uniqueNameInput = page.locator("[data-research-interest-unique-name]");
+    assert(await uniqueNameInput.count() === 1, "The research-interest form must include an ESP GYM Unique Name field.");
+    assert(
+      (await page.locator("#researchInterestSigned").evaluate((input) => input.parentElement?.parentElement?.textContent || ""))
+        .includes("ESP GYM Unique Name:"),
+      "The ESP GYM Unique Name field must appear below the Signed field."
+    );
+
+    await uniqueNameInput.fill("Name Not In ESP GYM");
+    const dialogPromise = page.waitForEvent("dialog");
+    await page.locator("[data-save-research-interest]").click();
+    const dialog = await dialogPromise;
+    assert(
+      dialog.message() === "Name Not In ESP GYM is not found. Please check spelling and try again.",
+      "Submitting an unrecognized ESP GYM Unique Name must show the approved message."
+    );
+    await dialog.accept();
+
+    await page.locator("[data-close-research-interest-form]").click();
+    await page.locator('[data-view="research-participation"] [data-open-research-team-interest]').click();
+    await page.locator('[data-view="research-team-interest"]').waitFor({ state: "visible" });
+
+    const teamTopGridIds = await page.locator('[data-view="research-team-interest"] .baseline-trial-summary-grid').first().locator("input").evaluateAll((inputs) =>
+      inputs.map((input) => input.id)
+    );
+    assert(
+      JSON.stringify(teamTopGridIds) === JSON.stringify([
+        "researchTeamInterestName",
+        "researchTeamInterestEmail",
+        "researchTeamInterestZip",
+        "researchTeamInterestAge"
+      ]),
+      "The research-participation form must arrange its top fields as Name/Email and Address Zip Code/Age."
+    );
+
+    const teamUniqueNameInput = page.locator("[data-research-team-interest-unique-name]");
+    assert(await teamUniqueNameInput.count() === 1, "The research-participation form must include an ESP GYM Unique Name field.");
+    assert(await teamUniqueNameInput.isEditable(), "The research-participation ESP GYM Unique Name field must be editable.");
+    assert(await teamUniqueNameInput.inputValue() === "", "The research-participation ESP GYM Unique Name field must not be prefilled.");
+    assert(
+      (await page.locator("#researchTeamInterestSigned").evaluate((input) => input.closest(".baseline-trial-summary-grid")?.nextElementSibling?.textContent || ""))
+        .includes("ESP GYM Unique Name:"),
+      "The research-participation ESP GYM Unique Name field must appear below Signed."
+    );
+
+    await teamUniqueNameInput.fill("Name Not In ESP GYM");
+    const teamDialogPromise = page.waitForEvent("dialog");
+    await page.locator("[data-save-research-team-interest]").click();
+    const teamDialog = await teamDialogPromise;
+    assert(
+      teamDialog.message() === "Name Not In ESP GYM is not found. Please check spelling and try again.",
+      "Submitting an unrecognized research-participation ESP GYM Unique Name must show the approved message."
+    );
+    await teamDialog.accept();
+  } finally {
+    await browser.close();
+  }
+}
+
+function verifyResearchInterestEmailNotificationImplementation() {
+  const apiSource = fs.readFileSync(path.resolve(__dirname, "..", "api.php"), "utf8");
+  assert(
+    apiSource.includes("function notify_research_interest_submission")
+      && apiSource.includes("['research-interest', 'research-team-interest']")
+      && apiSource.includes("notify_research_interest_submission($questionnaireType, $identifier, $payload)"),
+    "Both research-participation form submissions must invoke the shared ESP GYM email notification path."
+  );
+  assert(
+    apiSource.includes("ESP GYM experiment participation submission")
+      && apiSource.includes("ESP GYM research participation submission")
+      && apiSource.includes("dgraboi@sbcglobal.net"),
+    "Research-participation notifications must use the ESP GYM administrative inbox and distinct form subjects."
+  );
 }
 
 async function verifyHelpProFeatureSummaryNavigation() {
@@ -2016,6 +2147,8 @@ async function run() {
   await verifyNarrowPhoneClairvoyanceLayout();
   await verifyClairvoyanceCoveredScreenTourLaunch();
   await verifyLandingMoreAndEspProExplore();
+  await verifyResearchInterestUniqueNameValidation();
+  verifyResearchInterestEmailNotificationImplementation();
   await verifyHelpProFeatureSummaryNavigation();
   await verifyRemoteDeviceRoute();
   await verifyRemoteDeviceNameDraftRemainsEditable();

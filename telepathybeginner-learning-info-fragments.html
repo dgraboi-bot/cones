@@ -31,12 +31,85 @@
           </section>
         </section>
 
-        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top telepathy-difficulty-guide-static-view" data-view="telepathy-difficulty-guide" aria-labelledby="telepathyDifficultyGuideTitle">
-          <h1 class="visually-hidden" id="telepathyDifficultyGuideTitle">Telepathy Exercises with Graded Levels of Difficulty</h1>
+        <section class="beginner-view beginner-view-hidden beginner-view-sticky-top" data-view="telepathy-difficulty-guide" aria-labelledby="telepathyDifficultyGuideTitle">
+          <div class="beginner-top-row">
+            <button class="beginner-top-button beginner-top-button-back beginner-top-pill" type="button" data-close-telepathy-difficulty-guide>BACK</button>
+            <p class="beginner-kicker">ESP GYM</p>
+            <span class="beginner-top-spacer" aria-hidden="true"></span>
+          </div>
 
-          <section class="telepathy-difficulty-guide-static-shell" aria-label="Telepathy Exercises with Graded Levels of Difficulty">
-            <button class="beginner-top-button beginner-top-button-back beginner-top-pill telepathy-difficulty-guide-static-back" type="button" data-close-telepathy-difficulty-guide>BACK</button>
-            <img class="telepathy-difficulty-guide-static-image" src="telepathy-difficulty-guide-panel-build.png?v=20260822g" alt="Telepathy exercises with graded levels of difficulty panel">
+          <h1 class="beginner-title" id="telepathyDifficultyGuideTitle">Telepathy Exercises with Graded Difficulty</h1>
+
+          <section class="settings-view-panel about-view-panel telepathy-difficulty-guide-panel">
+            <div class="about-section">
+              <p class="about-section-copy">ESP GYM begins with simple telepathic visual discrimination and gradually moves toward more difficult perceptual tasks.</p>
+            </div>
+
+            <section class="telepathy-difficulty-level-section" aria-labelledby="telepathyExerciseOneTitle">
+              <h2 class="about-section-title" id="telepathyExerciseOneTitle">Exercise 1</h2>
+              <p class="about-section-copy">Here, the Receiver simply decides whether the Sender is sending one cone or three cones.</p>
+              <div class="telepathy-difficulty-example-grid telepathy-difficulty-example-grid-two">
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display"><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">One cone</figcaption>
+                </figure>
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal"><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">Three cones</figcaption>
+                </figure>
+              </div>
+            </section>
+
+            <section class="telepathy-difficulty-level-section" aria-labelledby="telepathyExerciseTwoTitle">
+              <h2 class="about-section-title" id="telepathyExerciseTwoTitle">Exercise 2</h2>
+              <p class="about-section-copy">Here, a real-world image is shown to the Sender. The Receiver is then shown that image and a very different image in randomized positions and decides which image the Sender had been sending.</p>
+              <div class="telepathy-difficulty-example-grid telepathy-difficulty-example-grid-two">
+                <figure class="telepathy-difficulty-example-card telepathy-difficulty-image-card">
+                  <img class="telepathy-difficulty-image-preview" src="imagepairs/1295.jpg" alt="Example real-world image: a red sphere on a cable against a blue sky">
+                </figure>
+                <figure class="telepathy-difficulty-example-card telepathy-difficulty-image-card">
+                  <img class="telepathy-difficulty-image-preview" src="imagepairs/1828.jpg" alt="Example real-world image: a wooden bridge beneath a cloudy sky">
+                </figure>
+              </div>
+            </section>
+
+            <section class="telepathy-difficulty-level-section" aria-labelledby="telepathyExerciseThreeTitle">
+              <h2 class="about-section-title" id="telepathyExerciseThreeTitle">Exercise 3</h2>
+              <p class="about-section-copy">Either one cone or three cones are shown to the Sender. When three cones are sent, the Receiver tries to specify whether they are arranged horizontally, vertically, or diagonally running up or down.</p>
+              <div class="telepathy-difficulty-example-grid">
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal"><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">Horizontal</figcaption>
+                </figure>
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-vertical"><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">Vertical</figcaption>
+                </figure>
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-diagonal-up"><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">Diagonal running up</figcaption>
+                </figure>
+              </div>
+            </section>
+
+            <section class="telepathy-difficulty-level-section" aria-labelledby="telepathyExerciseFourTitle">
+              <h2 class="about-section-title" id="telepathyExerciseFourTitle">Exercise 4</h2>
+              <p class="about-section-copy">In this exercise, one, two or three cones are shown to the Sender. The Receiver tries to specify exactly how many cones were sent, and in which arrangement they were sent.</p>
+              <div class="telepathy-difficulty-example-grid">
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display"><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">One cone</figcaption>
+                </figure>
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal-two"><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">Two cones</figcaption>
+                </figure>
+                <figure class="telepathy-difficulty-example-card">
+                  <div class="telepathy-difficulty-cone-display telepathy-difficulty-cone-display-horizontal"><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span><span class="telepathy-difficulty-cone" aria-hidden="true"></span></div>
+                  <figcaption class="telepathy-difficulty-example-label">Three cones</figcaption>
+                </figure>
+              </div>
+            </section>
           </section>
         </section>
 

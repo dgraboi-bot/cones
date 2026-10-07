@@ -493,6 +493,10 @@ html.espgym-build-recovery-active body {
   align-self: flex-start;
 }
 
+.temporary-home-card-button-two-line > span {
+  display: block;
+}
+
 .temporary-home-card-actions {
   display: flex;
   flex-wrap: wrap;
@@ -523,51 +527,6 @@ html.espgym-build-recovery-active body {
   width: min(100%, 860px);
 }
 
-.telepathy-difficulty-guide-static-view {
-  padding-top: 0;
-}
-
-.telepathy-difficulty-guide-static-shell {
-  position: relative;
-  width: min(100%, 1100px);
-  margin: 0 auto;
-}
-
-.telepathy-difficulty-guide-static-back {
-  position: absolute;
-  top: 2.4%;
-  right: 0.66%;
-  width: 10.2%;
-  aspect-ratio: 2.05 / 1;
-  height: auto;
-  min-width: 0;
-  min-height: 0;
-  padding: 0 0.35em;
-  justify-content: center;
-  text-align: center;
-  line-height: 1;
-  font-size: clamp(0.72rem, 0.92vw, 0.95rem);
-  letter-spacing: 0.12em;
-  z-index: 2;
-}
-
-.telepathy-difficulty-guide-static-back:hover,
-.telepathy-difficulty-guide-static-back:focus-visible {
-  outline: none;
-}
-
-.telepathy-difficulty-guide-static-image {
-  display: block;
-  width: 157.5%;
-  max-width: none;
-  height: auto;
-  margin: -49px 0 0 -28.75%;
-  border-radius: 24px;
-  box-shadow:
-    0 20px 36px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
 .performance-visualization-guide-panel {
   width: min(100%, 900px);
 }
@@ -575,6 +534,12 @@ html.espgym-build-recovery-active body {
 .telepathy-difficulty-level-section {
   display: grid;
   gap: 16px;
+}
+
+.telepathy-difficulty-level-section + .telepathy-difficulty-level-section {
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(160, 205, 255, 0.2);
 }
 
 .telepathy-difficulty-example-grid {
@@ -703,12 +668,20 @@ html.espgym-build-recovery-active body {
 
 .telepathy-difficulty-image-preview {
   display: block;
-  width: min(100%, 360px);
+  width: 100%;
+  height: 214px;
+  object-fit: cover;
   border-radius: 22px;
   border: 1px solid rgba(112, 168, 255, 0.28);
   box-shadow:
     0 20px 36px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.telepathy-difficulty-image-card {
+  display: block;
+  padding: 0;
+  overflow: hidden;
 }
 
 .performance-visualization-guide-image-sample {
@@ -6081,7 +6054,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261006d") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261007a") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261006d";
+  const launcherBuildVersion = "20261007a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -612,6 +612,7 @@
   const researchInterestPermissionInput = document.querySelector("[data-research-interest-permission]");
   const researchInterestSignedInput = document.querySelector("[data-research-interest-signed]");
   const researchInterestDateInput = document.querySelector("[data-research-interest-date]");
+  const researchInterestUniqueNameInput = document.querySelector("[data-research-interest-unique-name]");
   const researchInterestStatus = document.querySelector("[data-research-interest-status]");
   const researchInterestSaveButton = document.querySelector("[data-save-research-interest]");
   const researchInterestCancelButton = document.querySelector("[data-cancel-research-interest]");
@@ -30230,12 +30231,15 @@ ${calmPracticeMessage}`;
     if (researchInterestDateInput) {
       researchInterestDateInput.value = String(response.date || formatOnlineCourseDate()).trim();
     }
+    if (researchInterestUniqueNameInput) {
+      researchInterestUniqueNameInput.value = String(response.unique_name || getResearchInterestIdentifier()).trim();
+    }
   }
 
   function populateResearchTeamInterestForm(response = {}) {
-    const identifier = getResearchInterestIdentifier();
     if (researchTeamInterestUniqueNameInput) {
-      researchTeamInterestUniqueNameInput.value = identifier;
+      // The research team form must not assume this browser's current identity.
+      researchTeamInterestUniqueNameInput.value = "";
     }
     if (researchTeamInterestNameInput) {
       researchTeamInterestNameInput.value = String(response.name || "").trim();
@@ -30270,7 +30274,7 @@ ${calmPracticeMessage}`;
   function collectResearchInterestPayload() {
     return {
       name: String(researchInterestNameInput?.value || "").trim(),
-      unique_name: getResearchInterestIdentifier(),
+      unique_name: String(researchInterestUniqueNameInput?.value || "").trim(),
       email: String(researchInterestEmailInput?.value || "").trim(),
       zip_code: String(researchInterestZipInput?.value || "").trim(),
       age: String(researchInterestAgeInput?.value || "").trim(),
@@ -30288,7 +30292,7 @@ ${calmPracticeMessage}`;
   function collectResearchTeamInterestPayload() {
     return {
       name: String(researchTeamInterestNameInput?.value || "").trim(),
-      unique_name: getResearchInterestIdentifier(),
+      unique_name: String(researchTeamInterestUniqueNameInput?.value || "").trim(),
       email: String(researchTeamInterestEmailInput?.value || "").trim(),
       zip_code: String(researchTeamInterestZipInput?.value || "").trim(),
       age: String(researchTeamInterestAgeInput?.value || "").trim(),
@@ -30306,7 +30310,7 @@ ${calmPracticeMessage}`;
     if (researchInterestStatus) {
       researchInterestStatus.textContent = identifier
         ? "Loading research participation form..."
-        : "Load a recognized ESP PRO identity before submitting this form.";
+        : "Enter a recognized ESP GYM unique name before submitting this form.";
     }
     const saved = identifier ? await readResearchInterestResponse(identifier) : {};
     populateResearchInterestForm(saved);
@@ -30322,7 +30326,7 @@ ${calmPracticeMessage}`;
     if (researchTeamInterestStatus) {
       researchTeamInterestStatus.textContent = identifier
         ? "Loading research team participation form..."
-        : "Load a recognized ESP PRO identity before submitting this form.";
+        : "Enter a recognized ESP GYM unique name before submitting this form.";
     }
     const saved = identifier ? await readResearchTeamInterestResponse(identifier) : {};
     populateResearchTeamInterestForm(saved);
@@ -30413,12 +30417,29 @@ ${calmPracticeMessage}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function saveResearchInterestForm() {
-    const identifier = getResearchInterestIdentifier();
-    if (!identifier) {
-      if (researchInterestStatus) {
-        researchInterestStatus.textContent = "A recognized ESP PRO unique name is required before this form can be submitted.";
+  async function resolveResearchInterestSubmittedIdentifier(input) {
+    const enteredIdentifier = String(input?.value || "").trim();
+    try {
+      const status = await fetchIdentifierStatus(enteredIdentifier);
+      const preferredIdentifier = String(status?.preferred_identifier || enteredIdentifier).trim() || enteredIdentifier;
+      if (!status?.identifier_exists || !isAcceptedUniqueHandleIdentifier(preferredIdentifier, status)) {
+        window.alert(`${enteredIdentifier} is not found. Please check spelling and try again.`);
+        return "";
       }
+      rememberIdentifierStatus(enteredIdentifier, status);
+      if (input) {
+        input.value = preferredIdentifier;
+      }
+      return preferredIdentifier;
+    } catch (_error) {
+      window.alert(`${enteredIdentifier} is not found. Please check spelling and try again.`);
+      return "";
+    }
+  }
+
+  async function saveResearchInterestForm() {
+    const identifier = await resolveResearchInterestSubmittedIdentifier(researchInterestUniqueNameInput);
+    if (!identifier) {
       return;
     }
     const payload = collectResearchInterestPayload();
@@ -30437,11 +30458,8 @@ ${calmPracticeMessage}`;
   }
 
   async function saveResearchTeamInterestForm() {
-    const identifier = getResearchInterestIdentifier();
+    const identifier = await resolveResearchInterestSubmittedIdentifier(researchTeamInterestUniqueNameInput);
     if (!identifier) {
-      if (researchTeamInterestStatus) {
-        researchTeamInterestStatus.textContent = "A recognized ESP PRO unique name is required before this form can be submitted.";
-      }
       return;
     }
     const payload = collectResearchTeamInterestPayload();

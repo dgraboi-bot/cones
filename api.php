@@ -4076,6 +4076,56 @@ function build_contact_message_body(string $message, array $metadata): string
     return implode("\r\n", $lines);
 }
 
+function build_research_interest_notification_body(string $questionnaireType, string $identifier, array $payload): string
+{
+    $kind = $questionnaireType === 'research-team-interest'
+        ? 'ESP research participation'
+        : 'participation in an ESP experiment';
+    $encodedPayload = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    return implode("\r\n", [
+        'A new ESP GYM interest form was submitted for ' . $kind . '.',
+        '',
+        'ESP GYM Unique Name: ' . $identifier,
+        '',
+        'Submitted form:',
+        is_string($encodedPayload) ? $encodedPayload : '{}',
+        '',
+        'Server UTC time: ' . gmdate('Y-m-d H:i:s') . ' UTC'
+    ]);
+}
+
+function notify_research_interest_submission(string $questionnaireType, string $identifier, array $payload): bool
+{
+    if (!in_array($questionnaireType, ['research-interest', 'research-team-interest'], true)) {
+        return false;
+    }
+    $subject = $questionnaireType === 'research-team-interest'
+        ? 'ESP GYM research participation submission'
+        : 'ESP GYM experiment participation submission';
+    try {
+        sendAppMail(
+            'dgraboi@sbcglobal.net',
+            '',
+            $subject,
+            build_research_interest_notification_body($questionnaireType, $identifier, $payload),
+            null,
+            ['flow' => $questionnaireType, 'identifier' => $identifier]
+        );
+        return true;
+    } catch (Throwable $exception) {
+        append_debug_log(
+            (string) ($GLOBALS['debugLogFile'] ?? ''),
+            (bool) (($GLOBALS['state']['debug_enabled'] ?? false) || ($GLOBALS['debugEnabled'] ?? false)),
+            '[research-interest-notification:error] ' . json_encode([
+                'questionnaire_type' => $questionnaireType,
+                'identifier' => $identifier,
+                'message' => $exception->getMessage()
+            ], JSON_UNESCAPED_SLASHES)
+        );
+        return false;
+    }
+}
+
 function append_capped_log(string $path, string $line, int $maxBytes): void
 {
     $payload = $line . PHP_EOL;
@@ -12842,6 +12892,7 @@ if ($action === 'save_questionnaire_response') {
         }
         write_questionnaire_response_file($path, $payload);
         $record = read_questionnaire_response_file($path);
+        $researchNotificationSent = notify_research_interest_submission($questionnaireType, $identifier, $payload);
     } catch (Throwable $exception) {
         fail_request($handle, $nowMs, $exception->getMessage(), 400);
     }
@@ -12855,7 +12906,8 @@ if ($action === 'save_questionnaire_response') {
             'sender' => $sender,
             'available' => !empty($record['available']),
             'response' => is_array($record['response'] ?? null) ? $record['response'] : null,
-            'path' => (string) ($record['path'] ?? '')
+            'path' => (string) ($record['path'] ?? ''),
+            'research_notification_sent' => $researchNotificationSent
         ],
         'server_now_ms' => $nowMs
     ];
