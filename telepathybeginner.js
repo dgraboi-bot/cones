@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261007b";
+  const launcherBuildVersion = "20261008a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -409,7 +409,7 @@
       title: "Everything is Connected",
       paragraphs: [
         "For centuries we believed that the world was flat. After all, it looks flat. It was hard to accept the idea that we are actually on a ball in space.",
-        "It is also hard to accept the idea that absolutely everything is connected. After all, everything does not look connected. And the connection appears to be two-way. How else can one explain the evidence that Harold McCoy, a prominent dowser in our time, was able to \"map douse\" (he could look at a map and pinpoint where to drill for water) and was also able to change the course of the flow of underground water? Read about this and more in his book here. <Link to book.>",
+        "It is also hard to accept the idea that absolutely everything is connected. After all, everything does not look connected. And the connection appears to be two-way. How else can one explain the evidence that Harold McCoy, a prominent dowser in our time, was able to \"map douse\" (he could look at a map and pinpoint where to drill for water) and was also able to change the course of the flow of underground water? Read about this and more in his book here.",
         "The fact that ESP works is based on the notion that EVERYTHING IS CONNECTED. The connections are invisible, but they are there nevertheless, and a human mind in the right state has the ability to tune in to possibly everything. This becomes apparent as the evidence mounts from reported cases (see Lesson 2)."
       ]
     },
@@ -421,7 +421,7 @@
       ]
     },
     "concept-lack-of-fusion": {
-      title: "Telepathic Image Perception is in Bits and Pieces",
+      title: "ESP Image Perception is in Bits and Pieces",
       paragraphs: [
         "Bits And Pieces of Vague Impressionistic Visual Information",
         "Ingo Swann, a noted psychic mentioned, \"... what I was perceiving were bits of shapes, forms, and colors which in themselves were not clear\" (1991/2017, p. 33). \"All parts are correctly perceived, but will not connect to form a whole.\" Swann called this difficulty in grouping of local elements into recognized objects \"lack of fusion.\" Swann noted that psi visual data is \"soft\" (1991/2017, p. 134). \"Soft\" can be interpreted as \"low contrast, low intensity and low resolution.\"",
@@ -439,9 +439,9 @@
       ]
     },
     "concept-telepathy-is-real": {
-      title: "A Receiver of Telepathic Information Must Believe that Telepathy is Real",
+      title: "A Receiver of ESP Information Must Believe that ESP is Real",
       paragraphs: [
-        "Those who don't believe that telepathy exists are very less likely to experience it. A person who wants to be able to receive information telepathically must not only believe that telepathy works, but that it work for them.",
+        "Those who don't believe that ESP exists are very less likely to experience it. A person who wants to be able to perceive ESP information must not only believe that ESP works, but that it works for them.",
         "It is easier to believe that \"it might work for others, but not for me.\" But that kind of belief is a lot less productive than, \"Yes! It can and will work for me!\"",
         "Interestingly, it has been shown that a sender does not have to believe in telepathy in order to competently send telepathic information. This means that the information gets put out there independent of one's belief system."
       ]
@@ -484,15 +484,17 @@
     {
       title: "Getting Started",
       markup: [
-        "The course collects information from different sources that is known and understood about telepathy.",
+        "The course puts together information about ESP from many sources.",
         "",
-        "The focus will be first on understanding, then increasingly on improvement through practice. Practice trials start at a simple level and work up to more difficult telepathic perception tasks. Your performance is analyzed for chance vs. better-than-chance performance and can be viewed at any time by going to Performance Reports. Before performance can be meaningfully interpreted to be unlikely to achieve by chance alone, you should complete at least 20 trials. Beginners may start out performing at chance for many trials before beginning to get the hang of it - or not. Some will show natural talent and quickly start performing at better than chance levels. Others may take a while to do well, and others may never believe they will get the hang of it and give up.",
+        "The focus will be on understanding and practice. Practice trials start at a simple level and work up to more challenging tasks. Your practice is analyzed to see if you are performing at chance level or better-than-chance and the analysis can be viewed at any time by going to Performance Reports.",
         "",
-        "Just know this: A sender cannot help but put the information out there when sending, whether they believe in telepathy or not. The information that is out there becomes available to you whether they believe in telepathy or not. It is just a question of perceiving it. Believe it. Try it. Do it.",
+        "Before performance can be meaningfully interpreted, you should complete at least 20 trials. Beginners may start out performing at chance for many trials before beginning to get the hang of it - or not. Some will show natural talent and quickly start performing at better than chance levels. Others may see evidence of improvement after a while, and others will stop practicing, but may still continue to use the course to learn about this ability.",
         "",
-        "At this point, it will be interesting to establish a baseline. Please complete and save the questions in the questionnaire found on the next page (Page 3) of this series.",
+        "When it comes to telepathy, it is quite clear that a Sender does put the information out there whether they believe in telepathy or not. That information becomes available to you. It is just a question of whether you can perceive it. If you believe you can, that is an important step.",
         "",
-        "The course lessons are accessed from page 4 of this tab. Simply go to page 4 and click on each link and participate as called for in that lesson. Go at your own speed."
+        "At this point, to establish a baseline, please complete and save questionnaire found on the next page of this tab (page 3).",
+        "",
+        "The course lessons are accessed from page 4 of this tab. Simply go to page 4 and, at your own speed, click on each link and participate as called for in that lesson."
       ].join("\n"),
       actions: []
     },
@@ -1271,6 +1273,7 @@
   let featureSetupOwnIdentifier = "";
   let featureSetupPendingHandleFlow = "";
   let featureSetupReturnLearningCenterTab = "start-here";
+  let featureSetupReturnToCourseBaseline = false;
   let uniqueNameChangeAllowedNow = false;
   let installGuideReturnView = "feature-setup";
   let installGuideMode = "install";
@@ -9201,7 +9204,7 @@ ${calmPracticeMessage}`;
     if (setupButton) {
       setupButton.textContent = "Click here to set up optional features of this app";
     }
-    const visibleOutsideGuidedTour = !!visible && !isSenderOrReceiverGuidedTourActive(role);
+    const visibleOutsideGuidedTour = !!visible && !isRoleGuidedTourActive(role);
     setupWrap.dataset.available = visibleOutsideGuidedTour ? "true" : "false";
     setupWrap.hidden = !visibleOutsideGuidedTour;
   }
@@ -9388,10 +9391,28 @@ ${calmPracticeMessage}`;
       uniqueNameRequiredTitle.textContent = String(options.title || "Choose a Unique Name");
     }
     if (uniqueNameRequiredCopy) {
-      uniqueNameRequiredCopy.textContent = String(options.copy || "Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.");
+      const inlineClaimText = String(options.inlineClaimText || "").trim();
+      if (inlineClaimText) {
+        const inlineClaimLink = document.createElement("button");
+        inlineClaimLink.type = "button";
+        inlineClaimLink.className = "role-note-link inline-text-link";
+        inlineClaimLink.textContent = inlineClaimText;
+        inlineClaimLink.addEventListener("click", () => {
+          const claimRole = uniqueNameRequiredRole;
+          closeUniqueNameRequiredOverlay();
+          openHandleOverlay(claimRole);
+        });
+        uniqueNameRequiredCopy.replaceChildren(
+          document.createTextNode(String(options.copyBefore || "")),
+          inlineClaimLink,
+          document.createTextNode(String(options.copyAfter || ""))
+        );
+      } else {
+        uniqueNameRequiredCopy.textContent = String(options.copy || "Your identifier is not an accepted unique name. To use ESP GYM with other humans, first choose a unique name and claim it.");
+      }
     }
     if (uniqueNameRequiredClaimButton) {
-      uniqueNameRequiredClaimButton.hidden = options.claimAvailable === false;
+      uniqueNameRequiredClaimButton.hidden = options.claimAvailable === false || !!String(options.inlineClaimText || "").trim();
     }
     if (uniqueNameRequiredCloseButton) {
       uniqueNameRequiredCloseButton.textContent = options.claimAvailable === false ? "OK" : "NOT NOW";
@@ -9969,6 +9990,10 @@ ${calmPracticeMessage}`;
       handleStatus.textContent = "";
     }
     setFeatureSetupBackButtonTemporarilyHidden(false);
+    if (featureSetupReturnToCourseBaseline && isBeginnerViewVisible(featureSetupView)) {
+      closeFeatureSetupView();
+      return;
+    }
     if (returnRole) {
       const matchingCard = roleCards.find((card) => card.dataset.roleCard === returnRole);
       if (matchingCard) {
@@ -11705,6 +11730,8 @@ ${calmPracticeMessage}`;
 
   function showFeatureSetupView(options = {}) {
     learningCenterView?.classList.add("beginner-view-hidden");
+    featureSetupReturnToCourseBaseline = options.returnToCourseBaseline === true
+      || (featureSetupReturnToCourseBaseline && options.returnView === "learning-center" && options.learningCenterTab === "course");
     const role = String(options.role || activeLauncherRole || "sender").trim() || "sender";
     const originView = String(options.returnView || "").trim().toLowerCase();
     featureSetupReturnRole = role;
@@ -11891,6 +11918,10 @@ ${calmPracticeMessage}`;
       return;
     }
     if (returnView === "learning-center") {
+      if (featureSetupReturnToCourseBaseline) {
+        activeLearningCenterCoursePage = 3;
+        featureSetupReturnToCourseBaseline = false;
+      }
       showLearningCenterView({
         view: "learning-center",
         tab: featureSetupReturnLearningCenterTab,
@@ -13102,7 +13133,12 @@ ${calmPracticeMessage}`;
 
     const preferredOwnIdentifier = String(ownStatus?.preferred_identifier || ownRaw).trim() || ownRaw;
     if (!isAcceptedUniqueHandleIdentifier(preferredOwnIdentifier, ownStatus)) {
-      window.alert("First claim an accepted unique handle for You before using partner messaging.");
+      openUniqueNameRequiredOverlay(normalizedRole, {
+        title: "Unique Name Required",
+        copyBefore: "First ",
+        inlineClaimText: "claim a Unique Name for yourself",
+        copyAfter: " on ESP GYM before using partner messaging."
+      });
       return;
     }
 
@@ -14037,9 +14073,9 @@ ${calmPracticeMessage}`;
     if (setupWrap) {
       const ownIdentifier = String(readVisibleRoleIdentifiers(role)?.ownName || "").trim();
       const shouldShowSetupPrompt = shouldShowFeatureSetupPromptForIdentifier(ownIdentifier);
-      // Exercise previews must not reopen this link while a Sender/Receiver tour is active.
+      // Exercise previews must not reopen this link while a guided tour is active.
       setRoleFeatureSetupPrompt(role, shouldShowSetupPrompt);
-      setupWrap.dataset.previewActive = shouldShowSetupPrompt && !isSenderOrReceiverGuidedTourActive(role) ? "true" : "";
+      setupWrap.dataset.previewActive = shouldShowSetupPrompt && !isRoleGuidedTourActive(role) ? "true" : "";
     }
     panel.classList.add("is-level-preview");
   }
@@ -24127,6 +24163,13 @@ ${calmPracticeMessage}`;
       launcherGuidedTourState.role === normalizedRole;
   }
 
+  function isRoleGuidedTourActive(role) {
+    if (String(role || "").trim().toLowerCase() === "remote-viewer") {
+      return isCoveredScreenRemoteViewMode() && getRemoteViewerExperienceMode() === "tour";
+    }
+    return isSenderOrReceiverGuidedTourActive(role);
+  }
+
   function getGuideElements(role) {
     const requestedRole = String(role || "").trim().toLowerCase();
     const normalizedRole = ["sender", "receiver", "remote-viewer"].includes(requestedRole)
@@ -25960,6 +26003,7 @@ ${calmPracticeMessage}`;
     helpReturnScrollY = Math.max(0, Number(options.scrollY || 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
+    goProIncludesView?.classList.add("beginner-view-hidden");
     helpView?.classList.remove("beginner-view-hidden");
     launcherView?.classList.add("beginner-view-hidden");
     temporaryHomePageView?.classList.add("beginner-view-hidden");
@@ -26769,7 +26813,7 @@ ${calmPracticeMessage}`;
   async function renderCourseBaselineQuestionsView() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
-    const displayName = getOnlineCourseDisplayName(state);
+    const displayName = getCanonicalRecognizedIdentity(state) || "";
     if (courseBaselineDate) {
       courseBaselineDate.textContent = formatOnlineCourseDate();
     }
@@ -26825,7 +26869,7 @@ ${calmPracticeMessage}`;
   async function saveCourseBaselineQuestions() {
     const state = readLauncherState();
     const displayIdentifier = getOnlineCourseDisplayIdentifier(state);
-    const displayName = getOnlineCourseDisplayName(state);
+    const displayName = getCanonicalRecognizedIdentity(state) || "";
     const displayDate = formatOnlineCourseDate();
     const payload = {
       baseline_date: displayDate,
@@ -27781,7 +27825,11 @@ ${calmPracticeMessage}`;
               classes.push("learning-center-positive-reinforcement-lead");
             }
           }
-          return `<p class="${classes.join(" ")}">${escapeHtml(paragraph)}</p>`;
+          let paragraphHtml = escapeHtml(paragraph);
+          if (actionKey === "concept-everything-is-connected" && index === 1) {
+            paragraphHtml = paragraphHtml.replace("his book here.", 'his book <a class="about-section-link" href="https://ozarkresearch.org/product/power-of-focused-mind-healing-a-guide-presented-by-harold-mccoy-book/" target="_blank" rel="noopener noreferrer">here</a>.');
+          }
+          return `<p class="${classes.join(" ")}">${paragraphHtml}</p>`;
         })
         .join("");
     }
@@ -36771,7 +36819,7 @@ ${calmPracticeMessage}`;
       event.preventDefault();
       event.stopPropagation();
       const role = String(button.dataset.openFeatureSetup || "").trim() || activeLauncherRole || "sender";
-      if (isSenderOrReceiverGuidedTourActive(role)) {
+      if (isRoleGuidedTourActive(role)) {
         setRoleFeatureSetupPrompt(role, false);
         return;
       }
@@ -36802,6 +36850,15 @@ ${calmPracticeMessage}`;
       return;
     }
     closeBeepTestView();
+  });
+  document.querySelector("[data-course-baseline-claim-name]")?.addEventListener("click", () => {
+    showFeatureSetupView({
+      returnView: "learning-center",
+      learningCenterTab: "course",
+      returnToCourseBaseline: true,
+      scrollY: Math.max(0, Number(window.scrollY || 0))
+    });
+    window.requestAnimationFrame(() => featureSetupClaimItem?.scrollIntoView({ block: "center" }));
   });
   featureSetupClaimActionButton?.addEventListener("click", () => {
     if (featureSetupOwnIdentifier) {

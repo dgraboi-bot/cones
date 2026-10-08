@@ -615,7 +615,8 @@ async function verifyHelpProFeatureSummaryNavigation() {
 
   try {
     await page.goto(`${baseUrl}?open=landing`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(300);
+    // The app may normalize the version query and reload immediately after first load.
+    await page.waitForTimeout(1000);
     await page.locator("[data-footer-open-help]").click();
     const helpView = page.locator('[data-view="help"]');
     await helpView.waitFor({ state: "visible" });
