@@ -196,7 +196,8 @@ $nonDeployPrefixAllowList = @(
 )
 
 $nonDeployExactAllowList = @(
-  ".gitignore"
+  ".gitignore",
+  "README.txt"
 )
 
 $nonDeployExtensionAllowList = @(

@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261008b";
+  const launcherBuildVersion = "20261008c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -389,11 +389,11 @@
       title: "Positive Reinforcement",
       paragraphs: [
         "The Importance of Instant Reinforcement in Skill Learning",
-        "When someone tries something new, if they get positive feedback when they produce a positive result, it improves learning. And research has shown that the more instant the feedback, the more effective learning becomes. Using the tool in this app, when one gets a telepathic communication successfully, instant positive feedback occurs.",
-        "Telepathy is subtle. Subtle skills are easy to miss without repetition, structure, and feedback. Practice gives the user repeated contact with a narrowly defined task, and immediate feedback allows users to improve through unconscious connections that form inside the learning process when rapid feedback is provided.",
-        "In operant-learning research, studies found that shorter delays in feedback generally produce faster or cleaner response acquisition. In plain terms: if the learner makes the correct choice and the system marks that success instantly, the brain has an easier time binding \"that was the right act\" to the outcome. That is the main rationale for playing the sound the moment the Receiver makes the correct selection.",
-        "Charles Tart found in a telepathy study that by providing instant feedback - he used a bell with a pleasant sound - it acted to neutralize a \"decline effect\" where performance may be good for a while, but later drops. Instant positive reinforcement appeared to neutralize this problem. See his discussion here.",
-        "A large feedback meta-analysis found feedback has a meaningful positive effect on learning overall, especially for cognitive and motor outcomes, and another meta-analysis found feedback is particularly effective when provided directly after task completion. For telepathy training, that suggests the best reinforcement is not vague encouragement, but a precise, immediate marker of a correct perceptual hit. In this app, the tone is a fast, clean signal that the fleeting mental impression just acted upon was correct."
+        "When someone tries something new, if they get positive feedback when they produce a positive result, it improves learning. Research has shown that the quicker this \"reinforcing\" feedback occurs, the more effective learning becomes. Using the telepathy practice or clairvoyance / remote viewing practice tool in ESP GYM, making a correct choice results in immediate reinforcement: The sound, \"Tada\" occurs.",
+        "Extra sensory perception is subtle. Subtle perceptions are easy to miss without repetition, structure, and feedback. Practice gives a user repeated contact with a narrowly defined task, and immediate feedback allows for improvement through unconscious connections that form inside the learning process when rapid feedback is provided.",
+        "In operant learning research, studies found that shorter delays in feedback generally produce faster or cleaner response acquisition. In plain terms: if a learner makes the correct choice and the system marks that success instantly, the brain has an easier time binding \"that was the right act\" to the result of a successful outcome. That is the main rationale for playing the sound the moment a Receiver makes the correct selection.",
+        "Charles Tart found in an ESP study that by providing instant feedback - he used a chime - this acted to neutralize a \"decline effect\" where performance may be good for a while, but later drops. Instant positive reinforcement appeared to neutralize this problem.",
+        "A study of feedback over a large span of research showed that it has a meaningful positive effect on learning overall, especially for cognitive and motor outcomes, and another comprehensive study found feedback is particularly effective when provided directly after task completion. For telepathy training, that suggests the best reinforcement is not vague encouragement, but a precise, immediate marker of a correct perceptual hit. In the telepathy and clairvoyance practice apps, the \"tada\" chime is a fast, clean signal that the fleeting mental impression just acted upon was correct."
       ]
     },
     "concept-trouble-with-statistics": {
@@ -27825,6 +27825,9 @@ ${calmPracticeMessage}`;
             }
           }
           let paragraphHtml = escapeHtml(paragraph);
+          if (isPositiveReinforcement && index === 4) {
+            paragraphHtml = paragraphHtml.replace("ESP study", '<a class="about-section-link" href="https://www.aapsglobal.com/wp-content/uploads/2018/04/Tart-Improving-Real-Time-ESP-by-Suppressing-the-Future-Trans-Temporal-Inhibition-Mind-At-Large-chapter.pdf" target="_blank" rel="noopener noreferrer">ESP study</a>');
+          }
           if (actionKey === "concept-everything-is-connected" && index === 1) {
             paragraphHtml = paragraphHtml.replace("his book here.", 'his book <a class="about-section-link" href="https://ozarkresearch.org/product/power-of-focused-mind-healing-a-guide-presented-by-harold-mccoy-book/" target="_blank" rel="noopener noreferrer">here</a>.');
           }
@@ -35574,7 +35577,16 @@ ${calmPracticeMessage}`;
     window.location.href = targetUrl;
   });
 
-  openOptionsButton?.addEventListener("click", showOptionsView);
+  openOptionsButton?.addEventListener("click", () => {
+    const expandedTelepathyCard = roleCards.find((card) =>
+      card.classList.contains("active") &&
+      (card.dataset.roleCard === "sender" || card.dataset.roleCard === "receiver")
+    );
+    if (expandedTelepathyCard) {
+      collapseActiveLauncherCard();
+    }
+    showOptionsView();
+  });
   openOldLearningCenterButton?.addEventListener("click", () => {
     showOnlineCourseView({ view: "admin" });
   });
