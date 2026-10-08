@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261008a";
+  const launcherBuildVersion = "20261008b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -345,45 +345,44 @@
     "concept-telepathy": {
       title: "Telepathy",
       paragraphs: [
-        "In ESP GYM, the focus is on visual telepathy: the Receiver attempts to perceive visual information associated with the Sender's attention to an image.",
+        "In telepathy a Receiver attempts to perceive visual information associated with the Sender's attention to an image.",
         "Because the impressions that are received are usually subtle and short-lived, the Receiver benefits from quieting the mind, reducing internal chatter, and becoming calmly attentive to any surprising visual information that is perceived at the moment the information is most likely to appear.",
         "The task is not to force meaning onto the experience, but to observe carefully what appears spontaneously and to remember what was perceived in the mind's eye, whether the eyes are open or closed.",
-        "When the Receiver correctly identifies the image the Sender was viewing, immediate positive feedback is given, and such rapid reinforcement has been shown to assist learning.",
-        "Even though telepathy is not yet understood by modern science, by now enough evidence has accumulated to convince many scientists that it is real."
+        "When using the ESP GYM app, when a Receiver correctly identifies the image the Sender was viewing, immediate positive feedback is given, and such rapid reinforcement has been shown to assist learning."
       ]
     },
     "concept-sender": {
       title: "Sender",
       paragraphs: [
-        "When a sender looks at a visual image while sending it telepathically, the sender needs to understand what it means to be be serious about \"putting it out there.\" This is most effective when sustained intention and attention are used.",
-        "When a sender is serious about sending, the receiver will pick up the features more clearly. A serious sender does not allow their mind to wander while sending.",
-        "It doesn't seem to matter whether a sender believes in the reality of telepathy or not. When they look at an image while a receiver knows they are looking at one, successful sending can occur."
+        "When a Sender looks at a visual image while sending it telepathically, the Sender needs to understand what it means to be be serious about \"putting it out there.\" This is most effective when sustained intention and attention are used.",
+        "When a Sender is serious about sending, the Receiver will pick up the features more clearly. A serious Sender does not allow their mind to wander while sending.",
+        "It doesn't seem to matter whether a Sender believes in the reality of telepathy or not. When they look at an image while a Receiver knows they are looking at one, successful sending can occur."
       ]
     },
     "concept-receiver": {
       title: "Receiver",
       paragraphs: [
-        "The tool available in this app is designed to facilitates practicing and understanding visual telepathy. A receiver uses their mind's eye to observe the visual information that appears there at a specific time and remember it long enough to make an accurate decision about its content.",
-        "A receiver should not be thinking their own thoughts when looking into their mind's eye for telepathic visual information. They need to be open to whatever pops in when the countdown ends and an image is displayed to the sender. In the receiver's mind's eye, shreds of visual evidence can fade quickly, so they need to be grabbed quickly and remembered as well.",
-        "Some features of what pops in may have color. A receiver should remember the color and where it is noticed. Was it on the right side? The left side? After seconds, the whole image (not just part of it) may fade. Then it's time to make a deliberate effort to consolodate in memory whatever shreds of what was seen. Then, when the choices of images are displayed, it will easily to decide which image was the actual target image the sender was given.",
-        "The Receiver trains attention and sustained intention by learning to focus attention on the impressionistic contents of their \"mind's eye\" in real-time. The app provides a framework in which the receiver can do this in practice sessions."
+        "The telepathy tool available in this app is designed to facilitates practicing and understanding visual telepathy. A Receiver uses their mind's eye to observe the visual information that appears there at a specific time and remember it long enough to make an accurate decision about its content.",
+        "A Receiver should not be thinking their own thoughts when looking into their mind's eye for telepathic visual information. They need to be open to whatever new and surprising pops in when the countdown ends and an image is displayed to the Sender. In the Receiver's mind's eye, shreds of visual evidence can fade quickly, so they need to be grabbed quickly and remembered as well.",
+        "Some features of what pops in may have color. A Receiver should remember the color and where it is noticed. Was it on the right side? The left side? After seconds, the whole image (not just part of it) may fade. Then it's time to make a deliberate effort to consolidate in memory whatever shreds of what was seen. Then, when the choices of images are displayed, it can be easy to pick the actual target image the Sender was looking at.",
+        "The Receiver trains attention and sustained intention by learning to focus attention on the impressionistic contents of their \"mind's eye.\" The app provides a framework in which the Receiver can do this in practice sessions."
       ]
     },
     "concept-minds-eye": {
       title: "Mind's Eye",
       paragraphs: [
         "Your mind's eye is where your visual imagination is. To understand what is meant by checking your \"mind's eye,\" visualize a white circle on a black background, or the Eiffel Tower or an Egyptian pyramid (or anything else you care to visualize). You are doing this in your \"mind's eye.\" Eyes do not have to be closed. You can move the \"location\" of attention from one location in the visualized image in your mind's eye to another location. You can do this by focusing attention at the top of, or at the bottom of your Eiffel Tower or pyramid.",
-        "In telepathically trying to discern what is in the mind's eye, when focusing attention inward on a new location in the image, it can be hard to remember what had been observed in the previous location(s), since different locations often hold relatively hard-to-remember shapes. That is why it is always better to try to remember the spatial alignment of the bits and pieces that are observed rather than fruitlessly spending precious time trying to work everything into something familiar. If you try to do this, you will be adding ideas from your own mind rather than focusing on what is actually there, and it is very likely that you will end up putting together a wrong impression.",
-        "Practice looking at what's in your mind's eye.",
-        "Practice tuning in quickly to your visual imagination. What is there now? When you are not deliberately visualizing and not trying to perceive any particular ESP-related visual information, there probably is nothing to see there - like what you see when you close your eyes."
+        "In telepathically or clairvoyantly trying to discern what is in the mind's eye, when focusing attention inward on a new location in the image, it can be hard to remember what had been observed in the previous location(s), since different locations often hold relatively hard-to-remember shapes. That is why it is always better to try to remember the spatial alignment of the bits and pieces that are observed rather than fruitlessly spending precious time trying to work everything into something familiar. If you try to do this, you will be adding ideas from your own mind rather than focusing on what is actually there, and it is very likely that you will end up putting together a wrong impression.",
+        "When doing ESP, practice looking at whatever is in your mind's eye without trying to name it. Just try to describe it.",
+        "Another thing to practice at any time is tuning in quickly to your visual imagination. What is there now? When you are not deliberately visualizing and not trying to perceive any particular ESP-related visual information, there probably is nothing to see there."
       ]
     },
     "concept-chance-performance": {
       title: "Chance Performance",
       paragraphs: [
-        "Western science is based largely on finding and studying effects, and the whole notion of what is an effect is based on the concept of what is random - in other words - what can occur by chance alone. If it is highly probable that chance alone cannot account for what is measured, then it becomes safer to assume that there is a real effect. After being verified by replicating the test, ideally in an independent laboratory, if the effect holds up under replication, then it can safely be assumed to be \"real\" and \"reliable.\"",
-        "In this telepathy app, for example, in Level 1, the probability that there will be 1 cone or many cones shown to the sender is chosen randomly - it's like flipping a coin. Each time, the chance that it is one way or the other averages to 50%, but just like one can get a number of heads in a row in a coin flip because there is no memory for what came before each flip, it is possible to get \"many cones\" or \"one cone\" many times in a row.",
-        "So it is far better not to \"play the numbers\" when doing this task, thinking, \"well, there hasn't been one cone for a while, so I will guess there was one cone this time.\" The way to do this task is to look at and remember what pops into your mind's eye at around the time of the beep. Then, after a sufficient number of trials, see whether your performance cannot be explained by chance alone."
+        "Western science is based largely on finding and studying effects, and the whole notion of what is an effect is based on the concept of what is random - in other words - what can occur by chance alone, and what can't. If chance alone cannot explain something that can be measured, then one begins to believe that there is a real effect. After being verified often (\"replicated\") enough in independent laboratories, then it can safely be assumed to be \"real\" and \"reliable.\"",
+        "For example, in the ESP Gym telepathy practice, Exercise 1, the probability that there will be 1 cone or many cones shown to the Sender is chosen randomly, like flipping a coin. Each time, the chance that it is one way or the other averages to 50%, but just like one can get a number of heads in a row in a coin flip because there is no memory for what came before each flip, it is possible to get \"many cones\" or \"one cone\" many times in a row.",
+        "So one should not to \"play the numbers\" when doing this task, thinking, \"well, there hasn't been one cone for a while, so I will guess there was one cone this time.\" The way to do this task is to look at and remember what pops into your mind's eye at around the time of the beep. Then, after perhaps twenty trials, spaced over time, see whether your performance can or cannot be explained by chance alone."
       ]
     },
     "concept-positive-reinforcement": {
@@ -400,9 +399,9 @@
     "concept-trouble-with-statistics": {
       title: "The Trouble with Statistics",
       paragraphs: [
-        "Statistics is based on computing whether something that could have happened by random chance has happened. Let's say you work with this app and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, each with a 50% chance of being right or wrong by chance alone, your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purly from chance guessing. Since this is greater than 1%, it is not generally scientifically acceptable as a significant effect at the p < .01 level.",
+        "Statistics is based on computing whether something that could have happened by random chance has happened. Let's say you work with this app in telepathy and get 8 trials correct in a row and then 1 wrong. If you are doing a task with two choices, each with a 50% chance of being right or wrong by chance alone, your performance of 8 correct in a row and than 1 wrong would have a 1.95 % probability of achieving this result purely from chance guessing. Since this is greater than 1%, it is not generally scientifically acceptable as a significant effect at the p < .01 level.",
         "But the reality might be that you experienced true telepathy in the first 8 trials and then were tired or distracted on the ninth trial. Statistics says that the significance for 8 correct out of 9 is about 1.95%. But the reality may well have been that there was plenty of effect in the trials that were answered correctly.",
-        "IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not tell a correct story."
+        "IF YOU CORRECTLY AND REPEATEDLY PERCEIVED EVEN FLEETING VISUAL FEATURES OF WHAT THE SENDER WAS SENDING, YOU KNOW WHAT YOU SAW, and in such a case the statistics do not lead to an accurate conclusion."
       ]
     },
     "concept-everything-is-connected": {
