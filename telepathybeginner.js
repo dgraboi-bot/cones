@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261008c";
+  const launcherBuildVersion = "20261010a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -345,7 +345,7 @@
     "concept-telepathy": {
       title: "Telepathy",
       paragraphs: [
-        "In telepathy a Receiver attempts to perceive visual information associated with the Sender's attention to an image.",
+        "In the ESP GYM telepathy practice, a Receiver attempts to perceive visual information associated with the Sender's attention to an image.",
         "Because the impressions that are received are usually subtle and short-lived, the Receiver benefits from quieting the mind, reducing internal chatter, and becoming calmly attentive to any surprising visual information that is perceived at the moment the information is most likely to appear.",
         "The task is not to force meaning onto the experience, but to observe carefully what appears spontaneously and to remember what was perceived in the mind's eye, whether the eyes are open or closed.",
         "When using the ESP GYM app, when a Receiver correctly identifies the image the Sender was viewing, immediate positive feedback is given, and such rapid reinforcement has been shown to assist learning."
@@ -959,6 +959,9 @@
   const featureSetupPartnerConfirmationStatus = document.querySelector("[data-feature-setup-partner-confirmation-status]");
   const featureSetupClaimActionButton = document.querySelector("[data-feature-setup-claim-action]");
   const featureSetupInstallActionButton = document.querySelector("[data-feature-setup-install-action]");
+  const installAppInfoOpenButton = document.querySelector("[data-open-install-app-info]");
+  const installAppInfoOverlay = document.querySelector("[data-install-app-info-overlay]");
+  const installAppInfoCloseButton = document.querySelector("[data-close-install-app-info]");
   const featureSetupBeepActionButton = document.querySelector("[data-feature-setup-beep-action]");
   const featureSetupLocationActionButton = document.querySelector("[data-feature-setup-location-action]");
   const featureSetupMessagingActionButton = document.querySelector("[data-feature-setup-messaging-action]");
@@ -11570,8 +11573,8 @@ ${calmPracticeMessage}`;
     if (featureSetupIdentifier) {
       const identifierStatus = getCachedIdentifierStatus(featureSetupOwnIdentifier);
       featureSetupIdentifier.textContent = featureSetupOwnIdentifier
-        ? `Current Unique Name: ${featureSetupOwnIdentifier}${identifierStatus?.auth_email_on_file ? " - verified via email." : ""}`
-        : "Current Unique Name: no unique name is currently recognized in this browser.";
+        ? `Current User Name: ${featureSetupOwnIdentifier}${identifierStatus?.auth_email_on_file ? " - verified via email." : ""}`
+        : "Current User Name: no user name is currently registered.";
     }
 
     const recognizedUser = !!featureSetupOwnIdentifier;
@@ -11581,17 +11584,17 @@ ${calmPracticeMessage}`;
     const featureSetupClaimCopy = featureSetupClaimItem?.querySelector(".feature-setup-text");
     const featureSetupGrid = featureSetupClaimItem?.parentElement;
     if (featureSetupClaimTitle) {
-      featureSetupClaimTitle.textContent = recognizedUser ? "Change Unique Name" : "Claim Unique User Name";
+      featureSetupClaimTitle.textContent = recognizedUser ? "Change Unique Name" : "Pick User Name";
     }
     if (featureSetupClaimCopy) {
       featureSetupClaimCopy.textContent = recognizedUser
         ? "Changing a unique name may involve a waiting period. Select CHANGE UNIQUE NAME for additional information."
-        : "Claiming a unique name allows you to practice telepathy with other recognized users and use all the features of this app.";
+        : "Picking a user name allows you to practice telepathy with other recognized users and use all the features of this app.";
     }
     if (featureSetupClaimStatus) {
       featureSetupClaimStatus.textContent = recognizedUser
-        ? `Current unique name: ${featureSetupOwnIdentifier}`
-        : "No unique name is currently recognized in this browser. If you have already registered a unique name in another browser or on another device, use this function to claim it here.";
+        ? `Current user name: ${featureSetupOwnIdentifier}`
+        : "No user name is currently recognized in this browser. If you have already registered a user name in another browser or on another device, use this function to register it here.";
       featureSetupClaimStatus.hidden = recognizedUser;
     }
     if (featureSetupGrid && featureSetupClaimItem) {
@@ -11603,7 +11606,7 @@ ${calmPracticeMessage}`;
       }
     }
     if (featureSetupClaimActionButton) {
-      featureSetupClaimActionButton.textContent = recognizedUser ? "CHANGE UNIQUE NAME" : "CLAIM UNIQUE NAME";
+      featureSetupClaimActionButton.textContent = recognizedUser ? "CHANGE UNIQUE NAME" : "PICK USER NAME";
       featureSetupClaimActionButton.disabled = false;
     }
 
@@ -36891,6 +36894,32 @@ ${calmPracticeMessage}`;
       return;
     }
     closeUniqueNameChangeView();
+  });
+  function closeInstallAppInfoOverlay() {
+    installAppInfoOverlay?.classList.add("beginner-view-hidden");
+    installAppInfoOverlay?.setAttribute("aria-hidden", "true");
+    installAppInfoOpenButton?.focus();
+  }
+  installAppInfoOpenButton?.addEventListener("click", () => {
+    installAppInfoOverlay?.classList.remove("beginner-view-hidden");
+    installAppInfoOverlay?.setAttribute("aria-hidden", "false");
+    installAppInfoCloseButton?.focus();
+  });
+  installAppInfoCloseButton?.addEventListener("click", closeInstallAppInfoOverlay);
+  installAppInfoOverlay?.addEventListener("click", (event) => {
+    if (event.target === installAppInfoOverlay) {
+      closeInstallAppInfoOverlay();
+    }
+  });
+  installAppInfoOverlay?.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeInstallAppInfoOverlay();
+    } else if (event.key === "Tab") {
+      event.preventDefault();
+      installAppInfoCloseButton?.focus();
+    }
   });
   featureSetupInstallActionButton?.addEventListener("click", () => {
     if (!publicLandingMode.espProSpecialEditionEnabled && isVisitorLauncherEntry() && !featureSetupOwnIdentifier) {

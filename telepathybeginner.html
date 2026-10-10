@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/esp-pro-og-preview.png">
-  <meta name="espgym-build-version" content="20261008c">
+  <meta name="espgym-build-version" content="20261010a">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -56,19 +56,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261008c">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261010a">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261008c">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261008c">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20261008c">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261010a">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261010a">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20261010a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261008c">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20261008c">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261008c">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261010a">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20261010a">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261010a">
   <script>
     (function () {
-      var buildVersion = "20261008c";
+      var buildVersion = "20261010a";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -550,6 +550,16 @@
         </div>
       </div>
 
+      <div class="handle-overlay beginner-view-hidden install-app-info-overlay" data-install-app-info-overlay aria-hidden="true">
+        <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="installAppInfoTitle" aria-describedby="installAppInfoCopy">
+          <h2 class="about-section-title" id="installAppInfoTitle">Install As App</h2>
+          <p class="about-section-copy" id="installAppInfoCopy">ESP GYM is a website that can optionally be installed as a <em>Progressive Web App (PWA)</em>. Then it behaves like a native app which runs from an icon on your home screen or desktop or taskbar. It runs in its own window without the browser's address bar and tabs and is capable of sending notifications. Installation and uninstallation is quick and simple and supported on Windows PC, iPhone, iPad and Android devices.</p>
+          <div class="contact-actions">
+            <button class="options-button contact-action-button" type="button" data-close-install-app-info>OK</button>
+          </div>
+        </div>
+      </div>
+
       <div class="handle-overlay beginner-view-hidden" data-messaging-install-overlay aria-hidden="true">
         <div class="handle-dialog" role="dialog" aria-modal="true" aria-labelledby="messagingInstallTitle">
           <h2 class="about-section-title" id="messagingInstallTitle">Install ESP GYM</h2>
@@ -648,7 +658,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20261008c</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20261010a</span>
           </div>
         </div>
 
@@ -1974,23 +1984,23 @@
           <h1 class="beginner-title" id="featureSetupTitle">Setup Website Features</h1>
 
           <section class="settings-view-panel feature-setup-panel">
-            <div class="settings-view-note feature-setup-identifier" data-feature-setup-identifier>Current Unique Name: no unique name is currently recognized in this browser.</div>
+            <div class="settings-view-note feature-setup-identifier" data-feature-setup-identifier>Current User Name: no user name is currently registered.</div>
             <div class="settings-view-status" data-feature-setup-summary hidden></div>
 
             <div class="feature-setup-grid">
               <section class="feature-setup-item" data-feature-setup-item="claim-name">
                 <div class="feature-setup-copy">
-                  <h2 class="feature-setup-title">Claim Unique User Name</h2>
-                  <p class="feature-setup-text">Claiming a unique name allows you to practice telepathy with other recognized users and use all the features of this app.</p>
-                  <div class="feature-setup-status" data-feature-setup-claim-status>No unique name is currently recognized in this browser. If you have already registered a unique name in another browser or on another device, use this function to claim it here.</div>
+                  <h2 class="feature-setup-title">Pick User Name</h2>
+                  <p class="feature-setup-text">Picking a user name allows you to practice telepathy with other recognized users and use all the features of this app.</p>
+                  <div class="feature-setup-status" data-feature-setup-claim-status>No user name is currently recognized in this browser. If you have already registered a user name in another browser or on another device, use this function to register it here.</div>
                 </div>
-                <button class="options-button feature-setup-action" type="button" data-feature-setup-claim-action>CLAIM UNIQUE NAME</button>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-claim-action>PICK USER NAME</button>
               </section>
 
               <section class="feature-setup-item" data-feature-setup-item="install">
                 <div class="feature-setup-copy">
                   <h2 class="feature-setup-title">Install As App</h2>
-                  <p class="feature-setup-text">Installing ESP GYM as an app gives it its own icon and provides the best support for notifications and clean browser-free screens on this device.</p>
+                  <p class="feature-setup-text">Installing ESP GYM as an app gives it its own icon and provides the best support for notifications and clean browser-free screens on this device. <button class="role-note-link inline-text-link" type="button" data-open-install-app-info>(More info.)</button></p>
                   <div class="feature-setup-status" data-feature-setup-install-status>Checking app install status...</div>
                 </div>
                 <button class="options-button feature-setup-action" type="button" data-feature-setup-install-action>INSTALL APP</button>
@@ -2604,8 +2614,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261008c'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261008c'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261010a'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261010a'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3329,10 +3339,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20261008c"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261010a"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20261008c"></script>
-<script src="telepathybeginner.js?v=20261008c"></script>
+<script src="target-selection.js?v=20261010a"></script>
+<script src="telepathybeginner.js?v=20261010a"></script>
 </body>
 </html>
 
