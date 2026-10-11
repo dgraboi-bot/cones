@@ -15426,6 +15426,22 @@ if ($action === 'get_pair_difficulty' || $action === 'set_pair_difficulty') {
         $state['session_registry'][$sessionCode]['receiver_name'] = $providedReceiverName;
     }
     $pairParticipants = get_pair_participants_for_session($state, $session, $sessionCode);
+    if (!isset($existingPairDifficulty['difficulty_level']) && !isset($existingRegistry['difficulty_level'])) {
+        $receiverName = trim((string) ($pairParticipants['receiver_name'] ?? ''));
+        $senderName = trim((string) ($pairParticipants['sender_name'] ?? ''));
+        if ($receiverName !== '' && $senderName !== '') {
+            $receiverProfile = get_launcher_profile_entry($state, 'receiver', $receiverName);
+            $maxDifficulty = get_pair_max_difficulty_level($state, $receiverName, $senderName);
+            $receiverDifficulty = !empty($receiverProfile['updated_ms'])
+                ? normalize_difficulty_level($receiverProfile['difficulty_level'] ?? '1')
+                : ((int) $maxDifficulty >= 2 ? '2' : '1');
+            // A fresh pair inherits the Receiver's choice, not the legacy default.
+            $state['pair_difficulties'][$sessionCode]['difficulty_level'] = (string) min(
+                (int) $receiverDifficulty,
+                (int) $maxDifficulty
+            );
+        }
+    }
     $requestedDifficultyLevel = normalize_difficulty_level(
         $action === 'set_pair_difficulty'
             ? ($input['difficulty_level'] ?? '1')
