@@ -43,6 +43,12 @@ async function main() {
           assert.equal(await card.locator(`[data-pair-difficulty-label="${role}"]`).innerText(), `Exercise ${saved || "2"}`);
           assert.equal(await card.locator('input[name="ownName"]').inputValue(), "Anonymous Visitor");
           assert.equal(await card.locator('input[name="partnerName"]').inputValue(), "Robot");
+          const setupLink = card.locator(`[data-open-feature-setup="${role}"]`);
+          assert.equal(await setupLink.innerText(), "Click here to pick a user name needed to practice telepathy with others");
+          await setupLink.click();
+          await page.locator("[data-feature-setup-claim-action]").waitFor({ state: "visible" });
+          await page.locator("[data-close-feature-setup]").click();
+          await card.waitFor({ state: "visible" });
           await page.locator(`[data-collapse-role-card="${role}"]`).click();
         }
         console.log(`PASS ${width}px: Receiver and Sender ${saved ? `retain saved Exercise ${saved}` : "default to Exercise 2"}`);

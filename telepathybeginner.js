@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261010b";
+  const launcherBuildVersion = "20261011a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -9221,7 +9221,11 @@ ${calmPracticeMessage}`;
     }
     const setupButton = setupWrap.querySelector("[data-open-feature-setup]");
     if (setupButton) {
-      setupButton.textContent = "Click here to set up optional features of this app";
+      const anonymousTelepathyUser = (role === "sender" || role === "receiver")
+        && isAnonymousVisitorDisplayName(readRoleFormValues(role).ownName);
+      setupButton.textContent = anonymousTelepathyUser
+        ? "Click here to pick a user name needed to practice telepathy with others"
+        : "Click here to set up optional features of this app";
     }
     const visibleOutsideGuidedTour = !!visible && !isRoleGuidedTourActive(role);
     setupWrap.dataset.available = visibleOutsideGuidedTour ? "true" : "false";
