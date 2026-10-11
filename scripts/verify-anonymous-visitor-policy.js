@@ -327,18 +327,13 @@ async function verify() {
     await assertTelepathyVisitorCard(page, "receiver");
     await page.locator('[data-inline-open-handle="receiver"]').evaluate((button) => button.click());
     assertEqual(await page.locator('[data-handle-overlay]').evaluate((overlay) => !overlay.classList.contains("beginner-view-hidden")), true, "visitor claim flow opens");
-    assertEqual(await page.locator('#handleDialogTitle').textContent(), "Choose Unique Name For Use With This Browser", "claim dialog title");
+    assertEqual(await page.locator('#handleDialogTitle').textContent(), "Pick a User Name to Use with ESP GYM", "claim dialog title");
     assertEqual(
       (await page.locator('[data-handle-intro]').textContent()).replace(/\s+/g, " ").trim(),
-      "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see privacy policy).",
-      "claim dialog privacy copy"
+      "Pick a name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use ESP GYM tools with any other recognized user and save performance data for viewing customized reports.",
+      "claim dialog copy"
     );
-    await page.locator('[data-handle-input]').fill("draft-name");
-    await page.locator('[data-open-handle-privacy]').click();
-    assertEqual(await page.locator('[data-view="about"]').evaluate((view) => !view.classList.contains("beginner-view-hidden")), true, "privacy policy opens");
-    await page.locator('[data-close-about]').click();
-    assertEqual(await page.locator('[data-handle-overlay]').evaluate((overlay) => !overlay.classList.contains("beginner-view-hidden")), true, "privacy policy returns to claim dialog");
-    assertEqual(await page.locator('[data-handle-input]').inputValue(), "draft-name", "claim draft survives privacy return");
+    assertEqual(await page.locator('[data-handle-input]').getAttribute("placeholder"), "Proposed user name", "claim placeholder");
 
     await loadVisitorLauncher(page);
     await assertTelepathyVisitorCard(page, "sender");

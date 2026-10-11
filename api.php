@@ -6948,8 +6948,7 @@ function get_identifier_status(array $state, string $identifier): array
         'uses_handle' => $usesHandle,
         'is_handle' => $preferredHandle !== '' && normalize_handle_lookup($input) === normalize_handle_lookup($preferredHandle),
         'is_remote_display_device' => get_remote_display_device_record($state, $preferredIdentifier) !== null,
-        // A claimed name is sufficient for Clairvoyance and saved practice.
-        // Human telepathy additionally requires an explicit confirmation choice.
+        // Partner verification is optional and runs only when both people opt in.
         'partner_confirmation_configured' => get_partner_confirmation_preference($state, $preferredIdentifier) !== ''
     ];
 }
@@ -10772,6 +10771,12 @@ function set_partner_confirmation_preference(array &$state, string $identifier, 
     ];
 }
 
+function pair_requires_partner_confirmation(array $state, string $ownIdentifier, string $partnerIdentifier): bool
+{
+    return get_partner_confirmation_preference($state, $ownIdentifier) !== ''
+        && get_partner_confirmation_preference($state, $partnerIdentifier) !== '';
+}
+
 function is_pair_exercise_locked(array $session): bool
 {
     $confirmation = is_array($session['partner_confirmation'] ?? null)
@@ -13289,6 +13294,31 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
         $canonicalPartner = trim((string) ($partnerStatus['preferred_identifier'] ?? $confirmationPartner));
         $senderIdentifier = $confirmationRole === 'sender' ? $canonicalOwn : $canonicalPartner;
         $receiverIdentifier = $confirmationRole === 'receiver' ? $canonicalOwn : $canonicalPartner;
+        if (!pair_requires_partner_confirmation($state, $canonicalOwn, $canonicalPartner)) {
+            clear_partner_confirmation_state($session);
+            $session['updated_ms'] = $nowMs;
+            append_debug_log($debugLogFile, $debugEnabled, json_encode([
+                'time_ms' => $nowMs,
+                'session_code' => $sessionCode,
+                'role' => $confirmationRole,
+                'label' => 'partner_confirmation_skipped',
+                'details' => [
+                    'own_identifier' => $canonicalOwn,
+                    'partner_identifier' => $canonicalPartner,
+                    'reason' => 'both_partners_must_opt_in'
+                ]
+            ], JSON_UNESCAPED_SLASHES));
+            $response = [
+                'ok' => true,
+                'partner_confirmation' => [
+                    'ready' => true,
+                    'verification_skipped' => true,
+                    'reason' => 'both_partners_must_opt_in'
+                ],
+                'server_now_ms' => $nowMs
+            ];
+            rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle); respond_json_and_close($handle, $response);
+        }
         $confirmation =& $session['partner_confirmation'];
         $activeSender = trim((string) ($confirmation['sender_identifier'] ?? ''));
         $activeReceiver = trim((string) ($confirmation['receiver_identifier'] ?? ''));
@@ -13302,7 +13332,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
         }
 
         if ($action === 'begin_partner_confirmation') {
-            $selectedMethod = normalize_partner_confirmation_method($input['method'] ?? 'verified');
+            $selectedMethod = get_partner_confirmation_preference($state, $canonicalOwn);
             if ($selectedMethod === 'verified' && get_identifier_recovery_email($state, $canonicalOwn) === '') {
                 throw new RuntimeException('Choose live camera confirmation, or verify this unique name by email before starting a session.');
             }
@@ -13317,7 +13347,6 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
                 clear_partner_confirmation_state($session);
                 $confirmation =& $session['partner_confirmation'];
             }
-            set_partner_confirmation_preference($state, $canonicalOwn, $selectedMethod, $nowMs);
             if ((int) ($confirmation['created_ms'] ?? 0) === 0) {
                 $confirmation['sender_identifier'] = $senderIdentifier;
                 $confirmation['receiver_identifier'] = $receiverIdentifier;
@@ -13397,7 +13426,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
         // screen may be used while the other email-verified participant joins.
         $partnerPreferredMethod = get_partner_confirmation_preference($state, $canonicalPartner);
         $partnerConfirmationPayload['email_verified_pair'] =
-            normalize_partner_confirmation_method($input['method'] ?? 'verified') === 'verified'
+            get_partner_confirmation_preference($state, $canonicalOwn) === 'verified'
             && $partnerPreferredMethod === 'verified'
             &&
             get_identifier_recovery_email($state, $senderIdentifier) !== '' &&

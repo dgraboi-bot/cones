@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261010a";
+  const launcherBuildVersion = "20261010b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -51,9 +51,8 @@
   let remoteViewerDeviceAvailabilityTimer = 0;
   const remoteViewerDeviceDiscoveryRetryMs = 3000;
   const targetSelectionPolicy = window.EspGymTargetSelection || null;
-  const defaultHandleDialogTitle = "Choose Unique Name For Use With This Browser";
-  const defaultHandleDialogIntroBeforePrivacyLink = "Choose a unique name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use the Practice Telepathy tools with any other recognized user of ESP PRO. Being recognized allows your data to be saved along with performance reporting. Using email for confirmation is optional and is never sold or shared (see ";
-  const defaultHandleDialogIntroAfterPrivacyLink = ").";
+  const defaultHandleDialogTitle = "Pick a User Name to Use with ESP GYM";
+  const defaultHandleDialogIntro = "Pick a name between 3 and 24 characters long using letters, numbers, spaces, period, underscore, apostrophe, or hyphen. With this unique name, you become a recognized user and can use ESP GYM tools with any other recognized user and save performance data for viewing customized reports.";
   let pendingGuidedTourContinuationMode = "";
   let pendingGuidedTourCompletionNoticeRole = "";
   const guidedTourCompletionNoticeText = "This completes this round of the Guided Tour. Feel free to explore other exercises by changing the exercise and pressing GO.";
@@ -362,7 +361,7 @@
     "concept-receiver": {
       title: "Receiver",
       paragraphs: [
-        "The telepathy tool available in this app is designed to facilitates practicing and understanding visual telepathy. A Receiver uses their mind's eye to observe the visual information that appears there at a specific time and remember it long enough to make an accurate decision about its content.",
+        "The telepathy tool available in this app is designed to facilitate practicing and understanding visual telepathy. A Receiver uses their mind's eye to observe the visual information that appears there at a specific time and remember it long enough to make an accurate decision about its content.",
         "A Receiver should not be thinking their own thoughts when looking into their mind's eye for telepathic visual information. They need to be open to whatever new and surprising pops in when the countdown ends and an image is displayed to the Sender. In the Receiver's mind's eye, shreds of visual evidence can fade quickly, so they need to be grabbed quickly and remembered as well.",
         "Some features of what pops in may have color. A Receiver should remember the color and where it is noticed. Was it on the right side? The left side? After seconds, the whole image (not just part of it) may fade. Then it's time to make a deliberate effort to consolidate in memory whatever shreds of what was seen. Then, when the choices of images are displayed, it can be easy to pick the actual target image the Sender was looking at.",
         "The Receiver trains attention and sustained intention by learning to focus attention on the impressionistic contents of their \"mind's eye.\" The app provides a framework in which the Receiver can do this in practice sessions."
@@ -8624,19 +8623,26 @@ ${calmPracticeMessage}`;
   }
 
   function readRoleSettings(role) {
+    let defaultDifficultyLevel = "1";
     try {
       const raw = localStorage.getItem(`cones-settings-v2-${role}`);
       const parsed = raw ? JSON.parse(raw) : {};
+      // Read raw identity state: normalized launcher state itself reads role settings.
+      const launcher = JSON.parse(localStorage.getItem(launcherKey) || "{}");
+      const recognizedName = launcher?.recognizedIdentity || localStorage.getItem(recognizedIdentityKey) || (launcher?.entryMode === "visitor" ? "" : parsed?.own_email);
+      if ((role === "receiver" || role === "sender") && !recognizedName) {
+        defaultDifficultyLevel = "2";
+      }
       return {
         ownName: String(parsed?.own_email || "").trim(),
         partnerName: String(parsed?.partner_email || "").trim(),
-        difficultyLevel: clampLauncherDifficultyForRole(role, parsed?.difficulty_level || "1")
+        difficultyLevel: clampLauncherDifficultyForRole(role, parsed?.difficulty_level || defaultDifficultyLevel)
       };
     } catch (error) {
       return {
         ownName: "",
         partnerName: "",
-        difficultyLevel: "1"
+        difficultyLevel: defaultDifficultyLevel
       };
     }
   }
@@ -8669,6 +8675,17 @@ ${calmPracticeMessage}`;
 
   function applyExerciseOrderDefaultsMigration() {
     if (localStorage.getItem(exerciseOrderDefaultsMigrationKey) === "1") {
+      return false;
+    }
+    const savedState = readLauncherState();
+    const hasSavedExercise = Object.keys(savedState.roleDifficultyLevels || {}).length > 0 ||
+      ["sender", "receiver", "remote-viewer"].some((role) => {
+        const settings = readRuntimeSettings(role);
+        return !!settings.difficulty_level;
+      });
+    if (!hasSavedExercise) {
+      localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
+      localStorage.setItem(exerciseOrderPairInitializationKey, "1");
       return false;
     }
     const state = readLauncherState();
@@ -9334,7 +9351,7 @@ ${calmPracticeMessage}`;
     }
     renderDefaultHandleDialogIntro();
     if (handleInput) {
-      handleInput.placeholder = "your-handle";
+      handleInput.placeholder = "Proposed user name";
     }
     if (submitHandleButton) {
       submitHandleButton.textContent = "SUBMIT";
@@ -9355,13 +9372,7 @@ ${calmPracticeMessage}`;
     if (!handleIntro) {
       return;
     }
-    handleIntro.textContent = defaultHandleDialogIntroBeforePrivacyLink;
-    const privacyLink = document.createElement("a");
-    privacyLink.className = "about-section-link";
-    privacyLink.href = "#";
-    privacyLink.dataset.openHandlePrivacy = "";
-    privacyLink.textContent = "privacy policy";
-    handleIntro.append(privacyLink, document.createTextNode(defaultHandleDialogIntroAfterPrivacyLink));
+    handleIntro.textContent = defaultHandleDialogIntro;
   }
 
   function openHandlePrivacyPolicy() {
@@ -10135,10 +10146,9 @@ ${calmPracticeMessage}`;
           return;
         }
       }
-      // A Clairvoyance-originated claim creates a recognized practice name
-      // without asking an irrelevant partner-confirmation question. The
-      // method is chosen later, only when the person starts human telepathy.
-      if (isRemoteViewerRole) {
+      // Partner verification is optional. Existing-name recovery still requires
+      // the owner's previously configured email authentication.
+      if (isRemoteViewerRole || firstClaimMode || detectMobileBrowser().isIOS) {
         let proposedStatus = null;
         try {
           proposedStatus = await fetchIdentifierStatus(proposedHandle);
@@ -10159,80 +10169,7 @@ ${calmPracticeMessage}`;
           openExploreProOverlay({
             mode: "recovery",
             identifier: existingIdentifier,
-            recoveryContext: "remote-viewer"
-          });
-          return;
-        }
-      }
-      const needsImmediatePartnerConfirmation = !isRemoteViewerRole && (firstClaimMode || detectMobileBrowser().isIOS);
-      // Existing names continue through email recovery.
-      if (needsImmediatePartnerConfirmation) {
-        let proposedStatus = null;
-        try {
-          proposedStatus = await fetchIdentifierStatus(proposedHandle);
-        } catch (_) {
-          proposedStatus = null;
-        }
-        if (proposedStatus?.formal_identity_exists) {
-          if (!proposedStatus.auth_email_on_file) {
-            activeHandleRole = "";
-            handleOverlayReturnRole = "";
-            featureSetupPendingHandleFlow = "";
-            handleOverlay?.classList.add("beginner-view-hidden");
-            if (handleStatus) {
-              handleStatus.textContent = "";
-            }
-            if (handleInput) {
-              handleInput.value = "";
-            }
-            openExploreProOverlay({
-              mode: "claim",
-              claimPurpose: "associate-email",
-              identifier: String(proposedStatus.preferred_identifier || proposedHandle).trim(),
-              role: completedRole,
-              returnRole,
-              returnScrollY,
-              postClaimFlow,
-              currentIdentifier: String(proposedStatus.preferred_identifier || proposedHandle).trim()
-            });
-            return;
-          }
-          activeHandleRole = "";
-          handleOverlayReturnRole = "";
-          featureSetupPendingHandleFlow = "";
-          handleOverlay?.classList.add("beginner-view-hidden");
-          if (handleStatus) {
-            handleStatus.textContent = "";
-          }
-          if (handleInput) {
-            handleInput.value = "";
-          }
-          openExploreProOverlay({
-            mode: "recovery",
-            identifier: String(proposedStatus.preferred_identifier || proposedHandle).trim()
-          });
-          return;
-        }
-        const selectedMethod = await choosePartnerConfirmationMethodAfterUniqueNameClaim();
-        if (selectedMethod !== "camera") {
-          activeHandleRole = "";
-          handleOverlayReturnRole = "";
-          featureSetupPendingHandleFlow = "";
-          handleOverlay?.classList.add("beginner-view-hidden");
-          if (handleStatus) {
-            handleStatus.textContent = "";
-          }
-          if (handleInput) {
-            handleInput.value = "";
-          }
-          openExploreProOverlay({
-            mode: "claim",
-            identifier: proposedHandle,
-            role: completedRole,
-            returnRole,
-            returnScrollY,
-            postClaimFlow,
-            currentIdentifier
+            recoveryContext: isRemoteViewerRole ? "remote-viewer" : ""
           });
           return;
         }
@@ -11011,10 +10948,7 @@ ${calmPracticeMessage}`;
   }
 
   function hasPartnerConfirmationConfiguration(status) {
-    // Older cached records did not include this capability. Treat only an
-    // explicit false as unconfigured so an offline/stale cache never blocks
-    // an established participant from continuing.
-    return status?.partner_confirmation_configured !== false;
+    return status?.partner_confirmation_configured === true;
   }
 
   function markPartnerConfirmationConfigured(identifier) {
@@ -11087,31 +11021,6 @@ ${calmPracticeMessage}`;
     return syncPartnerConfirmationMethodForIdentifier(identifiers?.ownName, normalizedRole);
   }
 
-  async function ensureHumanTelepathyConfirmationIsConfigured(identifier, knownStatus = null) {
-    const cleanIdentifier = String(identifier || "").trim();
-    if (!cleanIdentifier) {
-      return false;
-    }
-    let status = knownStatus;
-    if (!status || typeof status !== "object") {
-      try {
-        status = await fetchIdentifierStatus(cleanIdentifier);
-      } catch (_) {
-        // Let the existing session endpoint provide its normal connection
-        // feedback if the status read is temporarily unavailable.
-        return true;
-      }
-    }
-    if (hasPartnerConfirmationConfiguration(status)) {
-      return true;
-    }
-    openPartnerConfirmationMethodOverlay({
-      telepathyActivation: true,
-      identifier: String(status.preferred_identifier || cleanIdentifier).trim() || cleanIdentifier
-    });
-    return false;
-  }
-
   function tracePartnerConfirmationMethod(label, details = {}) {
     const state = readLauncherState();
     traceLauncherClient(`partner_confirmation_method:${label}`, {
@@ -11179,7 +11088,7 @@ ${calmPracticeMessage}`;
         : "This browser does not offer a camera for live confirmation. Verified-name confirmation remains available.";
     }
     if (partnerConfirmationMethodTitle) {
-      partnerConfirmationMethodTitle.textContent = (isNewClaim || telepathyActivation) ? "Choose Partner Verification Method" : "Partner Confirmation Method";
+      partnerConfirmationMethodTitle.textContent = "Add Partner Verification Method";
     }
     if (partnerConfirmationMethodCopy) {
       partnerConfirmationMethodCopy.textContent = (isNewClaim || telepathyActivation)
@@ -11220,15 +11129,6 @@ ${calmPracticeMessage}`;
     });
     pendingPartnerConfirmationMethodIdentifier = "";
     setFeatureSetupBackButtonTemporarilyHidden(false);
-  }
-
-  async function choosePartnerConfirmationMethodAfterUniqueNameClaim() {
-    const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
-    return new Promise((resolve) => {
-      partnerConfirmationMethodClaimInFlight = false;
-      pendingPartnerConfirmationMethodSelection = resolve;
-      openPartnerConfirmationMethodOverlay({ isNewClaim: true, cameraAvailable });
-    });
   }
 
   function partnerConfirmationRoleLabel(role) {
@@ -11520,8 +11420,7 @@ ${calmPracticeMessage}`;
     };
     const data = await postPartnerConfirmationRequest("begin_partner_confirmation", request);
     partnerConfirmationRestartRequired = false;
-    const usesEmailVerification = request.method === "verified";
-    if (data?.partner_confirmation?.ready || (usesEmailVerification && data?.partner_confirmation?.email_verified_pair)) {
+    if (data?.partner_confirmation?.ready || data?.partner_confirmation?.email_verified_pair) {
       // Email-verified pairs bypass the visual panel. The first participant
       // waits on the normal session screen; the second participant starts it.
       window.location.href = options.targetUrl;
@@ -11705,9 +11604,9 @@ ${calmPracticeMessage}`;
     const cameraAvailable = await hasAvailablePartnerConfirmationCamera();
     if (featureSetupPartnerConfirmationStatus) {
       featureSetupPartnerConfirmationStatus.textContent = !featureSetupOwnIdentifier
-        ? "The confirmation method for your identity on this browser is selected after you claim a unique user name."
+        ? "Verification can be selected after picking a user name."
         : !partnerConfirmationConfigured
-          ? "This unique name is ready for Clairvoyance and saved practice. Choose a confirmation method before practicing telepathy with another person."
+          ? "Verification can be selected after picking a user name."
         : partnerConfirmationMethod === "camera"
           ? "Live camera confirmation is selected for this device. Snapshots are temporary and are deleted when confirmation ends."
           : cameraAvailable
@@ -11718,7 +11617,7 @@ ${calmPracticeMessage}`;
       featureSetupPartnerConfirmationActionButton.disabled = !featureSetupOwnIdentifier;
     }
     if (featureSetupPartnerConfirmationItem) {
-      featureSetupPartnerConfirmationItem.hidden = !cameraAvailable;
+      featureSetupPartnerConfirmationItem.hidden = false;
     }
 
     if (featureSetupSummary) {
@@ -15483,7 +15382,8 @@ ${calmPracticeMessage}`;
     const rememberedLevel = normalizeDifficultyLevel(launcherState.difficultyLevel || "1");
     ["sender", "receiver", "remote-viewer"].forEach((role) => {
       const roleSettings = readRoleSettings(role);
-      const launcherRoleLevel = normalizeDifficultyLevel(launcherState.roleDifficultyLevels?.[role] || "");
+      const savedRoleLevel = launcherState.roleDifficultyLevels?.[role];
+      const launcherRoleLevel = savedRoleLevel ? normalizeDifficultyLevel(savedRoleLevel) : "";
       setRoleDifficultyLabel(
         role,
         clampLauncherDifficultyForRole(role, launcherRoleLevel || roleSettings.difficultyLevel || rememberedLevel)
@@ -23910,9 +23810,6 @@ ${calmPracticeMessage}`;
         !guidedTourLaunch
       ) {
         try {
-          if (!(await ensureHumanTelepathyConfirmationIsConfigured(canonicalOwnName, ownStatus))) {
-            return;
-          }
           await requirePartnerConfirmation({
             role,
             ownIdentifier: canonicalOwnName,
@@ -29768,6 +29665,14 @@ ${calmPracticeMessage}`;
       ? { ...savedRemoteSetup }
       : null;
     await clearAppLocalStorageArtifacts();
+    const resetState = readLauncherState();
+    resetState.entryMode = "visitor";
+    resetState.currentPartners = { sender: "Robot", receiver: "Robot" };
+    resetState.roleDifficultyLevels = { sender: "2", receiver: "2" };
+    writeLauncherState(resetState);
+    ["sender", "receiver"].forEach((role) => writeRuntimeSettings(role, { difficulty_level: "2" }));
+    // A reset creates current defaults, not a profile needing the old exercise reorder.
+    localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
     if (remoteSetup?.ownerName || remoteSetup?.deviceName || remoteSetup?.controlToken) {
       writeRemoteDisplaySetup(remoteSetup.ownerName, remoteSetup.deviceName, remoteSetup.controlToken);
     }
@@ -33207,7 +33112,8 @@ ${calmPracticeMessage}`;
         consumePendingFreshStartAnonymousReset();
         const params = new URLSearchParams(window.location.search);
         const requestedView = String(params.get("open") || "").trim().toLowerCase();
-        const requestedDifficultyLevel = normalizeDifficultyLevel(params.get("difficulty_level") || "");
+        const requestedDifficultyParam = params.get("difficulty_level");
+        const requestedDifficultyLevel = requestedDifficultyParam ? normalizeDifficultyLevel(requestedDifficultyParam) : "";
         const requestedOwnIdentifier = String(params.get("own_email") || "").trim();
         const requestedPartnerIdentifier = String(params.get("partner_email") || "").trim();
         const requestedVisitorDisplayName = String(params.get("visitor_display_name") || "").trim();
