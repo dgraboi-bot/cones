@@ -55,6 +55,41 @@ async function main() {
       }
     }
     for (const width of [1280, 390]) {
+      for (const role of ["receiver", "sender"]) {
+        for (const exercise of ["2", "3", "4"]) {
+          const { page, context } = await setupPage(browser, width);
+          await context.route("**/api.php", async (route) => {
+            const payload = route.request().postDataJSON();
+            if (payload?.action === "get_public_trial_mode") {
+              const response = await route.fetch();
+              const body = await response.json();
+              return route.fulfill({ json: { ...body, esp_pro_special_edition_enabled: true } });
+            }
+            return route.fallback();
+          });
+          await page.reload({ waitUntil: "domcontentloaded" });
+          const card = page.locator(`[data-role-card="${role}"]`);
+          await card.locator(".role-card-toggle").click();
+          const label = card.locator(`[data-pair-difficulty-label="${role}"]`);
+          assert.equal(await label.innerText(), "Exercise 2");
+          for (let level = 2; level < Number(exercise); level += 1) {
+            await page.locator(`[data-role-difficulty-bump="${role}"][data-direction="up"]`).click();
+          }
+          assert.equal(await label.innerText(), `Exercise ${exercise}`);
+          await card.locator(`[data-open-feature-setup="${role}"]`).click();
+          await page.locator("[data-feature-setup-claim-action]").click();
+          const name = `Exercise ${width} ${role} ${exercise}`;
+          await page.locator("[data-handle-input]").fill(name);
+          await page.locator("[data-submit-handle]").click();
+          await page.locator("[data-handle-overlay]").waitFor({ state: "hidden", timeout: 15000 });
+          await label.waitFor({ state: "visible" });
+          await page.waitForTimeout(500);
+          assert.equal(await card.locator('input[name="ownName"]').inputValue(), name);
+          assert.equal(await label.innerText(), `Exercise ${exercise}`);
+          console.log(`PASS ${width}px: ${role} preserves Exercise ${exercise} after claiming a name`);
+          await context.close();
+        }
+      }
       const { page, context } = await setupPage(browser, width);
       await openSetup(page);
       const card = page.locator('[data-feature-setup-item="partner-confirmation"]');

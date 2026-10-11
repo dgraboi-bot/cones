@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261011a";
+  const launcherBuildVersion = "20261011b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -2629,7 +2629,11 @@ ${calmPracticeMessage}`;
       clairvoyanceLearnMoreText: normalizeStoredClairvoyanceLearnMoreText(baseState?.clairvoyanceLearnMoreText),
       learnMoreDraftText: typeof baseState?.learnMoreDraftText === "string" ? baseState.learnMoreDraftText : null,
       clairvoyanceLearnMoreDraftText: typeof baseState?.clairvoyanceLearnMoreDraftText === "string" ? baseState.clairvoyanceLearnMoreDraftText : null,
-      difficultyLevel: "1",
+      difficultyLevel: options.preserveExerciseSelection ? normalizeDifficultyLevel(baseState?.difficultyLevel || "1") : "1",
+      ...(options.preserveExerciseSelection ? {
+        roleDifficultyLevels: cloneJsonValue(baseState?.roleDifficultyLevels || {}, {}),
+        robotSimulationDifficultyLevels: cloneJsonValue(baseState?.robotSimulationDifficultyLevels || {}, {})
+      } : {}),
       remoteViewerExperienceMode: normalizeRemoteViewerExperienceMode(baseState?.remoteViewerExperienceMode),
       remoteViewerCoveredScreenSimulation: baseState?.remoteViewerCoveredScreenSimulation !== false,
       remoteViewerSimulationMode: normalizeRemoteViewSimulationMode(baseState?.remoteViewerSimulationMode),
@@ -10028,6 +10032,7 @@ ${calmPracticeMessage}`;
     const currentState = readLauncherState();
     const claimedState = buildLauncherIdentityState(currentState, acceptedIdentifier, userType, {
       recognizedIdentity: acceptedIdentifier,
+      preserveExerciseSelection: true,
       entryMode: ""
     });
     writeLauncherState(claimedState);
@@ -10066,6 +10071,9 @@ ${calmPracticeMessage}`;
     const ownInput = isRemoteViewerRole ? remoteViewerOwnInput : form.querySelector('input[name="ownName"]');
     const partnerInput = isRemoteViewerRole ? null : form.querySelector('input[name="partnerName"]');
     const firstClaimMode = isVisitorLauncherEntry() || getLauncherEntryMode() === "special-edition";
+    const telepathyExerciseLevels = Object.fromEntries(
+      ["sender", "receiver"].map((role) => [role, readRoleSettings(role).difficultyLevel])
+    );
     const currentIdentifier = firstClaimMode
       ? String(readLauncherState().visitorAlias || getOrCreateVisitorSimulationIdentifier()).trim()
       : String(ownInput?.value || "").trim();
@@ -10202,9 +10210,14 @@ ${calmPracticeMessage}`;
       }
       if (firstClaimMode && acceptedHandle) {
         const latestState = readLauncherState();
+        latestState.roleDifficultyLevels = {
+          ...(latestState.roleDifficultyLevels || {}),
+          ...telepathyExerciseLevels
+        };
         const normalizedUserType = String(result?.status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
         const nextIdentityState = buildLauncherIdentityState(latestState, acceptedHandle, normalizedUserType, {
           recognizedIdentity: acceptedHandle,
+          preserveExerciseSelection: true,
           entryMode: ""
         });
         if (isRemoteViewerRole) {
@@ -31236,6 +31249,7 @@ ${calmPracticeMessage}`;
     const normalizedUserType = String(data?.identifier_status?.user_type || "").trim().toLowerCase() === "pro" ? "pro" : "standard";
     const nextIdentityState = buildLauncherIdentityState(migratedState, acceptedHandle, normalizedUserType, {
       recognizedIdentity: acceptedHandle,
+      preserveExerciseSelection: true,
       entryMode: ""
     });
     nextIdentityState.visitorAlias = "";
