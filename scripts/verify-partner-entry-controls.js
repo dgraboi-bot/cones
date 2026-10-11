@@ -10,7 +10,7 @@ const types = { ".html": "text/html", ".js": "application/javascript", ".css": "
 (async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const width of [1280, 390]) {
+    for (const width of [360, 390, 412, 760, 768, 1280]) {
       for (const savedPartner of ["", "Saved Partner"]) {
         const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
         await context.route("**/*", async (route) => {
@@ -48,6 +48,37 @@ const types = { ".html": "text/html", ".js": "application/javascript", ".css": "
           const card = page.locator(`[data-role-card="${role}"]`);
           await card.locator(".role-card-toggle").click();
           await page.waitForTimeout(500);
+          const measureHeader = () => card.evaluate((element) => {
+            const rect = (selector) => {
+              const box = element.querySelector(selector).getBoundingClientRect();
+              return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width };
+            };
+            return {
+              header: rect(".role-card-header"), exercise: rect(".role-card-level-stack"),
+              course: rect(".role-course-launch"), messages: rect(".role-messaging-launch")
+            };
+          });
+          const adjusted = await measureHeader();
+          const originalStyle = await page.addStyleTag({ content: `
+            .role-card.active[data-role-card="${role}"] .role-card-level-stack,
+            .role-card.active[data-role-card="${role}"] .role-course-launch { transform: none !important; }
+          ` });
+          const original = await measureHeader();
+          await originalStyle.evaluate((element) => element.remove());
+          for (const control of ["exercise", "course"]) {
+            const expectedOffset = width <= 760 ? (control === "exercise" ? 8 : 4) : 0;
+            assert.equal(adjusted[control].right - original[control].right, expectedOffset);
+            assert.equal(adjusted[control].width, original[control].width);
+            assert.equal(adjusted[control].top, original[control].top);
+            assert.ok(adjusted[control].right <= adjusted.header.right, `${role} ${control} stays inside header`);
+          }
+          assert.deepEqual(adjusted.messages, original.messages);
+          if (width <= 760) {
+            assert.ok(adjusted.course.left > adjusted.messages.right, "Action pills remain separated");
+          }
+          if (process.env.ESP_LAYOUT_SCREENSHOTS && !savedPartner && width === 390) {
+            await card.screenshot({ path: path.join(process.env.ESP_LAYOUT_SCREENSHOTS, `${role}-390.png`) });
+          }
           const input = card.locator('input[name="partnerName"]');
           assert.equal(await input.getAttribute("placeholder"), role === "sender" ? "Enter Receiver user name" : "Enter Sender user name");
           const select = card.locator('select[name="partnerHistory"]');
@@ -61,7 +92,7 @@ const types = { ".html": "text/html", ".js": "application/javascript", ".css": "
           }
           await page.locator(`[data-collapse-role-card="${role}"]`).click();
         }
-        console.log(`PASS ${width}px: placeholders, typed entry, ${savedPartner ? "saved-partner dropdown and selection" : "Robot-only dropdown hidden with entry hint"}`);
+        console.log(`PASS ${width}px: header alignment, placeholders, typed entry, ${savedPartner ? "saved-partner dropdown and selection" : "Robot-only dropdown hidden with entry hint"}`);
         await context.close();
       }
     }
