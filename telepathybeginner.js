@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261011b";
+  const launcherBuildVersion = "20261011c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -22737,9 +22737,14 @@ ${calmPracticeMessage}`;
       select.appendChild(option);
     });
 
-    select.hidden = visitorMode;
+    const robotOnly = partnerOptions.length === 1 && isRobotSimulationIdentifier(partnerOptions[0]);
+    select.hidden = visitorMode || robotOnly;
     if (selectorWrap) {
       selectorWrap.hidden = visitorMode;
+      const note = selectorWrap.querySelector(".role-partner-selector-note");
+      if (note) {
+        note.textContent = robotOnly ? 'Enter "Robot" for simulation' : 'Select "Robot" for simulation';
+      }
     }
     if (manageButton) {
       manageButton.hidden = visitorMode || history.length === 0;
@@ -23335,8 +23340,8 @@ ${calmPracticeMessage}`;
     applyVisitorOwnInputLock(ownInput, lockedVisitorName, visitorMode);
     partnerInput.value = savedPartner;
     partnerInput.placeholder = role === "sender"
-      ? "Receiver unique name or Robot"
-      : "Sender unique name or Robot";
+      ? "Enter Receiver user name"
+      : "Enter Sender user name";
     applyVisitorPartnerInputLock(partnerInput, visitorMode);
     const robotSimulationDifficulty = isRobotSimulationIdentifier(savedPartner)
       ? getRobotSimulationDifficulty(role, savedOwn, state)
@@ -31627,8 +31632,8 @@ ${calmPracticeMessage}`;
       applyVisitorOwnInputLock(ownInput, visitorMode ? getVisitorLockedName(state) : "", visitorMode);
       partnerInput.value = savedPartner;
       partnerInput.placeholder = role === "sender"
-        ? "Receiver unique name or Robot"
-        : "Sender unique name or Robot";
+        ? "Enter Receiver user name"
+        : "Enter Sender user name";
       applyVisitorPartnerInputLock(partnerInput, visitorMode);
       applyPartnerHistory(role, form, state, savedOwn);
       applyRoleIdentifierPresentation(role, {
