@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261012a";
+  const launcherBuildVersion = "20261012b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -17163,6 +17163,10 @@ ${calmPracticeMessage}`;
     closeGeneralInformationButton?.addEventListener("click", showLearningCenterIndexView);
     closeRewireButton?.addEventListener("click", showAidsView);
     closeReadingsVideosButton?.addEventListener("click", showLearningCenterIndexView);
+    readingsVideosView?.querySelector("[data-readings-contact]")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      showContactView("readings-videos", window.scrollY);
+    });
     closeWebsitesEventsListButton?.addEventListener("click", showAidsView);
     closeUserCommentsListButton?.addEventListener("click", showAidsView);
     closeCaseStudiesListButton?.addEventListener("click", showAidsView);
@@ -28531,6 +28535,7 @@ ${calmPracticeMessage}`;
     contactReturnScrollY = Math.max(0, Number(returnScrollY || 0) || 0);
     clearReportPanelOffset();
     learningCenterView?.classList.add("beginner-view-hidden");
+    readingsVideosView?.classList.add("beginner-view-hidden");
     contactView?.classList.remove("beginner-view-hidden");
     helpView?.classList.add("beginner-view-hidden");
     researchProposalView?.classList.add("beginner-view-hidden");
@@ -28562,6 +28567,12 @@ ${calmPracticeMessage}`;
   }
 
   function closeContactViewToOrigin() {
+    if (contactReturnView === "readings-videos") {
+      const scrollY = contactReturnScrollY;
+      contactView?.classList.add("beginner-view-hidden");
+      showReadingsVideosView().then(() => window.scrollTo({ top: scrollY, behavior: "instant" }));
+      return;
+    }
     if (contactReturnView === "temporary-home-page") {
       returnToTemporaryHomePage(contactReturnScrollY);
       return;
