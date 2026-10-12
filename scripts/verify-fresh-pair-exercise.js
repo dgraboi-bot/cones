@@ -111,6 +111,10 @@ const base = "http://127.0.0.1:48894";
       });
       await devices[first].card.locator('button[type="submit"]').click();
       await devices[first].page.locator('[data-exercise-agreement-overlay]').waitFor({ state: "visible" });
+      const waiting = devices[first].page.locator('[data-exercise-agreement-overlay]');
+      assert.equal(await waiting.locator('[data-exercise-agreement-status]').innerText(), `Waiting for ${first === "sender" ? "receiver" : "sender"} to be online...`);
+      assert.equal(await waiting.getByRole('dialog').count(), 0, "No extra starting-practice dialog");
+      assert.equal(await waiting.locator('h2').count(), 0, "No extra heading or explanation");
       await devices[first].page.waitForTimeout(1300);
       assert.deepEqual(previews, [], "No notice is allowed before both participants press GO");
       const pairCode = [devices.receiver.name, devices.sender.name].map(name => name.toLowerCase().replace(/[^a-z0-9]+/g, "")).sort().join("__");
@@ -142,11 +146,26 @@ const base = "http://127.0.0.1:48894";
       assert.equal(receiverNotices.at(-1), exercise);
       assert.deepEqual(receiverMessages, [], "Receiver must never receive the Sender's mismatch notice");
       for (const role of ["sender", "receiver"]) {
+        const page = devices[role].page;
+        const waitingBack = page.locator('#waitingBackButton');
+        await waitingBack.waitFor({ state: "visible" });
+        const box = await waitingBack.boundingBox();
+        assert.ok(Math.abs(width - box.x - box.width - 18) <= 1, `${role}: waiting BACK must be 18px from the right edge`);
+        assert.equal(box.y, 18, "Waiting BACK keeps its vertical position");
+        assert.equal(await page.locator('#settingsGear').isVisible(), false, "No overlapping settings gear");
+      }
+      for (const role of ["sender", "receiver"]) {
         assert.equal(await devices[role].page.evaluate(roleName =>
           JSON.parse(localStorage.getItem("cones-beginner-launcher-v2")).roleDifficultyLevels[roleName], role), exercise);
       }
       assert.deepEqual(automaticExerciseWrites, [], "Pairing and GO must not submit an automatic exercise change");
       console.log(`PASS ${width}px ${first}-first: Receiver=${exercise}, Sender=${senderExercise}; both launch ${exercise}, ${senderExercise === exercise ? "no notice" : "Sender-only mismatch notice"}, GO lock enforced`);
+      if (caseIndex === 0 || caseIndex === 4) {
+        const role = caseIndex === 0 ? "sender" : "receiver";
+        await devices[role].page.locator('#waitingBackButton').click();
+        await devices[role].page.waitForURL(url => url.pathname.endsWith('/telepathybeginner.html'));
+        console.log(`PASS ${width}px: ${role} right-side BACK returns to app`);
+      }
       for (const device of Object.values(devices)) await device.context.close();
     }
     const call = async data => {

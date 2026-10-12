@@ -3891,7 +3891,13 @@ body.remote-device-setup-open {
 
   .role-card.active[data-role-card="receiver"] .role-card-level-stack,
   .role-card.active[data-role-card="sender"] .role-card-level-stack {
-    transform: translateX(8px);
+    min-width: 80px;
+    transform: translateX(16px);
+  }
+
+  .role-card.active[data-role-card="receiver"] .role-card-inline-back,
+  .role-card.active[data-role-card="sender"] .role-card-inline-back {
+    transform: translateX(-16px);
   }
 
   .role-card.active[data-role-card="receiver"] .role-course-launch,
@@ -4093,6 +4099,64 @@ body.remote-device-setup-open {
   cursor: default;
   opacity: 0.6;
   filter: none;
+}
+
+@media (max-width: 360px) {
+  .role-card.active[data-role-card="receiver"] .role-card-header,
+  .role-card.active[data-role-card="sender"] .role-card-header {
+    column-gap: 4px;
+  }
+
+  .role-card.active[data-role-card="receiver"] .role-card-level-stack,
+  .role-card.active[data-role-card="sender"] .role-card-level-stack {
+    min-width: 80px;
+  }
+
+  .role-card.active[data-role-card="receiver"] .role-card-inline-back,
+  .role-card.active[data-role-card="sender"] .role-card-inline-back {
+    padding-inline: 10px;
+    transform: translateX(8px);
+  }
+}
+
+.telepathy-start-waiting {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at center, rgba(40, 40, 40, 0.18), transparent 55%), #000;
+  color: #f7f7f7;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.telepathy-start-waiting.beginner-view-hidden {
+  display: none;
+}
+
+.telepathy-start-waiting-back {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.telepathy-start-waiting-box {
+  width: max(220px, min(50vw, 50vh));
+  height: max(220px, min(50vw, 50vh));
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(255, 255, 255, 0.04);
+}
+
+.telepathy-start-waiting-prompt {
+  margin: 0;
+  padding: 0 1.5rem;
+  font-size: clamp(1.2rem, 3vw, 2.1rem);
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .report-pair-trigger-text {
@@ -6091,7 +6155,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261012b") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261012c") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261012b";
+  const launcherBuildVersion = "20261012c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -11445,7 +11445,9 @@ ${calmPracticeMessage}`;
     const containClick = event => event.stopPropagation();
     overlay.addEventListener('click', containClick);
     back.addEventListener('click', cancel);
-    status.textContent = `Waiting for ${options.partnerIdentifier} to press GO. The Receiver's selection determines the exercise.`;
+    status.textContent = options.role === "sender"
+      ? "Waiting for receiver to be online..."
+      : "Waiting for sender to be online...";
     overlay.classList.remove('beginner-view-hidden');
     overlay.setAttribute('aria-hidden', 'false');
     back.focus();

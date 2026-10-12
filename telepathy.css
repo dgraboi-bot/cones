@@ -78,7 +78,7 @@ body[data-guided-tour-active="1"] .settings-gear {
 .waiting-back-button {
   position: absolute;
   top: 18px;
-  left: 18px;
+  right: 18px;
   min-height: 42px;
   padding: 0 16px;
   border: 1px solid rgba(118, 171, 255, 0.7);
@@ -1673,6 +1673,19 @@ body.level-four-touch-fullscreen .settings-gear {
 
 .message-panel.post-round-result {
   bottom: 8vh;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  /* Keep the continuation card below the stacked photos and their result rings. */
+  #senderLevelFourChoiceGrid.visible ~ .message-panel.post-round-result.visible {
+    position: static;
+    height: auto;
+    min-height: 0;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    margin: 24px auto 0;
+  }
 }
 
 .message-text {
