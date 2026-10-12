@@ -4247,6 +4247,9 @@ body.remote-device-setup-open {
 }
 
 .report-pair-menu-options {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) 104px;
+  column-gap: 12px;
   max-height: 320px;
   overflow: auto;
   scrollbar-gutter: stable;
@@ -4264,11 +4267,12 @@ body.remote-device-setup-open {
   cursor: pointer;
 }
 
-/* Keep long report names intact; the list itself scrolls horizontally when needed. */
+/* Share columns across rows while keeping long names horizontally scrollable. */
 .report-pair-menu-options .report-pair-option {
-  width: max-content;
-  min-width: 100%;
-  grid-template-columns: minmax(max-content, 1fr) 104px;
+  grid-column: 1 / -1;
+  width: auto;
+  min-width: 0;
+  grid-template-columns: subgrid;
 }
 
 .report-pair-option:last-child {
@@ -4294,6 +4298,7 @@ body.remote-device-setup-open {
 .report-pair-menu-header span:last-child,
 .report-pair-option-value:last-child {
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .report-definition-status {
@@ -6155,7 +6160,7 @@ html.launcher-direct-open-pending body {
   background:
     linear-gradient(180deg, rgba(6, 10, 16, 0.02), rgba(6, 10, 16, 0.18)),
     linear-gradient(120deg, rgba(7, 12, 18, 0.36) 0%, rgba(7, 12, 18, 0.1) 38%, rgba(7, 12, 18, 0.28) 100%),
-    url("learning-center-hero.jpg?v=20261012c") center calc(50% - 18px) / cover no-repeat;
+    url("learning-center-hero.jpg?v=20261012e") center calc(50% - 18px) / cover no-repeat;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 22px 44px rgba(0, 0, 0, 0.3);

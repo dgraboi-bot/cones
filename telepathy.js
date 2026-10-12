@@ -52,7 +52,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261012c";
+  const runtimeBuildVersion = "20261012e";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +116,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261012c";
+  const launcherBuildVersion = "20261012e";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -7242,6 +7242,7 @@
       }
 
       showChoiceGrid();
+      clearInitialChoiceHover?.();
       const grid = arrangementNodes.get("receiver-level-four-choice-grid");
       grid?.classList.add("results-locked");
       levelFourChoiceNodes.forEach((node) => {

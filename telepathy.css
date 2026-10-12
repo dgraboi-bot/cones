@@ -1038,9 +1038,9 @@ body.remote-display-standby-dimmed .countdown-box {
 .image-pair-grid.results-locked .image-choice-card:not(.actual):not(.incorrect-selected):hover,
 .image-pair-grid.results-locked .image-choice-card:not(.actual):not(.incorrect-selected):focus,
 .image-pair-grid.results-locked .image-choice-card:not(.actual):not(.incorrect-selected):focus-visible,
-.image-pair-grid.read-only .image-choice-card:hover,
-.image-pair-grid.read-only .image-choice-card:focus,
-.image-pair-grid.read-only .image-choice-card:focus-visible {
+.image-pair-grid.read-only .image-choice-card:not(.actual):not(.incorrect-selected):hover,
+.image-pair-grid.read-only .image-choice-card:not(.actual):not(.incorrect-selected):focus,
+.image-pair-grid.read-only .image-choice-card:not(.actual):not(.incorrect-selected):focus-visible {
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: none;
   outline: none;
@@ -1080,7 +1080,7 @@ body.remote-display-standby-dimmed .countdown-box {
 
 /* A choice grid can appear beneath a stationary pointer. Do not imply a choice
    until the participant deliberately moves or presses the pointer. */
-.image-pair-grid.initial-choice-hover-neutral .image-choice-card:hover,
+.image-pair-grid.initial-choice-hover-neutral .image-choice-card:not(.actual):not(.incorrect-selected):hover,
 .level-one-choice-grid.initial-choice-hover-neutral .level-one-choice-card:hover,
 .choice-grid.initial-choice-hover-neutral .choice-card:hover {
   border-color: rgba(255, 255, 255, 0.2);

@@ -136,6 +136,30 @@ const base = "http://127.0.0.1:48894";
         sender_name: devices.sender.name, receiver_name: devices.receiver.name
       } });
       assert.equal(lockedChange.status(), 409, "First GO locks the exercise even without partner verification");
+      const launcherFlashes = { sender: [], receiver: [] };
+      if (senderExercise === exercise) {
+        for (const role of ["sender", "receiver"]) {
+          const page = devices[role].page;
+          await page.route('**/api.php', async route => {
+            if (route.request().postDataJSON()?.action === 'save_launcher_profile') await new Promise(resolve => setTimeout(resolve, 400));
+            await route.continue();
+          });
+          await page.exposeFunction('recordLauncherFlash', () => launcherFlashes[role].push(true));
+          await page.evaluate(() => {
+            let waitingSeen = false;
+            const watch = () => {
+              const visible = selector => {
+                const node = document.querySelector(selector);
+                return node && !node.classList.contains('beginner-view-hidden');
+              };
+              if (visible('[data-exercise-agreement-overlay]')) waitingSeen = true;
+              if (waitingSeen && !visible('[data-exercise-agreement-overlay]') && !visible('[data-partner-confirmation-overlay]')) window.recordLauncherFlash();
+              requestAnimationFrame(watch);
+            };
+            requestAnimationFrame(watch);
+          });
+        }
+      }
       await devices[first === "sender" ? "receiver" : "sender"].card.locator('button[type="submit"]').click();
       await devices.sender.page.waitForURL(url => url.pathname.endsWith("/sender.html"), { timeout: 25000 });
       console.log(`Observed ${width}px sender-first: preview=${previews.at(-1)}, launched exercise=${launchedExercise}`);
@@ -145,6 +169,7 @@ const base = "http://127.0.0.1:48894";
       await devices.receiver.page.waitForURL(url => url.pathname.endsWith("/receiver.html"));
       assert.equal(receiverNotices.at(-1), exercise);
       assert.deepEqual(receiverMessages, [], "Receiver must never receive the Sender's mismatch notice");
+      if (senderExercise === exercise) assert.deepEqual(launcherFlashes, { sender: [], receiver: [] }, "Neither expanded launcher panel may flash after the waiting screen");
       for (const role of ["sender", "receiver"]) {
         const page = devices[role].page;
         const waitingBack = page.locator('#waitingBackButton');

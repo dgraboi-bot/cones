@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261012c";
+  const launcherBuildVersion = "20261012e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -11428,6 +11428,12 @@ ${calmPracticeMessage}`;
     try { await postPartnerConfirmationRequest("cancel_partner_confirmation", pending.request); } catch (_) { /* Expiry also clears temporary confirmation. */ }
   }
 
+  function setExerciseAgreementWaitingVisible(visible) {
+    const overlay = document.querySelector('[data-exercise-agreement-overlay]');
+    overlay?.classList.toggle('beginner-view-hidden', !visible);
+    overlay?.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  }
+
   async function waitForExerciseAgreement(options) {
     if (exerciseAgreementPending) return null;
     exerciseAgreementPending = true;
@@ -11468,8 +11474,9 @@ ${calmPracticeMessage}`;
       }
       back.removeEventListener('click', cancel);
       overlay.removeEventListener('click', containClick);
-      overlay.classList.add('beginner-view-hidden');
-      overlay.setAttribute('aria-hidden', 'true');
+      // Successful agreement hands off to navigation/verification without
+      // uncovering the expanded launcher while asynchronous saves finish.
+      if (!completed) setExerciseAgreementWaitingVisible(false);
       exerciseAgreementPending = false;
     }
   }
@@ -11501,6 +11508,7 @@ ${calmPracticeMessage}`;
     partnerConfirmationOverlay?.classList.remove("beginner-view-hidden");
     partnerConfirmationOverlay?.setAttribute("aria-hidden", "false");
     renderPartnerConfirmation(data.partner_confirmation || {});
+    setExerciseAgreementWaitingVisible(false);
     void refreshPartnerConfirmation();
     return false;
   }
@@ -23782,10 +23790,13 @@ ${calmPracticeMessage}`;
             sessionCode: pairSessionCode
           }, selectedDifficultyLevel);
           if (role === "sender" && agreement.mismatch) {
+            setExerciseAgreementWaitingVisible(false);
             await previewReceiverSelectedExerciseBeforeSenderGo(selectedDifficultyLevel, true);
+            setExerciseAgreementWaitingVisible(true);
           }
           latest = readLauncherState();
         } catch (error) {
+          setExerciseAgreementWaitingVisible(false);
           window.alert(error instanceof Error ? error.message : "Unable to agree on an exercise. Please try GO again.");
           return;
         }
@@ -23893,6 +23904,7 @@ ${calmPracticeMessage}`;
             targetUrl
           });
         } catch (error) {
+          setExerciseAgreementWaitingVisible(false);
           window.alert(error instanceof Error ? error.message : "Unable to begin partner confirmation right now.");
         }
         return;
@@ -38332,7 +38344,8 @@ ${calmPracticeMessage}`;
     }
   });
 
-  window.addEventListener("pageshow", () => {
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) setExerciseAgreementWaitingVisible(false);
     hideLocationPicker();
     resetTemporaryHomeExploreButton();
     refreshObservedInstallContext();
