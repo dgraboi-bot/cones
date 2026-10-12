@@ -10736,6 +10736,14 @@ function clear_partner_confirmation_state(array &$session): void
     $session['partner_confirmation'] = default_partner_confirmation_state();
 }
 
+function release_pair_exercise_lock(array &$session, string $role): void
+{
+    unset($session['exercise_agreement'][$role]);
+    if (empty($session['exercise_agreement'])) {
+        clear_partner_confirmation_state($session);
+    }
+}
+
 function normalize_partner_confirmation_method($value): string
 {
     return trim(strtolower((string) $value)) === 'camera' ? 'camera' : 'verified';
@@ -10779,6 +10787,9 @@ function pair_requires_partner_confirmation(array $state, string $ownIdentifier,
 
 function is_pair_exercise_locked(array $session): bool
 {
+    if (!empty($session['exercise_agreement']['sender']) || !empty($session['exercise_agreement']['receiver'])) {
+        return true;
+    }
     $confirmation = is_array($session['partner_confirmation'] ?? null)
         ? $session['partner_confirmation']
         : [];
@@ -10861,6 +10872,7 @@ function default_session_state(): array
         'timeout_exit' => null,
         'level_four' => default_level_four_session_state(),
         'partner_confirmation' => default_partner_confirmation_state(),
+        'exercise_agreement' => [],
         'stats' => [
             'last_layout_number' => null,
             'last_completed_ms' => null,
@@ -11039,6 +11051,7 @@ function append_forced_trace(string $safetyLogFile, int $safetyLogMaxBytes, arra
 
 function apply_abort_to_home(array &$session, int $nowMs, string $role, string $sessionCode, string $debugLogFile, string $safetyLogFile, int $safetyLogMaxBytes, bool $debugEnabled, string $abortReason = ''): void
 {
+    release_pair_exercise_lock($session, $role);
     $partnerLabel = $role === 'sender' ? 'sender' : 'receiver';
     $roundSnapshot = is_array($session['round'] ?? null) ? $session['round'] : null;
     append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
@@ -12191,6 +12204,13 @@ if (!array_key_exists($sessionCode, $state['sessions']) || !is_array($state['ses
 
 ensure_session_shape($state['sessions'][$sessionCode]);
 $session =& $state['sessions'][$sessionCode];
+foreach (['sender', 'receiver'] as $agreementRole) {
+    $agreementEntry = $session['exercise_agreement'][$agreementRole] ?? [];
+    if (!empty($agreementEntry) && (int) ($agreementEntry['expires_ms'] ?? 0) < $nowMs
+        && (int) ($session[$agreementRole]['last_seen_ms'] ?? 0) < $nowMs - 30000) {
+        release_pair_exercise_lock($session, $agreementRole);
+    }
+}
 if ((int) ($session['partner_confirmation']['expires_ms'] ?? 0) > 0 && (int) $session['partner_confirmation']['expires_ms'] < $nowMs) {
     clear_partner_confirmation_state($session);
 }
@@ -13268,6 +13288,75 @@ if ($action === 'set_partner_confirmation_preference') {
     }
 }
 
+if (in_array($action, ['begin_exercise_agreement', 'get_exercise_agreement', 'cancel_exercise_agreement'], true)) {
+    try {
+        require_allowed_keys($input, ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier', 'exercise', 'attempt_id'], 'request');
+        $agreementRole = trim((string) ($input['role'] ?? ''));
+        if (!in_array($agreementRole, ['sender', 'receiver'], true)) {
+            throw new RuntimeException('A Sender or Receiver role is required.');
+        }
+        $own = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $partner = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+        if (!formal_identifier_exists($state, $own) || !formal_identifier_exists($state, $partner)
+            || normalize_identifier_for_lookup($own) === normalize_identifier_for_lookup($partner)) {
+            throw new RuntimeException('Two different registered user names are required.');
+        }
+        $sender = $agreementRole === 'sender' ? $own : $partner;
+        $receiver = $agreementRole === 'receiver' ? $own : $partner;
+        $attemptId = trim((string) ($input['attempt_id'] ?? ''));
+        if ($attemptId === '' || strlen($attemptId) > 80) {
+            throw new RuntimeException('A valid GO attempt is required.');
+        }
+        $agreement =& $session['exercise_agreement'];
+        $entry = $agreement[$agreementRole] ?? [];
+        if ($action === 'cancel_exercise_agreement') {
+            if (($entry['attempt_id'] ?? '') === $attemptId) {
+                release_pair_exercise_lock($session, $agreementRole);
+                clear_partner_confirmation_state($session);
+            }
+        } elseif ($action === 'begin_exercise_agreement') {
+            if (!empty($entry) && ($entry['attempt_id'] ?? '') !== $attemptId) {
+                throw new RuntimeException('This participant has already pressed GO. Press BACK before starting again.');
+            }
+            if (empty($entry)) {
+                $exercise = normalize_difficulty_level($input['exercise'] ?? '2');
+                $access = validate_pair_difficulty_access($state, $receiver, $sender, $exercise);
+                if (!($access['allowed'] ?? false)) {
+                    throw new RuntimeException((string) ($access['message'] ?? 'Exercise is not available.'));
+                }
+                $agreement[$agreementRole] = ['attempt_id' => $attemptId, 'exercise' => $exercise, 'expires_ms' => $nowMs + 30000];
+                if ($agreementRole === 'receiver') {
+                    // Receiver GO is the sole commit point, even if Sender GO came first.
+                    $state['pair_difficulties'][$sessionCode]['difficulty_level'] = $exercise;
+                    $state['pair_difficulties'][$sessionCode]['updated_ms'] = $nowMs;
+                }
+                append_forced_trace($safetyLogFile, $safetyLogMaxBytes, [
+                    'time_ms' => $nowMs, 'session_code' => $sessionCode, 'role' => $agreementRole,
+                    'label' => 'exercise_agreement_go', 'details' => ['exercise' => $exercise]
+                ]);
+            }
+        } elseif (($entry['attempt_id'] ?? '') !== $attemptId) {
+            throw new RuntimeException('This GO attempt has expired. Press BACK, then GO again.');
+        }
+        if (isset($agreement[$agreementRole])) {
+            $agreement[$agreementRole]['expires_ms'] = $nowMs + 30000;
+        }
+        $ready = !empty($agreement['sender']) && !empty($agreement['receiver']);
+        $session['updated_ms'] = $nowMs;
+        $state['pair_difficulties'][$sessionCode]['sender_name'] = $sender;
+        $state['pair_difficulties'][$sessionCode]['receiver_name'] = $receiver;
+        $response = ['ok' => true, 'exercise_agreement' => [
+            'ready' => $ready,
+            'exercise' => $agreement['receiver']['exercise'] ?? null,
+            'mismatch' => $ready && $agreement['sender']['exercise'] !== $agreement['receiver']['exercise']
+        ]];
+        rewind($handle); ftruncate($handle, 0); fwrite($handle, json_encode($state, JSON_PRETTY_PRINT)); fflush($handle);
+        respond_json_and_close($handle, $response);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 409);
+    }
+}
+
 if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation', 'submit_partner_confirmation_snapshot', 'clear_partner_confirmation_snapshot', 'approve_partner_confirmation', 'cancel_partner_confirmation'], true)) {
     try {
         $allowedKeys = ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier', 'method'];
@@ -13413,6 +13502,7 @@ if (in_array($action, ['begin_partner_confirmation', 'get_partner_confirmation',
             }
         }
         if ($action === 'cancel_partner_confirmation') {
+            release_pair_exercise_lock($session, $confirmationRole);
             clear_partner_confirmation_state($session);
         }
         $session['updated_ms'] = $nowMs;
@@ -15701,6 +15791,7 @@ if ($roleConflict === null && $runtimeAuthorizationFailure === null && $action =
         clear_authorization_notice($session);
         $session['session_limit_notice'] = null;
         if ($mode === 'end') {
+            release_pair_exercise_lock($session, $role);
             $partnerRole = $role === 'sender' ? 'receiver' : 'sender';
             $finishingRoleLabel = $role === 'sender' ? 'sender' : 'receiver';
             $session['partner_finished_notice'] = [
@@ -15744,6 +15835,7 @@ if ($roleConflict === null && $action === 'clear_partner_finished_notice') {
     if (is_array($notice)) {
         $targetRole = isset($notice['target_role']) ? (string) $notice['target_role'] : '';
         if ($targetRole === '' || $targetRole === $role) {
+            release_pair_exercise_lock($session, $role);
             $session['partner_finished_notice'] = null;
         }
     } else {
@@ -15757,6 +15849,9 @@ if ($roleConflict === null && $action === 'abort_to_home') {
 }
 
 if ($roleConflict === null && $action === 'clear_abort_notice') {
+    if (is_array($session['abort_notice'] ?? null)) {
+        release_pair_exercise_lock($session, $role);
+    }
     $session['abort_notice'] = null;
 }
 

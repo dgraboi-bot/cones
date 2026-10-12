@@ -12,7 +12,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261011e";
+  const launcherBuildVersion = "20261012a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -988,6 +988,7 @@
   const partnerConfirmationMethodButtons = Array.from(document.querySelectorAll("[data-partner-confirmation-method]"));
   const closePartnerConfirmationMethodButton = document.querySelector("[data-close-partner-confirmation-method]");
   let pendingPartnerConfirmation = null;
+  let exerciseAgreementPending = false;
   let partnerConfirmationPollTimer = 0;
   let partnerConfirmationCameraStream = null;
   let partnerConfirmationRestartRequired = false;
@@ -8678,6 +8679,8 @@ ${calmPracticeMessage}`;
   }
 
   function applyExerciseOrderDefaultsMigration() {
+    // Retire the old one-shot pair override without changing a chosen exercise.
+    localStorage.removeItem(exerciseOrderPairInitializationKey);
     if (localStorage.getItem(exerciseOrderDefaultsMigrationKey) === "1") {
       return false;
     }
@@ -8689,7 +8692,6 @@ ${calmPracticeMessage}`;
       });
     if (!hasSavedExercise) {
       localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
-      localStorage.setItem(exerciseOrderPairInitializationKey, "1");
       return false;
     }
     const state = readLauncherState();
@@ -8707,7 +8709,6 @@ ${calmPracticeMessage}`;
       writeRuntimeSettings(role, { difficulty_level: "1" });
     });
     localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
-    localStorage.setItem(exerciseOrderPairInitializationKey, "1");
     return true;
   }
 
@@ -11153,7 +11154,7 @@ ${calmPracticeMessage}`;
   }
 
   async function postPartnerConfirmationRequest(action, payload = {}) {
-    const shouldTrace = action !== "get_partner_confirmation";
+    const shouldTrace = action !== "get_partner_confirmation" && action !== "get_exercise_agreement";
     if (shouldTrace) {
       tracePartnerConfirmation("request", { action, ...payload, snapshot: undefined });
     }
@@ -11425,6 +11426,50 @@ ${calmPracticeMessage}`;
     closePartnerConfirmationOverlay();
     if (!pending) return;
     try { await postPartnerConfirmationRequest("cancel_partner_confirmation", pending.request); } catch (_) { /* Expiry also clears temporary confirmation. */ }
+  }
+
+  async function waitForExerciseAgreement(options) {
+    if (exerciseAgreementPending) return null;
+    exerciseAgreementPending = true;
+    const overlay = document.querySelector('[data-exercise-agreement-overlay]');
+    const status = document.querySelector('[data-exercise-agreement-status]');
+    const back = document.querySelector('[data-exercise-agreement-back]');
+    const request = {
+      session_code: options.sessionCode, role: options.role,
+      own_identifier: options.ownIdentifier, partner_identifier: options.partnerIdentifier,
+      exercise: options.exercise, attempt_id: crypto.randomUUID()
+    };
+    let cancelled = false;
+    let completed = false;
+    const cancel = () => { cancelled = true; };
+    const containClick = event => event.stopPropagation();
+    overlay.addEventListener('click', containClick);
+    back.addEventListener('click', cancel);
+    status.textContent = `Waiting for ${options.partnerIdentifier} to press GO. The Receiver's selection determines the exercise.`;
+    overlay.classList.remove('beginner-view-hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    back.focus();
+    try {
+      let data = await postPartnerConfirmationRequest('begin_exercise_agreement', request);
+      while (!cancelled) {
+        if (data.exercise_agreement?.ready) {
+          completed = true;
+          return data.exercise_agreement;
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 1000));
+        if (!cancelled) data = await postPartnerConfirmationRequest('get_exercise_agreement', request);
+      }
+      return null;
+    } finally {
+      if (!completed) {
+        try { await postPartnerConfirmationRequest('cancel_exercise_agreement', request); } catch (_) { /* Lease expiry also releases an abandoned GO. */ }
+      }
+      back.removeEventListener('click', cancel);
+      overlay.removeEventListener('click', containClick);
+      overlay.classList.add('beginner-view-hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+      exerciseAgreementPending = false;
+    }
   }
 
   async function requirePartnerConfirmation(options) {
@@ -15463,7 +15508,7 @@ ${calmPracticeMessage}`;
       launcherState.difficultyLevel ||
       "1"
     );
-    if (!context) {
+    if (!context || normalizedRole === "sender") {
       setRoleDifficultyLabel(normalizedRole, localFallbackLevel);
       return localFallbackLevel;
     }
@@ -15480,18 +15525,12 @@ ${calmPracticeMessage}`;
         : null;
 
     try {
-      const initializePairAtExerciseOne =
-        localStorage.getItem(exerciseOrderPairInitializationKey) === "1"
-        && (normalizedRole === "sender" || normalizedRole === "receiver");
       const difficultyData = await fetchPairDifficulty(
         context.sessionCode,
-        initializePairAtExerciseOne ? "1" : null,
+        null,
         null,
         pairParticipants
       );
-      if (initializePairAtExerciseOne) {
-        localStorage.removeItem(exerciseOrderPairInitializationKey);
-      }
       const pairLevel = Number(normalizeDifficultyLevel(difficultyData?.pair_difficulty));
       const visibleLevel = normalizeDifficultyLevel(String(Math.min(pairLevel, getRoleMaxDifficultyLevel(normalizedRole, difficultyData))));
       setRoleDifficultyLabel(normalizedRole, visibleLevel || localFallbackLevel);
@@ -15581,7 +15620,7 @@ ${calmPracticeMessage}`;
   function renderLauncherIntroCopy() {
     if (launcherSubtitle) {
       launcherSubtitle.textContent = getEffectiveLauncherUserType() === "pro"
-        ? "A training app for ESP development."
+        ? "A course and training app for ESP Development"
         : "A sender-receiver training app for telepathic development.";
     }
     if (launcherCopy) {
@@ -21691,7 +21730,7 @@ ${calmPracticeMessage}`;
         launcherState.difficultyLevel ||
         "1"
       );
-      if (!context) {
+      if (!context || role === "sender") {
         setRoleDifficultyLabel(role, localFallbackLevel);
         continue;
       }
@@ -23537,6 +23576,7 @@ ${calmPracticeMessage}`;
         partner_name_display: String(partnerInput.value || "").trim()
       });
       event.preventDefault();
+      const goExercise = normalizeDifficultyLevel(String(getDifficultyLocalLevel(role)));
       const anonymousVisitorGuidedTourLaunch = !isGuidedTourCompletionNoticeActive(role)
         && isAnonymousVisitorGuidedTourLaunch(
           role,
@@ -23685,7 +23725,6 @@ ${calmPracticeMessage}`;
         ? (launcherGuidedTourState?.mode || (role === "sender" ? guidedSenderTourMode : guidedReceiverTourMode))
         : guidedContinuationMode;
       const guidedTourReturnLaunch = !!activeGuidedTourMode;
-      let receiverSelectedDifficultyLevel = "";
       const preTourDifficultyLevel = normalizeDifficultyLevel(String(
         storedRoleDifficultyLevel ||
         getDifficultyLocalLevel(role) ||
@@ -23719,24 +23758,31 @@ ${calmPracticeMessage}`;
             window.alert(authorization.message || "This pair is not authorized for the current difficulty level.");
             return;
           }
-          receiverSelectedDifficultyLevel = normalizeDifficultyLevel(authorization?.difficultyLevel || "");
         } catch (error) {
           // If the authorization precheck fails, let the runtime/server make the final decision.
         }
       }
 
-      // A real Sender follows the Receiver's current shared exercise. Show that
-      // selection briefly before the session continues, without requiring a second GO.
-      if (role === "sender" && receiverSelectedDifficultyLevel) {
-        const senderExerciseChanged = getDifficultyLocalLevel("sender") !== Number(receiverSelectedDifficultyLevel);
-        selectedDifficultyLevel = receiverSelectedDifficultyLevel;
-        persistResolvedPairDifficultyForRole("sender", {
-          role: "sender",
-          ownName: canonicalOwnName,
-          partnerName: canonicalPartnerName,
-          sessionCode: pairSessionCode
-        }, selectedDifficultyLevel);
-        await previewReceiverSelectedExerciseBeforeSenderGo(selectedDifficultyLevel, senderExerciseChanged);
+      if (!robotSimulationPartner && (role === "sender" || role === "receiver")) {
+        try {
+          const agreement = await waitForExerciseAgreement({
+            role, ownIdentifier: canonicalOwnName, partnerIdentifier: canonicalPartnerName,
+            sessionCode: pairSessionCode, exercise: goExercise
+          });
+          if (!agreement) return;
+          selectedDifficultyLevel = normalizeDifficultyLevel(agreement.exercise);
+          persistResolvedPairDifficultyForRole(role, {
+            role, ownName: canonicalOwnName, partnerName: canonicalPartnerName,
+            sessionCode: pairSessionCode
+          }, selectedDifficultyLevel);
+          if (role === "sender" && agreement.mismatch) {
+            await previewReceiverSelectedExerciseBeforeSenderGo(selectedDifficultyLevel, true);
+          }
+          latest = readLauncherState();
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : "Unable to agree on an exercise. Please try GO again.");
+          return;
+        }
       }
 
       if (!guidedRobotSession) {
@@ -28697,6 +28743,13 @@ ${calmPracticeMessage}`;
         return;
       }
       const maxAllowedLevel = getRoleMaxDifficultyLevel(role, currentData);
+      if (role === "sender") {
+        const nextLevel = getNextExerciseLevel(role, getDifficultyLocalLevel(role), delta, maxAllowedLevel);
+        persistRoleDifficultyPreference(role, String(nextLevel));
+        setRoleDifficultyLabel(role, String(nextLevel));
+        scheduleGuidedLevelExplanation(role, String(nextLevel));
+        return;
+      }
       const nextLevel = getNextExerciseLevel(role, currentLevel, delta, maxAllowedLevel);
 
       if (nextLevel === currentLevel) {

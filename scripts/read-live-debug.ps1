@@ -26,7 +26,7 @@ if ($LASTEXITCODE -ne 0) {
   throw "Unable to read the production safety trace. Plink exit code: $LASTEXITCODE"
 }
 
-$interestingLabels = 'partner_confirmation|pair_difficulty|exercise_control|sender_exercise_preview|boot_client|global_debug:context_ready|covered_screen_|remote_display_'
+$interestingLabels = 'partner_confirmation|pair_difficulty|exercise_control|exercise_agreement|sender_exercise_preview|boot_client|global_debug:context_ready|covered_screen_|remote_display_'
 $filtered = $lines | Where-Object {
   $_ -match $interestingLabels -and (
     [string]::IsNullOrWhiteSpace($SessionCode) -or $_ -like "*`"session_code`":`"$SessionCode`"*"

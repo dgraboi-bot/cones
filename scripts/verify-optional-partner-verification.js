@@ -130,6 +130,14 @@ async function main() {
           const form = page.locator(`[data-role-form="${role}"]`);
           await form.locator('input[name="partnerName"]').fill(partner);
           await form.locator('button[type="submit"]').click();
+          await page.locator('[data-exercise-agreement-overlay]').waitFor({ state: "visible" });
+          await api({
+            action: "begin_exercise_agreement",
+            session_code: [own, partner].map(name => name.toLowerCase().replace(/[^a-z0-9]+/g, "")).sort().join("__"),
+            role: role === "sender" ? "receiver" : "sender",
+            own_identifier: partner, partner_identifier: own,
+            exercise: "1", attempt_id: `partner-${suffix}`
+          });
           if (ownEnabled && partnerEnabled) {
             await page.locator("[data-partner-confirmation-overlay]").waitFor({ state: "visible" });
             assert.equal(await page.locator("[data-partner-confirmation-method-overlay]").isVisible(), false);
