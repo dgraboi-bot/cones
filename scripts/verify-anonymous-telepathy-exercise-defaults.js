@@ -11,14 +11,15 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   try {
     for (const width of [1280, 390]) {
-      for (const saved of [null, "1", "3"]) {
+      for (const { saved, permission } of [null, "1", "3"].flatMap(saved =>
+        (saved ? ['granted'] : ['granted', 'prompt', 'denied']).map(permission => ({ saved, permission })))) {
         const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
-        await context.addInitScript(() => {
+        await context.addInitScript(permission => {
           const query = navigator.permissions.query.bind(navigator.permissions);
           navigator.permissions.query = descriptor => descriptor.name === 'geolocation'
-            ? Promise.resolve({ state: 'granted', onchange: null }) : query(descriptor);
+            ? Promise.resolve({ state: permission, onchange: null }) : query(descriptor);
           navigator.geolocation.getCurrentPosition = () => { throw new Error('RESET/startup must not request location'); };
-        });
+        }, permission);
         // Serve the actual working files without depending on Apache or changing server data.
         await context.route("**/*", async (route) => {
           const url = new URL(route.request().url());
@@ -53,7 +54,8 @@ async function main() {
           assert.equal(await setupLink.innerText(), "Click here to pick a user name needed to practice telepathy with others");
           await setupLink.click();
           await page.locator("[data-feature-setup-claim-action]").waitFor({ state: "visible" });
-          await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is not currently allowed.');
+          await page.waitForFunction(expected => document.querySelector('[data-feature-setup-location-status]')?.textContent === expected,
+            permission === 'granted' ? 'Location is currently allowed.' : 'Location is not currently allowed.');
           await page.locator("[data-close-feature-setup]").click();
           await card.waitFor({ state: "visible" });
           await page.locator(`[data-collapse-role-card="${role}"]`).click();
@@ -82,6 +84,7 @@ async function main() {
             localStorage.setItem("cones-settings-v2-receiver", JSON.stringify({ difficulty_level: "3" }));
             localStorage.setItem("cones-settings-v2-sender", JSON.stringify({ difficulty_level: "3" }));
             localStorage.setItem("reset-test-marker", "remove-me");
+            localStorage.setItem("cones-human-location-notice-v1", "1");
             localStorage.setItem("cones-exercise-order-defaults-v1", "1");
           });
           await page.goto(`${origin}/telepathybeginner.html?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
@@ -104,7 +107,9 @@ async function main() {
           assert.equal(resetMessage, "Are you sure? This removes all ESP GYM information stored with this browser on this device. Your unique name, saved reports, and other server data will not be deleted.");
           await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
           assert.equal(await page.evaluate(() => localStorage.getItem("reset-test-marker")), null);
-          assert.notEqual(await page.evaluate(() => localStorage.getItem('cones-location-sharing-disabled-v1')), '0', 'RESET must clear app consent despite browser permission');
+          assert.equal(await page.evaluate(() => localStorage.getItem("cones-human-location-notice-v1")), null, 'RESET clears the one-time location notice');
+          if (permission === 'granted') await page.waitForFunction(() => localStorage.getItem('cones-location-sharing-disabled-v1') === '0');
+          else assert.notEqual(await page.evaluate(() => localStorage.getItem('cones-location-sharing-disabled-v1')), '0');
           assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cones-beginner-launcher-v2')).deviceLocation), null);
           await page.locator("[data-temporary-home-open-fresh]").click();
           await page.waitForURL((url) => url.searchParams.get("open") === "visitor-launcher");
@@ -122,8 +127,9 @@ async function main() {
           console.log(`PASS ${width}px: actual reset clears old selections and both roles return to Exercise 2`);
           await page.locator('[data-open-options]').click();
           await page.locator('[data-open-messaging-setup]').click();
-          await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is not currently allowed.');
-          console.log(`PASS ${width}px: fresh/RESET location stays not allowed while browser permission remains granted`);
+          await page.waitForFunction(expected => document.querySelector('[data-feature-setup-location-status]')?.textContent === expected,
+            permission === 'granted' ? 'Location is currently allowed.' : 'Location is not currently allowed.');
+          console.log(`PASS ${width}px: fresh/RESET follows browser permission ${permission} without requesting coordinates`);
         }
         await context.close();
       }

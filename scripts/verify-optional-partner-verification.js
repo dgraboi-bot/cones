@@ -20,6 +20,7 @@ async function api(payload) {
 
 async function setupPage(browser, width, owner = "") {
   const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
+  await context.addInitScript(() => localStorage.setItem("cones-human-location-notice-v1", "1"));
   await context.route("**/*", (route) => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
   if (owner) {
     await context.addInitScript((name) => {

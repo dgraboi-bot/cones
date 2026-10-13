@@ -11800,6 +11800,7 @@ $sharedLockActions = [
     'get_admin_access_mode',
     'get_public_trial_mode',
     'get_launcher_profile',
+    'get_pair_location_status',
     'get_identifier_status',
     'get_user_type',
     'get_push_setup',
@@ -12197,6 +12198,31 @@ prune_expiring_temp_simulation_records(
     $debugLogFile,
     (bool) ($state['debug_enabled'] ?? false)
 );
+
+if ($action === 'get_pair_location_status') {
+    try {
+        require_allowed_keys($input, ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier'], 'request');
+        $lookupCode = validate_session_code_value($input['session_code'] ?? '', 'session_code', true);
+        $lookupRole = validate_role_value($input['role'] ?? '');
+        if (!in_array($lookupRole, ['sender', 'receiver'], true)) throw new InvalidArgumentException('A telepathy role is required.');
+        $ownIdentifier = validate_participant_identifier_string($input['own_identifier'] ?? '', 'own_identifier', true);
+        $partnerIdentifier = validate_participant_identifier_string($input['partner_identifier'] ?? '', 'partner_identifier', true);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, $exception->getMessage(), 400);
+    }
+    $partnerRole = $lookupRole === 'sender' ? 'receiver' : 'sender';
+    $partnerEntry = $state['sessions'][$lookupCode][$partnerRole] ?? [];
+    $partnerProfile = $partnerEntry['profile'] ?? [];
+    $available = null;
+    // Unknown or stale profiles are not evidence of a current location problem.
+    if ((int) ($partnerEntry['last_seen_ms'] ?? 0) >= $nowMs - 30000
+        && get_canonical_identifier_key($state, (string) ($partnerProfile['own_email'] ?? '')) === get_canonical_identifier_key($state, $partnerIdentifier)
+        && get_canonical_identifier_key($state, (string) ($partnerProfile['partner_email'] ?? '')) === get_canonical_identifier_key($state, $ownIdentifier)) {
+        $location = parse_location_visualization_value($partnerProfile['location'] ?? '');
+        $available = is_array($location) && abs($location['latitude']) <= 90 && abs($location['longitude']) <= 180;
+    }
+    respond_json_and_close($handle, ['ok' => true, 'partner_location_available' => $available]);
+}
 
 if (!array_key_exists($sessionCode, $state['sessions']) || !is_array($state['sessions'][$sessionCode])) {
     $state['sessions'][$sessionCode] = default_session_state();

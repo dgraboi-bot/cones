@@ -117,6 +117,7 @@ const base = "http://127.0.0.1:48894";
         if (request.isNavigationRequest() && url.pathname.endsWith("/receiver.html")) receiverNotices.push(url.searchParams.get("difficulty_level"));
       });
       await devices[first].card.locator('button[type="submit"]').click();
+      await devices[first].page.locator('[data-human-location-without]').click();
       await devices[first].page.locator('[data-exercise-agreement-overlay]').waitFor({ state: "visible" });
       const waiting = devices[first].page.locator('[data-exercise-agreement-overlay]');
       assert.equal(await waiting.locator('[data-exercise-agreement-status]').innerText(), `Waiting for ${first === "sender" ? "receiver" : "sender"} to be online...`);
@@ -168,6 +169,7 @@ const base = "http://127.0.0.1:48894";
         }
       }
       await devices[first === "sender" ? "receiver" : "sender"].card.locator('button[type="submit"]').click();
+      await devices[first === "sender" ? "receiver" : "sender"].page.locator('[data-human-location-without]').click();
       await devices.sender.page.waitForURL(url => url.pathname.endsWith("/sender.html"), { timeout: 25000 });
       console.log(`Observed ${width}px sender-first: preview=${previews.at(-1)}, launched exercise=${launchedExercise}`);
       assert.equal(launchedExercise, exercise);

@@ -19,12 +19,17 @@ const path = require('node:path');
         const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block' });
         await context.addInitScript(permission => {
           const query = navigator.permissions.query.bind(navigator.permissions);
+          window.fixtureLocationPermission = { state: sessionStorage.getItem('fixture-browser-location-permission') || permission, onchange: null };
           navigator.permissions.query = descriptor => descriptor.name === 'geolocation'
-            ? Promise.resolve({ state: permission, onchange: null }) : query(descriptor);
+            ? Promise.resolve(window.fixtureLocationPermission) : query(descriptor);
           navigator.geolocation.getCurrentPosition = (success, failure) => {
             sessionStorage.setItem('fixture-location-requests', String(Number(sessionStorage.getItem('fixture-location-requests') || 0) + 1));
             if (permission === 'denied') failure({ code: 1 });
-            else success({ coords: { latitude: 37.5, longitude: -122.2, accuracy: 15 } });
+            else {
+              window.fixtureLocationPermission.state = 'granted';
+              sessionStorage.setItem('fixture-browser-location-permission', 'granted');
+              success({ coords: { latitude: 37.5, longitude: -122.2, accuracy: 15 } });
+            }
           };
           navigator.geolocation.watchPosition = () => { throw new Error('Unexpected location watch'); };
         }, permission);
@@ -42,10 +47,22 @@ const path = require('node:path');
         await page.locator('[data-open-messaging-setup]').click();
         await page.locator('[data-view="feature-setup"]').waitFor({ state: 'visible' });
         assert.equal(await requests(), 0, 'Opening Setup must not request location');
+        if (permission === 'prompt') {
+          await page.evaluate(() => { window.fixtureLocationPermission.state = 'granted'; window.fixtureLocationPermission.onchange?.(); });
+          await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is currently allowed.');
+          await page.evaluate(() => { window.fixtureLocationPermission.state = 'denied'; window.fixtureLocationPermission.onchange?.(); });
+          await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is not currently allowed.');
+          await page.evaluate(() => {
+            localStorage.removeItem('cones-location-sharing-disabled-v1');
+            window.fixtureLocationPermission.state = 'prompt';
+            window.fixtureLocationPermission.onchange?.();
+          });
+          assert.equal(await requests(), 0, 'External permission changes must never acquire coordinates');
+        }
         assert.equal(await page.locator('[data-feature-setup-item="location"] .feature-setup-title').innerText(), 'Location');
         assert.equal(await page.locator('[data-feature-setup-item="location"] .feature-setup-text').innerText(), 'Your location is only used when you select telepathy with a partner. Setting your location allows the distance between you and your partner to be computed. Distance then shows up in reports and on the GLOBE page.');
         await page.waitForFunction(expected => document.querySelector('[data-feature-setup-location-status]')?.textContent === expected,
-          'Location is not currently allowed.');
+          permission === 'granted' ? 'Location is currently allowed.' : 'Location is not currently allowed.');
         const button = page.locator('[data-feature-setup-location-action]');
         assert.equal(await button.innerText(), 'LOCATION');
         assert.equal(await page.locator('[data-feature-setup-item="location"] button').count(), 1, 'Reuse the existing button, without adding another');
@@ -159,8 +176,10 @@ const path = require('node:path');
       await devices[role].card.locator('input[name="partnerName"]').fill(devices[role === 'sender' ? 'receiver' : 'sender'].name);
     }
     await devices.sender.card.locator('button[type="submit"]').click();
+    await devices.sender.page.locator('[data-human-location-without]').click();
     await devices.sender.page.locator('[data-exercise-agreement-overlay]').waitFor({ state: 'visible' });
     await devices.receiver.card.locator('button[type="submit"]').click();
+    await devices.receiver.page.locator('[data-human-location-without]').click();
     for (const role of ['sender', 'receiver']) await devices[role].page.waitForURL(url => url.pathname.endsWith(`/${role}.html`));
     await devices.receiver.page.waitForFunction(() => document.querySelector('#countdownNumber')?.textContent.includes('Press when ready'));
     await devices.receiver.page.locator('#countdownBox').click();
