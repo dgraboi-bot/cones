@@ -32,14 +32,14 @@
   }
 
   const query = dataApi.parseQueryParams();
-  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20261013b")}&open=launcher`;
+  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20261013c")}&open=launcher`;
   let globe = null;
   let renderedConnections = [];
   let renderedPoints = [];
   let renderedLabels = [];
   let lastPayload = null;
   const locationSharingDisabledKey = "cones-location-sharing-disabled-v1";
-  let currentLocationDisabled = localStorage.getItem(locationSharingDisabledKey) === "1" || !!query.locationDisabled;
+  let currentLocationDisabled = localStorage.getItem(locationSharingDisabledKey) !== "0" || !!query.locationDisabled;
   const CLOSE_CONNECTION_DISTANCE_METERS = 1000;
   const CLOSE_CONNECTION_PLOTTED_DISTANCE_METERS = 250;
   const CLOSE_CONNECTION_RENDER_OFFSET_METERS = 18000;
@@ -449,7 +449,7 @@
   // Stored routes and manually selected locations do not require live GPS.
   // Only the app's explicit privacy preference controls whether to show them.
   function refreshLocationPrivacyPreference() {
-    currentLocationDisabled = localStorage.getItem(locationSharingDisabledKey) === "1";
+    currentLocationDisabled = localStorage.getItem(locationSharingDisabledKey) !== "0";
     applyLocationDisabledState(currentLocationDisabled, lastPayload);
   }
   window.addEventListener("storage", (event) => {

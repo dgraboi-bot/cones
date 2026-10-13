@@ -3,7 +3,7 @@
   const locationSharingDisabledKey = "cones-location-sharing-disabled-v1";
 
   function isLocationSharingDisabled() {
-    return localStorage.getItem(locationSharingDisabledKey) === "1";
+    return localStorage.getItem(locationSharingDisabledKey) !== "0";
   }
   const clientId = (() => {
     const storageKey = `cones-client-id-${role}`;
@@ -57,7 +57,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261013b";
+  const runtimeBuildVersion = "20261013c";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -121,7 +121,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261013b";
+  const launcherBuildVersion = "20261013c";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),

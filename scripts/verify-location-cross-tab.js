@@ -30,6 +30,7 @@ const path = require('node:path');
       await control.goto(`${base}/telepathybeginner.html?open=visitor-launcher`);
       await control.waitForTimeout(1000);
       await control.evaluate(() => {
+        localStorage.setItem('cones-location-sharing-disabled-v1', '0');
         const state = JSON.parse(localStorage.getItem('cones-beginner-launcher-v2'));
         state.locationPermission = 'manual';
         state.deviceLocation = { latitude: 37.5, longitude: -122.2, timestamp: Date.now(), source: 'manual-map' };
@@ -116,11 +117,13 @@ const path = require('node:path');
       const record = receiver.requests.find(request => request.action === 'append_trial_record')?.trial_record;
       assert.ok(record, 'Fixture must record a completed trial');
       assert.equal(record['rx location'], '', 'Stale server profile must not put the opted-out location back in the trial');
-      await control.evaluate(() => localStorage.removeItem('cones-location-sharing-disabled-v1'));
+      await control.evaluate(() => localStorage.setItem('cones-location-sharing-disabled-v1', '0'));
       await globe.waitForFunction(() => window.globeFixtureData.arcsData.length === 1);
       await globe.evaluate(() => window.changeLocationPermission('granted'));
       await globe.waitForTimeout(300);
       assert.equal(await globe.evaluate(() => window.globeFixtureData.arcsData.length), 1);
+      await control.evaluate(() => localStorage.removeItem('cones-location-sharing-disabled-v1'));
+      await globe.waitForFunction(() => window.globeFixtureData.arcsData.length === 0);
       await context.close();
       console.log(`PASS ${width}px: browser denial preserves manual routes; cross-tab opt-out hides GLOBE, clears both runtime caches, and strips future profiles/trials`);
     }

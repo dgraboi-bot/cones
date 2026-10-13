@@ -13,6 +13,12 @@ async function main() {
     for (const width of [1280, 390]) {
       for (const saved of [null, "1", "3"]) {
         const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
+        await context.addInitScript(() => {
+          const query = navigator.permissions.query.bind(navigator.permissions);
+          navigator.permissions.query = descriptor => descriptor.name === 'geolocation'
+            ? Promise.resolve({ state: 'granted', onchange: null }) : query(descriptor);
+          navigator.geolocation.getCurrentPosition = () => { throw new Error('RESET/startup must not request location'); };
+        });
         // Serve the actual working files without depending on Apache or changing server data.
         await context.route("**/*", async (route) => {
           const url = new URL(route.request().url());
@@ -47,6 +53,7 @@ async function main() {
           assert.equal(await setupLink.innerText(), "Click here to pick a user name needed to practice telepathy with others");
           await setupLink.click();
           await page.locator("[data-feature-setup-claim-action]").waitFor({ state: "visible" });
+          await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is not currently allowed.');
           await page.locator("[data-close-feature-setup]").click();
           await card.waitFor({ state: "visible" });
           await page.locator(`[data-collapse-role-card="${role}"]`).click();
@@ -68,6 +75,9 @@ async function main() {
             const state = JSON.parse(localStorage.getItem(key) || "{}");
             state.roleDifficultyLevels = { receiver: "3", sender: "3" };
             state.robotSimulationDifficultyLevels = {};
+            state.locationPermission = 'granted';
+            state.deviceLocation = { latitude: 37.5, longitude: -122.2, timestamp: Date.now(), source: 'device-geolocation' };
+            localStorage.setItem('cones-location-sharing-disabled-v1', '0');
             localStorage.setItem(key, JSON.stringify(state));
             localStorage.setItem("cones-settings-v2-receiver", JSON.stringify({ difficulty_level: "3" }));
             localStorage.setItem("cones-settings-v2-sender", JSON.stringify({ difficulty_level: "3" }));
@@ -86,12 +96,16 @@ async function main() {
           await page.locator("[data-open-options]").click();
           await page.locator("[data-open-other-settings]").click();
           const reset = page.locator("[data-reset-this-device]");
-          assert.equal(await reset.innerText(), "Reset ESP GYM on This Device");
-          page.once("dialog", (dialog) => dialog.accept());
+          assert.equal(await reset.innerText(), "Reset ESP GYM for This Browser");
+          let resetMessage = '';
+          page.once("dialog", (dialog) => { resetMessage = dialog.message(); return dialog.accept(); });
           await reset.click();
           await page.waitForURL((url) => url.searchParams.get("open") === "landing");
+          assert.equal(resetMessage, "Are you sure? This removes all ESP GYM information stored with this browser on this device. Your unique name, saved reports, and other server data will not be deleted.");
           await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
           assert.equal(await page.evaluate(() => localStorage.getItem("reset-test-marker")), null);
+          assert.notEqual(await page.evaluate(() => localStorage.getItem('cones-location-sharing-disabled-v1')), '0', 'RESET must clear app consent despite browser permission');
+          assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cones-beginner-launcher-v2')).deviceLocation), null);
           await page.locator("[data-temporary-home-open-fresh]").click();
           await page.waitForURL((url) => url.searchParams.get("open") === "visitor-launcher");
           await page.locator('[data-view="launcher"]').waitFor({ state: "visible" });
@@ -106,6 +120,10 @@ async function main() {
             await page.locator(`[data-collapse-role-card="${role}"]`).click();
           }
           console.log(`PASS ${width}px: actual reset clears old selections and both roles return to Exercise 2`);
+          await page.locator('[data-open-options]').click();
+          await page.locator('[data-open-messaging-setup]').click();
+          await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is not currently allowed.');
+          console.log(`PASS ${width}px: fresh/RESET location stays not allowed while browser permission remains granted`);
         }
         await context.close();
       }

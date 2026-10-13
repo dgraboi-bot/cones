@@ -9,6 +9,8 @@ const message = 'ESP GYM has been tested with Chrome and Microsoft Edge on Windo
 const safari = 'AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
 const chrome = 'AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36';
 const cases = [
+  ['iPhone Google app (observed request)', 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/176.0.394746740 Mobile/15E148 Safari/604.1', 'iPhone', 'Apple Computer, Inc.', 5, true],
+  ['Desktop-mode iPhone Chrome', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140 Version/18.0 Safari/605.1.15', 'MacIntel', 'Apple Computer, Inc.', 5, true],
   ['Windows Chrome', `Mozilla/5.0 (Windows NT 10.0; Win64; x64) ${chrome}`, 'Win32', 'Google Inc.', 0, false],
   ['Windows Edge', `Mozilla/5.0 (Windows NT 10.0; Win64; x64) ${chrome} Edg/140.0`, 'Win32', 'Google Inc.', 0, false],
   ['iPhone Safari', `Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) ${safari}`, 'iPhone', 'Apple Computer, Inc.', 5, false],

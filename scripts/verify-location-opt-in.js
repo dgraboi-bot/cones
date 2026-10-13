@@ -15,7 +15,7 @@ const path = require('node:path');
   try {
     browser = await chromium.launch({ headless: true });
     for (const width of [390, 1280]) {
-      for (const permission of ['prompt', 'granted', 'denied']) {
+      for (const permission of ['granted', 'prompt', 'denied']) {
         const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block' });
         await context.addInitScript(permission => {
           const query = navigator.permissions.query.bind(navigator.permissions);
@@ -45,7 +45,7 @@ const path = require('node:path');
         assert.equal(await page.locator('[data-feature-setup-item="location"] .feature-setup-title').innerText(), 'Location');
         assert.equal(await page.locator('[data-feature-setup-item="location"] .feature-setup-text').innerText(), 'Your location is only used when you select telepathy with a partner. Setting your location allows the distance between you and your partner to be computed. Distance then shows up in reports and on the GLOBE page.');
         await page.waitForFunction(expected => document.querySelector('[data-feature-setup-location-status]')?.textContent === expected,
-          permission === 'granted' ? 'Location is currently allowed.' : 'Location is not currently allowed.');
+          'Location is not currently allowed.');
         const button = page.locator('[data-feature-setup-location-action]');
         assert.equal(await button.innerText(), 'LOCATION');
         assert.equal(await page.locator('[data-feature-setup-item="location"] button').count(), 1, 'Reuse the existing button, without adding another');
@@ -84,6 +84,18 @@ const path = require('node:path');
           await page.waitForFunction(() => Number(sessionStorage.getItem('fixture-location-requests')) === 1);
           assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cones-beginner-launcher-v2')).deviceLocation.latitude), 37.5);
         }
+        assert.equal(await page.evaluate(() => localStorage.getItem('cones-location-sharing-disabled-v1')), '0', 'Only explicit selection records app consent');
+        await page.locator('[data-location-picker-cancel]').click();
+        await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is currently allowed.');
+        const beforeConsentReload = await requests();
+        await page.reload();
+        await page.waitForTimeout(1000);
+        await page.locator('[data-open-options]').click();
+        await page.locator('[data-open-messaging-setup]').click();
+        await page.waitForFunction(() => document.querySelector('[data-feature-setup-location-status]')?.textContent === 'Location is currently allowed.');
+        assert.equal(await requests(), beforeConsentReload, 'Saved explicit consent must not trigger automatic acquisition');
+        await page.locator('[data-feature-setup-location-action]').click();
+        await page.waitForFunction(() => document.querySelector('[data-location-picker-status]')?.textContent !== 'Loading map...');
         await page.locator('[data-location-picker-disallow]').click();
         assert.equal(alerts.at(-1), 'Location has been set to not allowed.');
         assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cones-beginner-launcher-v2')).deviceLocation), null);
@@ -103,7 +115,7 @@ const path = require('node:path');
           await page.waitForFunction(() => document.querySelector('[data-location-picker-status]')?.textContent !== 'Loading map...');
           assert.equal(await requests(), beforeReload, 'Reopening an opted-out dialog must not request location');
           await page.locator('[data-location-picker-use-browser]').click();
-          await page.waitForFunction(() => localStorage.getItem('cones-location-sharing-disabled-v1') === null);
+          await page.waitForFunction(() => localStorage.getItem('cones-location-sharing-disabled-v1') === '0');
           assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cones-beginner-launcher-v2')).deviceLocation.latitude), 37.5, 'Explicit use can enable location again');
           await page.evaluate(() => { navigator.geolocation.getCurrentPosition = callback => { window.pendingLocationCallback = callback; }; });
           await page.locator('[data-location-picker-refresh-browser]').click();

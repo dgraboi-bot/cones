@@ -37,7 +37,7 @@ async function verifyDeviceReset() {
     await showOtherFunctionsForTest(page);
     const resetButton = page.locator('[data-reset-this-device]');
     assert(await resetButton.isVisible(), "Other Functions must expose Reset This Device.");
-    assert((await resetButton.textContent()).trim() === "Reset ESP GYM on This Device", "The device reset button must use the requested menu label.");
+    assert((await resetButton.textContent()).trim() === "Reset ESP GYM for This Browser", "The browser reset button must use the requested menu label.");
     assert(await resetButton.getAttribute("data-tooltip"), "Reset This Device must explain its effect.");
 
     page.once("dialog", (dialog) => dialog.accept());

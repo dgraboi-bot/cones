@@ -1,6 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
+  // Only an explicit "0" records consent; missing or "1" means not allowed.
   const locationSharingDisabledKey = "cones-location-sharing-disabled-v1";
   const recognizedIdentityKey = "cones-recognized-identity-v1";
   const browserIdentityAuthorizationKey = "cones-browser-identity-authorizations-v1";
@@ -13,7 +14,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261013b";
+  const launcherBuildVersion = "20261013c";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -5366,7 +5367,7 @@ ${calmPracticeMessage}`;
   }
 
   function isLocationPrivacyDisabled(state = readLauncherState()) {
-    return localStorage.getItem(locationSharingDisabledKey) === "1";
+    return localStorage.getItem(locationSharingDisabledKey) !== "0";
   }
 
   function buildStandaloneModuleUrl(modulePath, params = {}) {
@@ -10862,7 +10863,7 @@ ${calmPracticeMessage}`;
 
   function getLocationFeatureSummary(state = readLauncherState()) {
     const permission = String(state?.locationPermission || "").trim().toLowerCase();
-    const allowed = localStorage.getItem(locationSharingDisabledKey) !== "1" && (permission === "granted" || permission === "manual");
+    const allowed = localStorage.getItem(locationSharingDisabledKey) === "0" && (permission === "granted" || permission === "manual");
     return {
       ready: allowed && !!getSavedDeviceLocation(state),
       statusText: allowed ? "Location is currently allowed." : "Location is not currently allowed.",
@@ -11877,7 +11878,7 @@ ${calmPracticeMessage}`;
       || (/mac/i.test(platform) && Number(navigator.maxTouchPoints || 0) > 1);
     const isWindows = !isAppleMobile && /windows|win32|win64/i.test(`${ua} ${platform}`);
     const isAndroid = /android/i.test(ua);
-    const otherBrowser = /firefox|fxios|crios|edgios|edga|opr\/|opera|opios|samsungbrowser|ucbrowser|vivaldi|duckduckgo|yabrowser/i.test(ua);
+    const otherBrowser = /firefox|fxios|crios|gsa\/|edgios|edga|opr\/|opera|opios|samsungbrowser|ucbrowser|vivaldi|duckduckgo|yabrowser/i.test(ua);
     const isEdge = !otherBrowser && (/edg\//i.test(ua) || brands.some(entry => entry.brand === "Microsoft Edge"));
     const isChrome = !otherBrowser && !isEdge && (/chrome\//i.test(ua) || brands.some(entry => entry.brand === "Google Chrome"));
     const isSafari = !otherBrowser && /safari/i.test(ua) && /apple/i.test(navigator.vendor || "");
@@ -22030,7 +22031,7 @@ ${calmPracticeMessage}`;
   }
 
   function getSavedDeviceLocation(state = readLauncherState()) {
-    if (localStorage.getItem(locationSharingDisabledKey) === "1") return null;
+    if (localStorage.getItem(locationSharingDisabledKey) !== "0") return null;
     if (String(state?.locationPermission || "").trim().toLowerCase() === "denied") {
       return null;
     }
@@ -22350,7 +22351,7 @@ ${calmPracticeMessage}`;
   async function syncBrowserLocationPermission() {
     const state = readLauncherState();
     // App opt-out remains authoritative even when browser permission is granted.
-    if (localStorage.getItem(locationSharingDisabledKey) === "1") {
+    if (localStorage.getItem(locationSharingDisabledKey) !== "0") {
       clearLauncherStoredLocation(state, "denied");
       writeLauncherState(state);
       return state;
@@ -22481,7 +22482,7 @@ ${calmPracticeMessage}`;
       }
       refreshLocationPickerStatus();
 
-      if (permissionState.locationPermission === "denied" && localStorage.getItem(locationSharingDisabledKey) !== "1") {
+      if (permissionState.locationPermission === "denied" && localStorage.getItem(locationSharingDisabledKey) === "0") {
         setLocationPickerStatus("Browser location is blocked. You can set a location manually on the map, or change your browser permission to use browser location.");
       } else if (!navigator.geolocation && !savedLocation) {
         setLocationPickerStatus("Browser location is unavailable on this device. Drag the marker or click the map to set a location, then save.");
@@ -22499,7 +22500,7 @@ ${calmPracticeMessage}`;
     }
     const latest = readLauncherState();
     locationPickerRequestId += 1;
-    localStorage.removeItem(locationSharingDisabledKey);
+    localStorage.setItem(locationSharingDisabledKey, "0");
     latest.deviceLocation = {
       latitude: Number(locationPickerSelection.latitude),
       longitude: Number(locationPickerSelection.longitude),
@@ -22522,7 +22523,7 @@ ${calmPracticeMessage}`;
       return;
     }
     const latest = readLauncherState();
-    localStorage.removeItem(locationSharingDisabledKey);
+    localStorage.setItem(locationSharingDisabledKey, "0");
     latest.deviceLocation = {
       latitude: Number(locationPickerBrowserEstimate.latitude),
       longitude: Number(locationPickerBrowserEstimate.longitude),
@@ -22569,7 +22570,7 @@ ${calmPracticeMessage}`;
 
   window.addEventListener("storage", (event) => {
     if (event.key !== locationSharingDisabledKey && event.key !== null) return;
-    if (localStorage.getItem(locationSharingDisabledKey) === "1") applyLocationOptOutToCurrentTab();
+    if (localStorage.getItem(locationSharingDisabledKey) !== "0") applyLocationOptOutToCurrentTab();
     if (featureSetupView && !featureSetupView.classList.contains("beginner-view-hidden")) void refreshFeatureSetupView();
   });
 
@@ -29628,6 +29629,8 @@ ${calmPracticeMessage}`;
     await clearAppLocalStorageArtifacts();
     const resetState = readLauncherState();
     resetState.entryMode = "visitor";
+    resetState.deviceLocation = null;
+    resetState.locationPermission = "denied";
     resetState.currentPartners = { sender: "Robot", receiver: "Robot" };
     resetState.roleDifficultyLevels = { sender: "2", receiver: "2" };
     writeLauncherState(resetState);
@@ -29648,7 +29651,7 @@ ${calmPracticeMessage}`;
     }
 
     if (!window.confirm(
-      "Are you sure? This removes ESP GYM information stored in this browser and resets it to an anonymous device. Your unique name, saved reports, and other server data will not be deleted."
+      "Are you sure? This removes all ESP GYM information stored with this browser on this device. Your unique name, saved reports, and other server data will not be deleted."
     )) {
       return;
     }
