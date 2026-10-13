@@ -1,5 +1,10 @@
 (() => {
   const role = document.body.dataset.role;
+  const locationSharingDisabledKey = "cones-location-sharing-disabled-v1";
+
+  function isLocationSharingDisabled() {
+    return localStorage.getItem(locationSharingDisabledKey) === "1";
+  }
   const clientId = (() => {
     const storageKey = `cones-client-id-${role}`;
     const existing = window.sessionStorage.getItem(storageKey);
@@ -52,7 +57,7 @@
   const remoteDisplayIdleFadeMs = 15000;
   const runtimeDebugClientKey = "cones-debug-client-key-v1";
   const exportSchemaVersion = "cones-trials-v7-exercise-order";
-  const runtimeBuildVersion = "20261012e";
+  const runtimeBuildVersion = "20261013a";
   const runtimeAlertDebugSeen = new Set();
   let globalRuntimeDebuggingEnabled = false;
   let runtimeDebugSourceCode = "";
@@ -116,7 +121,7 @@
   }
   const isGuidedExperienceTour = isGuidedReceiverTour || isGuidedSenderTour;
   const robotSimulationIdentifier = "Robot";
-  const launcherBuildVersion = "20261012e";
+  const launcherBuildVersion = "20261013a";
   const suspiciousProbeTextFragments = [
     String.fromCharCode(0x00C3),
     String.fromCharCode(0x00E2, 0x20AC, 0x2122),
@@ -1762,6 +1767,7 @@
           settings.difficulty_level = normalizeDifficultyLevel(runtimePrefillSettingsOverride.difficulty_level);
         }
       }
+      if (isLocationSharingDisabled()) settings.device_location = "";
       return settings;
     } catch (error) {
       const fallback = {
@@ -1806,13 +1812,14 @@
           fallback.difficulty_level = normalizeDifficultyLevel(runtimePrefillSettingsOverride.difficulty_level);
         }
       }
+      if (isLocationSharingDisabled()) fallback.device_location = "";
       return fallback;
     }
   }
 
   function writeSettings(settings) {
     try {
-      localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+      localStorage.setItem(settingsStorageKey, JSON.stringify(isLocationSharingDisabled() ? { ...settings, device_location: "" } : settings));
     } catch (error) {
       // Ignore storage failures.
     }
@@ -4621,6 +4628,24 @@
     };
   }
 
+  function enforceRuntimeLocationOptOut() {
+    if (!isLocationSharingDisabled()) return;
+    if (runtimePrefillSettingsOverride) runtimePrefillSettingsOverride.device_location = "";
+    const settings = readSettings();
+    settings.device_location = "";
+    writeSettings(settings);
+    // Publish an empty profile now, rather than waiting for the next poll.
+    void triggerImmediateSync();
+  }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === locationSharingDisabledKey || event.key === null) enforceRuntimeLocationOptOut();
+  });
+  window.addEventListener("pageshow", enforceRuntimeLocationOptOut);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) enforceRuntimeLocationOptOut();
+  });
+
   async function api(action, payload = {}) {
     const requestStartedMs = Date.now();
     const shouldMarkInteraction = pendingInteractionMark;
@@ -6465,8 +6490,8 @@
       round?.guess_confidence ?? "",
       round?.done_reaction_ms ?? "",
       utcTime,
-      receiverProfile.location || "",
-      senderProfile.location || "",
+      isLocationSharingDisabled() && role === "receiver" ? "" : (receiverProfile.location || ""),
+      isLocationSharingDisabled() && role === "sender" ? "" : (senderProfile.location || ""),
       syncEst,
       syncBest,
       syncWorst,

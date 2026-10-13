@@ -32,14 +32,14 @@
   }
 
   const query = dataApi.parseQueryParams();
-  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20261012e")}&open=launcher`;
+  const fallbackHomeUrl = `../telepathybeginner.html?v=${encodeURIComponent(query.version || "20261013a")}&open=launcher`;
   let globe = null;
   let renderedConnections = [];
   let renderedPoints = [];
   let renderedLabels = [];
   let lastPayload = null;
-  let globeLocationPermissionHandle = null;
-  let currentLocationDisabled = !!query.locationDisabled;
+  const locationSharingDisabledKey = "cones-location-sharing-disabled-v1";
+  let currentLocationDisabled = localStorage.getItem(locationSharingDisabledKey) === "1" || !!query.locationDisabled;
   const CLOSE_CONNECTION_DISTANCE_METERS = 1000;
   const CLOSE_CONNECTION_PLOTTED_DISTANCE_METERS = 250;
   const CLOSE_CONNECTION_RENDER_OFFSET_METERS = 18000;
@@ -307,7 +307,7 @@
     if (!globe) {
       return;
     }
-    globe.labelsData(visible ? renderedLabels : []);
+    globe.labelsData(!currentLocationDisabled && visible ? renderedLabels : []);
   }
 
   function renderConnections(payload) {
@@ -352,7 +352,7 @@
       return;
     }
     if (locationDisabled) {
-      ui.setStatusMessage("Location is disabled in the browser for this device, so worldwide ESP connections cannot be displayed.");
+      ui.setStatusMessage("Location is not allowed in ESP GYM on this browser/device, so worldwide ESP connections are hidden.");
       ui.setOverlayMessage("Enable location for ESP GYM to view worldwide ESP connections.");
       globe.arcsData([]);
       globe.pointsData([]);
@@ -446,81 +446,30 @@
     onLabelsToggle: (visible) => applyLabelsVisible(visible)
   });
 
-  async function detectBrowserLocationDisabled() {
-    try {
-      if (!navigator?.permissions?.query) {
-        return null;
-      }
-      const status = await navigator.permissions.query({ name: "geolocation" });
-      const state = String(status?.state || "").trim().toLowerCase();
-      if (state === "denied") {
-        return true;
-      }
-      if (state === "granted") {
-        return false;
-      }
-      return null;
-    } catch (error) {
-      return null;
-    }
+  // Stored routes and manually selected locations do not require live GPS.
+  // Only the app's explicit privacy preference controls whether to show them.
+  function refreshLocationPrivacyPreference() {
+    currentLocationDisabled = localStorage.getItem(locationSharingDisabledKey) === "1";
+    applyLocationDisabledState(currentLocationDisabled, lastPayload);
   }
-
-  async function setupLocationPermissionWatcher() {
-    try {
-      if (!navigator?.permissions?.query) {
-        return;
-      }
-      const status = await navigator.permissions.query({ name: "geolocation" });
-      globeLocationPermissionHandle = status;
-      status.onchange = () => {
-        window.setTimeout(() => {
-          void detectBrowserLocationDisabled().then((detected) => {
-            if (detected !== null) {
-              currentLocationDisabled = !!detected;
-              applyLocationDisabledState(currentLocationDisabled, lastPayload);
-            }
-          });
-        }, 250);
-      };
-    } catch (error) {
-      // Ignore permission watcher setup failures.
-    }
-  }
-
-  function warmupGlobeLocationIndicator() {
-    try {
-      if (!navigator?.geolocation) {
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          // Keep the browser location-state icon visible while the globe page is open.
-        },
-        () => {
-          // Denied or unavailable is expected in some cases.
-        },
-        {
-          enableHighAccuracy: false,
-          maximumAge: 300000,
-          timeout: 5000
-        }
-      );
-    } catch (error) {
-      // Ignore non-fatal warmup failures.
-    }
-  }
+  window.addEventListener("storage", (event) => {
+    if (event.key === locationSharingDisabledKey || event.key === null) refreshLocationPrivacyPreference();
+  });
+  window.addEventListener("pageshow", refreshLocationPrivacyPreference);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshLocationPrivacyPreference();
+  });
 
   try {
     if (!query.receiverId || !query.senderId) {
       throw new Error("A receiver-sender pair was not provided to the globe module.");
     }
     initializeViewer();
-    warmupGlobeLocationIndicator();
     const payload = await dataApi.fetchLocationVisualizationData(query);
+    lastPayload = payload;
     renderPairLabel(payload.pair);
     ui.renderSummary(payload, dataApi.formatDateOnlyUtc);
     ui.renderLegend(payload.legend);
-    await setupLocationPermissionWatcher();
     applyLocationDisabledState(currentLocationDisabled, payload);
   } catch (error) {
     renderPairLabel({

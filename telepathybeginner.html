@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="ESP GYM">
   <meta name="twitter:description" content="A free training app for improving ESP sensitivity.">
   <meta name="twitter:image" content="https://espgym.com/esp-pro-og-preview.png">
-  <meta name="espgym-build-version" content="20261012e">
+  <meta name="espgym-build-version" content="20261013a">
   <script>
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -56,19 +56,19 @@
       visibility: hidden;
     }
   </style>
-  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261012e">
+  <link rel="manifest" href="telepathybeginner.webmanifest?v=20261013a">
   <meta name="theme-color" content="#050505">
-  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261012e">
-  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261012e">
-  <link rel="shortcut icon" href="tb-icon-192.png?v=20261012e">
+  <link rel="icon" type="image/png" sizes="32x32" href="tb-icon-192.png?v=20261013a">
+  <link rel="icon" type="image/png" sizes="192x192" href="tb-icon-192.png?v=20261013a">
+  <link rel="shortcut icon" href="tb-icon-192.png?v=20261013a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261012e">
-  <link rel="stylesheet" href="telepathybeginner.css?v=20261012e">
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261012e">
+  <link rel="apple-touch-icon" href="tb-icon-192.png?v=20261013a">
+  <link rel="stylesheet" href="telepathybeginner.css?v=20261013a">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=20261013a">
   <script>
     (function () {
-      var buildVersion = "20261012e";
+      var buildVersion = "20261013a";
       try {
         var currentUrl = new URL(window.location.href);
         if (currentUrl.searchParams.get("v") !== buildVersion) {
@@ -629,10 +629,11 @@
           <div class="location-picker-top-row">
             <h2 class="about-section-title location-picker-title" id="locationPickerTitle">Review Device Location</h2>
             <div class="contact-actions location-picker-top-actions">
+              <button class="beginner-top-button beginner-top-pill location-picker-action-button location-picker-back" type="button" data-location-picker-cancel>BACK</button>
               <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-save disabled>SAVE ADJUSTED LOCATION</button>
-              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-use-browser disabled>USE BROWSER LOCATION</button>
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-use-browser>USE BROWSER LOCATION</button>
               <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-refresh-browser>REFRESH BROWSER LOCATION</button>
-              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-cancel>BACK</button>
+              <button class="options-button contact-action-button location-picker-action-button" type="button" data-location-picker-disallow>DO NOT ALLOW LOCATION</button>
             </div>
           </div>
           <div class="location-picker-status" data-location-picker-status>Loading map...</div>
@@ -658,7 +659,7 @@
             <button class="beginner-top-button beginner-top-pill beginner-top-button-back beginner-top-button-right" type="button" data-close-options>
               BACK
             </button>
-            <span class="beginner-top-version" data-app-version-label>ver. 20261012e</span>
+            <span class="beginner-top-version" data-app-version-label>ver. 20261013a</span>
           </div>
         </div>
 
@@ -2019,11 +2020,11 @@
 
               <section class="feature-setup-item" data-feature-setup-item="location">
                 <div class="feature-setup-copy">
-                  <h2 class="feature-setup-title">Allow Location</h2>
-                  <p class="feature-setup-text">Location allows distance to be computed between you and any partner and supports telepathic paths on the GLOBE page.</p>
-                  <div class="feature-setup-status" data-feature-setup-location-status>Checking location status...</div>
+                  <h2 class="feature-setup-title">Location</h2>
+                  <p class="feature-setup-text">Your location is only used when you select telepathy with a partner. Setting your location allows the distance between you and your partner to be computed. Distance then shows up in reports and on the GLOBE page.</p>
+                  <div class="feature-setup-status" data-feature-setup-location-status>Location is not currently allowed.</div>
                 </div>
-                <button class="options-button feature-setup-action" type="button" data-feature-setup-location-action>SET LOCATION</button>
+                <button class="options-button feature-setup-action" type="button" data-feature-setup-location-action>LOCATION</button>
               </section>
 
               <section class="feature-setup-item" data-feature-setup-item="partner-confirmation">
@@ -2623,8 +2624,8 @@
               <button class="options-button settings-view-save" type="button" data-admin-clear-localstorage title="This is a this-device-only reset. It clears only this specific browser's remembered identity, saved partner names, local trial/cache state, questionnaires, session data, and app caches.">Clear localStorage</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders>Run Annual Reminder Scan</button>
               <button class="options-button settings-view-save" type="button" data-admin-run-reminders-test>Send Annual Reminder Test</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261012e'">Old HELP</button>
-              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261012e'">Send Email</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='./BeginnerUserManual_preserved_20260625.html?v=20261013a'">Old HELP</button>
+              <button class="options-button settings-view-save" type="button" onclick="window.location.href='telepathybeginner-email-test.html?v=20261013a'">Send Email</button>
             </div>
 
               <pre class="report-definition-debug" data-admin-disk-usage hidden></pre>
@@ -3348,10 +3349,10 @@
     });
     window.addEventListener("pageshow", scrollToTopOnLaunch);
   </script>
-<script src="vendor/leaflet/leaflet.js?v=20261012e"></script>
+<script src="vendor/leaflet/leaflet.js?v=20261013a"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
-<script src="target-selection.js?v=20261012e"></script>
-<script src="telepathybeginner.js?v=20261012e"></script>
+<script src="target-selection.js?v=20261013a"></script>
+<script src="telepathybeginner.js?v=20261013a"></script>
 </body>
 </html>
 

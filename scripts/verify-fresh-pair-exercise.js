@@ -36,6 +36,13 @@ const base = "http://127.0.0.1:48894";
       for (const role of ["receiver", "sender"]) {
         const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
         await context.addInitScript(() => localStorage.setItem("cones-exercise-order-pair-initialization-v1", "1"));
+        await context.addInitScript(() => {
+          navigator.geolocation.getCurrentPosition = (_success, failure) => {
+            sessionStorage.setItem('fixture-location-requests', String(Number(sessionStorage.getItem('fixture-location-requests') || 0) + 1));
+            failure?.({ code: 1, message: 'Location has not been enabled for this test.' });
+          };
+          navigator.geolocation.watchPosition = () => { throw new Error('Automatic location watch is not allowed'); };
+        });
         await context.route("**/*", route => new URL(route.request().url()).origin === base ? route.continue() : route.abort());
         const page = await context.newPage();
         await page.goto(`${base}/telepathybeginner.html?open=visitor-launcher`, { waitUntil: "domcontentloaded" });
@@ -172,6 +179,8 @@ const base = "http://127.0.0.1:48894";
       if (senderExercise === exercise) assert.deepEqual(launcherFlashes, { sender: [], receiver: [] }, "Neither expanded launcher panel may flash after the waiting screen");
       for (const role of ["sender", "receiver"]) {
         const page = devices[role].page;
+        assert.equal(await page.evaluate(() => Number(sessionStorage.getItem('fixture-location-requests') || 0)), 0,
+          `${role}: startup, name claim, pairing and GO must not request location`);
         const waitingBack = page.locator('#waitingBackButton');
         await waitingBack.waitFor({ state: "visible" });
         const box = await waitingBack.boundingBox();

@@ -1,6 +1,7 @@
 (() => {
   try {
   const launcherKey = "cones-beginner-launcher-v2";
+  const locationSharingDisabledKey = "cones-location-sharing-disabled-v1";
   const recognizedIdentityKey = "cones-recognized-identity-v1";
   const browserIdentityAuthorizationKey = "cones-browser-identity-authorizations-v1";
   const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
@@ -12,7 +13,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261012e";
+  const launcherBuildVersion = "20261013a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -1203,6 +1204,7 @@
   const locationPickerUseBrowserButton = document.querySelector("[data-location-picker-use-browser]");
   const locationPickerRefreshBrowserButton = document.querySelector("[data-location-picker-refresh-browser]");
   const locationPickerCancelButton = document.querySelector("[data-location-picker-cancel]");
+  const locationPickerDisallowButton = document.querySelector("[data-location-picker-disallow]");
   const locationPickerZoomInButton = document.querySelector("[data-location-picker-zoom-in]");
   const locationPickerZoomOutButton = document.querySelector("[data-location-picker-zoom-out]");
   locationPickerOverlay?.classList.add("beginner-view-hidden");
@@ -1234,8 +1236,6 @@
   let activeNameManagerOverlay = null;
   let activeNameManagerReturnRole = "";
   let activeToolsRole = "";
-  let locationRequestInFlight = false;
-  let lastLocationAttemptAt = 0;
   let locationPickerLeafletPromise = null;
   let locationPickerMap = null;
   let locationPickerMarker = null;
@@ -1247,7 +1247,7 @@
   let locationPickerPromptSourceTimestamp = 0;
   let locationPickerPendingContinuation = null;
   let locationPermissionStatusHandle = null;
-  let locationIndicatorWarmupTried = false;
+  let locationPickerRequestId = 0;
   let activePairDifficultyCode = "";
   let activeHandleRole = "";
   let uniqueNameRequiredRole = "";
@@ -5366,7 +5366,7 @@ ${calmPracticeMessage}`;
   }
 
   function isLocationPrivacyDisabled(state = readLauncherState()) {
-    return String(state?.locationPermission || "").trim().toLowerCase() === "denied";
+    return localStorage.getItem(locationSharingDisabledKey) === "1";
   }
 
   function buildStandaloneModuleUrl(modulePath, params = {}) {
@@ -10889,45 +10889,10 @@ ${calmPracticeMessage}`;
 
   function getLocationFeatureSummary(state = readLauncherState()) {
     const permission = String(state?.locationPermission || "").trim().toLowerCase();
-    const savedLocation = getSavedDeviceLocation(state);
-    if (permission === "denied") {
-      return {
-        ready: false,
-        statusText: "Blocked in the browser or PWA settings.",
-        actionLabel: "LOCATION"
-      };
-    }
-    if (savedLocation?.source === "manual-map" && (permission === "granted" || permission === "manual")) {
-      return {
-        ready: true,
-        statusText: "A manually adjusted location is set on this device.",
-        actionLabel: "LOCATION"
-      };
-    }
-    if (savedLocation) {
-      return {
-        ready: true,
-        statusText: "A browser-estimated location is available on this device.",
-        actionLabel: "LOCATION"
-      };
-    }
-    if (permission === "granted" || permission === "manual") {
-      return {
-        ready: false,
-        statusText: "Location permission is available, but no device location has been stored yet.",
-        actionLabel: "LOCATION"
-      };
-    }
-    if (permission === "error") {
-      return {
-        ready: false,
-        statusText: "Browser location was not available yet. You can still review location options manually.",
-        actionLabel: "LOCATION"
-      };
-    }
+    const allowed = localStorage.getItem(locationSharingDisabledKey) !== "1" && (permission === "granted" || permission === "manual");
     return {
-      ready: false,
-      statusText: "Location is not set up yet.",
+      ready: allowed && !!getSavedDeviceLocation(state),
+      statusText: allowed ? "Location is currently allowed." : "Location is not currently allowed.",
       actionLabel: "LOCATION"
     };
   }
@@ -11929,6 +11894,40 @@ ${calmPracticeMessage}`;
     window.setTimeout(() => {
       window.scrollTo({ top: returnScrollY, left: 0, behavior: "auto" });
     }, 0);
+  }
+
+  function installBrowserCompatibilityNotice() {
+    const ua = navigator.userAgent || "";
+    const platform = String(navigator.userAgentData?.platform || navigator.platform || "");
+    const brands = navigator.userAgentData?.brands || [];
+    const isAppleMobile = /iphone|ipad/i.test(ua)
+      || (/mac/i.test(platform) && Number(navigator.maxTouchPoints || 0) > 1);
+    const isWindows = !isAppleMobile && /windows|win32|win64/i.test(`${ua} ${platform}`);
+    const isAndroid = /android/i.test(ua);
+    const otherBrowser = /firefox|fxios|crios|edgios|edga|opr\/|opera|opios|samsungbrowser|ucbrowser|vivaldi|duckduckgo|yabrowser/i.test(ua);
+    const isEdge = !otherBrowser && (/edg\//i.test(ua) || brands.some(entry => entry.brand === "Microsoft Edge"));
+    const isChrome = !otherBrowser && !isEdge && (/chrome\//i.test(ua) || brands.some(entry => entry.brand === "Google Chrome"));
+    const isSafari = !otherBrowser && /safari/i.test(ua) && /apple/i.test(navigator.vendor || "");
+    const tested = (isWindows && (isChrome || isEdge))
+      || (isAppleMobile && isSafari) || (isAndroid && isChrome);
+    if (tested || !temporaryHomePageView) return;
+
+    const noticeKey = "cones-browser-compatibility-notice-v1";
+    let shown = false;
+    try { shown = sessionStorage.getItem(noticeKey) === "1"; } catch (_) { /* Use the in-page fallback. */ }
+    if (shown) return;
+    const observer = new MutationObserver(checkEntry);
+    function checkEntry() {
+      if (shown || !temporaryHomePageView.classList.contains("beginner-view-hidden")) return;
+      shown = true;
+      observer.disconnect();
+      try { sessionStorage.setItem(noticeKey, "1"); } catch (_) { /* Still show only once on this page. */ }
+      window.alert("ESP GYM has been tested with Chrome and Microsoft Edge on Windows PCs, Safari on iPhones and iPads, and Chrome on Android devices. Please use one of these tested browser/device combinations if available. Other combinations may not work fully correctly.");
+    }
+    // Watch actual navigation, including footer links and guided-tour entry,
+    // rather than duplicating the notice across individual button handlers.
+    observer.observe(temporaryHomePageView, { attributes: true, attributeFilter: ["class"] });
+    checkEntry();
   }
 
   function detectInstallEnvironment() {
@@ -22058,6 +22057,7 @@ ${calmPracticeMessage}`;
   }
 
   function getSavedDeviceLocation(state = readLauncherState()) {
+    if (localStorage.getItem(locationSharingDisabledKey) === "1") return null;
     if (String(state?.locationPermission || "").trim().toLowerCase() === "denied") {
       return null;
     }
@@ -22117,45 +22117,12 @@ ${calmPracticeMessage}`;
   async function prepareLocationForGo(role = "", options = {}) {
     // Location review is an optional Setup Website Features task. A normal GO
     // must never interrupt either role with a map or a browser-permission prompt.
-    const state = await syncBrowserLocationPermission();
+    await syncBrowserLocationPermission();
     renderLocationStatus();
-    if (state.locationPermission === "granted" || state.locationPermission === "manual") {
-      void requestDeviceLocationIfNeeded(false);
-    }
     return true;
   }
 
-  function shouldRequestLocation(state = readLauncherState()) {
-    if (!navigator.geolocation || locationRequestInFlight) {
-      return false;
-    }
-
-    if (state.locationPermission === "denied") {
-      return false;
-    }
-
-    const savedLocation = getSavedDeviceLocation(state);
-    if (savedLocation?.source === "manual-map") {
-      return false;
-    }
-
-    const timestamp = Number(savedLocation?.timestamp || 0);
-    if (!timestamp) {
-      return true;
-    }
-
-    const ageMs = Date.now() - timestamp;
-    return ageMs > 6 * 60 * 60 * 1000;
-  }
-
   function getLocationPresentation(state = readLauncherState()) {
-    if (locationRequestInFlight) {
-      return {
-        text: "Device location: checking...",
-        showLocationButton: true
-      };
-    }
-
     if (state.locationPermission === "denied") {
       return {
         text: "Device location: disabled in the browser. Location will not be used by this app on this device.",
@@ -22178,7 +22145,7 @@ ${calmPracticeMessage}`;
       };
     }
 
-    if (state.locationPermission === "error" && lastLocationAttemptAt) {
+    if (state.locationPermission === "error") {
       return {
         text: "Device location: unavailable right now. Please try again.",
         showLocationButton: true
@@ -22194,59 +22161,8 @@ ${calmPracticeMessage}`;
   function renderLocationStatus() {
     exactLocationButtons.forEach((exactButton) => {
       exactButton.hidden = false;
-      exactButton.disabled = locationRequestInFlight;
+      exactButton.disabled = false;
     });
-  }
-
-  async function requestDeviceLocationIfNeeded(force = false) {
-    const state = await syncBrowserLocationPermission();
-    if (state.locationPermission === "denied") {
-      renderLocationStatus();
-      return;
-    }
-    if (!force && !shouldRequestLocation(state)) {
-      return;
-    }
-
-    lastLocationAttemptAt = Date.now();
-    locationRequestInFlight = true;
-    renderLocationStatus();
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const latest = readLauncherState();
-        latest.deviceLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: Date.now(),
-          source: "device-geolocation"
-        };
-        latest.locationPermission = "granted";
-        if (!locationNeedsFineTune(latest.deviceLocation)) {
-          latest.locationFineTuneDismissedForTimestamp = 0;
-        }
-        writeLauncherState(latest);
-        locationRequestInFlight = false;
-        renderLocationStatus();
-      },
-      (error) => {
-        const latest = readLauncherState();
-        if (error?.code === 1) {
-          clearLauncherStoredLocation(latest, "denied");
-        } else {
-          latest.locationPermission = "error";
-        }
-        writeLauncherState(latest);
-        locationRequestInFlight = false;
-        renderLocationStatus();
-        clearLocationAutoPromptTimer();
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 300000,
-        timeout: 12000
-      }
-    );
   }
 
   function ensureLeafletResources() {
@@ -22310,13 +22226,10 @@ ${calmPracticeMessage}`;
         String(locationPickerSelection.source || "").trim() !== "manual-map";
     }
     if (locationPickerUseBrowserButton) {
-      locationPickerUseBrowserButton.disabled = !!disabled || !locationPickerBrowserEstimate;
+      locationPickerUseBrowserButton.disabled = !!disabled || !navigator.geolocation;
     }
     if (locationPickerRefreshBrowserButton) {
       locationPickerRefreshBrowserButton.disabled = !!disabled;
-    }
-    if (locationPickerCancelButton) {
-      locationPickerCancelButton.disabled = !!disabled;
     }
     if (locationPickerZoomInButton) {
       locationPickerZoomInButton.disabled = !!disabled || !locationPickerMap;
@@ -22432,34 +22345,9 @@ ${calmPracticeMessage}`;
     }, 30);
   }
 
-  async function warmupLocationIndicatorOnLoad() {
-    if (locationIndicatorWarmupTried) {
-      return;
-    }
-    locationIndicatorWarmupTried = true;
-    if (!navigator.geolocation) {
-      return;
-    }
-    try {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          // No-op: this startup probe exists only to let the browser surface location state.
-        },
-        () => {
-          // No-op: denied or unavailable is expected in this experiment.
-        },
-        {
-          enableHighAccuracy: false,
-          maximumAge: 300000,
-          timeout: 5000
-        }
-      );
-    } catch (error) {
-      // Ignore experimental warmup failures.
-    }
-  }
-
   function hideLocationPicker() {
+    document.documentElement.classList.remove("location-picker-open");
+    locationPickerRequestId += 1;
     if (!locationPickerOverlay) {
       return;
     }
@@ -22486,12 +22374,16 @@ ${calmPracticeMessage}`;
     return true;
   }
 
-  function getLocationPermissionBlockedMessage() {
-    return "Location is currently not allowed by the browser for this app on this device. Before your exact location can be set, please allow location in the browser or PWA settings.";
-  }
-
   async function syncBrowserLocationPermission() {
     const state = readLauncherState();
+    // App opt-out remains authoritative even when browser permission is granted.
+    if (localStorage.getItem(locationSharingDisabledKey) === "1") {
+      clearLauncherStoredLocation(state, "denied");
+      writeLauncherState(state);
+      return state;
+    }
+    // A manually selected location does not require browser geolocation access.
+    if (state.locationPermission === "manual" && state.deviceLocation?.source === "manual-map") return state;
     const geolocationAvailable = typeof navigator !== "undefined" && !!navigator.geolocation;
 
     if (!geolocationAvailable) {
@@ -22538,9 +22430,7 @@ ${calmPracticeMessage}`;
         status.onchange = () => {
           void syncBrowserLocationPermission().then((nextState) => {
             renderLocationStatus();
-            if (nextState.locationPermission === "denied") {
-              hideLocationPicker();
-            }
+            if (nextState.locationPermission === "denied") setLocationPickerStatus("Browser location is blocked. You can set a location manually on the map, or change your browser permission to use browser location.");
           });
         };
       }
@@ -22566,14 +22456,8 @@ ${calmPracticeMessage}`;
   }
 
   async function showLocationPicker(role = "", options = {}) {
-    const hiddenWarmup = options.hiddenWarmup === true;
     locationPickerHidesFeatureSetupBackButton = !!options.hideFeatureSetupBackButton;
     const permissionState = await syncBrowserLocationPermission();
-    if (permissionState.locationPermission === "denied" && !hiddenWarmup) {
-      window.alert(getLocationPermissionBlockedMessage());
-      renderLocationStatus();
-      return;
-    }
     if (!locationPickerOverlay || locationPickerOpening) {
       return;
     }
@@ -22585,10 +22469,9 @@ ${calmPracticeMessage}`;
     locationPickerClosing = false;
     setLocationPickerButtonsDisabled(true);
     setLocationPickerStatus("Loading map...");
-    if (!hiddenWarmup) {
-      locationPickerOverlay.classList.remove("beginner-view-hidden");
-      setFeatureSetupBackButtonTemporarilyHidden(locationPickerHidesFeatureSetupBackButton);
-    }
+    locationPickerOverlay.classList.remove("beginner-view-hidden");
+    document.documentElement.classList.add("location-picker-open");
+    setFeatureSetupBackButtonTemporarilyHidden(locationPickerHidesFeatureSetupBackButton);
 
     try {
       await ensureLeafletResources();
@@ -22617,50 +22500,17 @@ ${calmPracticeMessage}`;
           zoom: savedLocation.source === "manual-map" ? 16 : 14
         });
       } else {
+        if (locationPickerMarker) {
+          locationPickerMarker.remove();
+          locationPickerMarker = null;
+        }
         locationPickerMap?.setView([20, 0], 2);
       }
       refreshLocationPickerStatus();
 
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              if (hiddenWarmup) {
-                return;
-              }
-              if (!locationPickerOverlay || locationPickerOverlay.classList.contains("beginner-view-hidden")) {
-                return;
-              }
-            const estimate = {
-              latitude: Number(position.coords.latitude),
-              longitude: Number(position.coords.longitude),
-              accuracy: Number.isFinite(Number(position.coords.accuracy)) ? Number(position.coords.accuracy) : null,
-              timestamp: Date.now(),
-              source: "device-geolocation"
-            };
-            locationPickerBrowserEstimate = estimate;
-            if (!locationPickerSelection) {
-              locationPickerSelection = estimate;
-              updateLocationPickerMarker(locationPickerSelection, { zoom: 15 });
-            } else if (!savedLocation) {
-              locationPickerMap?.setView([estimate.latitude, estimate.longitude], 15);
-            }
-            refreshLocationPickerStatus();
-            },
-            () => {
-              if (hiddenWarmup) {
-                return;
-              }
-              if (!savedLocation) {
-                setLocationPickerStatus("Browser location was unavailable. Drag the marker or click the map to set a location, then save.");
-              }
-          },
-          {
-            enableHighAccuracy: false,
-            maximumAge: 300000,
-            timeout: 8000
-          }
-        );
-      } else if (!savedLocation) {
+      if (permissionState.locationPermission === "denied" && localStorage.getItem(locationSharingDisabledKey) !== "1") {
+        setLocationPickerStatus("Browser location is blocked. You can set a location manually on the map, or change your browser permission to use browser location.");
+      } else if (!navigator.geolocation && !savedLocation) {
         setLocationPickerStatus("Browser location is unavailable on this device. Drag the marker or click the map to set a location, then save.");
       }
     } catch (error) {
@@ -22675,6 +22525,8 @@ ${calmPracticeMessage}`;
       return;
     }
     const latest = readLauncherState();
+    locationPickerRequestId += 1;
+    localStorage.removeItem(locationSharingDisabledKey);
     latest.deviceLocation = {
       latitude: Number(locationPickerSelection.latitude),
       longitude: Number(locationPickerSelection.longitude),
@@ -22693,9 +22545,11 @@ ${calmPracticeMessage}`;
 
   function useBrowserEstimatedLocation() {
     if (!locationPickerBrowserEstimate) {
+      refreshBrowserEstimatedLocation({ useOnSuccess: true });
       return;
     }
     const latest = readLauncherState();
+    localStorage.removeItem(locationSharingDisabledKey);
     latest.deviceLocation = {
       latitude: Number(locationPickerBrowserEstimate.latitude),
       longitude: Number(locationPickerBrowserEstimate.longitude),
@@ -22718,15 +22572,45 @@ ${calmPracticeMessage}`;
     window.alert("BROWSER LOCATION SELECTED");
   }
 
-  function refreshBrowserEstimatedLocation() {
+  function applyLocationOptOutToCurrentTab() {
+    locationPickerRequestId += 1;
+    const latest = clearLauncherStoredLocation(readLauncherState(), "denied");
+    writeLauncherState(latest);
+    ["sender", "receiver", "remote-viewer"].forEach(role => writeRuntimeSettings(role, { device_location: "" }));
+    locationPickerSelection = null;
+    locationPickerBrowserEstimate = null;
+    if (locationPickerMarker) {
+      locationPickerMarker.remove();
+      locationPickerMarker = null;
+    }
+    setLocationPickerButtonsDisabled(false);
+    setLocationPickerStatus("Location is not currently allowed.");
+    if (featureSetupLocationStatus) featureSetupLocationStatus.textContent = "Location is not currently allowed.";
+  }
+
+  function disallowDeviceLocation() {
+    localStorage.setItem(locationSharingDisabledKey, "1");
+    applyLocationOptOutToCurrentTab();
+    window.alert("Location has been set to not allowed.");
+  }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== locationSharingDisabledKey && event.key !== null) return;
+    if (localStorage.getItem(locationSharingDisabledKey) === "1") applyLocationOptOutToCurrentTab();
+    if (featureSetupView && !featureSetupView.classList.contains("beginner-view-hidden")) void refreshFeatureSetupView();
+  });
+
+  function refreshBrowserEstimatedLocation(options = {}) {
     if (!navigator.geolocation) {
       setLocationPickerStatus("Browser location is unavailable on this device. Drag the marker or click the map to set a location, then save.");
       return;
     }
     setLocationPickerButtonsDisabled(true);
     setLocationPickerStatus("Refreshing browser-estimated location...");
+    const requestId = ++locationPickerRequestId;
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (requestId !== locationPickerRequestId || locationPickerOverlay?.classList.contains("beginner-view-hidden")) return;
         locationPickerBrowserEstimate = {
           latitude: Number(position.coords.latitude),
           longitude: Number(position.coords.longitude),
@@ -22739,9 +22623,13 @@ ${calmPracticeMessage}`;
           updateLocationPickerMarker(locationPickerSelection, { zoom: 15 });
         }
         refreshLocationPickerStatus();
+        if (options.useOnSuccess) useBrowserEstimatedLocation();
       },
-      () => {
-        setLocationPickerStatus("Browser location was unavailable. Drag the marker or click the map to set a location, then save.");
+      (error) => {
+        if (requestId !== locationPickerRequestId || locationPickerOverlay?.classList.contains("beginner-view-hidden")) return;
+        setLocationPickerStatus(error?.code === 1
+          ? "Browser location is blocked. You can set a location manually on the map, or change your browser permission to use browser location."
+          : "Browser location was unavailable. Drag the marker or click the map to set a location, then save.");
         setLocationPickerButtonsDisabled(false);
       },
       {
@@ -31724,18 +31612,6 @@ ${calmPracticeMessage}`;
     void refreshDifficultyLabels();
   }
 
-  async function maybePromptInviteeLocationPermission() {
-    const state = await syncBrowserLocationPermission();
-    if (!navigator.geolocation) {
-      return;
-    }
-    if (state.locationPermission === "granted" || state.locationPermission === "manual" || state.locationPermission === "denied") {
-      renderLocationStatus();
-      return;
-    }
-    await requestDeviceLocationIfNeeded(true);
-  }
-
   async function maybePromptInviteeNotificationPermission(identifier) {
     if (!("Notification" in window)) {
       return;
@@ -31773,7 +31649,7 @@ ${calmPracticeMessage}`;
       ? {
           identifier: cleanIdentifier,
           userType: normalizedUserType,
-          requestLocation: true,
+          requestLocation: false,
           requestNotifications: true
         }
       : null;
@@ -35159,6 +35035,7 @@ ${calmPracticeMessage}`;
   locationPickerCancelButton?.addEventListener("click", () => {
     dismissLocationPicker();
   });
+  locationPickerDisallowButton?.addEventListener("click", disallowDeviceLocation);
   locationPickerSaveButton?.addEventListener("click", () => {
     saveExactLocationSelection();
   });
@@ -35184,8 +35061,14 @@ ${calmPracticeMessage}`;
     }
   });
   document.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target.closest("[data-location-picker-save], [data-location-picker-use-browser], [data-location-picker-refresh-browser], [data-location-picker-cancel], [data-open-exact-location]") : null;
+    const target = event.target instanceof Element ? event.target.closest("[data-location-picker-save], [data-location-picker-use-browser], [data-location-picker-refresh-browser], [data-location-picker-cancel], [data-location-picker-disallow], [data-open-exact-location]") : null;
     if (!target) {
+      return;
+    }
+    if (target.hasAttribute("data-location-picker-disallow")) {
+      event.preventDefault();
+      event.stopPropagation();
+      disallowDeviceLocation();
       return;
     }
     if (target.hasAttribute("data-location-picker-save")) {
@@ -38287,6 +38170,7 @@ ${calmPracticeMessage}`;
     if (pendingApplePasskeyRestore && !readRequestedLauncherView()) {
       showTemporaryHomePageView();
     }
+    installBrowserCompatibilityNotice();
     window.setTimeout(() => {
       void refreshDifficultyLabels();
     }, 0);
@@ -38303,9 +38187,6 @@ ${calmPracticeMessage}`;
     window.setTimeout(() => {
       void maybeAutoOpenUnreadMessagesOnStartup();
     }, 700);
-    window.setTimeout(() => {
-      void warmupLocationIndicatorOnLoad();
-    }, 250);
 
   }
 
