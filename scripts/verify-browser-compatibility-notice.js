@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const message = 'ESP GYM has been tested with Chrome and Microsoft Edge on Windows PCs, Safari on iPhones and iPads, and Chrome on Android devices. Please use one of these tested browser/device combinations if available. Other combinations may not work fully correctly.';
+const message = 'ESP GYM has been tested with Chrome and Microsoft Edge on Windows PCs, Safari on iPhones and iPads, and Chrome on Android devices. Please use one of these tested browser/device combinations if available. Other combinations may not fully support all advanced features.';
 const safari = 'AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
 const chrome = 'AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36';
 const cases = [

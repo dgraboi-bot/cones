@@ -13,7 +13,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261013a";
+  const launcherBuildVersion = "20261013b";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -8679,37 +8679,10 @@ ${calmPracticeMessage}`;
   }
 
   function applyExerciseOrderDefaultsMigration() {
-    // Retire the old one-shot pair override without changing a chosen exercise.
+    // Retire legacy migration flags without overwriting a chosen exercise.
     localStorage.removeItem(exerciseOrderPairInitializationKey);
-    if (localStorage.getItem(exerciseOrderDefaultsMigrationKey) === "1") {
-      return false;
-    }
-    const savedState = readLauncherState();
-    const hasSavedExercise = Object.keys(savedState.roleDifficultyLevels || {}).length > 0 ||
-      ["sender", "receiver", "remote-viewer"].some((role) => {
-        const settings = readRuntimeSettings(role);
-        return !!settings.difficulty_level;
-      });
-    if (!hasSavedExercise) {
-      localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
-      return false;
-    }
-    const state = readLauncherState();
-    state.difficultyLevel = "1";
-    state.roleDifficultyLevels = {
-      ...(state.roleDifficultyLevels || {}),
-      sender: "1",
-      receiver: "1",
-      "remote-viewer": "1"
-    };
-    // Robot practice should start at the first exercise after the reorder too.
-    state.robotSimulationDifficultyLevels = {};
-    writeLauncherState(state);
-    ["sender", "receiver", "remote-viewer"].forEach((role) => {
-      writeRuntimeSettings(role, { difficulty_level: "1" });
-    });
     localStorage.setItem(exerciseOrderDefaultsMigrationKey, "1");
-    return true;
+    return false;
   }
 
   function clearRuntimeSettings(role) {
@@ -11922,7 +11895,7 @@ ${calmPracticeMessage}`;
       shown = true;
       observer.disconnect();
       try { sessionStorage.setItem(noticeKey, "1"); } catch (_) { /* Still show only once on this page. */ }
-      window.alert("ESP GYM has been tested with Chrome and Microsoft Edge on Windows PCs, Safari on iPhones and iPads, and Chrome on Android devices. Please use one of these tested browser/device combinations if available. Other combinations may not work fully correctly.");
+      window.alert("ESP GYM has been tested with Chrome and Microsoft Edge on Windows PCs, Safari on iPhones and iPads, and Chrome on Android devices. Please use one of these tested browser/device combinations if available. Other combinations may not fully support all advanced features.");
     }
     // Watch actual navigation, including footer links and guided-tour entry,
     // rather than duplicating the notice across individual button handlers.
