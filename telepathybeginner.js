@@ -18,7 +18,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261013d";
+  const launcherBuildVersion = "20261013e";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -22096,7 +22096,7 @@ ${calmPracticeMessage}`;
     return false;
   }
 
-  async function acquireGrantedHumanTelepathyLocation(state) {
+  async function acquireGrantedBrowserLocation(state) {
     if (isLocationPrivacyDisabled() || state.locationPermission !== "granted"
       || locationPermissionStatusHandle?.state !== "granted" || !navigator.geolocation) return;
     const requestId = locationPickerRequestId;
@@ -22145,7 +22145,7 @@ ${calmPracticeMessage}`;
     if (humanLocationNoticeOpen) return false;
     if (!isLocationPrivacyDisabled()) {
       humanLocationNoticeOpen = true;
-      try { await acquireGrantedHumanTelepathyLocation(permissionState); }
+      try { await acquireGrantedBrowserLocation(permissionState); }
       finally { humanLocationNoticeOpen = false; }
       return true;
     }
@@ -22651,6 +22651,7 @@ ${calmPracticeMessage}`;
       return;
     }
     locationPickerOpening = true;
+    const openingRequestId = ++locationPickerRequestId;
     locationPickerReturnRole = role;
     locationPickerPromptSourceTimestamp = Number(options.sourceTimestamp || 0);
     locationPickerSelection = null;
@@ -22667,9 +22668,20 @@ ${calmPracticeMessage}`;
 
     try {
       await ensureLeafletResources();
+      if (openingRequestId !== locationPickerRequestId) return;
       initializeLocationPickerMap();
       setLocationPickerButtonsDisabled(false);
 
+      if (!getSavedDeviceLocation() && !isLocationPrivacyDisabled() && permissionState.locationPermission === "granted") {
+        locationPickerMap?.setView([20, 0], 2);
+        setLocationPickerStatus("Getting your browser's location estimate...");
+        await acquireGrantedBrowserLocation(permissionState);
+        if (openingRequestId !== locationPickerRequestId) return;
+        if (locationPickerSelection?.source === "manual-map") {
+          refreshLocationPickerStatus();
+          return;
+        }
+      }
       const savedLocation = getSavedDeviceLocation();
       if (savedLocation) {
         if (savedLocation.source !== "manual-map") {
@@ -22708,7 +22720,7 @@ ${calmPracticeMessage}`;
     } catch (error) {
       setLocationPickerStatus("Unable to load the map right now. Please check your connection and try again.");
     } finally {
-      locationPickerOpening = false;
+      if (openingRequestId === locationPickerRequestId) locationPickerOpening = false;
     }
   }
 

@@ -68,8 +68,11 @@ const path = require('node:path');
         assert.equal(await page.locator('[data-feature-setup-item="location"] button').count(), 1, 'Reuse the existing button, without adding another');
         await button.click();
         await page.locator('[data-location-picker-overlay]').waitFor({ state: 'visible' });
-        await page.waitForFunction(() => document.querySelector('[data-location-picker-status]')?.textContent !== 'Loading map...');
-        assert.equal(await requests(), 0, 'Opening LOCATION must let the user choose before requesting access');
+        await page.waitForFunction(() => {
+          const text = document.querySelector('[data-location-picker-status]')?.textContent;
+          return text && text !== 'Loading map...' && !text.startsWith('Getting your browser');
+        });
+        assert.equal(await requests(), permission === 'granted' ? 1 : 0, 'Only an existing grant permits automatic acquisition when opening LOCATION');
         assert.ok(!alerts.some(text => text.includes('not allowed by the browser')), 'No blocking browser-settings alert');
         const layout = await page.evaluate(() => {
           const overlay = document.querySelector('[data-location-picker-overlay]');
