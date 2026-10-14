@@ -168,6 +168,9 @@ async function main() {
     if (freshStart.status !== 200 || !freshStart.body.ok) {
       throw new Error(`Fresh Start user reset failed: ${JSON.stringify(freshStart.body)}`);
     }
+    if (!freshStart.body.fresh_start_summary || freshStart.body.fresh_start_summary.preserve_users !== false) {
+      throw new Error('Fresh Start must return its cleanup summary so the browser can finish local cleanup.');
+    }
     const resetState = JSON.parse(await readFile(statePath, "utf8"));
     for (const bucket of [
       "passkey_credentials",

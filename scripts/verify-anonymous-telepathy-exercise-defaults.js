@@ -104,7 +104,7 @@ async function main() {
           page.once("dialog", (dialog) => { resetMessage = dialog.message(); return dialog.accept(); });
           await reset.click();
           await page.waitForURL((url) => url.searchParams.get("open") === "landing");
-          assert.equal(resetMessage, "Are you sure? This removes all ESP GYM information stored with this browser on this device. Your unique name, saved reports, and other server data will not be deleted.");
+          assert.equal(resetMessage, "Are you sure? This removes all ESP GYM information stored with this browser on this device, except a tiny recovery record. Your unique name, saved reports, and other server data will not be deleted.");
           await page.locator('[data-view="temporary-home-page"]').waitFor({ state: "visible" });
           assert.equal(await page.evaluate(() => localStorage.getItem("reset-test-marker")), null);
           assert.equal(await page.evaluate(() => localStorage.getItem("cones-human-location-notice-v1")), null, 'RESET clears the one-time location notice');

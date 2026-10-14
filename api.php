@@ -12199,6 +12199,37 @@ prune_expiring_temp_simulation_records(
     (bool) ($state['debug_enabled'] ?? false)
 );
 
+if ($action === 'recover_reset_identity') {
+    try {
+        require_allowed_keys($input, ['action', 'identifier', 'owner_authorization_token'], 'request');
+        $identifier = validate_participant_identifier_string($input['identifier'] ?? '', 'identifier', true);
+        $status = get_identifier_status($state, $identifier);
+        if (!formal_identifier_exists($state, $identifier) || empty($status['uses_handle'])) {
+            throw new RuntimeException('This user name is no longer available for recovery.');
+        }
+        $token = validate_browser_identity_authorization_token($input['owner_authorization_token'] ?? '');
+        require_browser_identity_authorization($state, $identifier, $token, $nowMs);
+    } catch (Throwable $exception) {
+        fail_request($handle, $nowMs, 'This browser cannot securely recover that user name. Please use email recovery if available.', 403);
+    }
+    $identifier = (string) $status['preferred_identifier'];
+    $response = [
+        'ok' => true,
+        'unique_handle' => ['handle' => $identifier],
+        'identifier_status' => $status,
+        'user_type' => get_user_type_for_identifier($state, $identifier),
+        'browser_identity_authorization' => ['identifier' => $identifier, 'token' => $token]
+    ];
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($state, JSON_PRETTY_PRINT));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    echo json_encode($response);
+    exit;
+}
+
 if ($action === 'get_pair_location_status') {
     try {
         require_allowed_keys($input, ['action', 'session_code', 'role', 'own_identifier', 'partner_identifier'], 'request');
@@ -15513,7 +15544,7 @@ if ($action === 'fresh_start' && $hasAdminAccess) {
         ], JSON_UNESCAPED_SLASHES)
     );
 
-    $response['fresh_start_summary'] = [
+    $freshStartSummary = [
         'preserve_users' => $preserveUsers,
         'preserve_invitees' => $preserveInvitees,
         'preserve_pairs' => $preservePairs,
@@ -16069,6 +16100,10 @@ $response = [
         'round' => $session['round']
     ]
 ];
+
+if ($action === 'fresh_start' && isset($freshStartSummary)) {
+    $response['fresh_start_summary'] = $freshStartSummary;
+}
 
 if (is_array($pairDifficultyResponseMeta)) {
     $response['pair_difficulty_meta'] = $pairDifficultyResponseMeta;

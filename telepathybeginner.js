@@ -9,6 +9,7 @@
   let humanLocationNoticeOpen = false;
   const recognizedIdentityKey = "cones-recognized-identity-v1";
   const browserIdentityAuthorizationKey = "cones-browser-identity-authorizations-v1";
+  const resetIdentityRecoveryKey = "cones-reset-identity-recovery-v1";
   const freshStartAnonymousResetKey = "cones-fresh-start-anonymous-reset-v1";
   const launcherStateWriteLockKey = "cones-launcher-state-write-lock-v1";
   const launcherIdentityTimeoutBypassKey = "cones-launcher-identity-timeout-bypass-v1";
@@ -18,7 +19,7 @@
   const suppressLauncherProfileSavesKey = "cones-suppress-launcher-profile-saves-v1";
   const exerciseOrderDefaultsMigrationKey = "cones-exercise-order-defaults-v1";
   const exerciseOrderPairInitializationKey = "cones-exercise-order-pair-initialization-v1";
-  const launcherBuildVersion = "20261013e";
+  const launcherBuildVersion = "20261014a";
   const htmlDeclaredBuildVersion = String(document.querySelector('meta[name="espgym-build-version"]')?.getAttribute("content") || "").trim();
   function formatPublicDisplayVersion(buildVersion) {
     const text = String(buildVersion || "").trim();
@@ -2218,6 +2219,30 @@ ${calmPracticeMessage}`;
     const authorizations = readBrowserIdentityAuthorizations();
     authorizations[key] = token;
     localStorage.setItem(browserIdentityAuthorizationKey, JSON.stringify(authorizations));
+  }
+
+  function readResetIdentityRecovery() {
+    try {
+      const record = JSON.parse(localStorage.getItem(resetIdentityRecoveryKey) || "null");
+      if (record && isValidUniqueHandle(record.identifier) && /^[a-f0-9]{64}$/i.test(String(record.token || ""))) {
+        return { identifier: String(record.identifier).trim(), token: String(record.token).trim() };
+      }
+    } catch (_) { /* Invalid browser data is never ownership evidence. */ }
+    return null;
+  }
+
+  async function recoverResetIdentity(identifier) {
+    const record = readResetIdentityRecovery();
+    if (!record || normalizeIdentifierForStorage(record.identifier) !== normalizeIdentifierForStorage(identifier)) return null;
+    const response = await fetch("api.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      action: "recover_reset_identity", identifier, owner_authorization_token: record.token
+    }) });
+    if (response.status === 400 || response.status === 403) {
+      localStorage.removeItem(resetIdentityRecoveryKey);
+      return null;
+    }
+    const data = await parseApiResponse(response, "Unable to recover this browser's previous user name. Please try again.");
+    return { claim: data.unique_handle, status: data.identifier_status, browserIdentityAuthorization: data.browser_identity_authorization };
   }
 
   function setLauncherStateWriteLock(active) {
@@ -10071,7 +10096,8 @@ ${calmPracticeMessage}`;
       const returnRole = handleOverlayReturnRole || completedRole;
       const returnScrollY = Math.max(0, Number(window.scrollY ?? window.pageYOffset ?? 0) || 0);
       const postClaimFlow = featureSetupPendingHandleFlow;
-      if (isRemoteViewerRole && clairvoyanceEmailAuthorizedClaimActive) {
+      const recoveredResult = clairvoyanceEmailAuthorizedClaimActive ? null : await recoverResetIdentity(proposedHandle);
+      if (!recoveredResult && isRemoteViewerRole && clairvoyanceEmailAuthorizedClaimActive) {
         clairvoyanceUniqueNameClaimDraft = proposedHandle;
         let proposedStatus = null;
         try {
@@ -10116,7 +10142,7 @@ ${calmPracticeMessage}`;
         });
         return;
       }
-      if (!firstClaimMode && currentIdentifier && normalizeIdentifierForStorage(currentIdentifier) !== normalizeIdentifierForStorage(proposedHandle)) {
+      if (!recoveredResult && !firstClaimMode && currentIdentifier && normalizeIdentifierForStorage(currentIdentifier) !== normalizeIdentifierForStorage(proposedHandle)) {
         const currentStatus = await fetchIdentifierStatus(currentIdentifier);
         if (currentStatus?.formal_identity_exists) {
           activeHandleRole = "";
@@ -10143,7 +10169,7 @@ ${calmPracticeMessage}`;
       }
       // Partner verification is optional. Existing-name recovery still requires
       // the owner's previously configured email authentication.
-      if (isRemoteViewerRole || firstClaimMode || detectMobileBrowser().isIOS) {
+      if (!recoveredResult && (isRemoteViewerRole || firstClaimMode || detectMobileBrowser().isIOS)) {
         let proposedStatus = null;
         try {
           proposedStatus = await fetchIdentifierStatus(proposedHandle);
@@ -10169,7 +10195,7 @@ ${calmPracticeMessage}`;
           return;
         }
       }
-      const result = await claimUniqueHandle(currentIdentifier, proposedHandle);
+      const result = recoveredResult || await claimUniqueHandle(currentIdentifier, proposedHandle);
       const acceptedHandle = String(result?.claim?.handle || proposedHandle).trim();
       rememberBrowserIdentityAuthorization(result?.browserIdentityAuthorization);
       if (result?.status) {
@@ -10219,6 +10245,7 @@ ${calmPracticeMessage}`;
         syncRemoteViewerExperienceControls(nextIdentityState);
       }
       void refreshMainUserType();
+      if (recoveredResult) localStorage.removeItem(resetIdentityRecoveryKey);
       if (handleStatus) {
         handleStatus.textContent = acceptedHandle
           ? `Unique name accepted: ${acceptedHandle}`
@@ -29716,6 +29743,7 @@ ${calmPracticeMessage}`;
         localStorage.clear();
         sessionStorage.clear();
       }
+      localStorage.removeItem(resetIdentityRecoveryKey);
       writeDeviceTestNotice("");
       clearDeviceTestRestoreSnapshot();
       setLauncherProfileSaveSuppression(!preserveUsers, true);
@@ -29860,11 +29888,15 @@ ${calmPracticeMessage}`;
   }
 
   async function completeDeviceResetToAnonymousVisitor({ preserveRemoteSetup = false } = {}) {
+    const identity = getCanonicalRecognizedIdentity(readLauncherState());
+    const token = identity ? getBrowserIdentityAuthorizationToken(identity) : "";
+    const recovery = identity ? (token ? { identifier: identity, token } : null) : readResetIdentityRecovery();
     const savedRemoteSetup = readRemoteDisplaySetup();
     const remoteSetup = preserveRemoteSetup && hasCompleteRemoteDisplaySetup(savedRemoteSetup)
       ? { ...savedRemoteSetup }
       : null;
     await clearAppLocalStorageArtifacts();
+    if (recovery) localStorage.setItem(resetIdentityRecoveryKey, JSON.stringify(recovery));
     const resetState = readLauncherState();
     resetState.entryMode = "visitor";
     resetState.deviceLocation = null;
@@ -29889,7 +29921,7 @@ ${calmPracticeMessage}`;
     }
 
     if (!window.confirm(
-      "Are you sure? This removes all ESP GYM information stored with this browser on this device. Your unique name, saved reports, and other server data will not be deleted."
+      "Are you sure? This removes all ESP GYM information stored with this browser on this device, except a tiny recovery record. Your unique name, saved reports, and other server data will not be deleted."
     )) {
       return;
     }
